@@ -29,6 +29,8 @@ import AnesthesiaFlags from './components/sections/AnesthesiaFlags';
 import Appeals from './components/sections/Appeals';
 import SurgicalPlanning from './components/sections/SurgicalPlanning';
 import Insurance from './components/sections/Insurance';
+import DrugInfo from './components/sections/DrugInfo';
+import ProviderFinder from './components/sections/ProviderFinder';
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -115,6 +117,9 @@ export default function App() {
       case 'appeals':     return <Appeals {...shared} />;
       case 'surgical':    return <SurgicalPlanning {...shared} />;
       case 'insurance':   return <Insurance {...shared} />;
+      // API-powered lookup sections
+      case 'drug_info':   return <DrugInfo data={data} />;
+      case 'find_provider': return <ProviderFinder addItem={addItem} updateSettings={updateSettings} data={data} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
     }
   };

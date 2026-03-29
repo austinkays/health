@@ -3,6 +3,7 @@ import {
   Pill, Calendar, AlertTriangle, Sparkles, BookOpen, Stethoscope,
   User, Shield, Activity, Settings as SettingsIcon, ChevronRight,
   FlaskConical, Syringe, ShieldCheck, AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign,
+  Search, FileSearch,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -68,6 +69,8 @@ export default function Dashboard({ data, interactions, onNav }) {
     { id: 'appeals',      label: 'Appeals',       icon: Scale,            color: C.amber, badge: openAppeals > 0 ? openAppeals : null },
     { id: 'surgical',     label: 'Surgery Plan',  icon: PlaneTakeoff,     color: C.lav },
     { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign,  color: C.sage },
+    { id: 'drug_info',    label: 'Drug Info',     icon: FileSearch,       color: C.amber },
+    { id: 'find_provider',label: 'Find Provider', icon: Search,           color: C.lav },
     { id: 'interactions', label: 'Interactions',  icon: AlertTriangle,    color: C.amber },
     { id: 'settings',     label: 'Settings',      icon: SettingsIcon,     color: C.textMid },
   ];
