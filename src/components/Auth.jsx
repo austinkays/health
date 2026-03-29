@@ -86,30 +86,26 @@ export default function Auth() {
         </p>
 
         {/* Claude sync artifact download */}
-        <div className="mt-8 bg-salve-card border border-salve-border rounded-xl p-5">
-          <div className="flex items-start gap-3">
-            <div className="text-lg leading-none mt-0.5">✦</div>
-            <div className="flex-1 min-w-0">
-              <p className="text-salve-text text-sm font-medium mb-1">
-                Syncing from Claude?
-              </p>
-              <p className="text-salve-textFaint text-xs leading-relaxed mb-3">
-                Download the sync artifact, paste it into Claude, and export your health records — then import the file here in Settings.
-              </p>
-              <a
-                href="/salve-sync.jsx"
-                download="salve-sync.jsx"
-                className="inline-flex items-center gap-2 text-xs font-medium px-4 py-2 rounded-lg transition-colors"
-                style={{
-                  background: 'linear-gradient(135deg, #b8a9e8 0%, #8fbfa0 100%)',
-                  color: '#1a1a2e',
-                }}
-              >
-                <span>↓</span>
-                Download sync artifact
-              </a>
-            </div>
-          </div>
+        <div className="mt-8 bg-salve-card border border-salve-border rounded-xl p-6 text-center">
+          <div className="text-salve-textFaint text-base mb-3">✦</div>
+          <p className="text-salve-text text-sm font-medium mb-1">
+            Syncing from Claude?
+          </p>
+          <p className="text-salve-textFaint text-xs leading-relaxed mb-4">
+            Download the sync artifact, paste it into Claude, and export your health records — then import the file here in Settings.
+          </p>
+          <a
+            href="/salve-sync.jsx"
+            download="salve-sync.jsx"
+            className="inline-flex items-center justify-center gap-2 text-xs font-medium px-5 py-2.5 rounded-lg transition-opacity hover:opacity-80"
+            style={{
+              background: 'linear-gradient(135deg, #b8a9e8 0%, #8fbfa0 100%)',
+              color: '#1a1a2e',
+            }}
+          >
+            <span>↓</span>
+            Download sync artifact
+          </a>
         </div>
 
       </div>
