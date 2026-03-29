@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Search, Loader2, MapPin, Star } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Search, Loader2, MapPin, Star, Sparkles, CheckCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -8,6 +8,7 @@ import { exportAll, validateImport, importRestore, importMerge, encryptExport, d
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import { searchPharmacies } from '../../services/providerLookup';
 import { searchPlaces, getPlaceDetails } from '../../services/placesLookup';
+import { scanForGaps, enrichData } from '../../services/enrichment';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -26,6 +27,13 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   const [exportError, setExportError] = useState(null);
   const [importPassphrase, setImportPassphrase] = useState('');
   const fileInputRef = useRef(null);
+
+  // Enrichment state
+  const [enrichmentGaps, setEnrichmentGaps] = useState(null);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState('');
+  const [enrichResult, setEnrichResult] = useState(null);
+  const [showEnrichAfterImport, setShowEnrichAfterImport] = useState(false);
 
   // Pharmacy search state
   const [showPharmacySearch, setShowPharmacySearch] = useState(false);
@@ -103,6 +111,13 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         );
 
         await reloadData();
+
+        // Check for gaps that APIs can fill
+        const freshData = data; // data is updated by reloadData
+        setTimeout(() => {
+          const { total } = scanForGaps(data);
+          if (total > 0) setShowEnrichAfterImport(true);
+        }, 500);
       } else {
         await importRestore(importValidation.normalized);
         setImportResult('Full restore complete. Reloading...');
@@ -157,6 +172,41 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
     } catch {
       setExportError('Encryption failed.');
     }
+  }
+
+  async function runEnrichment() {
+    setEnriching(true);
+    setEnrichResult(null);
+    setEnrichProgress('Scanning for missing details...');
+    try {
+      const stats = await enrichData(data, (step, total, label) => {
+        setEnrichProgress(label || `Step ${step} of ${total}...`);
+      });
+
+      await reloadData();
+
+      const parts = [];
+      if (stats.meds > 0) parts.push(`${stats.meds} medication${stats.meds > 1 ? 's' : ''}`);
+      if (stats.providers > 0) parts.push(`${stats.providers} provider${stats.providers > 1 ? 's' : ''}`);
+      if (stats.pharmacy) parts.push('pharmacy');
+
+      setEnrichResult(
+        parts.length > 0
+          ? `Filled missing details for ${parts.join(', ')}.`
+          : 'All records already have complete information.'
+      );
+      setShowEnrichAfterImport(false);
+    } catch (e) {
+      setEnrichResult('Enrichment encountered an error: ' + e.message);
+    } finally {
+      setEnriching(false);
+      setEnrichProgress('');
+    }
+  }
+
+  function handleScanGaps() {
+    const result = scanForGaps(data);
+    setEnrichmentGaps(result);
   }
 
   function cancelImport() {
@@ -508,6 +558,138 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         {importResult && (
           <div className="mt-3 p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm">
             {importResult}
+          </div>
+        )}
+
+        {/* Post-import enrichment prompt */}
+        {showEnrichAfterImport && !enriching && !enrichResult && (
+          <div className="mt-3 p-3.5 rounded-lg bg-salve-lav/8 border border-salve-lav/25">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles size={14} className="text-salve-lav" />
+              <span className="text-[13px] font-medium text-salve-lav">Fill missing details?</span>
+            </div>
+            <p className="text-xs text-salve-textMid leading-relaxed mb-2.5">
+              Some imported records have missing fields (phone numbers, addresses, drug info). We can look these up automatically.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={runEnrichment}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-salve-lav/20 text-salve-lav text-xs font-medium border-none cursor-pointer font-montserrat"
+              >
+                <Sparkles size={13} /> Fill Missing Details
+              </button>
+              <button
+                onClick={() => setShowEnrichAfterImport(false)}
+                className="px-3 py-2 rounded-lg border border-salve-border text-salve-textMid text-xs bg-transparent cursor-pointer font-montserrat"
+              >
+                Skip
+              </button>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Enrich Existing Data — standalone section */}
+      <SectionTitle>Enrich Data</SectionTitle>
+      <Card>
+        <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+          Look up missing details for your existing records — phone numbers, addresses, drug info, office hours, and more.
+        </p>
+
+        {!enrichmentGaps && !enriching && !enrichResult && (
+          <button
+            onClick={handleScanGaps}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm hover:bg-salve-border transition-colors"
+          >
+            <Search size={16} /> Scan for Missing Details
+          </button>
+        )}
+
+        {enrichmentGaps && !enriching && !enrichResult && (
+          <div className="space-y-2.5">
+            {enrichmentGaps.total === 0 ? (
+              <div className="flex items-center gap-2 py-3 justify-center">
+                <CheckCircle size={16} className="text-salve-sage" />
+                <span className="text-[13px] text-salve-sage font-medium">All records look complete!</span>
+              </div>
+            ) : (
+              <>
+                <div className="text-xs text-salve-textFaint mb-2">
+                  Found {enrichmentGaps.total} record{enrichmentGaps.total > 1 ? 's' : ''} with missing fields:
+                </div>
+
+                {enrichmentGaps.gaps.meds.length > 0 && (
+                  <div className="p-2.5 rounded-lg bg-salve-card2 border border-salve-border">
+                    <div className="text-xs font-semibold text-salve-lav mb-1">Medications ({enrichmentGaps.gaps.meds.length})</div>
+                    {enrichmentGaps.gaps.meds.slice(0, 5).map((m, i) => (
+                      <div key={i} className="text-[11px] text-salve-textMid">
+                        {m.name} — missing {m.missing.join(', ')}
+                      </div>
+                    ))}
+                    {enrichmentGaps.gaps.meds.length > 5 && (
+                      <div className="text-[11px] text-salve-textFaint italic">+{enrichmentGaps.gaps.meds.length - 5} more</div>
+                    )}
+                  </div>
+                )}
+
+                {enrichmentGaps.gaps.providers.length > 0 && (
+                  <div className="p-2.5 rounded-lg bg-salve-card2 border border-salve-border">
+                    <div className="text-xs font-semibold text-salve-sage mb-1">Providers ({enrichmentGaps.gaps.providers.length})</div>
+                    {enrichmentGaps.gaps.providers.slice(0, 5).map((p, i) => (
+                      <div key={i} className="text-[11px] text-salve-textMid">
+                        {p.name} — missing {p.missing.join(', ')}
+                      </div>
+                    ))}
+                    {enrichmentGaps.gaps.providers.length > 5 && (
+                      <div className="text-[11px] text-salve-textFaint italic">+{enrichmentGaps.gaps.providers.length - 5} more</div>
+                    )}
+                  </div>
+                )}
+
+                {enrichmentGaps.gaps.pharmacy && (
+                  <div className="p-2.5 rounded-lg bg-salve-card2 border border-salve-border">
+                    <div className="text-xs font-semibold text-salve-amber">Pharmacy</div>
+                    <div className="text-[11px] text-salve-textMid">May be missing full address or phone</div>
+                  </div>
+                )}
+
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={runEnrichment}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg bg-salve-lav/20 text-salve-lav text-sm font-medium border-none cursor-pointer font-montserrat"
+                  >
+                    <Sparkles size={14} /> Fill All Missing Details
+                  </button>
+                  <button
+                    onClick={() => setEnrichmentGaps(null)}
+                    className="px-3 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-xs bg-transparent cursor-pointer font-montserrat"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {enriching && (
+          <div className="flex items-center gap-2.5 py-3 justify-center">
+            <Loader2 size={16} className="animate-spin text-salve-lav" />
+            <span className="text-[13px] text-salve-textMid italic">{enrichProgress}</span>
+          </div>
+        )}
+
+        {enrichResult && (
+          <div className="mt-2">
+            <div className="p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm mb-2.5">
+              {enrichResult}
+            </div>
+            <button
+              onClick={() => { setEnrichResult(null); setEnrichmentGaps(null); }}
+              className="w-full text-center text-xs text-salve-textFaint hover:text-salve-textMid cursor-pointer bg-transparent border-none font-montserrat py-1"
+            >
+              Scan again
+            </button>
           </div>
         )}
       </Card>

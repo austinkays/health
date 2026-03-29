@@ -74,6 +74,7 @@ health/
 │   │   ├── drugLookup.js         # Drug autocomplete (RxNorm), drug info (OpenFDA), batch enrichment, live interactions
 │   │   ├── providerLookup.js     # NPI Registry: searchProviders(), searchPharmacies()
 │   │   ├── placesLookup.js       # Google Places: searchPlaces(), getPlaceDetails(), autocompletePlaces()
+│   │   ├── enrichment.js        # Gap scanner + batch enrichment: scanForGaps(), enrichData() — fills missing fields on existing records
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   └── profile.js            # buildProfile() - assembles health context for AI prompts
 │   ├── hooks/
@@ -207,6 +208,7 @@ RxNorm, OpenFDA, and NPI Registry are **free, no-key APIs**. Google Places requi
 | `drugLookup.js` | `suggestDrugs(query)`, `getDrugInfo(name)`, `enrichAllMeds(meds)`, `checkLiveInteractions(names)` | Medications, Interactions |
 | `providerLookup.js` | `searchProviders(name, state)`, `searchPharmacies(name, city, state)` | Providers, Settings |
 | `placesLookup.js` | `searchPlaces(query)`, `getPlaceDetails(placeId)`, `autocompletePlaces(query)` | Providers, Settings |
+| `enrichment.js` | `scanForGaps(data)`, `enrichData(data, onProgress)` | Settings (post-import + standalone) |
 
 - `drugLookup.js` includes an **in-memory cache** (Map) so repeated lookups for the same drug don't re-fetch. Cache persists for the session.
 - `enrichAllMeds()` fetches drug info for all medications in parallel (throttled to 5 concurrent requests).
@@ -239,6 +241,17 @@ RxNorm, OpenFDA, and NPI Registry are **free, no-key APIs**. Google Places requi
 **Settings pharmacy:**
 - Dual search: "Google Places" (with ratings) + "NPI Registry"
 - Google Places appends "pharmacy" to search query automatically
+
+**Post-import enrichment (Settings):**
+- After a merge import, if records have missing fields, a "Fill Missing Details?" prompt appears
+- User can accept or skip; enrichment runs through all APIs to fill gaps
+
+**Standalone enrichment (Settings > Enrich Data):**
+- "Scan for Missing Details" button analyzes all records for empty fields
+- Shows breakdown: which meds are missing purpose, which providers lack phone/address, etc.
+- "Fill All Missing Details" runs batch enrichment via OpenFDA (meds), Google Places + NPI (providers), and Google Places (pharmacy)
+- Changes are saved directly to Supabase; UI reloads after completion
+- `enrichment.js` orchestrates: `scanForGaps()` detects gaps, `enrichData()` fills them via existing API services
 
 ### Vercel Configuration
 
@@ -384,6 +397,13 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] **Pharmacy Search (Settings):** Google Places search works with ratings/hours
 - [ ] **Pharmacy Search (Settings):** NPI Registry search works as fallback
 - [ ] **API Resilience:** Forms work normally if external APIs are down or slow
+- [ ] **Gap Scanner:** Settings > "Scan for Missing Details" shows correct count of records with empty fields
+- [ ] **Gap Scanner:** Breakdown shows which fields are missing for each record type
+- [ ] **Batch Enrichment:** "Fill All Missing Details" enriches meds (purpose from OpenFDA) and providers (phone/address from Places/NPI)
+- [ ] **Batch Enrichment:** Changes are saved to Supabase and reflected in UI after reload
+- [ ] **Post-Import Enrichment:** After merge import with incomplete records, "Fill Missing Details?" prompt appears
+- [ ] **Post-Import Enrichment:** Clicking "Skip" dismisses the prompt without running enrichment
+- [ ] **Enrichment Idempotent:** Running enrichment on already-complete records reports "All records look complete"
 
 ## Environment Variables
 
