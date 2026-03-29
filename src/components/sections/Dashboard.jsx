@@ -3,6 +3,7 @@ import {
   Pill, Calendar, AlertTriangle, Sparkles, BookOpen, Stethoscope,
   User, Shield, Activity, Settings as SettingsIcon, ChevronRight,
   FlaskConical, Syringe, ShieldCheck, AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign,
+  ChevronDown, ChevronUp, X,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -18,6 +19,7 @@ import { hasAIConsent } from '../ui/AIConsentGate';
 export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [anesthesiaDismissed, setAnesthesiaDismissed] = useState(false);
 
   const activeMeds = data.meds.filter(m => m.active !== false);
   const upcomingRefills = activeMeds.filter(m => m.refill_date).sort((a, b) => new Date(a.refill_date) - new Date(b.refill_date)).slice(0, 3);
@@ -85,19 +87,35 @@ export default function Dashboard({ data, interactions, onNav }) {
         ))}
       </div>
 
-      {/* Anesthesia flags alert — always show if any exist */}
-      {anesthesiaCount > 0 && (
-        <Card className="!p-3.5 cursor-pointer" onClick={() => onNav('anesthesia')}
+      {/* Anesthesia flags alert — collapsible */}
+      {anesthesiaCount > 0 && !anesthesiaDismissed && (
+        <Card className="!p-3.5"
           style={{ borderLeft: `3px solid ${C.rose}`, background: 'rgba(232,138,154,0.06)' }}>
           <div className="flex items-center gap-2 mb-0.5">
             <AlertOctagon size={15} color={C.rose} />
-            <span className="text-[13px] font-bold" style={{ color: C.rose }}>
+            <span className="text-[13px] font-bold cursor-pointer" style={{ color: C.rose }}
+              onClick={() => onNav('anesthesia')}>
               {anesthesiaCount} Anesthesia Flag{anesthesiaCount > 1 ? 's' : ''} — Show before any procedure
             </span>
-            <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
+            <button onClick={() => setAnesthesiaDismissed(true)}
+              className="ml-auto p-1 rounded hover:bg-salve-card2 transition-colors"
+              title="Dismiss for this session">
+              <X size={14} className="text-salve-textFaint" />
+            </button>
           </div>
-          <div className="text-[11px] text-salve-textFaint">Tap to review safety-critical flags</div>
+          <div className="text-[11px] text-salve-textFaint cursor-pointer" onClick={() => onNav('anesthesia')}>
+            Tap to review safety-critical flags
+          </div>
         </Card>
+      )}
+      {anesthesiaCount > 0 && anesthesiaDismissed && (
+        <button onClick={() => setAnesthesiaDismissed(false)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] hover:bg-salve-card2 transition-colors"
+          style={{ color: C.rose }}>
+          <AlertOctagon size={12} />
+          <span>{anesthesiaCount} anesthesia flag{anesthesiaCount > 1 ? 's' : ''}</span>
+          <ChevronDown size={12} />
+        </button>
       )}
 
       {/* Interaction warnings */}
