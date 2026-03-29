@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { db } from '../services/db';
 
-export default function useHealthData() {
+export default function useHealthData(session) {
   const [data, setData] = useState({
     meds: [], conditions: [], allergies: [], providers: [],
     vitals: [], appts: [], journal: [],
@@ -9,13 +9,18 @@ export default function useHealthData() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Initial load from Supabase
+  // Load from Supabase only when authenticated
   useEffect(() => {
+    if (!session) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     db.loadAll()
       .then(d => setData(d))
       .catch(err => console.error('Failed to load data:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [session]);
 
   // Generic updater
   const update = useCallback(async (key, val) => {

@@ -24,7 +24,7 @@ export default function App() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [tab, setTab] = useState('dash');
-  const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData();
+  const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
@@ -107,6 +107,9 @@ export default function App() {
         <div className="px-4">
           {renderSection()}
         </div>
+        <p className="text-center text-salve-textFaint text-[11px] tracking-wide py-4 font-montserrat">
+          built with <span className="text-salve-rose">♥</span> for my best friend & soulmate
+        </p>
         <BottomNav tab={tab} onNav={onNav} />
       </div>
     </div>
