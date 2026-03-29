@@ -9,6 +9,8 @@ import Button from '../ui/Button';
 import Badge, { SevBadge } from '../ui/Badge';
 import Motif, { Divider } from '../ui/Motif';
 import { SectionTitle } from '../ui/FormWrap';
+import WitchyLoader from '../ui/WitchyLoader';
+import InsightRenderer from '../ui/InsightRenderer';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { fetchInsight } from '../../services/ai';
@@ -131,9 +133,9 @@ export default function Dashboard({ data, interactions, onNav }) {
           <span className="font-playfair text-sm font-medium text-salve-text">Daily Insight</span>
         </div>
         {insightLoading ? (
-          <div className="text-[13px] text-salve-textMid animate-pulse">Thinking...</div>
+          <WitchyLoader />
         ) : insight ? (
-          <div className="text-[13px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{insight}</div>
+          <InsightRenderer text={insight} compact />
         ) : (
           <div>
             <div className="text-[13px] text-salve-textFaint mb-2">Get a personalized health insight from your AI companion.</div>

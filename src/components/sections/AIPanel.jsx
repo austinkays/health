@@ -5,6 +5,8 @@ import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
+import WitchyLoader from '../ui/WitchyLoader';
+import InsightRenderer from '../ui/InsightRenderer';
 import { C } from '../../constants/colors';
 import { fetchInsight, fetchConnections, fetchNews, fetchResources, sendChat } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -64,17 +66,17 @@ export default function AIPanel({ data }) {
       </SectionTitle>
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
-          <div key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
+          <div key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 ${
             m.role === 'user'
-              ? 'self-end bg-salve-lav/20 text-salve-text ml-auto'
+              ? 'self-end bg-salve-lav/20 text-salve-text ml-auto text-[13px] leading-relaxed'
               : 'self-start bg-salve-card border border-salve-border text-salve-textMid'
           }`}>
-            {m.content}
+            {m.role === 'user' ? m.content : <InsightRenderer text={m.content} compact />}
           </div>
         ))}
         {loading && (
-          <div className="self-start flex items-center gap-2 text-salve-textFaint text-xs">
-            <Loader2 size={14} className="animate-spin" /> Thinking...
+          <div className="self-start">
+            <WitchyLoader className="!py-2 !gap-2" />
           </div>
         )}
       </div>
@@ -101,13 +103,12 @@ export default function AIPanel({ data }) {
         {FEATURES.find(f => f.id === mode)?.label}
       </SectionTitle>
       {loading ? (
-        <Card className="text-center !py-8">
-          <Loader2 size={24} className="animate-spin mx-auto mb-2 text-salve-lav" />
-          <div className="text-[13px] text-salve-textMid">Analyzing your health profile...</div>
+        <Card className="!py-6">
+          <WitchyLoader />
         </Card>
       ) : result ? (
         <Card>
-          <div className="text-[13px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{result}</div>
+          <InsightRenderer text={result} />
         </Card>
       ) : null}
     </div>
