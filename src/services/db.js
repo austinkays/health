@@ -66,6 +66,16 @@ export const db = {
   journal: crud('journal_entries', { orderBy: 'date', ascending: false }),
   conversations: crud('ai_conversations', { orderBy: 'updated_at', ascending: false }),
 
+  // New comprehensive sections
+  labs: crud('labs', { orderBy: 'date', ascending: false }),
+  procedures: crud('procedures', { orderBy: 'date', ascending: false }),
+  immunizations: crud('immunizations', { orderBy: 'date', ascending: false }),
+  care_gaps: crud('care_gaps'),
+  anesthesia_flags: crud('anesthesia_flags'),
+  appeals_and_disputes: crud('appeals_and_disputes', { orderBy: 'date_filed', ascending: false }),
+  surgical_planning: crud('surgical_planning'),
+  insurance: crud('insurance'),
+
   // Profile is 1:1 with user — different pattern
   profile: {
     async get() {
@@ -94,27 +104,36 @@ export const db = {
 
   // Load all data at once (initial hydration)
   async loadAll() {
-    const [profile, meds, conditions, allergies, providers, vitals, appts, journal] =
-      await Promise.all([
-        db.profile.get(),
-        db.medications.list(),
-        db.conditions.list(),
-        db.allergies.list(),
-        db.providers.list(),
-        db.vitals.list(),
-        db.appointments.list(),
-        db.journal.list(),
-      ]);
+    const [
+      profile, meds, conditions, allergies, providers,
+      vitals, appts, journal,
+      labs, procedures, immunizations, care_gaps,
+      anesthesia_flags, appeals_and_disputes, surgical_planning, insurance,
+    ] = await Promise.all([
+      db.profile.get(),
+      db.medications.list(),
+      db.conditions.list(),
+      db.allergies.list(),
+      db.providers.list(),
+      db.vitals.list(),
+      db.appointments.list(),
+      db.journal.list(),
+      db.labs.list(),
+      db.procedures.list(),
+      db.immunizations.list(),
+      db.care_gaps.list(),
+      db.anesthesia_flags.list(),
+      db.appeals_and_disputes.list(),
+      db.surgical_planning.list(),
+      db.insurance.list(),
+    ]);
 
     return {
       settings: profile,
-      meds,
-      conditions,
-      allergies,
-      providers,
-      vitals,
-      appts,
-      journal,
+      meds, conditions, allergies, providers,
+      vitals, appts, journal,
+      labs, procedures, immunizations, care_gaps,
+      anesthesia_flags, appeals_and_disputes, surgical_planning, insurance,
     };
   },
 
@@ -131,6 +150,14 @@ export const db = {
       supabase.from('appointments').delete().eq('user_id', uid),
       supabase.from('journal_entries').delete().eq('user_id', uid),
       supabase.from('ai_conversations').delete().eq('user_id', uid),
+      supabase.from('labs').delete().eq('user_id', uid),
+      supabase.from('procedures').delete().eq('user_id', uid),
+      supabase.from('immunizations').delete().eq('user_id', uid),
+      supabase.from('care_gaps').delete().eq('user_id', uid),
+      supabase.from('anesthesia_flags').delete().eq('user_id', uid),
+      supabase.from('appeals_and_disputes').delete().eq('user_id', uid),
+      supabase.from('surgical_planning').delete().eq('user_id', uid),
+      supabase.from('insurance').delete().eq('user_id', uid),
       supabase.from('profiles').update({
         name: '', location: '', pharmacy: '',
         insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '',

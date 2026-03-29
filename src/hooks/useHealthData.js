@@ -5,6 +5,8 @@ export default function useHealthData(session) {
   const [data, setData] = useState({
     meds: [], conditions: [], allergies: [], providers: [],
     vitals: [], appts: [], journal: [],
+    labs: [], procedures: [], immunizations: [], care_gaps: [],
+    anesthesia_flags: [], appeals_and_disputes: [], surgical_planning: [], insurance: [],
     settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
   });
   const [loading, setLoading] = useState(true);
@@ -88,6 +90,14 @@ function tableToKey(table) {
     vitals: 'vitals',
     appointments: 'appts',
     journal: 'journal',
+    labs: 'labs',
+    procedures: 'procedures',
+    immunizations: 'immunizations',
+    care_gaps: 'care_gaps',
+    anesthesia_flags: 'anesthesia_flags',
+    appeals_and_disputes: 'appeals_and_disputes',
+    surgical_planning: 'surgical_planning',
+    insurance: 'insurance',
   };
   return map[table] || table;
 }

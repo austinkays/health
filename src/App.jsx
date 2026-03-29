@@ -20,6 +20,16 @@ import Interactions from './components/sections/Interactions';
 import Settings from './components/sections/Settings';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 
+// New comprehensive sections
+import Labs from './components/sections/Labs';
+import Procedures from './components/sections/Procedures';
+import Immunizations from './components/sections/Immunizations';
+import CareGaps from './components/sections/CareGaps';
+import AnesthesiaFlags from './components/sections/AnesthesiaFlags';
+import Appeals from './components/sections/Appeals';
+import SurgicalPlanning from './components/sections/SurgicalPlanning';
+import Insurance from './components/sections/Insurance';
+
 export default function App() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -85,18 +95,27 @@ export default function App() {
   const renderSection = () => {
     const shared = { data, addItem, updateItem, removeItem };
     switch (tab) {
-      case 'dash': return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
-      case 'meds': return <Medications {...shared} interactions={interactions} />;
-      case 'vitals': return <Vitals {...shared} />;
-      case 'appts': return <Appointments {...shared} />;
-      case 'conditions': return <Conditions {...shared} />;
-      case 'providers': return <Providers {...shared} />;
-      case 'allergies': return <Allergies {...shared} />;
-      case 'journal': return <Journal {...shared} />;
-      case 'ai': return <AIPanel data={data} />;
-      case 'interactions': return <Interactions interactions={interactions} meds={data.meds} />;
-      case 'settings': return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} />;
-      default: return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      case 'meds':        return <Medications {...shared} interactions={interactions} />;
+      case 'vitals':      return <Vitals {...shared} />;
+      case 'appts':       return <Appointments {...shared} />;
+      case 'conditions':  return <Conditions {...shared} />;
+      case 'providers':   return <Providers {...shared} />;
+      case 'allergies':   return <Allergies {...shared} />;
+      case 'journal':     return <Journal {...shared} />;
+      case 'ai':          return <AIPanel data={data} />;
+      case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
+      case 'settings':    return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} />;
+      // Comprehensive sections
+      case 'labs':        return <Labs {...shared} />;
+      case 'procedures':  return <Procedures {...shared} />;
+      case 'immunizations':return <Immunizations {...shared} />;
+      case 'care_gaps':   return <CareGaps {...shared} />;
+      case 'anesthesia':  return <AnesthesiaFlags {...shared} />;
+      case 'appeals':     return <Appeals {...shared} />;
+      case 'surgical':    return <SurgicalPlanning {...shared} />;
+      case 'insurance':   return <Insurance {...shared} />;
+      default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
     }
   };
 

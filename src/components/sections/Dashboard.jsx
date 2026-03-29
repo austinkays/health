@@ -1,5 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Pill, Calendar, AlertTriangle, Sparkles, BookOpen, Stethoscope, User, Shield, Activity, Settings as SettingsIcon, ChevronRight } from 'lucide-react';
+import {
+  Pill, Calendar, AlertTriangle, Sparkles, BookOpen, Stethoscope,
+  User, Shield, Activity, Settings as SettingsIcon, ChevronRight,
+  FlaskConical, Syringe, ShieldCheck, AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign,
+} from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Badge, { SevBadge } from '../ui/Badge';
@@ -20,6 +24,11 @@ export default function Dashboard({ data, interactions, onNav }) {
   const upcomingAppts = data.appts.filter(a => new Date(a.date) >= new Date(new Date().toDateString())).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
   const latestJournal = data.journal.length > 0 ? data.journal[0] : null;
 
+  // Computed urgency counts
+  const urgentGaps = (data.care_gaps || []).filter(g => g.urgency === 'urgent').length;
+  const anesthesiaCount = (data.anesthesia_flags || []).length;
+  const openAppeals = (data.appeals_and_disputes || []).filter(a => a.status !== 'Resolved').length;
+
   const loadInsight = async () => {
     setInsightLoading(true);
     try {
@@ -33,14 +42,12 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
   };
 
-  // Auto-load insight on demand
   useEffect(() => {
     if (data.settings.ai_mode === 'auto' && data.meds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
       loadInsight();
     }
   }, [data.settings.ai_mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Quick stats
   const stats = [
     { label: 'Medications', value: activeMeds.length, color: C.sage, icon: Pill },
     { label: 'Conditions', value: data.conditions.length, color: C.lav, icon: Stethoscope },
@@ -49,12 +56,20 @@ export default function Dashboard({ data, interactions, onNav }) {
   ];
 
   const QUICK_LINKS = [
-    { id: 'conditions', label: 'Conditions', icon: Stethoscope, color: C.lav },
-    { id: 'providers', label: 'Providers', icon: User, color: C.sage },
-    { id: 'allergies', label: 'Allergies', icon: Shield, color: C.amber },
-    { id: 'appts', label: 'Appointments', icon: Calendar, color: C.rose },
-    { id: 'interactions', label: 'Interactions', icon: AlertTriangle, color: C.amber },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, color: C.textMid },
+    { id: 'conditions',   label: 'Conditions',    icon: Stethoscope,      color: C.lav },
+    { id: 'providers',    label: 'Providers',     icon: User,             color: C.sage },
+    { id: 'allergies',    label: 'Allergies',     icon: Shield,           color: C.amber },
+    { id: 'appts',        label: 'Appointments',  icon: Calendar,         color: C.rose },
+    { id: 'labs',         label: 'Labs',          icon: FlaskConical,     color: C.lav },
+    { id: 'procedures',   label: 'Procedures',    icon: Syringe,          color: C.sage },
+    { id: 'immunizations',label: 'Vaccines',      icon: ShieldCheck,      color: C.sage },
+    { id: 'care_gaps',    label: 'Care Gaps',     icon: AlertTriangle,    color: C.amber, badge: urgentGaps > 0 ? urgentGaps : null },
+    { id: 'anesthesia',   label: 'Anesthesia',    icon: AlertOctagon,     color: C.rose,  badge: anesthesiaCount > 0 ? anesthesiaCount : null },
+    { id: 'appeals',      label: 'Appeals',       icon: Scale,            color: C.amber, badge: openAppeals > 0 ? openAppeals : null },
+    { id: 'surgical',     label: 'Surgery Plan',  icon: PlaneTakeoff,     color: C.lav },
+    { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign,  color: C.sage },
+    { id: 'interactions', label: 'Interactions',  icon: AlertTriangle,    color: C.amber },
+    { id: 'settings',     label: 'Settings',      icon: SettingsIcon,     color: C.textMid },
   ];
 
   return (
@@ -70,6 +85,21 @@ export default function Dashboard({ data, interactions, onNav }) {
         ))}
       </div>
 
+      {/* Anesthesia flags alert — always show if any exist */}
+      {anesthesiaCount > 0 && (
+        <Card className="!p-3.5 cursor-pointer" onClick={() => onNav('anesthesia')}
+          style={{ borderLeft: `3px solid ${C.rose}`, background: 'rgba(232,138,154,0.06)' }}>
+          <div className="flex items-center gap-2 mb-0.5">
+            <AlertOctagon size={15} color={C.rose} />
+            <span className="text-[13px] font-bold" style={{ color: C.rose }}>
+              {anesthesiaCount} Anesthesia Flag{anesthesiaCount > 1 ? 's' : ''} — Show before any procedure
+            </span>
+            <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
+          </div>
+          <div className="text-[11px] text-salve-textFaint">Tap to review safety-critical flags</div>
+        </Card>
+      )}
+
       {/* Interaction warnings */}
       {interactions.length > 0 && (
         <Card className="!p-3.5 !border-salve-rose/30 cursor-pointer" onClick={() => onNav('interactions')}>
@@ -79,6 +109,18 @@ export default function Dashboard({ data, interactions, onNav }) {
             <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
           </div>
           <div className="text-xs text-salve-textMid">{interactions[0].medA} + {interactions[0].medB}: {interactions[0].msg.slice(0, 70)}...</div>
+        </Card>
+      )}
+
+      {/* Urgent care gaps */}
+      {urgentGaps > 0 && (
+        <Card className="!p-3.5 cursor-pointer" onClick={() => onNav('care_gaps')}
+          style={{ borderLeft: `3px solid ${C.amber}` }}>
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={15} color={C.amber} />
+            <span className="text-[13px] font-semibold text-salve-amber">{urgentGaps} Urgent Care Gap{urgentGaps > 1 ? 's' : ''}</span>
+            <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
+          </div>
         </Card>
       )}
 
@@ -165,10 +207,16 @@ export default function Dashboard({ data, interactions, onNav }) {
           <button
             key={l.id}
             onClick={() => onNav(l.id)}
-            className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-colors"
+            className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-colors relative"
           >
             <l.icon size={20} color={l.color} strokeWidth={1.5} />
             <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+            {l.badge != null && (
+              <span className="absolute top-1.5 right-1.5 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
+                style={{ background: l.color, color: '#1a1a2e' }}>
+                {l.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
