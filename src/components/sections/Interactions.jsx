@@ -39,7 +39,18 @@ export default function Interactions({ interactions, meds }) {
             <Card key={i} style={{ borderLeft: `3px solid ${w.severity === 'danger' ? C.rose : w.severity === 'caution' ? C.amber : C.sage}` }}>
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[13px] font-semibold text-salve-text">{w.medA} + {w.medB}</span>
-                <SevBadge severity={w.severity} />
+                <div className="flex items-center gap-1.5">
+                  {w.source && (
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${
+                      w.source === 'rxnorm' ? 'bg-salve-lav/15 text-salve-lav' :
+                      w.source === 'both' ? 'bg-salve-sage/15 text-salve-sage' :
+                      'bg-salve-card2 text-salve-textFaint'
+                    }`}>
+                      {w.source === 'rxnorm' ? 'RxNorm' : w.source === 'both' ? 'Verified' : 'Local'}
+                    </span>
+                  )}
+                  <SevBadge severity={w.severity} />
+                </div>
               </div>
               <div className="text-xs text-salve-textMid leading-relaxed">{w.msg}</div>
             </Card>
@@ -49,7 +60,7 @@ export default function Interactions({ interactions, meds }) {
 
       <p className="text-[10px] text-salve-textFaint italic text-center mt-3">
         <Motif type="star" size={10} color={C.textFaint} style={{ marginRight: 4 }} />
-        This checks a limited database of common interactions. Always verify with your pharmacist.
+        Checks local rules and the RxNorm database. Always verify with your pharmacist.
       </p>
     </div>
   );

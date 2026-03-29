@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, User, Phone, Search, MapPin, Star } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Field from '../ui/Field';
+import SearchDropdown from '../ui/SearchDropdown';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_PROVIDER } from '../../constants/defaults';
+import { searchProviders } from '../../services/google';
 
 export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
@@ -28,9 +30,34 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
     setSubView(null);
   };
 
+  const handlePlaceSelect = (place) => {
+    sf('name', place.name);
+    if (place.address) sf('clinic', place.address);
+    if (place.phone) sf('phone', place.phone);
+    if (place.website) sf('portal_url', place.website);
+    if (place.hours) sf('notes', 'Hours: ' + place.hours);
+  };
+
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>
       <Card>
+        <SearchDropdown
+          label="Search Provider"
+          placeholder="Search by name or clinic..."
+          onSearch={(q) => searchProviders(q, data.settings?.location)}
+          onSelect={handlePlaceSelect}
+          renderItem={(p) => (
+            <div>
+              <div className="text-sm text-salve-text font-medium flex items-center gap-1.5">
+                <Search size={12} className="text-salve-lav shrink-0" />
+                {p.name}
+                {p.rating && <span className="text-[10px] text-salve-amber flex items-center gap-0.5 ml-auto"><Star size={10} />{p.rating}</span>}
+              </div>
+              {p.address && <div className="text-[11px] text-salve-textMid mt-0.5 flex items-center gap-1"><MapPin size={10} className="shrink-0" />{p.address}</div>}
+            </div>
+          )}
+        />
+        <p className="text-[10px] text-salve-textFaint italic -mt-2 mb-3">Search to auto-fill, or enter manually below</p>
         <Field label="Name" value={form.name} onChange={v => sf('name', v)} placeholder="Dr. Name" required />
         <Field label="Specialty" value={form.specialty} onChange={v => sf('specialty', v)} placeholder="e.g. Rheumatology" />
         <Field label="Clinic / Office" value={form.clinic} onChange={v => sf('clinic', v)} placeholder="Clinic name" />

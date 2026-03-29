@@ -40,7 +40,8 @@ health/
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
 ├── api/
-│   └── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   └── places.js                 # Vercel serverless: auth-gated Google Places API proxy
 ├── public/
 │   ├── manifest.json             # PWA manifest
 │   └── favicon.svg
@@ -65,7 +66,10 @@ health/
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
 │   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts
+│   │   ├── profile.js            # buildProfile() - assembles health context for AI prompts
+│   │   ├── google.js             # Google Places API client (via /api/places proxy) — provider & pharmacy search
+│   │   ├── drugs.js              # RxNorm drug autocomplete + openFDA recalls (direct, no key needed)
+│   │   └── health-info.js        # MedlinePlus Connect health topic info (direct, no key needed)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
@@ -76,6 +80,7 @@ health/
 │   │   │   ├── Button.jsx
 │   │   │   ├── Field.jsx         # Label + input/textarea/select
 │   │   │   ├── Badge.jsx
+│   │   │   ├── SearchDropdown.jsx # Reusable debounced search-as-you-type dropdown
 │   │   │   ├── ConfirmBar.jsx    # Inline delete confirmation
 │   │   │   ├── EmptyState.jsx
 │   │   │   ├── FormWrap.jsx      # Back-arrow + title wrapper; also exports SectionTitle
@@ -253,7 +258,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 1. **Preserve the visual design precisely.** The warm dark theme with lavender/sage/amber accents is intentional and personal. When converting inline styles to Tailwind, match colors and spacing exactly.
 2. **Every inline style `style={{...}}` becomes Tailwind classes.** Use arbitrary values `[#1a1a2e]` for custom colors only if the color isn't mapped in the config. All palette colors should be mapped.
-3. **The drug interaction database is static and ships client-side.** Don't try to make it dynamic or API-fetched. It covers common medication combinations relevant to the user.
+3. **The drug interaction database has two layers.** Static rules in `interactions.js` provide instant local checking. `checkInteractionsEnhanced()` supplements with real-time RxNorm API data, merging both sources. The static rules are always available offline as a fallback.
 4. **AI features must include medical disclaimers.** Every AI response surface shows "AI suggestions are not medical advice. Always consult your healthcare providers." This is non-negotiable. The disclaimer is appended in `ai.js`.
 8. **AI features require explicit data-sharing consent.** `AIConsentGate` wraps all AI surfaces (AIPanel, Dashboard insight). Users must acknowledge that health data is sent to Anthropic before any AI call is made. Consent is stored in `localStorage` under `salve:ai-consent` and can be revoked in Settings.
 5. **Delete operations require confirmation.** The `useConfirmDelete` hook and `ConfirmBar` component provide inline confirm/cancel UI. No `window.confirm()` calls.
@@ -303,6 +308,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel env vars only | Server-side auth token verification |
 | `SUPABASE_URL` | Vercel env vars (fallback) | Fallback for api/chat.js if VITE_ prefix not available server-side |
 | `ALLOWED_ORIGIN` | Vercel env vars (optional) | Custom allowed CORS origin for api/chat.js (e.g. your production domain) |
+| `GOOGLE_PLACES_API_KEY` | Vercel env vars only | Google Places API key for provider/pharmacy search (server-side proxy) |
 
 ## Commands
 

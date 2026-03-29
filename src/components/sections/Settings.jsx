@@ -1,11 +1,13 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, MapPin } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
+import SearchDropdown from '../ui/SearchDropdown';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
+import { searchPharmacies } from '../../services/google';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -202,6 +204,19 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
 
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>
+        <SearchDropdown
+          label="Find Pharmacy"
+          placeholder="Search pharmacies near you..."
+          onSearch={(q) => searchPharmacies(q, s.location)}
+          onSelect={(p) => set('pharmacy', p.name + (p.address ? ' — ' + p.address : '') + (p.phone ? ' — ' + p.phone : ''))}
+          renderItem={(p) => (
+            <div>
+              <div className="text-sm text-salve-text font-medium">{p.name}</div>
+              {p.address && <div className="text-[11px] text-salve-textMid mt-0.5 flex items-center gap-1"><MapPin size={10} className="shrink-0" />{p.address}</div>}
+              {p.phone && <div className="text-[10px] text-salve-textFaint mt-0.5">{p.phone}</div>}
+            </div>
+          )}
+        />
         <Field label="Preferred Pharmacy" value={s.pharmacy || ''} onChange={v => set('pharmacy', v)} placeholder="Name & location" />
       </Card>
 

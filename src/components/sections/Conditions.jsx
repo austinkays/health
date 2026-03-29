@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Stethoscope } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Stethoscope, BookOpen, ExternalLink, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_CONDITION } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { getHealthTopicInfo } from '../../services/health-info';
 
 const STATUS_COLORS = {
   active: { c: C.rose, bg: 'rgba(232,138,154,0.15)' },
@@ -23,8 +24,18 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_CONDITION);
   const [editId, setEditId] = useState(null);
+  const [healthInfo, setHealthInfo] = useState({});
+  const [infoLoading, setInfoLoading] = useState({});
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const loadHealthInfo = async (name) => {
+    if (healthInfo[name] || infoLoading[name]) return;
+    setInfoLoading(prev => ({ ...prev, [name]: true }));
+    const info = await getHealthTopicInfo(name);
+    setHealthInfo(prev => ({ ...prev, [name]: info }));
+    setInfoLoading(prev => ({ ...prev, [name]: false }));
+  };
 
   const saveC = async () => {
     if (!form.name.trim()) return;
@@ -80,6 +91,30 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                   {c.provider && <div className="text-xs text-salve-textMid">Provider: {c.provider}</div>}
                   {c.linked_meds && <div className="text-xs text-salve-sage mt-0.5">Meds: {c.linked_meds}</div>}
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
+                  <button
+                    onClick={() => loadHealthInfo(c.name)}
+                    className="mt-1.5 text-[11px] text-salve-lav bg-transparent border-none cursor-pointer flex items-center gap-1 p-0 font-montserrat hover:underline"
+                  >
+                    <BookOpen size={11} />
+                    {infoLoading[c.name] ? 'Loading...' : healthInfo[c.name] ? 'Health Info' : 'Learn More'}
+                    {healthInfo[c.name] && <ChevronDown size={10} />}
+                  </button>
+                  {healthInfo[c.name] && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-salve-card2 border border-salve-border/50">
+                      <div className="text-xs text-salve-text font-medium mb-1">{healthInfo[c.name].title}</div>
+                      <div className="text-[11px] text-salve-textMid leading-relaxed">{healthInfo[c.name].summary}</div>
+                      {healthInfo[c.name].url && (
+                        <a
+                          href={healthInfo[c.name].url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-salve-lav mt-1.5 flex items-center gap-1 no-underline hover:underline"
+                        >
+                          <ExternalLink size={10} /> Read full article on MedlinePlus
+                        </a>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>

@@ -5,7 +5,7 @@ import Auth from './components/Auth';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import useHealthData from './hooks/useHealthData';
-import { checkInteractions } from './utils/interactions';
+import { checkInteractions, checkInteractionsEnhanced } from './utils/interactions';
 
 import Dashboard from './components/sections/Dashboard';
 import Medications from './components/sections/Medications';
@@ -37,6 +37,15 @@ export default function App() {
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
+  const [enhancedInteractions, setEnhancedInteractions] = useState(null);
+
+  useEffect(() => {
+    if (data.meds.length >= 2) {
+      checkInteractionsEnhanced(data.meds).then(setEnhancedInteractions).catch(() => {});
+    } else {
+      setEnhancedInteractions(null);
+    }
+  }, [data.meds]);
 
   const onNav = (t) => {
     setTab(t);
@@ -95,8 +104,8 @@ export default function App() {
   const renderSection = () => {
     const shared = { data, addItem, updateItem, removeItem };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
-      case 'meds':        return <Medications {...shared} interactions={interactions} />;
+      case 'dash':        return <Dashboard {...shared} interactions={enhancedInteractions || interactions} onNav={onNav} />;
+      case 'meds':        return <Medications {...shared} interactions={enhancedInteractions || interactions} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
       case 'conditions':  return <Conditions {...shared} />;
@@ -104,7 +113,7 @@ export default function App() {
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} />;
       case 'ai':          return <AIPanel data={data} />;
-      case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
+      case 'interactions':return <Interactions interactions={enhancedInteractions || interactions} meds={data.meds} />;
       case 'settings':    return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} />;
       // Comprehensive sections
       case 'labs':        return <Labs {...shared} />;

@@ -14,10 +14,12 @@ import { C } from '../../constants/colors';
 import { fetchInsight } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import { searchFDARecalls } from '../../services/drugs';
 
 export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [fdaAlerts, setFdaAlerts] = useState([]);
 
   const activeMeds = data.meds.filter(m => m.active !== false);
   const upcomingRefills = activeMeds.filter(m => m.refill_date).sort((a, b) => new Date(a.refill_date) - new Date(b.refill_date)).slice(0, 3);
@@ -47,6 +49,27 @@ export default function Dashboard({ data, interactions, onNav }) {
       loadInsight();
     }
   }, [data.settings.ai_mode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // FDA safety alerts
+  useEffect(() => {
+    if (activeMeds.length === 0) { setFdaAlerts([]); return; }
+    // Check sessionStorage cache first
+    const cacheKey = 'salve:fda-alerts';
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const { data: cachedData, ts } = JSON.parse(cached);
+        if (Date.now() - ts < 24 * 60 * 60 * 1000) { setFdaAlerts(cachedData); return; }
+      } catch { /* ignore */ }
+    }
+    Promise.all(activeMeds.map(m => searchFDARecalls(m.name)))
+      .then(results => {
+        const alerts = results.flat().filter(a => a.reason);
+        setFdaAlerts(alerts);
+        sessionStorage.setItem(cacheKey, JSON.stringify({ data: alerts, ts: Date.now() }));
+      })
+      .catch(() => {});
+  }, [activeMeds.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = [
     { label: 'Medications', value: activeMeds.length, color: C.sage, icon: Pill },
@@ -109,6 +132,23 @@ export default function Dashboard({ data, interactions, onNav }) {
             <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
           </div>
           <div className="text-xs text-salve-textMid">{interactions[0].medA} + {interactions[0].medB}: {interactions[0].msg.slice(0, 70)}...</div>
+        </Card>
+      )}
+
+      {/* FDA Safety Alerts */}
+      {fdaAlerts.length > 0 && (
+        <Card className="!p-3.5" style={{ borderLeft: `3px solid ${C.amber}`, background: 'rgba(232,200,138,0.06)' }}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <AlertTriangle size={15} color={C.amber} />
+            <span className="text-[13px] font-semibold text-salve-amber">FDA Safety Alerts</span>
+          </div>
+          {fdaAlerts.slice(0, 3).map((a, i) => (
+            <div key={i} className="mb-1.5 last:mb-0">
+              <div className="text-xs text-salve-text font-medium">{a.drug}</div>
+              <div className="text-[11px] text-salve-textMid leading-relaxed line-clamp-2">{a.reason}</div>
+            </div>
+          ))}
+          <div className="text-[9px] text-salve-textFaint italic mt-1.5">From openFDA. Verify with your pharmacy.</div>
         </Card>
       )}
 

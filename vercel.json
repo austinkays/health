@@ -2,6 +2,9 @@
   "functions": {
     "api/chat.js": {
       "maxDuration": 120
+    },
+    "api/places.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
@@ -14,7 +17,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com; frame-src 'none'; object-src 'none'; base-uri 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://rxnav.nlm.nih.gov https://api.fda.gov https://connect.medlineplus.gov; frame-src 'none'; object-src 'none'; base-uri 'self'"
         },
         {
           "key": "X-Content-Type-Options",

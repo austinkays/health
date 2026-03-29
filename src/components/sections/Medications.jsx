@@ -4,6 +4,7 @@ import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Field from '../ui/Field';
+import SearchDropdown from '../ui/SearchDropdown';
 import Badge, { SevBadge } from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
@@ -11,6 +12,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_MED } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { searchDrugs, getDoseFormStrengths } from '../../services/drugs';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -20,6 +22,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [form, setForm] = useState(EMPTY_MED);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('active');
+  const [doseForms, setDoseForms] = useState([]);
+  const [selectedRxcui, setSelectedRxcui] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -38,8 +42,37 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Medication`} onBack={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>
       <Card>
+        <SearchDropdown
+          label="Search Medication"
+          placeholder="Start typing medication name..."
+          onSearch={searchDrugs}
+          onSelect={(drug) => {
+            sf('name', drug.name);
+            setSelectedRxcui(drug.rxcui);
+            setDoseForms([]);
+            getDoseFormStrengths(drug.rxcui).then(forms => setDoseForms(forms));
+          }}
+          renderItem={(drug) => (
+            <div className="text-sm text-salve-text">{drug.name}</div>
+          )}
+        />
         <Field label="Medication Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Sertraline" required />
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
+        {doseForms.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 -mt-2 mb-4">
+            <span className="text-[10px] text-salve-textFaint w-full">Available forms:</span>
+            {doseForms.slice(0, 6).map((d, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => { sf('name', d.name); setDoseForms([]); }}
+                className="bg-salve-card2 border border-salve-border rounded-full px-2.5 py-1 text-[10px] text-salve-lav cursor-pointer hover:border-salve-lav transition-colors"
+              >
+                {d.name}
+              </button>
+            ))}
+          </div>
+        )}
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
         <Field label="Prescriber" value={form.prescriber} onChange={v => sf('prescriber', v)} placeholder="Dr. Name" />
