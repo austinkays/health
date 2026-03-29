@@ -12,6 +12,39 @@ import { EMPTY_JOURNAL, MOODS } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 
+const CONDITION_PROMPTS = {
+  'heds': [{ label: 'Joint instability log', tags: 'subluxation, joint, hEDS' }, { label: 'Pain flare diary', tags: 'flare, pain, hEDS' }],
+  'ehlers': [{ label: 'Joint instability log', tags: 'subluxation, joint, hEDS' }, { label: 'Pain flare diary', tags: 'flare, pain, hEDS' }],
+  'pots': [{ label: 'Symptom episode log', tags: 'POTS, tachycardia, dizziness' }, { label: 'Salt/fluid intake', tags: 'POTS, hydration' }],
+  'mcas': [{ label: 'Reaction tracker', tags: 'MCAS, reaction, trigger' }, { label: 'Trigger food log', tags: 'MCAS, food, trigger' }],
+  'mast cell': [{ label: 'Reaction tracker', tags: 'MCAS, reaction, trigger' }],
+  'fibromyalgia': [{ label: 'Flare diary', tags: 'flare, fibro, pain' }, { label: 'Sleep quality log', tags: 'sleep, fatigue, fibro' }],
+  'crps': [{ label: 'Pain map entry', tags: 'CRPS, pain, spread' }],
+  'migraine': [{ label: 'Migraine diary', tags: 'migraine, aura, trigger' }],
+  'depression': [{ label: 'Mood check-in', tags: 'mood, mental health' }],
+  'anxiety': [{ label: 'Anxiety check-in', tags: 'anxiety, mental health' }],
+  'gastroparesis': [{ label: 'Food tolerance log', tags: 'GP, food, nausea' }],
+};
+
+function getJournalSuggestions(conditions) {
+  const seen = new Set();
+  const suggestions = [];
+  for (const c of conditions) {
+    const name = c.name.toLowerCase();
+    for (const [key, prompts] of Object.entries(CONDITION_PROMPTS)) {
+      if (name.includes(key)) {
+        for (const p of prompts) {
+          if (!seen.has(p.label)) {
+            seen.add(p.label);
+            suggestions.push(p);
+          }
+        }
+      }
+    }
+  }
+  return suggestions.slice(0, 4);
+}
+
 export default function Journal({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_JOURNAL });
@@ -53,7 +86,18 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
       <SectionTitle action={<Button variant="lavender" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Write</Button>}>
         Symptom Journal
       </SectionTitle>
-      {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
+      {data.journal.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          text="Your journal is empty — start tracking patterns"
+          motif="moon"
+          suggestions={getJournalSuggestions(data.conditions)}
+          onSuggestion={s => {
+            setForm({ ...EMPTY_JOURNAL, date: new Date().toISOString().slice(0, 10), title: s.label, tags: s.tags });
+            setSubView('form');
+          }}
+        />
+      ) :
         data.journal.map(e => {
           const sev = Number(e.severity);
           const sevColor = sev >= 7 ? C.rose : sev >= 4 ? C.amber : C.sage;

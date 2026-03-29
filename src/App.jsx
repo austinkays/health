@@ -93,9 +93,9 @@ export default function App() {
   }
 
   const renderSection = () => {
-    const shared = { data, addItem, updateItem, removeItem };
+    const shared = { data, addItem, updateItem, removeItem, onNav };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
@@ -115,7 +115,7 @@ export default function App() {
       case 'appeals':     return <Appeals {...shared} />;
       case 'surgical':    return <SurgicalPlanning {...shared} />;
       case 'insurance':   return <Insurance {...shared} />;
-      default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      default:            return <Dashboard {...shared} interactions={interactions} />;
     }
   };
 

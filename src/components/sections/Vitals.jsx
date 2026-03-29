@@ -13,6 +13,43 @@ import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 
+// Map common conditions to suggested vital types
+const CONDITION_VITALS = {
+  'heds': ['pain', 'hr', 'bp'],
+  'ehlers': ['pain', 'hr', 'bp'],
+  'pots': ['hr', 'bp', 'energy'],
+  'mcas': ['pain', 'mood', 'energy'],
+  'mast cell': ['pain', 'mood', 'energy'],
+  'fibromyalgia': ['pain', 'energy', 'sleep', 'mood'],
+  'crps': ['pain', 'mood', 'sleep'],
+  'migraine': ['pain', 'sleep', 'mood'],
+  'diabetes': ['glucose', 'weight'],
+  'hypertension': ['bp', 'hr', 'weight'],
+  'depression': ['mood', 'sleep', 'energy'],
+  'anxiety': ['mood', 'sleep', 'energy'],
+  'insomnia': ['sleep', 'energy', 'mood'],
+  'chronic fatigue': ['energy', 'sleep', 'pain'],
+  'lupus': ['pain', 'energy', 'mood'],
+  'rheumatoid': ['pain', 'energy'],
+  'gastroparesis': ['pain', 'weight'],
+  'dysautonomia': ['hr', 'bp', 'energy'],
+};
+
+function getSuggestedVitals(conditions) {
+  const suggested = new Set();
+  for (const c of conditions) {
+    const name = c.name.toLowerCase();
+    for (const [key, vitals] of Object.entries(CONDITION_VITALS)) {
+      if (name.includes(key)) vitals.forEach(v => suggested.add(v));
+    }
+  }
+  if (suggested.size === 0) return [];
+  return [...suggested].slice(0, 4).map(id => {
+    const t = VITAL_TYPES.find(v => v.id === id);
+    return t ? { label: `Track ${t.label}`, value: id } : null;
+  }).filter(Boolean);
+}
+
 export default function Vitals({ data, addItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_VITAL });
@@ -101,7 +138,15 @@ export default function Vitals({ data, addItem, removeItem }) {
       )}
 
       <SectionTitle>Recent Entries</SectionTitle>
-      {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
+      {data.vitals.length === 0 ? (
+        <EmptyState
+          icon={Heart}
+          text="No vitals logged yet"
+          motif="sparkle"
+          suggestions={getSuggestedVitals(data.conditions)}
+          onSuggestion={s => { setCt(s.value); setSubView('form'); setForm(f => ({ ...f, type: s.value })); }}
+        />
+      ) :
         data.vitals.slice().reverse().slice(0, 15).map(v => {
           const t = VITAL_TYPES.find(x => x.id === v.type);
           return (

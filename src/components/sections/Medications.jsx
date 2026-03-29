@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Pill } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -15,11 +15,12 @@ import { C } from '../../constants/colors';
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
 
-export default function Medications({ data, addItem, updateItem, removeItem, interactions }) {
+export default function Medications({ data, addItem, updateItem, removeItem, interactions, onNav }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_MED);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('active');
+  const [expanded, setExpanded] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -100,25 +101,53 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
 
       {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
-        fl.map(m => (
-          <Card key={m.id}>
+        fl.map(m => {
+          const isOpen = expanded === m.id;
+          // Find conditions that list this med
+          const linkedConditions = data.conditions.filter(c =>
+            c.linked_meds && c.linked_meds.toLowerCase().includes(m.name.toLowerCase())
+          );
+          return (
+          <Card key={m.id} className="cursor-pointer" onClick={() => setExpanded(isOpen ? null : m.id)}>
             <div className="flex justify-between items-start">
               <div className="flex-1">
-                <div className="text-[15px] font-semibold text-salve-text mb-0.5">{m.name}</div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[15px] font-semibold text-salve-text">{m.name}</span>
+                  <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                </div>
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency, m.route].filter(Boolean).join(' · ')}</div>
-                {m.purpose && <div className="text-xs text-salve-textFaint mt-0.5">For: {m.purpose}</div>}
-                {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
-                {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              </div>
+              {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}
             </div>
-            {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}
+            {isOpen && (
+              <div className="mt-2 pt-2 border-t border-salve-border">
+                {m.purpose && <div className="text-xs text-salve-textFaint mb-0.5">For: {m.purpose}</div>}
+                {m.prescriber && <div className="text-xs text-salve-textFaint mb-0.5">Rx: {m.prescriber}</div>}
+                {m.pharmacy && <div className="text-xs text-salve-textFaint mb-0.5">Pharmacy: {m.pharmacy}</div>}
+                {m.start_date && <div className="text-xs text-salve-textFaint mb-0.5">Started: {fmtDate(m.start_date)}</div>}
+                {m.refill_date && <div className="text-xs text-salve-amber font-medium mb-0.5">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+                {m.notes && <div className="text-xs text-salve-textMid mt-1 leading-relaxed">{m.notes}</div>}
+                {linkedConditions.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {linkedConditions.map(c => (
+                      <button key={c.id} onClick={e => { e.stopPropagation(); onNav('conditions'); }}
+                        className="text-[11px] text-salve-lav bg-salve-lav/10 border border-salve-lav/25 rounded-full px-2.5 py-0.5 cursor-pointer font-montserrat">
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-2 mt-2" onClick={e => e.stopPropagation()}>
+                  <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex items-center gap-1 text-xs font-montserrat"><Edit size={14} /> Edit</button>
+                  <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex items-center gap-1 text-xs font-montserrat"><Trash2 size={14} /> Delete</button>
+                </div>
+              </div>
+            )}
+            {!isOpen && m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
           </Card>
-        ))
+          );
+        })
       }
     </div>
   );

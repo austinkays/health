@@ -49,10 +49,10 @@ export default function Dashboard({ data, interactions, onNav }) {
   }, [data.settings.ai_mode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const stats = [
-    { label: 'Medications', value: activeMeds.length, color: C.sage, icon: Pill },
-    { label: 'Conditions', value: data.conditions.length, color: C.lav, icon: Stethoscope },
-    { label: 'Vitals', value: data.vitals.length, color: C.amber, icon: Activity },
-    { label: 'Entries', value: data.journal.length, color: C.rose, icon: BookOpen },
+    { label: 'Medications', value: activeMeds.length, color: C.sage, icon: Pill, nav: 'meds' },
+    { label: 'Conditions', value: data.conditions.length, color: C.lav, icon: Stethoscope, nav: 'conditions' },
+    { label: 'Vitals', value: data.vitals.length, color: C.amber, icon: Activity, nav: 'vitals' },
+    { label: 'Entries', value: data.journal.length, color: C.rose, icon: BookOpen, nav: 'journal' },
   ];
 
   const QUICK_LINKS = [
@@ -77,11 +77,15 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* Stats grid */}
       <div className="grid grid-cols-4 gap-2 mb-4">
         {stats.map(s => (
-          <div key={s.label} className="bg-salve-card border border-salve-border rounded-xl p-2.5 text-center">
+          <button
+            key={s.label}
+            onClick={() => onNav(s.nav)}
+            className="bg-salve-card border border-salve-border rounded-xl p-2.5 text-center cursor-pointer hover:border-salve-border2 transition-colors"
+          >
             <s.icon size={16} color={s.color} style={{ margin: '0 auto 4px' }} />
             <div className="text-lg font-semibold text-salve-text font-montserrat">{s.value}</div>
             <div className="text-[10px] text-salve-textFaint">{s.label}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -174,7 +178,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         <>
           <SectionTitle>Refills Coming Up</SectionTitle>
           {upcomingRefills.map(m => (
-            <Card key={m.id} className="!p-3" style={{ borderLeft: `3px solid ${C.amber}` }}>
+            <Card key={m.id} className="!p-3 cursor-pointer" onClick={() => onNav('meds')} style={{ borderLeft: `3px solid ${C.amber}` }}>
               <div className="flex justify-between">
                 <span className="text-[13px] text-salve-text font-medium">{m.name} {m.dose}</span>
                 <span className="text-[13px] text-salve-amber font-semibold">{daysUntil(m.refill_date)}</span>
