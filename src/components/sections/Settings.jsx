@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Search, Loader2 } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Search, Loader2, MapPin, Star } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -7,6 +7,7 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import { searchPharmacies } from '../../services/providerLookup';
+import { searchPlaces, getPlaceDetails } from '../../services/placesLookup';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -28,9 +29,11 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
 
   // Pharmacy search state
   const [showPharmacySearch, setShowPharmacySearch] = useState(false);
+  const [pharmacySearchMode, setPharmacySearchMode] = useState('places'); // 'npi' or 'places'
   const [pharmacyQuery, setPharmacyQuery] = useState('');
   const [pharmacyResults, setPharmacyResults] = useState([]);
   const [pharmacySearching, setPharmacySearching] = useState(false);
+  const [pharmacyLoadingDetails, setPharmacyLoadingDetails] = useState(null);
 
   function handleFileSelect(e) {
     const file = e.target.files?.[0];
@@ -211,41 +214,69 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       <Card>
         <Field label="Preferred Pharmacy" value={s.pharmacy || ''} onChange={v => set('pharmacy', v)} placeholder="Name & location" />
         {!showPharmacySearch ? (
-          <button
-            onClick={() => setShowPharmacySearch(true)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-salve-sage/40 text-salve-sage text-xs font-medium bg-transparent cursor-pointer hover:bg-salve-sage/5 transition-colors font-montserrat"
-          >
-            <Search size={13} /> Search Pharmacies
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowPharmacySearch(true); setPharmacySearchMode('places'); }}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-salve-sage/40 text-salve-sage text-xs font-medium bg-transparent cursor-pointer hover:bg-salve-sage/5 transition-colors font-montserrat"
+            >
+              <MapPin size={13} /> Google Places
+            </button>
+            <button
+              onClick={() => { setShowPharmacySearch(true); setPharmacySearchMode('npi'); }}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-salve-lav/40 text-salve-lav text-xs font-medium bg-transparent cursor-pointer hover:bg-salve-lav/5 transition-colors font-montserrat"
+            >
+              <Search size={13} /> NPI Registry
+            </button>
+          </div>
         ) : (
           <div className="p-3 rounded-lg border border-salve-sage/30 bg-salve-sage/5">
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={pharmacyQuery}
-                onChange={e => setPharmacyQuery(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && pharmacyQuery.trim()) {
-                    setPharmacySearching(true);
+            <div className="flex items-center gap-2 mb-2">
+              {pharmacySearchMode === 'places' ? <MapPin size={13} className="text-salve-sage" /> : <Search size={13} className="text-salve-lav" />}
+              <span className={`text-xs font-semibold uppercase tracking-wider ${pharmacySearchMode === 'places' ? 'text-salve-sage' : 'text-salve-lav'}`}>
+                {pharmacySearchMode === 'places' ? 'Google Places' : 'NPI Registry'}
+              </span>
+            </div>
+            <input
+              type="text"
+              value={pharmacyQuery}
+              onChange={e => setPharmacyQuery(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && pharmacyQuery.trim()) {
+                  setPharmacySearching(true);
+                  setPharmacyResults([]);
+                  if (pharmacySearchMode === 'places') {
+                    searchPlaces(pharmacyQuery + ' pharmacy')
+                      .then(r => setPharmacyResults(r.map(p => ({ ...p, _source: 'places' }))))
+                      .catch(() => setPharmacyResults([]))
+                      .finally(() => setPharmacySearching(false));
+                  } else {
                     searchPharmacies(pharmacyQuery, s.location?.split(',')[0]?.trim())
-                      .then(r => setPharmacyResults(r))
+                      .then(r => setPharmacyResults(r.map(p => ({ ...p, _source: 'npi' }))))
                       .catch(() => setPharmacyResults([]))
                       .finally(() => setPharmacySearching(false));
                   }
-                }}
-                placeholder="Pharmacy name (e.g. CVS, Walgreens)"
-                className="flex-1 py-2 px-3 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 focus:outline-none focus:border-salve-sage"
-              />
-            </div>
+                }
+              }}
+              placeholder={pharmacySearchMode === 'places' ? 'e.g. CVS pharmacy Portland' : 'Pharmacy name (e.g. CVS, Walgreens)'}
+              className="w-full py-2 px-3 mb-2 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 focus:outline-none focus:border-salve-sage"
+            />
             <div className="flex gap-2">
               <button
                 onClick={() => {
                   if (!pharmacyQuery.trim()) return;
                   setPharmacySearching(true);
-                  searchPharmacies(pharmacyQuery, s.location?.split(',')[0]?.trim())
-                    .then(r => setPharmacyResults(r))
-                    .catch(() => setPharmacyResults([]))
-                    .finally(() => setPharmacySearching(false));
+                  setPharmacyResults([]);
+                  if (pharmacySearchMode === 'places') {
+                    searchPlaces(pharmacyQuery + ' pharmacy')
+                      .then(r => setPharmacyResults(r.map(p => ({ ...p, _source: 'places' }))))
+                      .catch(() => setPharmacyResults([]))
+                      .finally(() => setPharmacySearching(false));
+                  } else {
+                    searchPharmacies(pharmacyQuery, s.location?.split(',')[0]?.trim())
+                      .then(r => setPharmacyResults(r.map(p => ({ ...p, _source: 'npi' }))))
+                      .catch(() => setPharmacyResults([]))
+                      .finally(() => setPharmacySearching(false));
+                  }
                 }}
                 disabled={pharmacySearching || !pharmacyQuery.trim()}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-salve-sage/20 text-salve-sage text-xs font-medium border-none cursor-pointer disabled:opacity-40 font-montserrat"
@@ -254,7 +285,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
                 {pharmacySearching ? 'Searching...' : 'Search'}
               </button>
               <button
-                onClick={() => { setShowPharmacySearch(false); setPharmacyResults([]); setPharmacyQuery(''); }}
+                onClick={() => { setShowPharmacySearch(false); setPharmacyResults([]); setPharmacyQuery(''); setPharmacyLoadingDetails(null); }}
                 className="px-3 py-2 rounded-lg border border-salve-border text-salve-textMid text-xs bg-transparent cursor-pointer font-montserrat"
               >
                 Cancel
@@ -265,17 +296,45 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
                 {pharmacyResults.map((p, i) => (
                   <button
                     key={i}
-                    onClick={() => {
-                      set('pharmacy', `${p.name}, ${[p.address, p.city, p.state, p.zip].filter(Boolean).join(', ')}${p.phone ? ' — ' + p.phone : ''}`);
+                    disabled={pharmacyLoadingDetails === (p.place_id || i)}
+                    onClick={async () => {
+                      if (p._source === 'places' && p.place_id) {
+                        setPharmacyLoadingDetails(p.place_id);
+                        try {
+                          const details = await getPlaceDetails(p.place_id);
+                          if (details) {
+                            set('pharmacy', `${details.name}, ${details.address}${details.phone ? ' — ' + details.phone : ''}`);
+                          } else {
+                            set('pharmacy', `${p.name}, ${p.address}`);
+                          }
+                        } catch {
+                          set('pharmacy', `${p.name}, ${p.address}`);
+                        } finally {
+                          setPharmacyLoadingDetails(null);
+                        }
+                      } else {
+                        set('pharmacy', `${p.name}, ${[p.address, p.city, p.state, p.zip].filter(Boolean).join(', ')}${p.phone ? ' — ' + p.phone : ''}`);
+                      }
                       setShowPharmacySearch(false);
                       setPharmacyResults([]);
                       setPharmacyQuery('');
                     }}
-                    className="w-full text-left px-3 py-2.5 bg-transparent border-none border-b border-salve-border cursor-pointer hover:bg-salve-card2 transition-colors font-montserrat last:border-b-0"
+                    className="w-full text-left px-3 py-2.5 bg-transparent border-none border-b border-salve-border cursor-pointer hover:bg-salve-card2 transition-colors font-montserrat last:border-b-0 disabled:opacity-50"
                   >
-                    <div className="text-sm text-salve-text font-medium">{p.name}</div>
-                    <div className="text-[11px] text-salve-textFaint">{p.address}, {p.city}, {p.state} {p.zip}</div>
-                    {p.phone && <div className="text-[11px] text-salve-textFaint">{p.phone}</div>}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-sm text-salve-text font-medium">{p.name}</span>
+                      {pharmacyLoadingDetails === p.place_id && <Loader2 size={11} className="animate-spin text-salve-sage" />}
+                    </div>
+                    <div className="text-[11px] text-salve-textFaint">
+                      {p._source === 'places' ? p.address : `${p.address}, ${p.city}, ${p.state} ${p.zip}`}
+                    </div>
+                    {p.rating && (
+                      <span className="text-[11px] text-salve-amber flex items-center gap-0.5 mt-0.5">
+                        <Star size={10} fill="currentColor" /> {p.rating}
+                        {p.rating_count && <span className="text-salve-textFaint"> ({p.rating_count})</span>}
+                      </span>
+                    )}
+                    {!p.rating && p.phone && <div className="text-[11px] text-salve-textFaint">{p.phone}</div>}
                   </button>
                 ))}
               </div>

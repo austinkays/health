@@ -11,6 +11,9 @@
     },
     "api/drug-interactions.js": {
       "maxDuration": 15
+    },
+    "api/places-lookup.js": {
+      "maxDuration": 10
     }
   },
   "rewrites": [
