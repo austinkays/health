@@ -53,7 +53,6 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
       <SectionTitle action={<Button variant="lavender" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Write</Button>}>
         Symptom Journal
       </SectionTitle>
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} />
       {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
         data.journal.map(e => {
           const sev = Number(e.severity);
@@ -82,6 +81,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
               <div className="flex gap-2.5 mt-2">
                 <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
                 <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} itemId={e.id} />
               </div>
             </Card>
           );

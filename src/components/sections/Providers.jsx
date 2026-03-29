@@ -51,7 +51,6 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
       <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
         Providers
       </SectionTitle>
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('providers', id))} onCancel={del.cancel} />
       {data.providers.length === 0 ? <EmptyState icon={User} text="No providers added" motif="leaf" /> :
         data.providers.map(p => (
           <Card key={p.id}>
@@ -65,6 +64,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
               <div className="flex gap-2">
                 <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                 <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('providers', id))} onCancel={del.cancel} itemId={p.id} />
               </div>
             </div>
           </Card>

@@ -57,7 +57,6 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
       <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
         Appointments
       </SectionTitle>
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} />
 
       {data.appts.length === 0 ? <EmptyState icon={Calendar} text="No appointments yet" motif="moon" /> : (
         <>
@@ -96,7 +95,9 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={14} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
                   <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
                 </div>
               </div>
               {a.post_notes && <div className="text-xs text-salve-textMid mt-1.5 border-t border-salve-border pt-1.5">{a.post_notes}</div>}

@@ -99,7 +99,6 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
         Surgical Planning
       </SectionTitle>
 
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('surgical_planning', id))} onCancel={del.cancel} />
 
       {data.surgical_planning.length === 0 ? <EmptyState icon={PlaneTakeoff} text="No surgical plans yet" motif="leaf" /> :
         data.surgical_planning.map(plan => {
@@ -120,6 +119,7 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                 <div className="flex gap-2 ml-2">
                   <button onClick={() => openForm(plan)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                   <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('surgical_planning', id))} onCancel={del.cancel} itemId={plan.id} />
                 </div>
               </div>
 

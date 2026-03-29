@@ -57,7 +57,6 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
         Insurance & Coverage
       </SectionTitle>
 
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('insurance', id))} onCancel={del.cancel} />
 
       {data.insurance.length === 0 ? <EmptyState icon={BadgeDollarSign} text="No insurance plans recorded" motif="leaf" /> :
         data.insurance.map(ins => {
@@ -80,6 +79,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
                 <div className="flex gap-2 ml-2">
                   <button onClick={() => { setForm(ins); setEditId(ins.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                   <button onClick={() => del.ask(ins.id, ins.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('insurance', id))} onCancel={del.cancel} itemId={ins.id} />
                 </div>
               </div>
             </Card>

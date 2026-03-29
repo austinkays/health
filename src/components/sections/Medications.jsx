@@ -98,7 +98,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         ))}
       </div>
 
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} />
 
       {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
         fl.map(m => (
@@ -114,6 +113,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               <div className="flex gap-2">
                 <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                 <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
               </div>
             </div>
             {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}

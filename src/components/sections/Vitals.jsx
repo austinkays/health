@@ -101,7 +101,6 @@ export default function Vitals({ data, addItem, removeItem }) {
       )}
 
       <SectionTitle>Recent Entries</SectionTitle>
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} />
       {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
         data.vitals.slice().reverse().slice(0, 15).map(v => {
           const t = VITAL_TYPES.find(x => x.id === v.type);
@@ -115,6 +114,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-salve-textFaint">{fmtDate(v.date)}</span>
                   <button onClick={() => del.ask(v.id, t?.label || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
                 </div>
               </div>
               {v.notes && <div className="text-xs text-salve-textMid mt-1">{v.notes}</div>}

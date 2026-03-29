@@ -59,7 +59,6 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem 
         <span style={{ color: C.rose }}>⚠</span> Flags ({flags.length})
       </SectionTitle>
 
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('anesthesia_flags', id))} onCancel={del.cancel} />
 
       {flags.length === 0 ? (
         <EmptyState icon={AlertOctagon} text="No anesthesia flags recorded" motif="leaf" />
@@ -87,6 +86,7 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem 
               <div className="flex gap-2 ml-2">
                 <button onClick={() => { setForm(flag); setEditId(flag.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                 <button onClick={() => del.ask(flag.id, flag.condition)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('anesthesia_flags', id))} onCancel={del.cancel} itemId={flag.id} />
               </div>
             </div>
           </Card>

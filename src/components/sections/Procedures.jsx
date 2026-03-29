@@ -59,7 +59,6 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
         Procedures
       </SectionTitle>
 
-      <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('procedures', id))} onCancel={del.cancel} />
 
       {data.procedures.length === 0 ? <EmptyState icon={Syringe} text="No procedures recorded yet" motif="leaf" /> :
         data.procedures.map(p => {
@@ -79,6 +78,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
                 <div className="flex gap-2 ml-2">
                   <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                   <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('procedures', id))} onCancel={del.cancel} itemId={p.id} />
                 </div>
               </div>
             </Card>
