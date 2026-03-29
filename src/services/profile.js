@@ -99,5 +99,114 @@ export function buildProfile(data) {
     p += '\n— ADDITIONAL HEALTH BACKGROUND —\n' + s.health_background + '\n';
   }
 
+  // Labs (highlight abnormal results, last 10)
+  const labs = data.labs || [];
+  if (labs.length) {
+    const abnormal = labs.filter(l => l.flag && l.flag !== 'normal');
+    const recent = labs.slice(0, 10);
+    if (abnormal.length) {
+      p += '\n— ABNORMAL LAB RESULTS —\n';
+      abnormal.forEach(l => {
+        p += '- ' + l.test_name + ': ' + l.result;
+        if (l.unit) p += ' ' + l.unit;
+        p += ' [' + l.flag + ']';
+        if (l.reference_range) p += ' (ref: ' + l.reference_range + ')';
+        if (l.date) p += ' on ' + l.date;
+        p += '\n';
+      });
+    }
+    const normal = recent.filter(l => !l.flag || l.flag === 'normal');
+    if (normal.length) {
+      p += '\n— RECENT LAB RESULTS (normal, last 5) —\n';
+      normal.slice(0, 5).forEach(l => {
+        p += '- ' + l.test_name + ': ' + l.result;
+        if (l.unit) p += ' ' + l.unit;
+        if (l.date) p += ' on ' + l.date;
+        p += '\n';
+      });
+    }
+  }
+
+  // Procedures (last 5)
+  const procedures = data.procedures || [];
+  if (procedures.length) {
+    p += '\n— RECENT PROCEDURES —\n';
+    procedures.slice(0, 5).forEach(pr => {
+      p += '- ' + pr.name;
+      if (pr.date) p += ' on ' + pr.date;
+      if (pr.provider) p += ' by ' + pr.provider;
+      if (pr.outcome) p += ' — outcome: ' + pr.outcome;
+      if (pr.notes) p += ' — ' + pr.notes;
+      p += '\n';
+    });
+  }
+
+  // Immunizations
+  const immunizations = data.immunizations || [];
+  if (immunizations.length) {
+    p += '\n— IMMUNIZATIONS —\n';
+    immunizations.forEach(i => {
+      p += '- ' + i.vaccine_name;
+      if (i.date) p += ' on ' + i.date;
+      if (i.dose_number) p += ' (dose ' + i.dose_number + ')';
+      if (i.provider) p += ' at ' + i.provider;
+      if (i.notes) p += ' — ' + i.notes;
+      p += '\n';
+    });
+  }
+
+  // Care gaps
+  const careGaps = data.care_gaps || [];
+  if (careGaps.length) {
+    p += '\n— CARE GAPS (overdue screenings/preventive care) —\n';
+    careGaps.forEach(g => {
+      p += '- ' + g.name;
+      if (g.urgency) p += ' [' + g.urgency + ']';
+      if (g.due_date) p += ' due ' + g.due_date;
+      if (g.notes) p += ' — ' + g.notes;
+      p += '\n';
+    });
+  }
+
+  // Anesthesia flags
+  const anesthesiaFlags = data.anesthesia_flags || [];
+  if (anesthesiaFlags.length) {
+    p += '\n— ANESTHESIA FLAGS (safety-critical) —\n';
+    anesthesiaFlags.forEach(f => {
+      p += '- ' + f.flag_type;
+      if (f.description) p += ': ' + f.description;
+      if (f.severity) p += ' [' + f.severity + ']';
+      p += '\n';
+    });
+  }
+
+  // Surgical planning
+  const surgical = data.surgical_planning || [];
+  if (surgical.length) {
+    p += '\n— SURGICAL PLANNING —\n';
+    surgical.forEach(sp => {
+      p += '- ' + sp.procedure_name;
+      if (sp.date) p += ' scheduled ' + sp.date;
+      if (sp.surgeon) p += ' with ' + sp.surgeon;
+      if (sp.status) p += ' (' + sp.status + ')';
+      if (sp.pre_op_notes) p += ' | pre-op: ' + sp.pre_op_notes;
+      if (sp.post_op_notes) p += ' | post-op: ' + sp.post_op_notes;
+      p += '\n';
+    });
+  }
+
+  // Appeals & disputes
+  const appeals = data.appeals_and_disputes || [];
+  if (appeals.length) {
+    p += '\n— INSURANCE APPEALS & DISPUTES —\n';
+    appeals.forEach(a => {
+      p += '- ' + a.subject;
+      if (a.status) p += ' (' + a.status + ')';
+      if (a.date_filed) p += ' filed ' + a.date_filed;
+      if (a.notes) p += ' — ' + a.notes;
+      p += '\n';
+    });
+  }
+
   return p;
 }

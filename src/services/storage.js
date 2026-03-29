@@ -257,27 +257,59 @@ function normalizeImportData(fileData) {
 
 /**
  * Full restore: erase existing data, insert all imported records.
+ * Creates an in-memory backup before erasing so data can be recovered on failure.
  */
 export async function importRestore(normalized) {
-  await db.eraseAll();
-
-  const { data: { user } } = await supabase.auth.getUser();
-  const uid = user.id;
-
-  // Restore profile/settings if present
-  if (normalized.settings) {
-    const { id, created_at, updated_at, user_id, ...fields } = normalized.settings;
-    await supabase.from('profiles').update(fields).eq('id', uid);
+  // Create backup of current data before erasing
+  let backup;
+  try {
+    backup = await exportAll();
+  } catch {
+    // If we can't backup, proceed anyway — user explicitly chose restore
+    backup = null;
   }
 
-  // Bulk insert each table
-  for (const [key, table] of Object.entries(TABLE_MAP)) {
-    const records = normalized[key];
-    if (records && records.length > 0) {
-      const rows = records.map(r => ({ ...stripMeta(r), user_id: uid }));
-      const { error } = await supabase.from(table).insert(rows);
-      if (error) console.error(`Import error for ${table}:`, error);
+  try {
+    await db.eraseAll();
+
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user.id;
+
+    // Restore profile/settings if present
+    if (normalized.settings) {
+      const { id, created_at, updated_at, user_id, ...fields } = normalized.settings;
+      await supabase.from('profiles').update(fields).eq('id', uid);
     }
+
+    // Bulk insert each table
+    for (const [key, table] of Object.entries(TABLE_MAP)) {
+      const records = normalized[key];
+      if (records && records.length > 0) {
+        const rows = records.map(r => ({ ...stripMeta(r), user_id: uid }));
+        const { error } = await supabase.from(table).insert(rows);
+        if (error) console.error(`Import error for ${table}:`, error);
+      }
+    }
+  } catch (err) {
+    // Import failed — attempt to restore from backup
+    if (backup) {
+      console.error('Import failed, attempting to restore backup:', err);
+      try {
+        const backupNormalized = normalizeImportData(backup);
+        const { data: { user } } = await supabase.auth.getUser();
+        const uid = user.id;
+        for (const [key, table] of Object.entries(TABLE_MAP)) {
+          const records = backupNormalized[key];
+          if (records && records.length > 0) {
+            const rows = records.map(r => ({ ...stripMeta(r), user_id: uid }));
+            await supabase.from(table).insert(rows);
+          }
+        }
+      } catch (restoreErr) {
+        console.error('Backup restore also failed:', restoreErr);
+      }
+    }
+    throw err;
   }
 }
 

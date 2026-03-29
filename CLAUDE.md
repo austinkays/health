@@ -45,14 +45,18 @@ health/
 │   ├── manifest.json             # PWA manifest
 │   └── favicon.svg
 ├── docs/
-│   └── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
+│   ├── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
+│   └── MIGRATION_PLAN.md         # Migration planning notes
 ├── supabase/
 │   └── migrations/
-│       └── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
+│       ├── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
+│       ├── 002_sync_id.sql
+│       ├── 003_comprehensive_schema.sql  # Labs, procedures, immunizations, etc.
+│       └── 004_remove_fabricated_conditions.sql
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities
-│   ├── App.jsx                   # Auth gate, session management, router shell, view switching
+│   ├── App.jsx                   # Auth gate, session management, router shell, view switching, ErrorBoundary wrapper
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
@@ -78,6 +82,7 @@ health/
 │   │   │   ├── Badge.jsx
 │   │   │   ├── ConfirmBar.jsx    # Inline delete confirmation
 │   │   │   ├── EmptyState.jsx
+│   │   │   ├── ErrorBoundary.jsx  # React error boundary with friendly fallback + Go Home
 │   │   │   ├── FormWrap.jsx      # Back-arrow + title wrapper; also exports SectionTitle
 │   │   │   ├── LoadingSpinner.jsx
 │   │   │   ├── AIConsentGate.jsx  # AI data-sharing consent gate + hasAIConsent/revokeAIConsent
@@ -85,8 +90,8 @@ health/
 │   │   ├── layout/
 │   │   │   ├── Header.jsx
 │   │   │   └── BottomNav.jsx
-│   │   └── sections/             # One file per app section
-│   │       ├── Dashboard.jsx     # Home: greeting, quick stats, AI insight, interaction alerts
+│   │   └── sections/             # One file per app section (19 total)
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
 │   │       ├── Medications.jsx   # Med list + add/edit form
 │   │       ├── Vitals.jsx        # Vitals tracking + chart
 │   │       ├── Conditions.jsx    # Condition list + add/edit
@@ -96,6 +101,14 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (standalone view)
 │   │       ├── AIPanel.jsx       # AI chat panel with health context
+│   │       ├── Labs.jsx          # Lab results + flag-based filtering
+│   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
+│   │       ├── Immunizations.jsx # Vaccination records
+│   │       ├── CareGaps.jsx      # Preventive care gaps + urgency sorting
+│   │       ├── AnesthesiaFlags.jsx # Anesthesia safety alerts
+│   │       ├── Appeals.jsx       # Insurance appeals & disputes
+│   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
+│   │       ├── Insurance.jsx     # Insurance details + benefits
 │   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
@@ -130,7 +143,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 `storage.js` provides data portability via the Settings UI:
 - **Download Backup** — exports all current Supabase data as a JSON file with `_export` metadata envelope
 - **Download Encrypted Backup** — same as above but AES-GCM encrypted with a user-supplied passphrase (`encryptExport()`)
-- **Import Restore** — erases all data, then bulk-inserts from the uploaded file (full overwrite)
+- **Import Restore** — creates in-memory backup, erases all data, then bulk-inserts from the uploaded file (full overwrite); auto-restores backup on failure
 - **Import Merge** — adds only records whose ID doesn't already exist (sync mode, triggered by `_export.type: "mcp-sync"`)
 - **Encrypted Import** — detects `_encrypted` envelope, prompts for passphrase, decrypts via `decryptExport()`, then proceeds with normal validation
 - Supports Salve v1 export format, legacy `ambers-remedy` format, and localStorage v2/v3 formats
@@ -150,7 +163,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `cache.setToken(token)` must be called with the session access token before read/write; `cache.clearToken()` on sign-out
 - `read()` and `write()` are async (use `crypto.subtle`)
 - When offline, pending writes queue to `hc:pending` (operation metadata only, no PHI)
-- `setupOfflineSync()` flushes the pending queue when connectivity returns
+- `setupOfflineSync()` is initialized in `App.jsx` on mount with a flush callback that replays pending operations through `db.js`; cleans up on unmount
 - `crypto.js` provides `encrypt()`, `decrypt()`, and `clearKeyCache()` used by both cache and export encryption
 
 ### API Proxy
@@ -186,10 +199,11 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self'" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(), microphone=(), camera=(), payment=()" }
       ]
     }
   ]
@@ -206,7 +220,9 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
-| **HTTP headers** | CSP, X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy |
+| **HTTP headers** | CSP (no unsafe-inline/eval in script-src), X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy, Permissions-Policy |
+| **Import safety** | `importRestore()` creates in-memory backup before erasing; auto-restores on failure |
+| **Offline sync** | `setupOfflineSync()` wired up in App.jsx; flushes pending writes when connectivity returns |
 | **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
 
 ## Design System
@@ -245,9 +261,14 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 ### Layout
 
 - Max width 480px, centered (mobile-first, phone-optimized)
-- Bottom navigation with 6 tabs: Dashboard, Meds, Vitals, Journal, AI, Quick Access
-- Quick Access is a grid menu linking to: Conditions, Providers, Allergies, Appointments, Interactions, Settings
-- All section views have a back arrow in the header that returns to Dashboard
+- Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
+- Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
+- Dashboard sections: contextual greeting → consolidated alerts → AI insight → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
+- Quick Access primary 6: Conditions, Providers, Allergies, Appointments, Labs, Insurance; "More" expander reveals 8 additional sections
+- Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
+- All section views (19 total) have a back arrow in the header that returns to Dashboard
+- Staggered entrance animations on Dashboard cards (`dash-stagger` CSS classes)
+- `ErrorBoundary` wraps all section renders — crashes show friendly fallback, not white screen
 
 ## Key Design Decisions
 
@@ -263,11 +284,18 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 ## Testing Checklist
 
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 11 sections render without errors (including Auth screen)
+- [ ] All 19 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
-- [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries
+- [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
 - [ ] Drug interaction checker flags known combos
+- [ ] Dashboard: contextual greeting shows correct time-of-day message
+- [ ] Dashboard: alerts consolidate into single card (anesthesia + interactions + care gaps)
+- [ ] Dashboard: AI insight hidden when no consent; shimmer when loading; quote-style when loaded
+- [ ] Dashboard: unified timeline shows appointments and refills sorted by date
+- [ ] Dashboard: Quick Access shows 6 primary tiles; "More" expands to reveal all
+- [ ] Dashboard: entrance animations stagger correctly without layout shift
+- [ ] Dashboard: "More" expanded state persists across page loads
 - [ ] AI insight loads on dashboard (with /api/chat proxy + auth token)
 - [ ] AI chat panel sends/receives messages
 - [ ] AI news and resources features work (web search)
@@ -281,7 +309,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] Quick Access grid links to all subsections
+- [ ] All 19 sections reachable via Quick Access (6 primary + 8 in More expander + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
@@ -291,6 +319,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] AI consent can be revoked in Settings
 - [ ] After revoking, AI features show consent gate again
 - [ ] localStorage cache (`hc:cache`) is encrypted (not readable plaintext JSON)
+- [ ] ErrorBoundary catches section crashes and shows fallback with Go Home button
 - [ ] No console errors in production build
 
 ## Environment Variables
@@ -303,6 +332,14 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel env vars only | Server-side auth token verification |
 | `SUPABASE_URL` | Vercel env vars (fallback) | Fallback for api/chat.js if VITE_ prefix not available server-side |
 | `ALLOWED_ORIGIN` | Vercel env vars (optional) | Custom allowed CORS origin for api/chat.js (e.g. your production domain) |
+
+## Reference Docs
+
+| Document | Purpose |
+|----------|---------|
+| `docs/PRODUCTION_AUDIT.md` | Full production-readiness audit: security fixes, data integrity issues, AI underutilization, UX gaps per section, accessibility, PWA/performance, implementation priority checklist |
+| `docs/IMPORT_IMPLEMENTATION.md` | Import/export/merge implementation guide |
+| `docs/MIGRATION_PLAN.md` | Migration planning notes |
 
 ## Commands
 

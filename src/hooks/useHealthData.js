@@ -29,7 +29,7 @@ export default function useHealthData(session) {
     setData(prev => ({ ...prev, [key]: val }));
   }, []);
 
-  // CRUD helpers that sync to Supabase
+  // CRUD helpers that sync to Supabase — state updates AFTER server confirms
   const addItem = useCallback(async (table, item) => {
     const saved = await db[table].add(item);
     setData(prev => {

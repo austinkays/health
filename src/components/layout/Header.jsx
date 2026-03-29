@@ -12,6 +12,15 @@ const TAB_LABELS = {
   allergies: 'Allergies',
   journal: 'Journal',
   settings: 'Settings',
+  labs: 'Labs',
+  procedures: 'Procedures',
+  immunizations: 'Vaccines',
+  care_gaps: 'Care Gaps',
+  anesthesia: 'Anesthesia Flags',
+  appeals: 'Appeals',
+  surgical: 'Surgery Plan',
+  insurance: 'Insurance',
+  interactions: 'Interactions',
 };
 
 export default function Header({ tab, name, onBack }) {

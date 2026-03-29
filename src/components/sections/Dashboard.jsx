@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  Pill, Calendar, AlertTriangle, Sparkles, BookOpen, Stethoscope,
-  User, Shield, Activity, Settings as SettingsIcon, ChevronRight,
-  FlaskConical, Syringe, ShieldCheck, AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign,
+  Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
+  Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
+  PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
+  Grid, Sun, Moon, Sunrise, Sunset,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
-import Badge, { SevBadge } from '../ui/Badge';
 import Motif, { Divider } from '../ui/Motif';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil } from '../../utils/dates';
@@ -15,20 +15,98 @@ import { fetchInsight } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 
+/* ── Helpers ─────────────────────────────────────────────── */
+
+function getTimeGreeting() {
+  const h = new Date().getHours();
+  if (h < 5)  return { text: 'Good evening', icon: Moon, motif: 'moon' };
+  if (h < 12) return { text: 'Good morning', icon: Sunrise, motif: 'leaf' };
+  if (h < 17) return { text: 'Good afternoon', icon: Sun, motif: 'sparkle' };
+  if (h < 21) return { text: 'Good evening', icon: Sunset, motif: 'star' };
+  return { text: 'Good evening', icon: Moon, motif: 'moon' };
+}
+
+function getContextLine(data, interactions, urgentGaps, anesthesiaCount) {
+  // Priority: critical alerts → upcoming events → encouragement
+  const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0);
+  if (totalAlerts > 0) return `${totalAlerts} item${totalAlerts > 1 ? 's' : ''} need${totalAlerts === 1 ? 's' : ''} your attention`;
+
+  const soon = data.appts.filter(a => {
+    const d = Math.ceil((new Date(a.date) - new Date(new Date().toDateString())) / 86400000);
+    return d >= 0 && d <= 7;
+  });
+  if (soon.length > 0) return `${soon.length} appointment${soon.length > 1 ? 's' : ''} this week`;
+
+  const refills = data.meds.filter(m => m.active !== false && m.refill_date).filter(m => {
+    const d = Math.ceil((new Date(m.refill_date) - new Date(new Date().toDateString())) / 86400000);
+    return d >= 0 && d <= 7;
+  });
+  if (refills.length > 0) return `${refills.length} refill${refills.length > 1 ? 's' : ''} coming up soon`;
+
+  if (data.journal.length > 0) return 'Your health journal is up to date';
+  return 'All caught up — take care of yourself today';
+}
+
+/* ── Quick Access config (static — outside component) ──── */
+
+const PRIMARY_LINKS = [
+  { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,   color: C.lav },
+  { id: 'providers',    label: 'Providers',     icon: User,          color: C.sage },
+  { id: 'allergies',    label: 'Allergies',     icon: Shield,        color: C.amber },
+  { id: 'appts',        label: 'Appointments',  icon: Calendar,      color: C.rose },
+  { id: 'labs',         label: 'Labs',          icon: FlaskConical,  color: C.lav },
+  { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign, color: C.sage },
+];
+
+const MORE_LINKS = [
+  { id: 'procedures',    label: 'Procedures',    icon: Syringe,       color: C.sage },
+  { id: 'immunizations', label: 'Vaccines',      icon: ShieldCheck,   color: C.sage },
+  { id: 'care_gaps',     label: 'Care Gaps',     icon: AlertTriangle, color: C.amber },
+  { id: 'anesthesia',    label: 'Anesthesia',    icon: AlertOctagon,  color: C.rose },
+  { id: 'appeals',       label: 'Appeals',       icon: Scale,         color: C.amber },
+  { id: 'surgical',      label: 'Surgery Plan',  icon: PlaneTakeoff,  color: C.lav },
+  { id: 'interactions',  label: 'Interactions',  icon: AlertTriangle, color: C.amber },
+  { id: 'settings',      label: 'Settings',      icon: SettingsIcon,  color: C.textMid },
+];
+
+/* ── Component ───────────────────────────────────────────── */
+
 export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const [showMore, setShowMore] = useState(() => localStorage.getItem('salve:dash-more') === '1');
 
-  const activeMeds = data.meds.filter(m => m.active !== false);
-  const upcomingRefills = activeMeds.filter(m => m.refill_date).sort((a, b) => new Date(a.refill_date) - new Date(b.refill_date)).slice(0, 3);
-  const upcomingAppts = data.appts.filter(a => new Date(a.date) >= new Date(new Date().toDateString())).sort((a, b) => new Date(a.date) - new Date(b.date)).slice(0, 3);
-  const latestJournal = data.journal.length > 0 ? data.journal[0] : null;
+  /* ── Memoized computations ──────────────────── */
+  const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
 
-  // Computed urgency counts
-  const urgentGaps = (data.care_gaps || []).filter(g => g.urgency === 'urgent').length;
-  const anesthesiaCount = (data.anesthesia_flags || []).length;
-  const openAppeals = (data.appeals_and_disputes || []).filter(a => a.status !== 'Resolved').length;
+  const timeline = useMemo(() => {
+    const now = new Date(new Date().toDateString());
+    const appts = data.appts
+      .filter(a => new Date(a.date) >= now)
+      .map(a => ({ ...a, _type: 'appt', _sortDate: a.date }));
+    const refills = activeMeds
+      .filter(m => m.refill_date && new Date(m.refill_date) >= now)
+      .map(m => ({ ...m, _type: 'refill', _sortDate: m.refill_date }));
+    return [...appts, ...refills]
+      .sort((a, b) => new Date(a._sortDate) - new Date(b._sortDate))
+      .slice(0, 3);
+  }, [data.appts, activeMeds]);
 
+  const latestJournal = useMemo(
+    () => data.journal.length > 0 ? data.journal[0] : null,
+    [data.journal]
+  );
+
+  const urgentGaps = useMemo(
+    () => (data.care_gaps || []).filter(g => g.urgency === 'urgent').length,
+    [data.care_gaps]
+  );
+  const anesthesiaCount = useMemo(
+    () => (data.anesthesia_flags || []).length,
+    [data.anesthesia_flags]
+  );
+
+  /* ── AI Insight ─────────────────────────────── */
   const loadInsight = async () => {
     setInsightLoading(true);
     try {
@@ -43,182 +121,195 @@ export default function Dashboard({ data, interactions, onNav }) {
   };
 
   useEffect(() => {
-    if (data.settings.ai_mode === 'auto' && data.meds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
+    if (data.settings.ai_mode === 'auto' && activeMeds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
       loadInsight();
     }
-  }, [data.settings.ai_mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [data.settings.ai_mode, activeMeds.length, data.conditions.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const stats = [
-    { label: 'Medications', value: activeMeds.length, color: C.sage, icon: Pill },
-    { label: 'Conditions', value: data.conditions.length, color: C.lav, icon: Stethoscope },
-    { label: 'Vitals', value: data.vitals.length, color: C.amber, icon: Activity },
-    { label: 'Entries', value: data.journal.length, color: C.rose, icon: BookOpen },
-  ];
+  /* ── Alerts aggregation ─────────────────────── */
+  const alerts = useMemo(() => {
+    const items = [];
+    if (anesthesiaCount > 0) {
+      items.push({ id: 'anesthesia', icon: AlertOctagon, color: C.rose, text: `${anesthesiaCount} Anesthesia Flag${anesthesiaCount > 1 ? 's' : ''} — review before procedures`, nav: 'anesthesia' });
+    }
+    if (interactions.length > 0) {
+      items.push({ id: 'interactions', icon: AlertTriangle, color: C.rose, text: `${interactions.length} Drug Interaction${interactions.length > 1 ? 's' : ''} detected`, nav: 'interactions' });
+    }
+    if (urgentGaps > 0) {
+      items.push({ id: 'care_gaps', icon: AlertTriangle, color: C.amber, text: `${urgentGaps} Urgent Care Gap${urgentGaps > 1 ? 's' : ''}`, nav: 'care_gaps' });
+    }
+    return items;
+  }, [anesthesiaCount, interactions, urgentGaps]);
 
-  const QUICK_LINKS = [
-    { id: 'conditions',   label: 'Conditions',    icon: Stethoscope,      color: C.lav },
-    { id: 'providers',    label: 'Providers',     icon: User,             color: C.sage },
-    { id: 'allergies',    label: 'Allergies',     icon: Shield,           color: C.amber },
-    { id: 'appts',        label: 'Appointments',  icon: Calendar,         color: C.rose },
-    { id: 'labs',         label: 'Labs',          icon: FlaskConical,     color: C.lav },
-    { id: 'procedures',   label: 'Procedures',    icon: Syringe,          color: C.sage },
-    { id: 'immunizations',label: 'Vaccines',      icon: ShieldCheck,      color: C.sage },
-    { id: 'care_gaps',    label: 'Care Gaps',     icon: AlertTriangle,    color: C.amber, badge: urgentGaps > 0 ? urgentGaps : null },
-    { id: 'anesthesia',   label: 'Anesthesia',    icon: AlertOctagon,     color: C.rose,  badge: anesthesiaCount > 0 ? anesthesiaCount : null },
-    { id: 'appeals',      label: 'Appeals',       icon: Scale,            color: C.amber, badge: openAppeals > 0 ? openAppeals : null },
-    { id: 'surgical',     label: 'Surgery Plan',  icon: PlaneTakeoff,     color: C.lav },
-    { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign,  color: C.sage },
-    { id: 'interactions', label: 'Interactions',  icon: AlertTriangle,    color: C.amber },
-    { id: 'settings',     label: 'Settings',      icon: SettingsIcon,     color: C.textMid },
-  ];
+  const greeting = getTimeGreeting();
+  const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount);
 
+  const toggleMore = () => {
+    const next = !showMore;
+    setShowMore(next);
+    localStorage.setItem('salve:dash-more', next ? '1' : '0');
+  };
+
+  /* ── Render ─────────────────────────────────── */
   return (
     <div className="mt-1">
-      {/* Stats grid */}
-      <div className="grid grid-cols-4 gap-2 mb-4">
-        {stats.map(s => (
-          <div key={s.label} className="bg-salve-card border border-salve-border rounded-xl p-2.5 text-center">
-            <s.icon size={16} color={s.color} style={{ margin: '0 auto 4px' }} />
-            <div className="text-lg font-semibold text-salve-text font-montserrat">{s.value}</div>
-            <div className="text-[10px] text-salve-textFaint">{s.label}</div>
+
+      {/* ── Contextual Greeting ────────────────── */}
+      <div className="dash-stagger dash-stagger-1 mb-5">
+        <div className="flex items-start gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="greeting-motif">
+                <Motif type={greeting.motif} size={16} color={C.sage} />
+              </span>
+              <span className="font-playfair text-lg text-salve-text font-medium">{greeting.text}</span>
+            </div>
+            <p className="text-[13px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
           </div>
-        ))}
+        </div>
       </div>
 
-      {/* Anesthesia flags alert — always show if any exist */}
-      {anesthesiaCount > 0 && (
-        <Card className="!p-3.5 cursor-pointer" onClick={() => onNav('anesthesia')}
-          style={{ borderLeft: `3px solid ${C.rose}`, background: 'rgba(232,138,154,0.06)' }}>
-          <div className="flex items-center gap-2 mb-0.5">
-            <AlertOctagon size={15} color={C.rose} />
-            <span className="text-[13px] font-bold" style={{ color: C.rose }}>
-              {anesthesiaCount} Anesthesia Flag{anesthesiaCount > 1 ? 's' : ''} — Show before any procedure
-            </span>
-            <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
-          </div>
-          <div className="text-[11px] text-salve-textFaint">Tap to review safety-critical flags</div>
-        </Card>
-      )}
-
-      {/* Interaction warnings */}
-      {interactions.length > 0 && (
-        <Card className="!p-3.5 !border-salve-rose/30 cursor-pointer" onClick={() => onNav('interactions')}>
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={16} color={C.rose} />
-            <span className="text-[13px] font-semibold text-salve-rose">{interactions.length} Interaction Warning{interactions.length > 1 ? 's' : ''}</span>
-            <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
-          </div>
-          <div className="text-xs text-salve-textMid">{interactions[0].medA} + {interactions[0].medB}: {interactions[0].msg.slice(0, 70)}...</div>
-        </Card>
-      )}
-
-      {/* Urgent care gaps */}
-      {urgentGaps > 0 && (
-        <Card className="!p-3.5 cursor-pointer" onClick={() => onNav('care_gaps')}
-          style={{ borderLeft: `3px solid ${C.amber}` }}>
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={15} color={C.amber} />
-            <span className="text-[13px] font-semibold text-salve-amber">{urgentGaps} Urgent Care Gap{urgentGaps > 1 ? 's' : ''}</span>
-            <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
-          </div>
-        </Card>
-      )}
-
-      {/* AI Insight */}
-      <Card className="!bg-salve-lav/8 !border-salve-lav/20">
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles size={16} color={C.lav} />
-          <span className="font-playfair text-sm font-medium text-salve-text">Daily Insight</span>
-        </div>
-        {insightLoading ? (
-          <div className="text-[13px] text-salve-textMid animate-pulse">Thinking...</div>
-        ) : insight ? (
-          <div className="text-[13px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{insight}</div>
-        ) : (
-          <div>
-            <div className="text-[13px] text-salve-textFaint mb-2">Get a personalized health insight from your AI companion.</div>
-            {hasAIConsent() ? (
-              <Button variant="lavender" onClick={loadInsight} className="!text-xs !py-1.5">
-                <Sparkles size={13} /> Get Insight
-              </Button>
-            ) : (
-              <div className="text-[12px] text-salve-textFaint italic">Visit the AI tab to enable AI features.</div>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Upcoming appointments */}
-      {upcomingAppts.length > 0 && (
-        <>
-          <SectionTitle>Upcoming Visits</SectionTitle>
-          {upcomingAppts.map(a => (
-            <Card key={a.id} className="!p-3 cursor-pointer" onClick={() => onNav('appts')} style={{ borderLeft: `3px solid ${C.sage}` }}>
-              <div className="flex justify-between">
-                <div>
-                  <div className="text-[13px] font-medium text-salve-text">{a.reason || 'Appointment'}</div>
-                  <div className="text-xs text-salve-textMid">{a.provider}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[13px] font-semibold text-salve-sage">{daysUntil(a.date)}</div>
-                  <div className="text-[11px] text-salve-textFaint">{fmtDate(a.date)}</div>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </>
-      )}
-
-      {/* Refills */}
-      {upcomingRefills.length > 0 && (
-        <>
-          <SectionTitle>Refills Coming Up</SectionTitle>
-          {upcomingRefills.map(m => (
-            <Card key={m.id} className="!p-3" style={{ borderLeft: `3px solid ${C.amber}` }}>
-              <div className="flex justify-between">
-                <span className="text-[13px] text-salve-text font-medium">{m.name} {m.dose}</span>
-                <span className="text-[13px] text-salve-amber font-semibold">{daysUntil(m.refill_date)}</span>
-              </div>
-            </Card>
-          ))}
-        </>
-      )}
-
-      {/* Latest journal */}
-      {latestJournal && (
-        <>
-          <SectionTitle>Latest Journal</SectionTitle>
-          <Card className="!bg-salve-lav/8 !border-salve-lav/20 !p-3.5 cursor-pointer" onClick={() => onNav('journal')}>
-            <div className="flex justify-between items-start mb-1">
-              <span className="font-playfair text-sm text-salve-text font-medium">{latestJournal.title || fmtDate(latestJournal.date)}</span>
-              {latestJournal.mood && <span className="text-base">{latestJournal.mood.split(' ')[0]}</span>}
-            </div>
-            <div className="text-xs text-salve-textMid leading-relaxed line-clamp-2">{latestJournal.content}</div>
+      {/* ── Needs Attention (consolidated alerts) ── */}
+      {alerts.length > 0 && (
+        <div className="dash-stagger dash-stagger-2 mb-4">
+          <Card className="!p-0 overflow-hidden">
+            {alerts.map((a, i) => (
+              <button
+                key={a.id}
+                onClick={() => onNav(a.nav)}
+                className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer transition-colors hover:bg-salve-card2/50 ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
+              >
+                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                <a.icon size={14} color={a.color} className="flex-shrink-0" />
+                <span className="text-[12.5px] text-salve-textMid text-left flex-1">{a.text}</span>
+                <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
+              </button>
+            ))}
           </Card>
-        </>
+        </div>
+      )}
+
+      {/* ── AI Insight (only when loaded or loading) ── */}
+      {hasAIConsent() && (insight || insightLoading) && (
+        <div className="dash-stagger dash-stagger-3 mb-4">
+          {insightLoading ? (
+            <Card className="!bg-salve-lav/5 !border-salve-lav/15 shimmer-bg">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles size={14} color={C.lavDim} />
+                <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 bg-salve-lav/10 rounded-full w-full" />
+                <div className="h-3 bg-salve-lav/10 rounded-full w-4/5" />
+                <div className="h-3 bg-salve-lav/10 rounded-full w-3/5" />
+              </div>
+            </Card>
+          ) : insight && (
+            <Card className="!bg-salve-lav/5 !border-salve-lav/15">
+              <div className="flex items-center gap-2 mb-2.5">
+                <Sparkles size={14} color={C.lav} />
+                <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
+              </div>
+              <p className="text-[13px] text-salve-textMid leading-relaxed m-0 font-playfair italic">
+                "{insight}"
+              </p>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* ── Coming Up (unified timeline) ────────── */}
+      {timeline.length > 0 && (
+        <div className="dash-stagger dash-stagger-3 mb-2">
+          <SectionTitle>Coming Up</SectionTitle>
+          {timeline.map((item, i) => {
+            const isAppt = item._type === 'appt';
+            const dotColor = isAppt ? C.sage : C.amber;
+            const label = isAppt ? (item.reason || 'Appointment') : `${item.name} ${item.dose || ''}`.trim();
+            const sub = isAppt ? item.provider : 'Refill';
+            return (
+              <button
+                key={item.id || i}
+                onClick={() => onNav(isAppt ? 'appts' : 'meds')}
+                className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 transition-colors hover:bg-salve-card2/30 rounded-lg group"
+              >
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                <div className="flex-1 text-left min-w-0">
+                  <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
+                  <div className="text-[11px] text-salve-textFaint">{sub}</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="text-[12px] font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
+                  <div className="text-[10px] text-salve-textFaint">{fmtDate(item._sortDate)}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Latest Journal (subtle) ────────────── */}
+      {latestJournal && (
+        <div className="dash-stagger dash-stagger-4 mb-2">
+          <Card className="!bg-salve-lav/5 !border-salve-lav/10 !p-3.5 cursor-pointer" onClick={() => onNav('journal')}>
+            <div className="flex items-start gap-2.5">
+              {latestJournal.mood && (
+                <span className="text-lg leading-none mt-0.5">{latestJournal.mood.split(' ')[0]}</span>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] text-salve-text font-medium truncate">
+                  {latestJournal.title || fmtDate(latestJournal.date)}
+                </div>
+                <div className="text-[11px] text-salve-textMid leading-relaxed line-clamp-1 mt-0.5">{latestJournal.content}</div>
+              </div>
+              <BookOpen size={13} className="text-salve-textFaint flex-shrink-0 mt-1" />
+            </div>
+          </Card>
+        </div>
       )}
 
       <Divider />
 
-      {/* Quick Access */}
-      <SectionTitle>Quick Access</SectionTitle>
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {QUICK_LINKS.map(l => (
-          <button
-            key={l.id}
-            onClick={() => onNav(l.id)}
-            className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-colors relative"
-          >
-            <l.icon size={20} color={l.color} strokeWidth={1.5} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-            {l.badge != null && (
-              <span className="absolute top-1.5 right-1.5 text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center"
-                style={{ background: l.color, color: '#1a1a2e' }}>
-                {l.badge}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* ── Quick Access (6 primary + expandable) ── */}
+      <div className="dash-stagger dash-stagger-5">
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          {PRIMARY_LINKS.map(l => (
+            <button
+              key={l.id}
+              onClick={() => onNav(l.id)}
+              className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-all active:scale-[0.97]"
+            >
+              <l.icon size={20} color={l.color} strokeWidth={1.5} />
+              <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Expand / collapse more sections */}
+        <button
+          onClick={toggleMore}
+          className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 bg-transparent border border-salve-border rounded-xl cursor-pointer hover:border-salve-border2 transition-all"
+        >
+          <Grid size={13} className="text-salve-textFaint" />
+          <span className="text-[11px] text-salve-textFaint font-montserrat">
+            {showMore ? 'Show less' : 'More sections'}
+          </span>
+        </button>
+
+        {showMore && (
+          <div className="grid grid-cols-3 gap-2 mb-4 dash-stagger" style={{ animationDelay: '0s', animationDuration: '0.3s' }}>
+            {MORE_LINKS.map(l => (
+              <button
+                key={l.id}
+                onClick={() => onNav(l.id)}
+                className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-all active:scale-[0.97]"
+              >
+                <l.icon size={20} color={l.color} strokeWidth={1.5} />
+                <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

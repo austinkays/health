@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { getSession, onAuthChange } from './services/auth';
 import { supabase } from './services/supabase';
+import { cache, setupOfflineSync } from './services/cache';
+import { db } from './services/db';
 import Auth from './components/Auth';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
@@ -19,6 +21,7 @@ import AIPanel from './components/sections/AIPanel';
 import Interactions from './components/sections/Interactions';
 import Settings from './components/sections/Settings';
 import LoadingSpinner from './components/ui/LoadingSpinner';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 
 // New comprehensive sections
 import Labs from './components/sections/Labs';
@@ -67,6 +70,35 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Set cache token when session changes & wire up offline sync
+  useEffect(() => {
+    if (session?.access_token) {
+      cache.setToken(session.access_token);
+    } else {
+      cache.clearToken();
+    }
+  }, [session]);
+
+  useEffect(() => {
+    const cleanup = setupOfflineSync(async (pending) => {
+      for (const op of pending) {
+        try {
+          if (op.action === 'add' && op.table && op.item) {
+            await db[op.table]?.add(op.item);
+          } else if (op.action === 'update' && op.table && op.id && op.changes) {
+            await db[op.table]?.update(op.id, op.changes);
+          } else if (op.action === 'remove' && op.table && op.id) {
+            await db[op.table]?.remove(op.id);
+          }
+        } catch (err) {
+          console.error('Failed to flush pending op:', op, err);
+        }
+      }
+      cache.clearPending();
+    });
+    return cleanup;
   }, []);
 
   if (authLoading) {
@@ -124,7 +156,9 @@ export default function App() {
       <div className="max-w-[480px] mx-auto pb-24 relative">
         <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} />
         <div className="px-4">
-          {renderSection()}
+          <ErrorBoundary onReset={() => onNav('dash')}>
+            {renderSection()}
+          </ErrorBoundary>
         </div>
         <p className="text-center text-salve-textFaint text-[11px] tracking-wide py-4 font-montserrat">
           built with <span className="text-salve-rose">♥</span> for my best friend & soulmate
