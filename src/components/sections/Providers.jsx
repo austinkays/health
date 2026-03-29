@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, User, Phone, Search, Loader2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -8,6 +8,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_PROVIDER } from '../../constants/defaults';
+import { searchProviders } from '../../services/providerLookup';
 
 export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
@@ -15,6 +16,40 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [editId, setEditId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // NPI search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchState, setSearchState] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const results = await searchProviders(searchQuery, searchState);
+      setSearchResults(results);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const selectProvider = (p) => {
+    setForm(prev => ({
+      ...prev,
+      name: p.name || prev.name,
+      specialty: p.specialty || prev.specialty,
+      clinic: [p.address, p.city, p.state, p.zip].filter(Boolean).join(', ') || prev.clinic,
+      phone: p.phone || prev.phone,
+      fax: p.fax || prev.fax,
+    }));
+    setShowSearch(false);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
 
   const saveP = async () => {
     if (!form.name.trim()) return;
@@ -29,8 +64,80 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   };
 
   if (subView === 'form') return (
-    <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>
+    <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); setShowSearch(false); }}>
       <Card>
+        {/* NPI Search toggle */}
+        {!showSearch ? (
+          <button
+            onClick={() => setShowSearch(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 mb-4 rounded-lg border border-dashed border-salve-lav/40 text-salve-lav text-xs font-medium bg-transparent cursor-pointer hover:bg-salve-lav/5 transition-colors font-montserrat"
+          >
+            <Search size={13} /> Search NPI Registry
+          </button>
+        ) : (
+          <div className="mb-4 p-3.5 rounded-lg border border-salve-lav/30 bg-salve-lav/5">
+            <div className="flex items-center gap-2 mb-2.5">
+              <Search size={13} className="text-salve-lav" />
+              <span className="text-xs font-semibold text-salve-lav uppercase tracking-wider">NPI Provider Search</span>
+            </div>
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleSearch(); }}
+                placeholder="Provider name..."
+                className="flex-1 py-2 px-3 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 focus:outline-none focus:border-salve-lav"
+              />
+              <input
+                type="text"
+                value={searchState}
+                onChange={e => setSearchState(e.target.value)}
+                placeholder="ST"
+                maxLength={2}
+                className="w-14 py-2 px-2 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 focus:outline-none focus:border-salve-lav text-center uppercase"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSearch}
+                disabled={searching || !searchQuery.trim()}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-salve-lav/20 text-salve-lav text-xs font-medium border-none cursor-pointer disabled:opacity-40 font-montserrat"
+              >
+                {searching ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                {searching ? 'Searching...' : 'Search'}
+              </button>
+              <button
+                onClick={() => { setShowSearch(false); setSearchResults([]); setSearchQuery(''); }}
+                className="px-3 py-2 rounded-lg border border-salve-border text-salve-textMid text-xs bg-transparent cursor-pointer font-montserrat"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="mt-3 max-h-52 overflow-y-auto rounded-lg border border-salve-border">
+                {searchResults.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectProvider(p)}
+                    className="w-full text-left px-3 py-2.5 bg-transparent border-none border-b border-salve-border cursor-pointer hover:bg-salve-card2 transition-colors font-montserrat last:border-b-0"
+                  >
+                    <div className="text-sm text-salve-text font-medium">{p.name}</div>
+                    {p.specialty && <div className="text-xs text-salve-lav">{p.specialty}</div>}
+                    {p.city && <div className="text-[11px] text-salve-textFaint">{p.city}, {p.state} {p.zip}</div>}
+                    {p.phone && <div className="text-[11px] text-salve-textFaint">{p.phone}</div>}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {searching === false && searchResults.length === 0 && searchQuery.trim() && (
+              <p className="text-xs text-salve-textFaint italic mt-2 text-center">No results found. Try a different name or state.</p>
+            )}
+          </div>
+        )}
+
         <Field label="Name" value={form.name} onChange={v => sf('name', v)} placeholder="Dr. Name" required />
         <Field label="Specialty" value={form.specialty} onChange={v => sf('specialty', v)} placeholder="e.g. Rheumatology" />
         <Field label="Clinic / Office" value={form.clinic} onChange={v => sf('clinic', v)} placeholder="Clinic name" />

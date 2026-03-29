@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Pill } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Check, Edit, Trash2, Pill, Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_MED } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { suggestDrugs, getDrugInfo } from '../../services/drugLookup';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -23,6 +24,78 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  // Drug autocomplete state
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+  const suggestTimer = useRef(null);
+  const nameInputRef = useRef(null);
+
+  // Drug info state
+  const [drugInfo, setDrugInfo] = useState(null);
+  const [drugInfoLoading, setDrugInfoLoading] = useState(false);
+  const [drugInfoExpanded, setDrugInfoExpanded] = useState(false);
+
+  const handleNameChange = useCallback((v) => {
+    sf('name', v);
+    setDrugInfo(null);
+    setDrugInfoExpanded(false);
+
+    if (suggestTimer.current) clearTimeout(suggestTimer.current);
+
+    if (v.length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setSuggestLoading(true);
+    suggestTimer.current = setTimeout(async () => {
+      try {
+        const results = await suggestDrugs(v);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } catch {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      } finally {
+        setSuggestLoading(false);
+      }
+    }, 300);
+  }, []);
+
+  const selectSuggestion = useCallback(async (s) => {
+    sf('name', s.name);
+    setSuggestions([]);
+    setShowSuggestions(false);
+
+    // Fetch drug info
+    setDrugInfoLoading(true);
+    try {
+      const info = await getDrugInfo(s.name);
+      setDrugInfo(info);
+      if (info) setDrugInfoExpanded(true);
+    } catch {
+      // Non-blocking
+    } finally {
+      setDrugInfoLoading(false);
+    }
+  }, []);
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (nameInputRef.current && !nameInputRef.current.contains(e.target)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  // Cleanup timer
+  useEffect(() => () => { if (suggestTimer.current) clearTimeout(suggestTimer.current); }, []);
+
   const saveMed = async () => {
     if (!form.name.trim()) return;
     if (editId) {
@@ -32,13 +105,117 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     }
     setForm(EMPTY_MED);
     setEditId(null);
+    setDrugInfo(null);
+    setDrugInfoExpanded(false);
     setSubView(null);
   };
 
   if (subView === 'form') return (
-    <FormWrap title={`${editId ? 'Edit' : 'Add'} Medication`} onBack={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>
+    <FormWrap title={`${editId ? 'Edit' : 'Add'} Medication`} onBack={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); setDrugInfo(null); }}>
       <Card>
-        <Field label="Medication Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Sertraline" required />
+        {/* Medication name with autocomplete */}
+        <div className="mb-4 relative" ref={nameInputRef}>
+          <label className="block text-[11px] font-semibold text-salve-textMid mb-1.5 uppercase tracking-widest">
+            Medication Name <span className="text-salve-rose">*</span>
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              value={form.name}
+              onChange={e => handleNameChange(e.target.value)}
+              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+              placeholder="Start typing to search..."
+              className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none focus:border-salve-lav transition-colors"
+              autoComplete="off"
+            />
+            {suggestLoading && (
+              <Loader2 size={14} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-salve-textFaint" />
+            )}
+          </div>
+
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-salve-card border border-salve-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {suggestions.map((s, i) => (
+                <button
+                  key={i}
+                  onClick={() => selectSuggestion(s)}
+                  className="w-full text-left px-3.5 py-2.5 text-sm text-salve-text hover:bg-salve-card2 transition-colors cursor-pointer bg-transparent border-none font-montserrat first:rounded-t-lg last:rounded-b-lg"
+                >
+                  {s.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Drug info panel */}
+        {drugInfoLoading && (
+          <div className="flex items-center gap-2 mb-4 py-2">
+            <Loader2 size={14} className="animate-spin text-salve-lav" />
+            <span className="text-xs text-salve-textFaint italic">Looking up drug info...</span>
+          </div>
+        )}
+
+        {drugInfo && (
+          <div className="mb-4 rounded-lg border border-salve-lav/30 bg-salve-lav/5 overflow-hidden">
+            <button
+              onClick={() => setDrugInfoExpanded(p => !p)}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 bg-transparent border-none cursor-pointer text-left"
+            >
+              <div className="flex items-center gap-2">
+                <Search size={13} className="text-salve-lav" />
+                <span className="text-xs font-semibold text-salve-lav uppercase tracking-wider">Drug Info</span>
+                {drugInfo.generic_name && drugInfo.brand_name && (
+                  <span className="text-xs text-salve-textMid">
+                    — {drugInfo.generic_name}
+                    {drugInfo.brand_name !== drugInfo.generic_name ? ` (${drugInfo.brand_name})` : ''}
+                  </span>
+                )}
+              </div>
+              {drugInfoExpanded ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+            </button>
+
+            {drugInfoExpanded && (
+              <div className="px-3.5 pb-3 space-y-2.5">
+                {drugInfo.drug_class?.length > 0 && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-wider">Class</span>
+                    <p className="text-xs text-salve-textMid leading-relaxed mt-0.5">{drugInfo.drug_class.join(', ')}</p>
+                  </div>
+                )}
+                {drugInfo.purpose && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-wider">Purpose</span>
+                    <p className="text-xs text-salve-textMid leading-relaxed mt-0.5">{drugInfo.purpose}</p>
+                  </div>
+                )}
+                {drugInfo.adverse_reactions && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-wider">Common Side Effects</span>
+                    <p className="text-xs text-salve-textMid leading-relaxed mt-0.5">{drugInfo.adverse_reactions}</p>
+                  </div>
+                )}
+                {drugInfo.dosage && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-wider">Dosage Info</span>
+                    <p className="text-xs text-salve-textMid leading-relaxed mt-0.5">{drugInfo.dosage}</p>
+                  </div>
+                )}
+                {drugInfo.warnings && (
+                  <div>
+                    <span className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-wider">Warnings</span>
+                    <p className="text-xs text-salve-textMid leading-relaxed mt-0.5">{drugInfo.warnings}</p>
+                  </div>
+                )}
+                {drugInfo.manufacturer && (
+                  <p className="text-[10px] text-salve-textFaint italic mt-1">Manufacturer: {drugInfo.manufacturer}</p>
+                )}
+                <p className="text-[10px] text-salve-textFaint italic">Source: OpenFDA. Always verify with your pharmacist.</p>
+              </div>
+            )}
+          </div>
+        )}
+
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
@@ -54,7 +231,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </div>
         <div className="flex gap-2">
           <Button onClick={saveMed} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
-          <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>Cancel</Button>
+          <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); setDrugInfo(null); }}>Cancel</Button>
         </div>
       </Card>
     </FormWrap>

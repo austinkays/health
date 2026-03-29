@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Search, Loader2 } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
+import { searchPharmacies } from '../../services/providerLookup';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -24,6 +25,12 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   const [exportError, setExportError] = useState(null);
   const [importPassphrase, setImportPassphrase] = useState('');
   const fileInputRef = useRef(null);
+
+  // Pharmacy search state
+  const [showPharmacySearch, setShowPharmacySearch] = useState(false);
+  const [pharmacyQuery, setPharmacyQuery] = useState('');
+  const [pharmacyResults, setPharmacyResults] = useState([]);
+  const [pharmacySearching, setPharmacySearching] = useState(false);
 
   function handleFileSelect(e) {
     const file = e.target.files?.[0];
@@ -203,6 +210,78 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>
         <Field label="Preferred Pharmacy" value={s.pharmacy || ''} onChange={v => set('pharmacy', v)} placeholder="Name & location" />
+        {!showPharmacySearch ? (
+          <button
+            onClick={() => setShowPharmacySearch(true)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg border border-dashed border-salve-sage/40 text-salve-sage text-xs font-medium bg-transparent cursor-pointer hover:bg-salve-sage/5 transition-colors font-montserrat"
+          >
+            <Search size={13} /> Search Pharmacies
+          </button>
+        ) : (
+          <div className="p-3 rounded-lg border border-salve-sage/30 bg-salve-sage/5">
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={pharmacyQuery}
+                onChange={e => setPharmacyQuery(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && pharmacyQuery.trim()) {
+                    setPharmacySearching(true);
+                    searchPharmacies(pharmacyQuery, s.location?.split(',')[0]?.trim())
+                      .then(r => setPharmacyResults(r))
+                      .catch(() => setPharmacyResults([]))
+                      .finally(() => setPharmacySearching(false));
+                  }
+                }}
+                placeholder="Pharmacy name (e.g. CVS, Walgreens)"
+                className="flex-1 py-2 px-3 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 focus:outline-none focus:border-salve-sage"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  if (!pharmacyQuery.trim()) return;
+                  setPharmacySearching(true);
+                  searchPharmacies(pharmacyQuery, s.location?.split(',')[0]?.trim())
+                    .then(r => setPharmacyResults(r))
+                    .catch(() => setPharmacyResults([]))
+                    .finally(() => setPharmacySearching(false));
+                }}
+                disabled={pharmacySearching || !pharmacyQuery.trim()}
+                className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-salve-sage/20 text-salve-sage text-xs font-medium border-none cursor-pointer disabled:opacity-40 font-montserrat"
+              >
+                {pharmacySearching ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                {pharmacySearching ? 'Searching...' : 'Search'}
+              </button>
+              <button
+                onClick={() => { setShowPharmacySearch(false); setPharmacyResults([]); setPharmacyQuery(''); }}
+                className="px-3 py-2 rounded-lg border border-salve-border text-salve-textMid text-xs bg-transparent cursor-pointer font-montserrat"
+              >
+                Cancel
+              </button>
+            </div>
+            {pharmacyResults.length > 0 && (
+              <div className="mt-2.5 max-h-48 overflow-y-auto rounded-lg border border-salve-border">
+                {pharmacyResults.map((p, i) => (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      set('pharmacy', `${p.name}, ${[p.address, p.city, p.state, p.zip].filter(Boolean).join(', ')}${p.phone ? ' — ' + p.phone : ''}`);
+                      setShowPharmacySearch(false);
+                      setPharmacyResults([]);
+                      setPharmacyQuery('');
+                    }}
+                    className="w-full text-left px-3 py-2.5 bg-transparent border-none border-b border-salve-border cursor-pointer hover:bg-salve-card2 transition-colors font-montserrat last:border-b-0"
+                  >
+                    <div className="text-sm text-salve-text font-medium">{p.name}</div>
+                    <div className="text-[11px] text-salve-textFaint">{p.address}, {p.city}, {p.state} {p.zip}</div>
+                    {p.phone && <div className="text-[11px] text-salve-textFaint">{p.phone}</div>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       <SectionTitle>Insurance</SectionTitle>
