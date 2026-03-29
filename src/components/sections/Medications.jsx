@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, Search, ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, Search, ChevronDown, ChevronUp, Loader2, Info, Sparkles, X } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,7 +11,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_MED } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { suggestDrugs, getDrugInfo } from '../../services/drugLookup';
+import { suggestDrugs, getDrugInfo, enrichAllMeds } from '../../services/drugLookup';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -31,10 +31,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const suggestTimer = useRef(null);
   const nameInputRef = useRef(null);
 
-  // Drug info state
+  // Drug info state (form)
   const [drugInfo, setDrugInfo] = useState(null);
   const [drugInfoLoading, setDrugInfoLoading] = useState(false);
   const [drugInfoExpanded, setDrugInfoExpanded] = useState(false);
+
+  // Per-med enrichment state (list view)
+  const [enrichedMeds, setEnrichedMeds] = useState(new Map());
+  const [enrichingAll, setEnrichingAll] = useState(false);
+  const [enrichingSingle, setEnrichingSingle] = useState(null);
+  const [expandedMedInfo, setExpandedMedInfo] = useState(null);
 
   const handleNameChange = useCallback((v) => {
     sf('name', v);
@@ -95,6 +101,43 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
   // Cleanup timer
   useEffect(() => () => { if (suggestTimer.current) clearTimeout(suggestTimer.current); }, []);
+
+  const handleEnrichAll = useCallback(async () => {
+    const active = data.meds.filter(m => m.active !== false);
+    if (active.length === 0) return;
+    setEnrichingAll(true);
+    try {
+      const results = await enrichAllMeds(active);
+      setEnrichedMeds(prev => {
+        const next = new Map(prev);
+        for (const [id, info] of results) next.set(id, info);
+        return next;
+      });
+    } catch {
+      // Silent failure
+    } finally {
+      setEnrichingAll(false);
+    }
+  }, [data.meds]);
+
+  const handleEnrichSingle = useCallback(async (med) => {
+    setEnrichingSingle(med.id);
+    try {
+      const info = await getDrugInfo(med.name);
+      if (info) {
+        setEnrichedMeds(prev => {
+          const next = new Map(prev);
+          next.set(med.id, info);
+          return next;
+        });
+        setExpandedMedInfo(med.id);
+      }
+    } catch {
+      // Silent failure
+    } finally {
+      setEnrichingSingle(null);
+    }
+  }, []);
 
   const saveMed = async () => {
     if (!form.name.trim()) return;
@@ -276,26 +319,112 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       </div>
 
 
+      {/* Enrich All button */}
+      {fl.length >= 1 && (
+        <button
+          onClick={handleEnrichAll}
+          disabled={enrichingAll}
+          className="w-full flex items-center justify-center gap-2 py-2.5 mb-3 rounded-lg border border-dashed border-salve-lav/40 text-salve-lav text-xs font-medium bg-transparent cursor-pointer hover:bg-salve-lav/5 transition-colors font-montserrat disabled:opacity-40"
+        >
+          {enrichingAll ? (
+            <><Loader2 size={13} className="animate-spin" /> Looking up all medications...</>
+          ) : (
+            <><Sparkles size={13} /> Look Up Drug Info for All Meds</>
+          )}
+        </button>
+      )}
+
       {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
-        fl.map(m => (
-          <Card key={m.id}>
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="text-[15px] font-semibold text-salve-text mb-0.5">{m.name}</div>
-                <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency, m.route].filter(Boolean).join(' · ')}</div>
-                {m.purpose && <div className="text-xs text-salve-textFaint mt-0.5">For: {m.purpose}</div>}
-                {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
-                {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+        fl.map(m => {
+          const info = enrichedMeds.get(m.id);
+          const isExpanded = expandedMedInfo === m.id;
+
+          return (
+            <Card key={m.id}>
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[15px] font-semibold text-salve-text">{m.name}</span>
+                    {info?.drug_class?.length > 0 && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lavDim font-medium">
+                        {info.drug_class[0].replace(/.*\[EPC\]\s*/, '').split(' ').slice(0, 3).join(' ')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency, m.route].filter(Boolean).join(' · ')}</div>
+                  {m.purpose && <div className="text-xs text-salve-textFaint mt-0.5">For: {m.purpose}</div>}
+                  {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
+                  {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+                </div>
+                <div className="flex gap-1.5">
+                  {/* Info lookup button */}
+                  {enrichingSingle === m.id ? (
+                    <Loader2 size={14} className="animate-spin text-salve-lav mt-1" />
+                  ) : (
+                    <button
+                      onClick={() => info ? setExpandedMedInfo(isExpanded ? null : m.id) : handleEnrichSingle(m)}
+                      className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex hover:text-salve-lav transition-colors"
+                      title="Look up drug info"
+                    >
+                      <Info size={15} className={info ? 'text-salve-lav' : ''} />
+                    </button>
+                  )}
+                  <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              </div>
-            </div>
-            {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}
-          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
-          </Card>
-        ))
+              {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}
+
+              {/* Expanded drug info for this med */}
+              {info && isExpanded && (
+                <div className="mt-3 pt-3 border-t border-salve-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-1.5">
+                      <Info size={12} className="text-salve-lav" />
+                      <span className="text-[10px] font-semibold text-salve-lav uppercase tracking-wider">Drug Info</span>
+                    </div>
+                    <button onClick={() => setExpandedMedInfo(null)} className="bg-transparent border-none cursor-pointer p-0.5 flex text-salve-textFaint">
+                      <X size={12} />
+                    </button>
+                  </div>
+                  {info.generic_name && (
+                    <div className="mb-1.5">
+                      <span className="text-[10px] text-salve-textFaint font-semibold uppercase tracking-wider">Name</span>
+                      <p className="text-xs text-salve-textMid">{info.generic_name}{info.brand_name && info.brand_name !== info.generic_name ? ` (${info.brand_name})` : ''}</p>
+                    </div>
+                  )}
+                  {info.drug_class?.length > 0 && (
+                    <div className="mb-1.5">
+                      <span className="text-[10px] text-salve-textFaint font-semibold uppercase tracking-wider">Class</span>
+                      <p className="text-xs text-salve-textMid">{info.drug_class.join(', ')}</p>
+                    </div>
+                  )}
+                  {info.purpose && (
+                    <div className="mb-1.5">
+                      <span className="text-[10px] text-salve-textFaint font-semibold uppercase tracking-wider">Purpose</span>
+                      <p className="text-xs text-salve-textMid leading-relaxed">{info.purpose}</p>
+                    </div>
+                  )}
+                  {info.adverse_reactions && (
+                    <div className="mb-1.5">
+                      <span className="text-[10px] text-salve-textFaint font-semibold uppercase tracking-wider">Side Effects</span>
+                      <p className="text-xs text-salve-textMid leading-relaxed">{info.adverse_reactions}</p>
+                    </div>
+                  )}
+                  {info.warnings && (
+                    <div className="mb-1.5">
+                      <span className="text-[10px] text-salve-textFaint font-semibold uppercase tracking-wider">Warnings</span>
+                      <p className="text-xs text-salve-textMid leading-relaxed">{info.warnings}</p>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-salve-textFaint italic mt-1">Source: OpenFDA. Always verify with your pharmacist.</p>
+                </div>
+              )}
+
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
+            </Card>
+          );
+        })
       }
     </div>
   );

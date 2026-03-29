@@ -8,6 +8,9 @@
     },
     "api/provider-lookup.js": {
       "maxDuration": 10
+    },
+    "api/drug-interactions.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
