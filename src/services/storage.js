@@ -1,6 +1,11 @@
 import { supabase } from './supabase';
 import { db } from './db';
 
+// ── PBKDF2 iteration counts ──
+const PBKDF2_ITERATIONS_V1 = 100000;
+const PBKDF2_ITERATIONS_V2 = 600000;
+const CURRENT_PBKDF2_ITERATIONS = PBKDF2_ITERATIONS_V2;
+
 // ── Map internal keys → Supabase table names ──
 const TABLE_MAP = {
   // Original 7 sections
@@ -97,7 +102,7 @@ export async function encryptExport(exportData, passphrase) {
 
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt, iterations: CURRENT_PBKDF2_ITERATIONS, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,
@@ -108,7 +113,7 @@ export async function encryptExport(exportData, passphrase) {
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext);
 
   return JSON.stringify({
-    _encrypted: { app: 'salve', version: 1 },
+    _encrypted: { app: 'salve', version: 2 },
     salt: btoa(String.fromCharCode(...salt)),
     iv: btoa(String.fromCharCode(...iv)),
     data: btoa(String.fromCharCode(...new Uint8Array(ciphertext))),
@@ -125,9 +130,13 @@ export async function decryptExport(encryptedObj, passphrase) {
   const iv = Uint8Array.from(atob(encryptedObj.iv), c => c.charCodeAt(0));
   const ciphertext = Uint8Array.from(atob(encryptedObj.data), c => c.charCodeAt(0));
 
+  // Use iteration count matching the version that encrypted the file
+  const version = encryptedObj._encrypted?.version;
+  const iterations = (version && version >= 2) ? PBKDF2_ITERATIONS_V2 : PBKDF2_ITERATIONS_V1;
+
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
   const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,

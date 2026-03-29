@@ -20,7 +20,7 @@ async function deriveKey(token) {
   );
 
   cachedKey = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: SALT, iterations: 100000, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: SALT, iterations: 600000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     false,

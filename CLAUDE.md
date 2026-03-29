@@ -156,13 +156,13 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 ### API Proxy
 
 `api/chat.js` is a Vercel serverless function:
-- **Verifies Supabase auth token** via `Authorization: Bearer <token>` header
+- **Verifies Supabase auth token** via `Authorization: Bearer <token>` header — **mandatory** (returns 500 if env vars missing)
 - Validates token against Supabase Auth API using `SUPABASE_SERVICE_ROLE_KEY`
-- **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var, and `localhost:5173` (dev)
-- Accepts POST with `{ messages, system, max_tokens?, use_web_search? }`
+- **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var; `localhost:5173` only in non-production
+- **Input validation:** messages (max 50, each ≤50k chars, valid role), max_tokens (clamped 1–4096), system (≤20k chars)
 - Forwards to `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`
 - Optionally includes Anthropic web search tool when `use_web_search` is true
-- Returns the response JSON
+- **Error sanitization:** Anthropic API errors logged server-side, generic 502 returned to client
 - 120-second timeout configured in vercel.json
 - Client-side (`ai.js`) **fails early** if no auth token — never sends unauthenticated requests
 
@@ -186,7 +186,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com; frame-src 'none'; object-src 'none'; base-uri 'self'" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
@@ -196,6 +196,8 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 }
 ```
 
+> **Note:** `script-src` requires `'unsafe-inline'` because Vite's production build injects an inline module preload script. `'unsafe-eval'` was removed as no dependencies require it.
+
 ### Security
 
 | Layer | Mechanism |
@@ -203,8 +205,8 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | **Database** | Row Level Security on all tables, scoped to `auth.uid()` |
 | **API** | Auth token verified server-side; CORS restricted to allowlisted origins |
 | **Client → Server** | HTTPS via Vercel; Bearer token required (fails early if missing) |
-| **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
-| **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
+| **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key (600,000 iterations) from auth token |
+| **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2, 600,000 iterations; v1 imports use 100,000 for backward compat) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
 | **HTTP headers** | CSP, X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy |
 | **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
