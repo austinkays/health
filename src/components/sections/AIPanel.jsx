@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -23,7 +23,15 @@ export default function AIPanel({ data }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
 
-  const profile = buildProfile(data);
+  const profile = useMemo(() => buildProfile(data), [data]);
+  const chatEndRef = useRef(null);
+
+  // Auto-scroll chat to bottom on new messages
+  useEffect(() => {
+    if (mode === 'ask' && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, loading, mode]);
 
   const runFeature = async (id) => {
     setMode(id);
@@ -77,6 +85,7 @@ export default function AIPanel({ data }) {
             <Loader2 size={14} className="animate-spin" /> Thinking...
           </div>
         )}
+        <div ref={chatEndRef} />
       </div>
       <div className="flex gap-2">
         <input
