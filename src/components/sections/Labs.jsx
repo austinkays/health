@@ -18,10 +18,10 @@ const EMPTY = { date: '', test_name: '', result: '', unit: '', range: '', flag: 
 const FLAG_OPTS = ['', 'normal', 'abnormal', 'high', 'low', 'mild-abnormal', 'completed', 'never'];
 
 const flagColor = (flag) => {
-  if (!flag || flag === 'normal' || flag === 'completed') return { color: C.sage, bg: 'rgba(143,191,160,0.15)' };
-  if (flag === 'abnormal' || flag === 'high' || flag === 'low') return { color: C.rose, bg: 'rgba(232,138,154,0.15)' };
-  if (flag === 'mild-abnormal') return { color: C.amber, bg: 'rgba(196,166,115,0.15)' };
-  return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)' };
+  if (!flag || flag === 'normal' || flag === 'completed') return { color: C.sage, bg: 'rgba(143,191,160,0.15)', label: flag === 'completed' ? '✓ Completed' : '✓ Normal' };
+  if (flag === 'abnormal' || flag === 'high' || flag === 'low') return { color: C.rose, bg: 'rgba(232,138,154,0.15)', label: `⚠ ${flag.charAt(0).toUpperCase() + flag.slice(1)}` };
+  if (flag === 'mild-abnormal') return { color: C.amber, bg: 'rgba(196,166,115,0.15)', label: '◆ Mild Abnormal' };
+  return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)', label: flag };
 };
 
 export default function Labs({ data, addItem, updateItem, removeItem }) {
@@ -119,7 +119,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                       {l.result}{l.unit ? ` ${l.unit}` : ''}{l.range ? <span className="text-salve-textFaint"> (ref: {l.range})</span> : ''}
                     </div>
                   )}
-                  {l.flag && <Badge label={l.flag} color={fc.color} bg={fc.bg} className="mt-1.5" />}
+                  {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} className="mt-1.5" />}
                   {l.notes && <div className="text-xs text-salve-textFaint mt-1">{l.notes}</div>}
                   {hasAIConsent() && l.flag && l.flag !== 'normal' && l.flag !== 'completed' && (
                     <button
@@ -139,8 +139,8 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                   )}
                 </div>
                 <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(l.id, l.test_name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} aria-label="Edit lab result" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(l.id, l.test_name)} aria-label="Delete lab result" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />

@@ -12,9 +12,9 @@ import { EMPTY_ALLERGY } from '../../constants/defaults';
 import { C } from '../../constants/colors';
 
 const SEV = {
-  mild: { c: C.sage, bg: 'rgba(143,191,160,0.15)' },
-  moderate: { c: C.amber, bg: 'rgba(232,200,138,0.15)' },
-  severe: { c: C.rose, bg: 'rgba(232,138,154,0.15)' },
+  mild: { c: C.sage, bg: 'rgba(143,191,160,0.15)', label: '✓ Mild' },
+  moderate: { c: C.amber, bg: 'rgba(232,200,138,0.15)', label: '◆ Moderate' },
+  severe: { c: C.rose, bg: 'rgba(232,138,154,0.15)', label: '⚠ Severe' },
 };
 
 export default function Allergies({ data, addItem, updateItem, removeItem }) {
@@ -69,14 +69,14 @@ export default function Allergies({ data, addItem, updateItem, removeItem }) {
                 <div>
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[15px] font-semibold text-salve-text">{a.substance}</span>
-                    <Badge label={a.severity} color={s.c} bg={s.bg} />
+                    <Badge label={s.label} color={s.c} bg={s.bg} />
                   </div>
                   {a.reaction && <div className="text-xs text-salve-textMid">Reaction: {a.reaction}</div>}
                   {a.notes && <div className="text-xs text-salve-textFaint mt-0.5">{a.notes}</div>}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(a.id, a.substance)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit allergy" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(a.id, a.substance)} aria-label="Delete allergy" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('allergies', id))} onCancel={del.cancel} itemId={a.id} />

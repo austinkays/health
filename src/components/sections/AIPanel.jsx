@@ -64,13 +64,13 @@ export default function AIPanel({ data }) {
       </SectionTitle>
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
-          <div key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
+          <article key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
             m.role === 'user'
               ? 'self-end bg-salve-lav/20 text-salve-text ml-auto'
               : 'self-start bg-salve-card border border-salve-border text-salve-textMid'
           }`}>
             {m.content}
-          </div>
+          </article>
         ))}
         {loading && (
           <div className="self-start flex items-center gap-2 text-salve-textFaint text-xs">
@@ -86,7 +86,7 @@ export default function AIPanel({ data }) {
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
           placeholder="Ask about your health..."
         />
-        <Button onClick={handleChat} disabled={!chatInput.trim() || loading} className="!px-3">
+        <Button onClick={handleChat} disabled={!chatInput.trim() || loading} className="!px-3" aria-label="Send message">
           <Send size={16} />
         </Button>
       </div>

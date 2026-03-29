@@ -235,6 +235,19 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | **Data erase** | `eraseAll()` runs sequential per-table deletes with error handling; throws on partial failure |
 | **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
 
+### Accessibility (WCAG 2.1 Level A)
+
+| Feature | Implementation |
+|---------|---------------|
+| **ARIA labels** | All 27 icon-only buttons (edit/delete/send) have descriptive `aria-label` attributes across all 15 section files |
+| **Color-only indicators** | Severity, urgency, status, and lab flag badges include icon prefixes (✓/◆/⚠/✦/·/↗) so information is not conveyed through color alone (WCAG 1.4.1) |
+| **Semantic HTML** | `<nav>` for BottomNav, `<header>` for Header, `<main>` for content area, `<section>` with `aria-label` for Dashboard cards, `<article>` for AIPanel chat messages |
+| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` on all form fields |
+| **Keyboard support** | `ConfirmBar` responds to Escape (cancel) and Enter (confirm); `role="alertdialog"` for screen readers |
+| **Chart accessibility** | Vitals chart has `role="img"` with descriptive `aria-label` + visually-hidden (`sr-only`) data table alternative |
+| **Loading states** | `LoadingSpinner` uses `role="status"` + `aria-live="polite"` with `sr-only` fallback text |
+| **Decorative elements** | `Motif.jsx` SVGs have `aria-hidden="true"` |
+
 ## Design System
 
 ### Color Palette

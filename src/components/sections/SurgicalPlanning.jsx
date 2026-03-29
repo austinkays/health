@@ -117,8 +117,8 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                   {plan.status && <Badge label={plan.status} color={ss.color} bg={ss.bg} className="mt-1.5" />}
                 </div>
                 <div className="flex gap-2 ml-2">
-                  <button onClick={() => openForm(plan)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => openForm(plan)} aria-label="Edit surgical plan" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} aria-label="Delete surgical plan" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
 

@@ -22,11 +22,11 @@ const CATEGORIES = [
 const URGENCIES = ['', 'urgent', 'needs prompt attention', 'worth raising at next appointment', 'routine', 'completed'];
 
 const urgencyStyle = (u) => {
-  if (u === 'urgent') return { color: C.rose, bg: 'rgba(232,138,154,0.18)', border: C.rose };
-  if (u === 'needs prompt attention') return { color: C.amber, bg: 'rgba(196,166,115,0.15)', border: C.amber };
-  if (u === 'worth raising at next appointment') return { color: C.lav, bg: 'rgba(184,169,232,0.15)', border: C.lav };
-  if (u === 'completed') return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)', border: C.textFaint };
-  return { color: C.sage, bg: 'rgba(143,191,160,0.15)', border: C.sage };
+  if (u === 'urgent') return { color: C.rose, bg: 'rgba(232,138,154,0.18)', border: C.rose, label: '⚠ Urgent' };
+  if (u === 'needs prompt attention') return { color: C.amber, bg: 'rgba(196,166,115,0.15)', border: C.amber, label: '◆ Needs Prompt Attention' };
+  if (u === 'worth raising at next appointment') return { color: C.lav, bg: 'rgba(184,169,232,0.15)', border: C.lav, label: '↗ Next Appointment' };
+  if (u === 'completed') return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)', border: C.textFaint, label: '✓ Completed' };
+  return { color: C.sage, bg: 'rgba(143,191,160,0.15)', border: C.sage, label: '· Routine' };
 };
 
 const URGENCY_ORDER = ['urgent', 'needs prompt attention', 'worth raising at next appointment', 'routine', 'completed', ''];
@@ -139,12 +139,12 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
                   <div className="text-[14px] font-semibold text-salve-text mb-0.5">{g.item}</div>
                   {g.category && <div className="text-xs text-salve-textFaint mb-1">{g.category}</div>}
                   {g.last_done && <div className="text-xs text-salve-textFaint">Last done: {g.last_done}</div>}
-                  {g.urgency && <Badge label={g.urgency} color={us.color} bg={us.bg} className="mt-1.5" />}
+                  {g.urgency && <Badge label={us.label} color={us.color} bg={us.bg} className="mt-1.5" />}
                   {g.notes && <div className="text-xs text-salve-textFaint mt-1">{g.notes}</div>}
                 </div>
                 <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(g); setEditId(g.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(g.id, g.item)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => { setForm(g); setEditId(g.id); setSubView('form'); }} aria-label="Edit care gap" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(g.id, g.item)} aria-label="Delete care gap" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('care_gaps', id))} onCancel={del.cancel} itemId={g.id} />

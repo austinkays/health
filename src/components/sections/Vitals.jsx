@@ -111,6 +111,7 @@ export default function Vitals({ data, addItem, removeItem }) {
           <div className="font-playfair text-sm font-medium mb-2.5 pl-1.5 text-salve-text">
             {vi?.label} <span className="font-normal text-salve-textFaint text-xs">over time</span>
           </div>
+          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} readings from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`}>
           <ResponsiveContainer width="100%" height={180}>
             <AreaChart data={cd}>
               <defs>
@@ -127,6 +128,12 @@ export default function Vitals({ data, addItem, removeItem }) {
               {vi?.normalLow && <ReferenceLine y={vi.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
             </AreaChart>
           </ResponsiveContainer>
+          </div>
+          <table className="sr-only">
+            <caption>{vi?.label} readings</caption>
+            <thead><tr><th>Date</th><th>Value</th>{ct === 'bp' && <th>Diastolic</th>}</tr></thead>
+            <tbody>{cd.map((d, i) => <tr key={i}><td>{d.date}</td><td>{d.value} {vi?.unit}</td>{ct === 'bp' && <td>{d.value2} {vi?.unit}</td>}</tr>)}</tbody>
+          </table>
           {vi && (vi.normalLow || vi.normalHigh) && (
             <div className="text-[10px] text-salve-textFaint text-center mt-1.5">
               Normal range: {vi.normalLow ?? '—'}–{vi.normalHigh ?? '—'} {vi.unit}
@@ -193,7 +200,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-salve-textFaint">{fmtDate(v.date)}</span>
-                  <button onClick={() => del.ask(v.id, t?.label || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
+                  <button onClick={() => del.ask(v.id, t?.label || 'entry')} aria-label="Delete vital entry" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
                 </div>
               </div>
               {v.notes && <div className="text-xs text-salve-textMid mt-1">{v.notes}</div>}

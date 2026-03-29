@@ -127,8 +127,8 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                   <div className="text-xs text-salve-textMid">{a.provider} · {fmtDate(a.date)}</div>
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={14} /></button>
-                  <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
+                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appointment" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={14} /></button>
+                  <button onClick={() => del.ask(a.id, a.reason || 'appointment')} aria-label="Delete appointment" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
                 </div>
               </div>
               {a.post_notes && <div className="text-xs text-salve-textMid mt-1.5 border-t border-salve-border pt-1.5">{a.post_notes}</div>}

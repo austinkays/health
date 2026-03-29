@@ -84,8 +84,8 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem 
                 )}
               </div>
               <div className="flex gap-2 ml-2">
-                <button onClick={() => { setForm(flag); setEditId(flag.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                <button onClick={() => del.ask(flag.id, flag.condition)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                <button onClick={() => { setForm(flag); setEditId(flag.id); setSubView('form'); }} aria-label="Edit anesthesia flag" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                <button onClick={() => del.ask(flag.id, flag.condition)} aria-label="Delete anesthesia flag" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
               </div>
             </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('anesthesia_flags', id))} onCancel={del.cancel} itemId={flag.id} />

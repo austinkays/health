@@ -13,10 +13,10 @@ import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 
 const STATUS_COLORS = {
-  active: { c: C.rose, bg: 'rgba(232,138,154,0.15)' },
-  managed: { c: C.sage, bg: 'rgba(143,191,160,0.15)' },
-  remission: { c: C.lav, bg: 'rgba(184,169,232,0.15)' },
-  resolved: { c: C.textFaint, bg: 'rgba(110,106,128,0.15)' },
+  active: { c: C.rose, bg: 'rgba(232,138,154,0.15)', label: '⚠ Active' },
+  managed: { c: C.sage, bg: 'rgba(143,191,160,0.15)', label: '✓ Managed' },
+  remission: { c: C.lav, bg: 'rgba(184,169,232,0.15)', label: '✦ Remission' },
+  resolved: { c: C.textFaint, bg: 'rgba(110,106,128,0.15)', label: '✓ Resolved' },
 };
 
 export default function Conditions({ data, addItem, updateItem, removeItem }) {
@@ -92,7 +92,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[15px] font-semibold text-salve-text">{c.name}</span>
-                    <Badge label={c.status} color={st.c} bg={st.bg} />
+                    <Badge label={st.label} color={st.c} bg={st.bg} />
                   </div>
                   {c.diagnosed_date && <div className="text-xs text-salve-textMid">Diagnosed: {fmtDate(c.diagnosed_date)}</div>}
                   {c.provider && <div className="text-xs text-salve-textMid">Provider: {c.provider}</div>}
@@ -100,8 +100,8 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(c.id, c.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} aria-label="Edit condition" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(c.id, c.name)} aria-label="Delete condition" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('conditions', id))} onCancel={del.cancel} itemId={c.id} />

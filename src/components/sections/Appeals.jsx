@@ -109,8 +109,8 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
                   {a.notes && <div className="text-xs text-salve-textFaint mt-1">{a.notes}</div>}
                 </div>
                 <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(a.id, a.subject)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appeal" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(a.id, a.subject)} aria-label="Delete appeal" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
               {hasAIConsent() && a.status !== 'Resolved' && (

@@ -162,7 +162,7 @@ export default function Dashboard({ data, interactions, onNav }) {
     <div className="mt-1">
 
       {/* ── Contextual Greeting ────────────────── */}
-      <div className="dash-stagger dash-stagger-1 mb-5">
+      <section aria-label="Greeting" className="dash-stagger dash-stagger-1 mb-5">
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -174,11 +174,11 @@ export default function Dashboard({ data, interactions, onNav }) {
             <p className="text-[13px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Needs Attention (consolidated alerts) ── */}
       {alerts.length > 0 && (
-        <div className="dash-stagger dash-stagger-2 mb-4">
+        <section aria-label="Needs attention" className="dash-stagger dash-stagger-2 mb-4">
           <Card className="!p-0 overflow-hidden">
             {alerts.map((a, i) => (
               <button
@@ -193,12 +193,12 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             ))}
           </Card>
-        </div>
+        </section>
       )}
 
       {/* ── AI Insight (only when loaded or loading) ── */}
       {hasAIConsent() && (insight || insightLoading) && (
-        <div className="dash-stagger dash-stagger-3 mb-4">
+        <section aria-label="Daily insight" className="dash-stagger dash-stagger-3 mb-4">
           {insightLoading ? (
             <Card className="!bg-salve-lav/5 !border-salve-lav/15 shimmer-bg">
               <div className="flex items-center gap-2 mb-2">
@@ -222,12 +222,12 @@ export default function Dashboard({ data, interactions, onNav }) {
               </p>
             </Card>
           )}
-        </div>
+        </section>
       )}
 
-      {/* ── Coming Up (unified timeline) ────────── */}
+      {/* ── Coming Up (unified timeline) ──────────── */}
       {timeline.length > 0 && (
-        <div className="dash-stagger dash-stagger-3 mb-2">
+        <section aria-label="Coming up" className="dash-stagger dash-stagger-3 mb-2">
           <SectionTitle>Coming Up</SectionTitle>
           {timeline.map((item, i) => {
             const isAppt = item._type === 'appt';
@@ -252,12 +252,12 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             );
           })}
-        </div>
+        </section>
       )}
 
-      {/* ── Latest Journal (subtle) ────────────── */}
+      {/* ── Latest Journal (subtle) ──────────────── */}
       {latestJournal && (
-        <div className="dash-stagger dash-stagger-4 mb-2">
+        <section aria-label="Latest journal entry" className="dash-stagger dash-stagger-4 mb-2">
           <Card className="!bg-salve-lav/5 !border-salve-lav/10 !p-3.5 cursor-pointer" onClick={() => onNav('journal')}>
             <div className="flex items-start gap-2.5">
               {latestJournal.mood && (
@@ -272,13 +272,13 @@ export default function Dashboard({ data, interactions, onNav }) {
               <BookOpen size={13} className="text-salve-textFaint flex-shrink-0 mt-1" />
             </div>
           </Card>
-        </div>
+        </section>
       )}
 
       <Divider />
 
       {/* ── Quick Access (6 primary + expandable) ── */}
-      <div className="dash-stagger dash-stagger-5">
+      <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
         <div className="grid grid-cols-3 gap-2 mb-2">
           {PRIMARY_LINKS.map(l => (
             <button
@@ -317,7 +317,7 @@ export default function Dashboard({ data, interactions, onNav }) {
             ))}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }

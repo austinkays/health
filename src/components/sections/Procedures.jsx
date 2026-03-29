@@ -76,8 +76,8 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
                   {p.notes && <div className="text-xs text-salve-textFaint mt-1">{p.notes}</div>}
                 </div>
                 <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit procedure" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
+                  <button onClick={() => del.ask(p.id, p.name)} aria-label="Delete procedure" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('procedures', id))} onCancel={del.cancel} itemId={p.id} />

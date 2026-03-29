@@ -360,27 +360,27 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 ## 6. High — Accessibility
 
-### 6.1 Missing ARIA labels — ✅ PARTIALLY FIXED 2026-03-29
+### 6.1 Missing ARIA labels — ✅ FIXED 2026-03-29
 
 **Affected files:** `Header.jsx`, `FormWrap.jsx`, `BottomNav.jsx`, all section edit/delete buttons, `Motif.jsx`
 
 - [x] Back button (`<ChevronLeft>`) — added `aria-label="Go back"` to Header.jsx and FormWrap.jsx
 - [x] BottomNav icons — added `aria-current="page"` on active tab + `aria-label` on every tab button
-- [ ] Edit/Delete icon buttons lack `aria-label="Edit [item]"` / `aria-label="Delete [item]"` — section-level, not yet done
+- [x] Edit/Delete icon buttons — added `aria-label="Edit [item type]"` / `aria-label="Delete [item type]"` to all 15 section files (27 buttons total)
 - [x] Decorative motifs — added `aria-hidden="true"` to Motif.jsx
-- [ ] Send button in AIPanel lacks `aria-label="Send message"` — not yet done
+- [x] Send button in AIPanel — added `aria-label="Send message"`
 - [x] Loading spinner — added `role="status"` + `aria-live="polite"` region + `sr-only` fallback text
 
-### 6.2 Color-only status indication
+### 6.2 Color-only status indication — ✅ FIXED 2026-03-29
 
 **Affected files:** `Badge.jsx`, `ConfirmBar.jsx`, all sections using severity/urgency badges
 
-- Severity badges (mild/moderate/severe) use only color to convey meaning
-- Urgency levels in CareGaps use only color
-- Interaction severity in Medications uses only color
-- **WCAG 1.4.1 (Level A):** Information must not be conveyed through color alone
-
-**Fix:** Add icons or text labels alongside color. Example: severe = red + ⚠️ icon, mild = green + ✓ icon.
+- Severity badges (mild/moderate/severe) now include icon prefixes: ✓ Mild, ◆ Moderate, ⚠ Severe
+- Urgency levels in CareGaps now include icon prefixes: ⚠ Urgent, ◆ Needs Prompt Attention, ↗ Next Appointment, ✓ Completed, · Routine
+- Condition status badges now include icon prefixes: ⚠ Active, ✓ Managed, ✦ Remission, ✓ Resolved
+- Lab flag badges now include icon prefixes: ✓ Normal, ⚠ Abnormal/High/Low, ◆ Mild Abnormal, ✓ Completed
+- Interaction severity in SevBadge already had icon prefixes: ✦ Critical, ✧ Caution, · Info
+- **WCAG 1.4.1 (Level A):** Information is no longer conveyed through color alone
 
 ### 6.3 Form labels not associated with inputs — ✅ FIXED 2026-03-29
 
@@ -396,22 +396,22 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 **Fix applied:** Added `role="alertdialog"`, `aria-label`, and `onKeyDown` handler (Escape → cancel, Enter → confirm) to the ConfirmBar container.
 
-### 6.5 No semantic HTML structure — ✅ PARTIALLY FIXED 2026-03-29
+### 6.5 No semantic HTML structure — ✅ FIXED 2026-03-29
 
 **Issue:** The app uses `<div>` for everything. Should use:
 - [x] `<nav>` for BottomNav — BottomNav.jsx now uses `<nav aria-label="Main navigation">`
 - [x] `<main>` for the primary content area in App.jsx — content div changed to `<main>`
 - [x] `<header>` for Header — Header.jsx now uses `<header>` element
-- [ ] `<section>` for each dashboard card — not yet done
-- [ ] `<article>` for journal entries, chat messages — not yet done
+- [x] `<section>` for each dashboard card — Dashboard.jsx greeting, alerts, insight, timeline, journal, and quick access sections now use `<section>` with `aria-label`
+- [x] `<article>` for chat messages — AIPanel.jsx chat messages now use `<article>` elements
 - [ ] Heading hierarchy (`<h1>` for page title, `<h2>` for section headings) — already correct
 
-### 6.6 Chart accessibility
+### 6.6 Chart accessibility — ✅ FIXED 2026-03-29
 
-**Files:** `Vitals.jsx`, `Labs.jsx` (Recharts)
+**Files:** `Vitals.jsx` (Recharts)
 **Issue:** Charts are mouse-only with no keyboard navigation. Tooltips require hover. No `aria-label` on the chart container. Screen readers get nothing from the chart.
 
-**Fix:** Add an `aria-label` describing the chart data summary. Consider a visually-hidden data table as an accessible alternative.
+**Fix applied:** Added `role="img"` with descriptive `aria-label` on chart container (includes vital type, reading count, and date range). Added a visually-hidden (`sr-only`) data table as an accessible alternative for screen readers, containing all chart data points.
 
 ---
 
@@ -568,13 +568,13 @@ Or wrap the chart component itself in `React.lazy()`.
 21. [x] AI appeal letter drafting (§5 Appeals) — ✅ 2026-03-29
 22. [x] Medication-allergy AI cross-reactivity check (§4.2) — ✅ 2026-03-29
 
-### Phase 4 — Polish & Accessibility
-23. [~] Add ARIA labels to all interactive elements (§6.1) — ✅ partially done 2026-03-29 (Header, FormWrap, BottomNav, Motif, LoadingSpinner; remaining: section edit/delete buttons, AIPanel send)
-24. [ ] Fix color-only status indication with icons (§6.2)
+### Phase 4 — Polish & Accessibility ✅ COMPLETED 2026-03-29
+23. [x] Add ARIA labels to all interactive elements (§6.1) — ✅ 2026-03-29 (all 27 icon-only buttons across 15 section files + AIPanel send button)
+24. [x] Fix color-only status indication with icons (§6.2) — ✅ 2026-03-29 (icon prefixes on severity/urgency/status/flag badges)
 25. [x] Link form labels to inputs in Field.jsx (§6.3) — ✅ 2026-03-29
 26. [x] Add keyboard support to ConfirmBar (§6.4) — ✅ 2026-03-29
-27. [~] Semantic HTML structure (§6.5) — ✅ partially done 2026-03-29 (`<nav>`, `<main>`, `<header>`; remaining: `<section>`, `<article>`)
-28. [ ] Chart accessibility (§6.6)
+27. [x] Semantic HTML structure (§6.5) — ✅ 2026-03-29 (Dashboard `<section>` elements, AIPanel `<article>` for chat messages)
+28. [x] Chart accessibility (§6.6) — ✅ 2026-03-29 (aria-label + sr-only data table on Vitals chart)
 
 ### Phase 5 — Performance & PWA
 29. [ ] Add service worker via `vite-plugin-pwa` (§7.1)
