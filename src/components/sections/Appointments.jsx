@@ -83,7 +83,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                 <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
                 <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
               </div>
-            </Card>
+          </Card>
           ))}
           {past.length > 0 && <><Divider /><div className="text-[11px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}
           {past.slice(0, 10).map(a => (
@@ -95,13 +95,12 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={14} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
                   <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
                 </div>
               </div>
               {a.post_notes && <div className="text-xs text-salve-textMid mt-1.5 border-t border-salve-border pt-1.5">{a.post_notes}</div>}
-            </Card>
+            <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
+          </Card>
           ))}
         </>
       )}

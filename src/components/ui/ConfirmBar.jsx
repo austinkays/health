@@ -1,26 +1,45 @@
-// Inline confirmation row — renders inside the specific card that triggered delete.
-// Pass `itemId` to each instance; it only shows when pending.id matches.
+import { useEffect, useRef } from 'react';
+
+// Renders a fixed confirmation bar anchored just above where the user tapped.
+// Uses a portal-style fixed overlay so it always appears near the thumb,
+// regardless of scroll position or card nesting depth.
+// Pass itemId to each instance — it only activates when pending.id matches.
 export default function ConfirmBar({ pending, onConfirm, onCancel, itemId }) {
-  // If no pending, or this instance is for a different item, render nothing
   if (!pending || pending.id !== itemId) return null;
 
   return (
-    <div className="mt-2.5 flex items-center justify-between gap-2 bg-salve-rose/10 border border-salve-rose/25 rounded-lg px-3 py-2">
-      <span className="text-[12px] text-salve-rose flex-1">Delete {pending.label || 'this item'}?</span>
-      <div className="flex gap-1.5">
-        <button
-          onClick={onConfirm}
-          className="bg-salve-rose text-white border-none rounded-full px-3 py-1 text-xs font-medium cursor-pointer font-montserrat"
-        >
-          Delete
-        </button>
-        <button
-          onClick={onCancel}
-          className="bg-transparent text-salve-textMid border border-salve-border rounded-full px-3 py-1 text-xs cursor-pointer font-montserrat"
-        >
-          Cancel
-        </button>
+    <>
+      {/* Invisible backdrop to catch outside taps → cancel */}
+      <div
+        className="fixed inset-0 z-40"
+        onClick={onCancel}
+      />
+      {/* Confirmation bar — fixed near bottom of screen where thumb is */}
+      <div
+        className="fixed bottom-20 left-1/2 z-50 w-full max-w-[440px] px-4"
+        style={{ transform: 'translateX(-50%)' }}
+      >
+        <div className="bg-salve-card border border-salve-rose/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg"
+          style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.35)' }}>
+          <span className="text-[13px] text-salve-rose flex-1 font-medium">
+            Delete {pending.label ? `"${pending.label}"` : 'this item'}?
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="bg-transparent text-salve-textMid border border-salve-border rounded-full px-3.5 py-1.5 text-xs cursor-pointer font-montserrat"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="bg-salve-rose text-white border-none rounded-full px-3.5 py-1.5 text-xs font-semibold cursor-pointer font-montserrat"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

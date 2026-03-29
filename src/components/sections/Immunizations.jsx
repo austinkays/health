@@ -66,9 +66,9 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
               <div className="flex gap-2 ml-2">
                 <button onClick={() => { setForm(imm); setEditId(imm.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                 <button onClick={() => del.ask(imm.id, imm.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('immunizations', id))} onCancel={del.cancel} itemId={imm.id} />
               </div>
             </div>
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('immunizations', id))} onCancel={del.cancel} itemId={imm.id} />
           </Card>
         ))
       }

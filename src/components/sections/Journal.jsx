@@ -81,9 +81,9 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
               <div className="flex gap-2.5 mt-2">
                 <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
                 <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} itemId={e.id} />
               </div>
-            </Card>
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} itemId={e.id} />
+          </Card>
           );
         })
       }

@@ -84,10 +84,10 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                 <div className="flex gap-2">
                   <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                   <button onClick={() => del.ask(c.id, c.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('conditions', id))} onCancel={del.cancel} itemId={c.id} />
                 </div>
               </div>
-            </Card>
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('conditions', id))} onCancel={del.cancel} itemId={c.id} />
+          </Card>
           );
         })
       }

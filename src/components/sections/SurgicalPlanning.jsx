@@ -119,7 +119,6 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                 <div className="flex gap-2 ml-2">
                   <button onClick={() => openForm(plan)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                   <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('surgical_planning', id))} onCancel={del.cancel} itemId={plan.id} />
                 </div>
               </div>
 
@@ -143,7 +142,8 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                   {outstanding.map((o, i) => <div key={i} className="text-[12px] text-salve-amber">□ {o}</div>)}
                 </div>
               )}
-            </Card>
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('surgical_planning', id))} onCancel={del.cancel} itemId={plan.id} />
+          </Card>
           );
         })
       }

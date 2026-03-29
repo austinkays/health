@@ -100,10 +100,10 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                 <div className="flex gap-2 ml-2">
                   <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                   <button onClick={() => del.ask(l.id, l.test_name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />
                 </div>
               </div>
-            </Card>
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />
+          </Card>
           );
         })
       }

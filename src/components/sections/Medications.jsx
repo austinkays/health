@@ -74,7 +74,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 <SevBadge severity={w.severity} />
               </div>
               <div className="text-xs text-salve-textMid leading-relaxed">{w.msg}</div>
-            </Card>
+          </Card>
           ))}
           <p className="text-[11px] text-salve-textFaint italic text-center my-1">✧ Always verify with your pharmacist ✧</p>
         </>
@@ -113,10 +113,10 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               <div className="flex gap-2">
                 <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
                 <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
               </div>
             </div>
             {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
           </Card>
         ))
       }

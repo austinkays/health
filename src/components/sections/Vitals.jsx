@@ -114,11 +114,11 @@ export default function Vitals({ data, addItem, removeItem }) {
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] text-salve-textFaint">{fmtDate(v.date)}</span>
                   <button onClick={() => del.ask(v.id, t?.label || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
-              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
                 </div>
               </div>
               {v.notes && <div className="text-xs text-salve-textMid mt-1">{v.notes}</div>}
-            </Card>
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
+          </Card>
           );
         })
       }
