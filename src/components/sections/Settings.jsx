@@ -77,7 +77,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
 
     try {
       if (importValidation.mode === 'merge') {
-        const stats = await importMerge(importValidation.normalized, data);
+        const stats = await importMerge(importValidation.normalized);
         const addedTotal = Object.values(stats.added).reduce((s, n) => s + n, 0);
         const skippedTotal = Object.values(stats.skipped).reduce((s, n) => s + n, 0);
 
@@ -111,8 +111,8 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
     }
   }
 
-  function handleExport() {
-    const exported = exportAll(data);
+  async function handleExport() {
+    const exported = await exportAll();
     const json = JSON.stringify(exported, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -132,7 +132,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
     }
     setExportError(null);
     try {
-      const exported = exportAll(data);
+      const exported = await exportAll();
       const encrypted = await encryptExport(exported, exportPassphrase);
       const blob = new Blob([encrypted], { type: 'application/json' });
       const url = URL.createObjectURL(blob);

@@ -20,24 +20,58 @@ function stripMeta(record) {
 
 /**
  * Export all health data as a JSON object with metadata envelope.
- * Takes the current React state (from useHealthData).
+ * Fetches from Supabase to include sync_id for round-trip deduplication.
  */
-export function exportAll(data) {
-  return {
+export async function exportAll() {
+  const { data: { user } } = await supabase.auth.getUser();
+  const uid = user.id;
+
+  const exported = {
     _export: {
       app: 'salve',
       exportedAt: new Date().toISOString(),
       version: 1,
     },
-    settings: data.settings,
-    meds: data.meds,
-    conditions: data.conditions,
-    allergies: data.allergies,
-    providers: data.providers,
-    vitals: data.vitals,
-    appts: data.appts,
-    journal: data.journal,
   };
+
+  for (const [key, table] of Object.entries(TABLE_MAP)) {
+    const { data: rows, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('user_id', uid)
+      .order('created_at', { ascending: true });
+
+    if (!error && rows) {
+      exported[key] = rows.map(row => {
+        const out = { ...row };
+        // Preserve sync_id as _sync_id in export format
+        if (row.sync_id) {
+          out._sync_id = row.sync_id;
+        }
+        // Strip Supabase internal fields
+        delete out.user_id;
+        delete out.sync_id;
+        return out;
+      });
+    }
+  }
+
+  // Include profile/settings
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', uid)
+    .single();
+
+  if (profile) {
+    exported.settings = profile;
+    delete exported.settings.id;
+  }
+
+  exported._export.recordCount = Object.keys(TABLE_MAP)
+    .reduce((sum, key) => sum + (exported[key]?.length || 0), 0);
+
+  return exported;
 }
 
 /**
@@ -131,6 +165,20 @@ export function validateImport(fileData) {
  * Normalize any supported file format into a flat structure.
  */
 function normalizeImportData(fileData) {
+  // MCP sync format (uses full table names, has _sync_id fields)
+  if (fileData._export?.type === 'mcp-sync') {
+    return {
+      settings: null,
+      meds: fileData.medications || [],
+      conditions: fileData.conditions || [],
+      allergies: fileData.allergies || [],
+      providers: fileData.providers || [],
+      vitals: fileData.vitals || [],
+      appts: fileData.appointments || [],
+      journal: fileData.journal_entries || [],
+    };
+  }
+
   // Salve v1 format (our own export)
   if (fileData._export?.app === 'salve') {
     return {
@@ -201,10 +249,11 @@ export async function importRestore(normalized) {
 }
 
 /**
- * Merge import: add only records whose ID doesn't already exist.
+ * Merge import: add only records whose sync_id doesn't already exist.
+ * Uses sync_id for deduplication against Supabase.
  * Returns stats: { added: { meds: N, ... }, skipped: { meds: N, ... } }
  */
-export async function importMerge(normalized, existingData) {
+export async function importMerge(normalized) {
   const { data: { user } } = await supabase.auth.getUser();
   const uid = user.id;
 
@@ -214,26 +263,50 @@ export async function importMerge(normalized, existingData) {
     const incoming = normalized[key];
     if (!incoming || incoming.length === 0) continue;
 
-    const existing = existingData[key] || [];
-    const existingIds = new Set(existing.map(r => r.id));
+    // Collect sync IDs for dedup query
+    const syncIds = incoming.map(r => r._sync_id).filter(Boolean);
 
-    const toAdd = [];
-    let skipped = 0;
+    let existingSyncIds = new Set();
+    if (syncIds.length > 0) {
+      const { data: existing, error } = await supabase
+        .from(table)
+        .select('sync_id')
+        .eq('user_id', uid)
+        .in('sync_id', syncIds);
 
-    for (const record of incoming) {
-      if (record.id && existingIds.has(record.id)) {
-        skipped++;
-      } else {
-        toAdd.push({ ...stripMeta(record), user_id: uid });
+      if (!error && existing) {
+        existingSyncIds = new Set(existing.map(r => r.sync_id));
       }
     }
 
-    if (toAdd.length > 0) {
-      const { error } = await supabase.from(table).insert(toAdd);
+    const toInsert = [];
+    let skipped = 0;
+
+    for (const record of incoming) {
+      const syncId = record._sync_id;
+
+      if (syncId && existingSyncIds.has(syncId)) {
+        skipped++;
+        continue;
+      }
+
+      // Build insert row: strip metadata, add user_id and sync_id
+      const stripped = stripMeta(record);
+      const { _sync_id: _, ...rowData } = stripped;
+      const row = { ...rowData, user_id: uid };
+      if (syncId) {
+        row.sync_id = syncId;
+      }
+
+      toInsert.push(row);
+    }
+
+    if (toInsert.length > 0) {
+      const { error } = await supabase.from(table).insert(toInsert);
       if (error) {
-        console.error(`Merge error for ${table}:`, error);
+        console.error(`Merge insert error for ${table}:`, error);
       } else {
-        stats.added[key] = toAdd.length;
+        stats.added[key] = toInsert.length;
       }
     }
     if (skipped > 0) stats.skipped[key] = skipped;

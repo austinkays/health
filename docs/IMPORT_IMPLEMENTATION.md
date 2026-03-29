@@ -1,87 +1,224 @@
-# Import & Merge Implementation Guide
+# Import & Merge Implementation Guide (Supabase)
 
-Drop this into `docs/IMPORT_IMPLEMENTATION.md` in the project root. Covers everything needed to add import/export/merge to the standalone app.
+Covers everything needed for the MCP health sync import into Salve's Supabase backend.
 
 ---
 
 ## Overview
 
-Three capabilities in the Settings section:
+The Claude sync artifact (`salve-health-sync.jsx`) pulls health records from MCP-connected services and exports a JSON file. Salve's Settings imports that file and merges new records into Supabase without duplicating anything or touching manually-entered data.
 
-1. **Import Backup (full restore)** - Overwrites all data from a one-time export file
-2. **Import Sync (merge)** - Adds only new records from an MCP health sync file
-3. **Download Backup** - Exports current localStorage data as JSON
-
-The import detects which mode to use based on the `_export.type` field in the uploaded file.
+The merge uses a **`sync_id` column** on each health table. MCP-synced records get a deterministic content-based ID (e.g. `mcp-med-00a3f2k1`). Manually created records have `sync_id = null`. On import, the merge checks: does a row with this `sync_id` already exist for this user? If yes, skip. If no, insert.
 
 ---
 
-## 1. Storage Service Additions
+## 1. Schema Migration
+
+**File:** `supabase/migrations/002_sync_id.sql`
+
+Add a nullable `sync_id` column to every health table. Index it for fast merge lookups.
+
+```sql
+-- Add sync_id to all health tables for MCP merge deduplication
+-- sync_id is null for manually-created records
+-- sync_id is a deterministic hash for MCP-synced records (e.g. "mcp-med-00a3f2k1")
+
+ALTER TABLE medications ADD COLUMN IF NOT EXISTS sync_id TEXT;
+ALTER TABLE conditions ADD COLUMN IF NOT EXISTS sync_id TEXT;
+ALTER TABLE allergies ADD COLUMN IF NOT EXISTS sync_id TEXT;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS sync_id TEXT;
+ALTER TABLE vitals ADD COLUMN IF NOT EXISTS sync_id TEXT;
+ALTER TABLE appointments ADD COLUMN IF NOT EXISTS sync_id TEXT;
+ALTER TABLE journal_entries ADD COLUMN IF NOT EXISTS sync_id TEXT;
+
+-- Composite indexes: user_id + sync_id for fast merge lookups
+CREATE INDEX IF NOT EXISTS idx_medications_sync ON medications (user_id, sync_id) WHERE sync_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_conditions_sync ON conditions (user_id, sync_id) WHERE sync_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_allergies_sync ON allergies (user_id, sync_id) WHERE sync_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_providers_sync ON providers (user_id, sync_id) WHERE sync_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_vitals_sync ON vitals (user_id, sync_id) WHERE sync_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_appointments_sync ON appointments (user_id, sync_id) WHERE sync_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_journal_entries_sync ON journal_entries (user_id, sync_id) WHERE sync_id IS NOT NULL;
+```
+
+Run this migration in the Supabase dashboard (SQL Editor) or via CLI.
+
+---
+
+## 2. Sync Export Format
+
+The sync artifact outputs this structure:
+
+```json
+{
+  "_export": {
+    "app": "salve",
+    "type": "mcp-sync",
+    "exportedAt": "2026-03-28T...",
+    "source": "claude-mcp-health-sync"
+  },
+  "medications": [
+    { "name": "...", "dose": "...", "frequency": "...", "route": "...", "prescriber": "...", "pharmacy": "...", "purpose": "...", "start_date": "...", "refill_date": "...", "active": true, "notes": "", "_sync_id": "mcp-med-00a3f2k1" }
+  ],
+  "conditions": [
+    { "name": "...", "diagnosed_date": "...", "status": "active", "provider": "...", "linked_meds": "", "notes": "", "_sync_id": "mcp-cond-0b2e8f1a" }
+  ],
+  "allergies": [...],
+  "providers": [...],
+  "vitals": [...],
+  "appointments": [...],
+  "journal_entries": [...]
+}
+```
+
+Each record has a `_sync_id` field (content-based deterministic hash, prefixed with `mcp-`). This maps to the `sync_id` column in Supabase.
+
+---
+
+## 3. Storage Service: `importMerge()`
 
 **File:** `src/services/storage.js`
 
-Add these three functions alongside the existing `load`, `save`, `clearAll`:
+Replace or update the existing `importMerge` function:
 
 ```js
-import { SK } from '../constants/defaults';
+import { supabase } from './supabase';
 
 /**
- * Export all health data as a JSON object with metadata envelope.
- * Used by the "Download Backup" button in Settings.
+ * Table names that support MCP sync merge.
+ * Keys match the export JSON keys AND the Supabase table names.
  */
-export function exportAll() {
-  const data = {};
-  for (const [name, key] of Object.entries(SK)) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw) data[key] = JSON.parse(raw);
-    } catch { /* skip corrupted keys */ }
+const SYNC_TABLES = {
+  medications: 'medications',
+  conditions: 'conditions',
+  allergies: 'allergies',
+  providers: 'providers',
+  vitals: 'vitals',
+  appointments: 'appointments',
+  journal_entries: 'journal_entries',
+};
+
+/**
+ * Fields to strip before inserting into Supabase.
+ * These are export-only metadata, not real columns.
+ */
+const STRIP_FIELDS = ['_sync_id', 'id', 'user_id', 'created_at', 'updated_at'];
+
+/**
+ * Merge import from MCP sync file.
+ * Adds records whose _sync_id doesn't already exist for this user.
+ * Returns { added: { medications: N, ... }, skipped: { medications: N, ... } }
+ */
+export async function importMerge(data, userId) {
+  const stats = { added: {}, skipped: {} };
+
+  for (const [key, table] of Object.entries(SYNC_TABLES)) {
+    const incoming = data[key];
+    if (!Array.isArray(incoming) || incoming.length === 0) continue;
+
+    // Collect all sync IDs from this batch
+    const syncIds = incoming
+      .map(r => r._sync_id)
+      .filter(Boolean);
+
+    // Query which sync_ids already exist for this user
+    let existingIds = new Set();
+    if (syncIds.length > 0) {
+      const { data: existing, error } = await supabase
+        .from(table)
+        .select('sync_id')
+        .eq('user_id', userId)
+        .in('sync_id', syncIds);
+
+      if (!error && existing) {
+        existingIds = new Set(existing.map(r => r.sync_id));
+      }
+    }
+
+    // Split into new vs duplicate
+    const toInsert = [];
+    let skipped = 0;
+
+    for (const record of incoming) {
+      const syncId = record._sync_id;
+
+      if (syncId && existingIds.has(syncId)) {
+        skipped++;
+        continue;
+      }
+
+      // Build the insert row: strip metadata, add user_id and sync_id
+      const row = { user_id: userId };
+      for (const [field, value] of Object.entries(record)) {
+        if (!STRIP_FIELDS.includes(field)) {
+          row[field] = value;
+        }
+      }
+      if (syncId) {
+        row.sync_id = syncId;
+      }
+
+      toInsert.push(row);
+    }
+
+    // Bulk insert new records
+    if (toInsert.length > 0) {
+      const { error } = await supabase
+        .from(table)
+        .insert(toInsert);
+
+      if (error) {
+        console.error(`Merge insert error for ${table}:`, error);
+        // Continue with other tables rather than aborting entirely
+      } else {
+        stats.added[key] = toInsert.length;
+      }
+    }
+
+    if (skipped > 0) {
+      stats.skipped[key] = skipped;
+    }
   }
 
-  return {
-    _export: {
-      app: "ambers-remedy",
-      exportedAt: new Date().toISOString(),
-      keyCount: Object.keys(data).length,
-    },
-    ...data,
-  };
+  return stats;
 }
+```
 
-/**
- * Validate an uploaded JSON file before import.
- * Returns { valid: true, mode, preview } or { valid: false, error }.
- *
- * mode: "restore" (full overwrite) or "merge" (add new only)
- * preview: { meds: N, conditions: N, ... } record counts
- */
+---
+
+## 4. Validation Update
+
+**File:** `src/services/storage.js`
+
+Update `validateImport()` to recognize the sync format and preview by table:
+
+```js
 export function validateImport(data) {
   if (!data || typeof data !== 'object') {
     return { valid: false, error: 'File is not valid JSON.' };
   }
-  if (!data._export || data._export.app !== 'ambers-remedy') {
-    return { valid: false, error: 'This file is not a Remedy backup or sync file.' };
+
+  // Accept both "salve" and legacy "ambers-remedy" app names
+  const appName = data._export?.app;
+  if (!data._export || (appName !== 'salve' && appName !== 'ambers-remedy')) {
+    return { valid: false, error: 'This file is not a Salve backup or sync file.' };
   }
 
   const mode = data._export.type === 'mcp-sync' ? 'merge' : 'restore';
 
-  // Build preview counts
+  // Build preview counts from table-level arrays
   const preview = {};
-  const sources = [data['hc:core'], data['hc:tracking']];
-
-  // Also check v2 individual keys
-  const v2Keys = ['hc:meds', 'hc:vitals', 'hc:appts', 'hc:conditions', 'hc:providers', 'hc:allergies', 'hc:journal'];
-  for (const k of v2Keys) {
-    if (Array.isArray(data[k]) && data[k].length > 0) {
-      const label = k.replace('hc:', '');
-      preview[label] = data[k].length;
+  for (const key of Object.keys(SYNC_TABLES)) {
+    if (Array.isArray(data[key]) && data[key].length > 0) {
+      preview[key] = data[key].length;
     }
   }
 
-  for (const source of sources) {
-    if (source && typeof source === 'object') {
-      for (const [key, arr] of Object.entries(source)) {
-        if (Array.isArray(arr) && arr.length > 0) {
+  // Also check legacy batched format (hc:core, hc:tracking)
+  for (const container of [data['hc:core'], data['hc:tracking']]) {
+    if (container && typeof container === 'object') {
+      for (const [key, arr] of Object.entries(container)) {
+        if (Array.isArray(arr) && arr.length > 0 && !preview[key]) {
           preview[key] = arr.length;
         }
       }
@@ -94,421 +231,149 @@ export function validateImport(data) {
 
   return { valid: true, mode, preview };
 }
-
-/**
- * Full restore import. Overwrites all localStorage data.
- * Handles both v2 (individual keys) and v3 (batched keys) formats.
- */
-export function importAll(data) {
-  // Check if this is v2 format (individual keys)
-  const hasV2Keys = ['hc:meds', 'hc:conditions', 'hc:allergies', 'hc:providers', 'hc:vitals', 'hc:appts', 'hc:journal']
-    .some(k => data[k]);
-
-  if (hasV2Keys && !data['hc:core']) {
-    // Normalize v2 -> v3
-    const core = {
-      meds: data['hc:meds'] || [],
-      conditions: data['hc:conditions'] || [],
-      allergies: data['hc:allergies'] || [],
-      providers: data['hc:providers'] || [],
-    };
-    const tracking = {
-      vitals: data['hc:vitals'] || [],
-      appts: data['hc:appts'] || [],
-      journal: data['hc:journal'] || [],
-    };
-    localStorage.setItem(SK.core, JSON.stringify(core));
-    localStorage.setItem(SK.tracking, JSON.stringify(tracking));
-  } else {
-    // v3 format: write batched keys directly
-    if (data['hc:core']) {
-      localStorage.setItem(SK.core, JSON.stringify(data['hc:core']));
-    }
-    if (data['hc:tracking']) {
-      localStorage.setItem(SK.tracking, JSON.stringify(data['hc:tracking']));
-    }
-  }
-
-  // Settings (same key in both versions)
-  if (data['hc:settings']) {
-    localStorage.setItem(SK.settings, JSON.stringify(data['hc:settings']));
-  }
-
-  // Last refresh timestamp
-  if (data['hc:lastRefresh']) {
-    localStorage.setItem(SK.lastRefresh, JSON.stringify(data['hc:lastRefresh']));
-  }
-}
-
-/**
- * Merge import. Adds records with new IDs, skips records whose ID already exists.
- * Returns stats: { added: { meds: N, ... }, skipped: { meds: N, ... } }
- */
-export function mergeImport(data) {
-  const stats = { added: {}, skipped: {} };
-
-  // Load current data
-  let currentCore = {};
-  let currentTracking = {};
-  try { currentCore = JSON.parse(localStorage.getItem(SK.core)) || {}; } catch { currentCore = {}; }
-  try { currentTracking = JSON.parse(localStorage.getItem(SK.tracking)) || {}; } catch { currentTracking = {}; }
-
-  const incomingCore = data['hc:core'] || {};
-  const incomingTracking = data['hc:tracking'] || {};
-
-  // Merge helper: merges a single array by ID
-  function mergeArray(existing, incoming, key) {
-    if (!Array.isArray(incoming) || incoming.length === 0) return existing || [];
-
-    const arr = Array.isArray(existing) ? [...existing] : [];
-    const existingIds = new Set(arr.map(r => r.id));
-    let added = 0;
-    let skipped = 0;
-
-    for (const record of incoming) {
-      if (record.id && existingIds.has(record.id)) {
-        skipped++;
-      } else {
-        arr.push(record);
-        added++;
-      }
-    }
-
-    if (added > 0) stats.added[key] = added;
-    if (skipped > 0) stats.skipped[key] = skipped;
-    return arr;
-  }
-
-  // Merge core arrays
-  const mergedCore = {
-    meds: mergeArray(currentCore.meds, incomingCore.meds, 'meds'),
-    conditions: mergeArray(currentCore.conditions, incomingCore.conditions, 'conditions'),
-    allergies: mergeArray(currentCore.allergies, incomingCore.allergies, 'allergies'),
-    providers: mergeArray(currentCore.providers, incomingCore.providers, 'providers'),
-  };
-
-  // Merge tracking arrays
-  const mergedTracking = {
-    vitals: mergeArray(currentTracking.vitals, incomingTracking.vitals, 'vitals'),
-    appts: mergeArray(currentTracking.appts, incomingTracking.appts, 'appts'),
-    journal: mergeArray(currentTracking.journal, incomingTracking.journal, 'journal'),
-  };
-
-  localStorage.setItem(SK.core, JSON.stringify(mergedCore));
-  localStorage.setItem(SK.tracking, JSON.stringify(mergedTracking));
-
-  return stats;
-}
-```
-
-**Important:** Make sure `SK` is exported from `src/constants/defaults.js`:
-
-```js
-export const SK = {
-  core: "hc:core",
-  tracking: "hc:tracking",
-  settings: "hc:settings",
-  lastRefresh: "hc:lastRefresh",
-};
 ```
 
 ---
 
-## 2. Settings UI Components
+## 5. Settings UI: Import Handler
 
 **File:** `src/components/sections/Settings.jsx`
 
-Add these sections inside the Settings component, after the "Erase All Data" card and before the footer.
+The import execution handler needs to pass `userId` and call the async Supabase-based merge:
 
-### State
+```js
+import { validateImport, importMerge, importRestore, exportAll } from '../../services/storage';
 
-```jsx
-const [importFile, setImportFile] = useState(null);
-const [importData, setImportData] = useState(null);
-const [importValidation, setImportValidation] = useState(null);
-const [importResult, setImportResult] = useState(null);
-const [importError, setImportError] = useState(null);
-const fileInputRef = useRef(null);
-```
+// Inside Settings component, get the session from wherever you access it:
+// const { session } = useAuth();  -or-  passed as prop, etc.
 
-### File Selection Handler
-
-```jsx
-function handleFileSelect(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-
-  setImportResult(null);
-  setImportError(null);
-  setImportData(null);
-  setImportValidation(null);
-
-  if (!file.name.endsWith('.json')) {
-    setImportError('Please select a .json file.');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    try {
-      const parsed = JSON.parse(ev.target.result);
-      const validation = validateImport(parsed);
-
-      if (!validation.valid) {
-        setImportError(validation.error);
-        return;
-      }
-
-      setImportFile(file.name);
-      setImportData(parsed);
-      setImportValidation(validation);
-    } catch {
-      setImportError('Could not parse file. Make sure it is valid JSON.');
-    }
-  };
-  reader.readAsText(file);
-}
-```
-
-### Import Execution Handler
-
-```jsx
-function executeImport() {
+async function executeImport() {
   if (!importData || !importValidation) return;
+  setImportError(null);
 
   try {
     if (importValidation.mode === 'merge') {
-      const stats = mergeImport(importData);
+      const userId = session.user.id;
+      const stats = await importMerge(importData, userId);
+
       const addedTotal = Object.values(stats.added).reduce((s, n) => s + n, 0);
       const skippedTotal = Object.values(stats.skipped).reduce((s, n) => s + n, 0);
 
       const parts = [];
       for (const [key, count] of Object.entries(stats.added)) {
-        parts.push(`${count} ${key}`);
+        const label = key.replace(/_/g, ' ');
+        parts.push(`${count} ${label}`);
       }
 
       setImportResult(
         addedTotal > 0
-          ? `Added ${parts.join(', ')}. Skipped ${skippedTotal} existing records.`
+          ? `Added ${parts.join(', ')}. Skipped ${skippedTotal} existing.`
           : `All ${skippedTotal} records already exist. Nothing new to add.`
       );
+
+      // Refresh React state from Supabase
+      await reloadData();
+
+      // Reset file input
+      setImportData(null);
+      setImportValidation(null);
+      setImportFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     } else {
-      importAll(importData);
+      // Full restore (existing logic)
+      await importRestore(importData, session.user.id);
       setImportResult('Full restore complete. Reloading...');
       setTimeout(() => window.location.reload(), 1500);
-      return; // reload will handle the rest
     }
-
-    // For merge mode, reset the data hook to pick up new records
-    // Call whatever reload/refresh function your useHealthData hook exposes
-    reloadData(); // <-- wire this to your data hook's reload function
-
-    setImportData(null);
-    setImportValidation(null);
-    setImportFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
   } catch (e) {
     setImportError('Import failed: ' + e.message);
   }
 }
 ```
 
-### Export Handler
+The rest of the Settings import UI (file picker, preview card, confirm/cancel buttons, export button) stays the same. The only change is swapping the old `importMerge(data)` call for `importMerge(data, userId)` and making it `await`.
 
-```jsx
-function handleExport() {
-  const data = exportAll();
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `remedy-backup-${new Date().toISOString().slice(0, 10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+---
+
+## 6. Export Update
+
+**File:** `src/services/storage.js`
+
+Update `exportAll()` to preserve `sync_id` so round-tripping (export from Salve, re-import as merge) deduplicates correctly:
+
+```js
+export async function exportAll(userId) {
+  const data = {
+    _export: {
+      app: "salve",
+      exportedAt: new Date().toISOString(),
+    },
+  };
+
+  for (const [key, table] of Object.entries(SYNC_TABLES)) {
+    const { data: rows, error } = await supabase
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (!error && rows) {
+      data[key] = rows.map(row => {
+        const out = { ...row };
+        // Map sync_id to _sync_id for export format compatibility
+        if (row.sync_id) {
+          out._sync_id = row.sync_id;
+        }
+        // Strip Supabase internal fields
+        delete out.user_id;
+        delete out.sync_id;
+        return out;
+      });
+    }
+  }
+
+  // Include profile/settings
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (profile) {
+    data.profile = profile;
+    delete data.profile.id;
+  }
+
+  data._export.recordCount = Object.keys(SYNC_TABLES)
+    .reduce((sum, key) => sum + (data[key]?.length || 0), 0);
+
+  return data;
 }
 ```
 
-### JSX
+---
 
-```jsx
-{/* ── Import Section ── */}
-<Card title="Import Data">
-  <p className="text-sm text-remedy-textMid mb-4 leading-relaxed">
-    Upload a backup file or a health sync file from the Claude sync artifact.
-  </p>
+## 7. Testing
 
-  <input
-    ref={fileInputRef}
-    type="file"
-    accept=".json"
-    onChange={handleFileSelect}
-    className="block w-full text-sm text-remedy-textMid
-      file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
-      file:text-sm file:font-medium file:bg-remedy-card2 file:text-remedy-lav
-      file:cursor-pointer hover:file:bg-remedy-border cursor-pointer"
-  />
-
-  {/* Validation error */}
-  {importError && (
-    <div className="mt-3 p-3 rounded-lg bg-remedy-rose/10 border border-remedy-rose/30 text-remedy-rose text-sm">
-      {importError}
-    </div>
-  )}
-
-  {/* Preview */}
-  {importValidation && (
-    <div className="mt-4 p-4 rounded-xl bg-remedy-card2 border border-remedy-border">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wider text-remedy-textFaint">
-          {importValidation.mode === 'merge' ? 'Sync Preview' : 'Restore Preview'}
-        </span>
-        <span className={`text-xs px-2 py-0.5 rounded-md ${
-          importValidation.mode === 'merge'
-            ? 'bg-remedy-sage/20 text-remedy-sage'
-            : 'bg-remedy-amber/20 text-remedy-amber'
-        }`}>
-          {importValidation.mode === 'merge' ? 'Add new only' : 'Full overwrite'}
-        </span>
-      </div>
-
-      <div className="space-y-1.5">
-        {Object.entries(importValidation.preview).map(([key, count]) => (
-          <div key={key} className="flex justify-between text-sm">
-            <span className="text-remedy-textMid capitalize">{key}</span>
-            <span className="text-remedy-text">{count}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 flex gap-3">
-        <button
-          onClick={executeImport}
-          className={`flex-1 py-2.5 rounded-lg font-medium text-sm ${
-            importValidation.mode === 'merge'
-              ? 'bg-remedy-sage text-remedy-bg'
-              : 'bg-remedy-amber text-remedy-bg'
-          }`}
-        >
-          {importValidation.mode === 'merge' ? 'Merge New Records' : 'Restore All Data'}
-        </button>
-        <button
-          onClick={() => {
-            setImportData(null);
-            setImportValidation(null);
-            setImportFile(null);
-            setImportError(null);
-            if (fileInputRef.current) fileInputRef.current.value = '';
-          }}
-          className="px-4 py-2.5 rounded-lg border border-remedy-border text-remedy-textMid text-sm"
-        >
-          Cancel
-        </button>
-      </div>
-
-      {importValidation.mode === 'restore' && (
-        <p className="mt-3 text-xs text-remedy-rose/80 leading-relaxed">
-          This will replace all current data. Any records not in this file will be lost.
-        </p>
-      )}
-    </div>
-  )}
-
-  {/* Success result */}
-  {importResult && (
-    <div className="mt-3 p-3 rounded-lg bg-remedy-sage/10 border border-remedy-sage/30 text-remedy-sage text-sm">
-      {importResult}
-    </div>
-  )}
-</Card>
-
-{/* ── Export Section ── */}
-<Card title="Download Backup">
-  <p className="text-sm text-remedy-textMid mb-4 leading-relaxed">
-    Save all your health data as a JSON file. Use this to restore later or transfer to another device.
-  </p>
-  <button
-    onClick={handleExport}
-    className="w-full py-3 rounded-xl bg-remedy-card2 border border-remedy-border text-remedy-lav font-medium text-sm
-      hover:bg-remedy-border transition-colors flex items-center justify-center gap-2"
-  >
-    <Download size={16} />
-    Download Backup
-  </button>
-</Card>
-```
-
-### Required Imports
-
-At the top of Settings.jsx:
-
-```jsx
-import { useRef, useState } from 'react';
-import { Download } from 'lucide-react';
-import { validateImport, importAll, mergeImport, exportAll } from '../../services/storage';
-```
+| Scenario | Expected |
+|----------|----------|
+| First MCP sync import | Merge mode, all records inserted with `sync_id` populated |
+| Repeat sync (identical data) | 0 added, all skipped (sync_ids match) |
+| Sync after new MCP data appears | New records added, old ones skipped |
+| Sync + manually added records | Manual records untouched (no sync_id to collide) |
+| Full restore import | All data wiped and replaced (existing behavior) |
+| Export then re-import as merge | All records skipped (sync_ids preserved in export) |
+| Legacy `ambers-remedy` file | Accepted by validator, restore mode |
+| Invalid / non-Salve JSON | Rejected with error |
+| Encrypted file | Detected, passphrase prompt, decrypt, then validate (existing behavior) |
 
 ---
 
-## 3. Tailwind Config Additions
-
-Make sure these colors are in `tailwind.config.js` under `theme.extend.colors.remedy` (they should already be there from the base migration, but confirm):
-
-```js
-rose: '#e88a9a',
-sage: '#8fbfa0',
-amber: '#e8c88a',
-lav: '#b8a9e8',
-card2: '#2a2a44',
-border: '#33335a',
-textMid: '#a8a4b8',
-textFaint: '#6e6a80',
-text: '#e8e4f0',
-bg: '#1a1a2e',
-```
-
-The Tailwind opacity modifier syntax (`bg-remedy-rose/10`, `border-remedy-sage/30`) requires the colors to be defined without alpha. If they're already hex values as above, Tailwind handles the `/10` etc. natively.
-
----
-
-## 4. Wiring to useHealthData
-
-The merge import writes directly to localStorage but the React state won't reflect the changes until the hook reloads. Two options:
-
-**Option A (simpler):** After merge import, call `window.location.reload()` just like full restore. Slightly jarring UX but guaranteed correct.
-
-**Option B (smoother):** Expose a `reloadData()` function from `useHealthData` that re-reads all localStorage keys and sets state. Call it after `mergeImport()` returns. The Settings component would need access to this via prop or context.
-
-Go with Option A initially, upgrade to Option B later if the reload flash bothers Amber.
-
----
-
-## 5. Testing
-
-After implementation, verify these scenarios:
-
-| Scenario | File type | Expected behavior |
-|----------|-----------|-------------------|
-| First-time import from artifact export | `remedy-backup-*.json` (no `_export.type`) | Full restore, reload, all data appears |
-| First-time import from v2 artifact export | File with `hc:meds`, `hc:vitals` etc. | Normalizes to v3 schema, full restore |
-| First MCP sync import | `remedy-sync-*.json` (`_export.type: "mcp-sync"`) | Merge mode, all records added (0 skipped) |
-| Repeat MCP sync import (same data) | Same sync file again | Merge mode, 0 added, all skipped |
-| MCP sync after manual edits | Sync file + manually added records in app | Merge adds new MCP records, manual records untouched |
-| Invalid file | Random .json file | Error: "not a Remedy backup" |
-| Non-JSON file | .txt or .csv | Error: "Please select a .json file" |
-| Corrupt JSON | Malformed .json | Error: "Could not parse file" |
-| Empty backup | Valid envelope but empty arrays | Error: "contains no health records" |
-| Export then re-import | Download Backup -> Import that file | Full restore, identical data |
-
----
-
-## 6. File Checklist
+## 8. Checklist
 
 | File | Action |
 |------|--------|
-| `src/services/storage.js` | Add `exportAll`, `validateImport`, `importAll`, `mergeImport` |
-| `src/constants/defaults.js` | Confirm `SK` is exported |
-| `src/components/sections/Settings.jsx` | Add import/export UI and handlers |
-| `tailwind.config.js` | Confirm opacity modifier support for remedy colors |
+| `supabase/migrations/002_sync_id.sql` | **Create.** Add `sync_id` column + partial indexes to all 7 health tables |
+| `src/services/storage.js` | **Update.** New `importMerge(data, userId)`, update `validateImport()`, update `exportAll(userId)` |
+| `src/components/sections/Settings.jsx` | **Update.** Pass `session.user.id` to `importMerge`, `await` the call, call `reloadData()` after |
+| No changes needed | `db.js`, `cache.js`, `crypto.js`, `auth.js`, `ai.js`, UI components, section files |
