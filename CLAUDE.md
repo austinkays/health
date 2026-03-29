@@ -159,7 +159,8 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - **Verifies Supabase auth token** via `Authorization: Bearer <token>` header
 - Validates token against Supabase Auth API using `SUPABASE_SERVICE_ROLE_KEY`
 - **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var, and `localhost:5173` (dev)
-- Accepts POST with `{ messages, system, max_tokens?, use_web_search? }`
+- Accepts POST with `{ messages, system, max_tokens?, use_web_search? }` — `max_tokens` clamped to 4096, messages limited to 100
+- **Fails closed** — returns 500 if `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` is missing (never skips auth)
 - Forwards to `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`
 - Optionally includes Anthropic web search tool when `use_web_search` is true
 - Returns the response JSON
@@ -186,7 +187,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
@@ -312,3 +313,23 @@ npm run build        # Production build
 npm run preview      # Preview production build locally
 vercel --prod        # Deploy to production
 ```
+
+## Audit Log
+
+### 2026-03-29 — Security Audit (Round 1)
+
+**Fixed:**
+1. **API proxy auth bypass** (`api/chat.js`) — auth check was silently skipped when `SUPABASE_URL` or `SUPABASE_SERVICE_ROLE_KEY` env vars were missing. Now fails closed with 500 error.
+2. **CSP `unsafe-eval` removed** (`vercel.json`) — `'unsafe-eval'` in `script-src` enabled arbitrary code execution; removed. `'unsafe-inline'` kept for Vite module loading.
+3. **CSP direct Anthropic access removed** (`vercel.json`) — `https://api.anthropic.com` was in `connect-src` allowing clients to bypass the auth-gated `/api/chat` proxy; removed.
+4. **API input validation** (`api/chat.js`) — `max_tokens` now clamped to 4096 max; `messages` array limited to 100 entries to prevent abuse.
+5. **Crypto error handling** (`src/services/crypto.js`) — `decrypt()` now catches malformed base64 and too-short ciphertext instead of throwing unhandled errors that could crash the app on load.
+
+**Remaining issues for next audit:**
+- No rate limiting on `/api/chat` endpoint (authenticated users can spam requests)
+- AI consent stored only in `localStorage` (client-side bypass possible) — consider storing in Supabase `profiles` table and verifying server-side
+- No input format validation on form fields (phone numbers, URLs, etc.)
+- Pending offline write queue (`hc:pending`) stored unencrypted in localStorage
+- `console.error()` calls leak error details in production DevTools
+- PBKDF2 iteration count (100,000) is hardcoded — should be a named constant and periodically increased
+- No pagination in `db.loadAll()` for large datasets

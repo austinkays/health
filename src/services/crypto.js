@@ -50,9 +50,18 @@ export async function encrypt(plaintext, token) {
 }
 
 export async function decrypt(b64, token) {
-  const key = await deriveKey(token);
-  const combined = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  let combined;
+  try {
+    combined = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  } catch {
+    throw new Error('Cache data is corrupted (invalid encoding).');
+  }
 
+  if (combined.length <= IV_LENGTH) {
+    throw new Error('Cache data is corrupted (too short).');
+  }
+
+  const key = await deriveKey(token);
   const iv = combined.slice(0, IV_LENGTH);
   const ciphertext = combined.slice(IV_LENGTH);
 
