@@ -3,13 +3,24 @@ import { db } from './db';
 
 // ── Map internal keys → Supabase table names ──
 const TABLE_MAP = {
-  meds: 'medications',
+  // Original 7 sections
+  meds:       'medications',
   conditions: 'conditions',
-  allergies: 'allergies',
-  providers: 'providers',
-  vitals: 'vitals',
-  appts: 'appointments',
-  journal: 'journal_entries',
+  allergies:  'allergies',
+  providers:  'providers',
+  vitals:     'vitals',
+  appts:      'appointments',
+  journal:    'journal_entries',
+  // Comprehensive schema v3 — new 8 sections
+  // These use the same name internally and externally
+  labs:                 'labs',
+  procedures:           'procedures',
+  immunizations:        'immunizations',
+  care_gaps:            'care_gaps',
+  anesthesia_flags:     'anesthesia_flags',
+  appeals_and_disputes: 'appeals_and_disputes',
+  surgical_planning:    'surgical_planning',
+  insurance:            'insurance',
 };
 
 // Strip server-generated fields before inserting
@@ -70,6 +81,7 @@ export async function exportAll() {
 
   exported._export.recordCount = Object.keys(TABLE_MAP)
     .reduce((sum, key) => sum + (exported[key]?.length || 0), 0);
+  exported._export.version = 3;
 
   return exported;
 }
@@ -143,7 +155,9 @@ export function validateImport(fileData) {
     return { valid: false, error: 'This file is not a Salve backup or sync file.' };
   }
 
-  const mode = fileData._export?.type === 'mcp-sync' ? 'merge' : 'restore';
+  // Both 'mcp-sync' and 'mcp-sync-comprehensive' are merge imports
+  const isMerge = fileData._export?.type?.startsWith('mcp-sync');
+  const mode = isMerge ? 'merge' : 'restore';
   const normalized = normalizeImportData(fileData);
 
   const preview = {};
@@ -165,31 +179,50 @@ export function validateImport(fileData) {
  * Normalize any supported file format into a flat structure.
  */
 function normalizeImportData(fileData) {
-  // MCP sync format (uses full table names, has _sync_id fields)
-  if (fileData._export?.type === 'mcp-sync') {
+  // MCP sync format — both 'mcp-sync' (v1) and 'mcp-sync-comprehensive' (v3)
+  if (fileData._export?.type?.startsWith('mcp-sync')) {
     return {
       settings: null,
-      meds: fileData.medications || [],
-      conditions: fileData.conditions || [],
-      allergies: fileData.allergies || [],
-      providers: fileData.providers || [],
-      vitals: fileData.vitals || [],
-      appts: fileData.appointments || [],
-      journal: fileData.journal_entries || [],
+      // Original 7 (name-mapped)
+      meds:       fileData.medications    || [],
+      conditions: fileData.conditions     || [],
+      allergies:  fileData.allergies      || [],
+      providers:  fileData.providers      || [],
+      vitals:     fileData.vitals         || [],
+      appts:      fileData.appointments   || [],
+      journal:    fileData.journal_entries || [],
+      // Comprehensive v3 — same name internally and externally
+      labs:                 fileData.labs                 || [],
+      procedures:           fileData.procedures           || [],
+      immunizations:        fileData.immunizations        || [],
+      care_gaps:            fileData.care_gaps            || [],
+      anesthesia_flags:     fileData.anesthesia_flags     || [],
+      appeals_and_disputes: fileData.appeals_and_disputes || [],
+      surgical_planning:    fileData.surgical_planning    || [],
+      insurance:            fileData.insurance            || [],
     };
   }
 
-  // Salve v1 format (our own export)
+  // Salve v1 format (our own backup export)
   if (fileData._export?.app === 'salve') {
     return {
       settings: fileData.settings || null,
-      meds: fileData.meds || [],
+      meds:       fileData.meds       || [],
       conditions: fileData.conditions || [],
-      allergies: fileData.allergies || [],
-      providers: fileData.providers || [],
-      vitals: fileData.vitals || [],
-      appts: fileData.appts || [],
-      journal: fileData.journal || [],
+      allergies:  fileData.allergies  || [],
+      providers:  fileData.providers  || [],
+      vitals:     fileData.vitals     || [],
+      appts:      fileData.appts      || [],
+      journal:    fileData.journal    || [],
+      // v3 fields if present in a future backup export
+      labs:                 fileData.labs                 || [],
+      procedures:           fileData.procedures           || [],
+      immunizations:        fileData.immunizations        || [],
+      care_gaps:            fileData.care_gaps            || [],
+      anesthesia_flags:     fileData.anesthesia_flags     || [],
+      appeals_and_disputes: fileData.appeals_and_disputes || [],
+      surgical_planning:    fileData.surgical_planning    || [],
+      insurance:            fileData.insurance            || [],
     };
   }
 
