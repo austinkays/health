@@ -1,10 +1,11 @@
-import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield } from 'lucide-react';
+import { useState, useRef, useCallback } from 'react';
+import { Trash2, Download, Upload, Shield, Smartphone, FileText, Lock } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
+import { parseAppleHealthXML, extractZipXML, getAppleHealthPreview } from '../../services/appleHealth';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
@@ -20,58 +21,120 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   const [importResult, setImportResult] = useState(null);
   const [importError, setImportError] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [exportPassphrase, setExportPassphrase] = useState('');
   const [exportError, setExportError] = useState(null);
   const [importPassphrase, setImportPassphrase] = useState('');
+  const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef(null);
+  const dropRef = useRef(null);
 
-  function handleFileSelect(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  // ── Unified file handler — auto-detects file type ──
+  const processFile = useCallback(async (file) => {
     setImportResult(null);
     setImportError(null);
     setImportData(null);
     setImportValidation(null);
+    setImportFile(file.name);
+    setProcessing(true);
 
-    if (!file.name.endsWith('.json')) {
-      setImportError('Please select a .json file.');
-      return;
-    }
+    const name = file.name.toLowerCase();
 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target.result);
+    try {
+      // ── Apple Health ZIP ──
+      if (name.endsWith('.zip')) {
+        const xmlString = await extractZipXML(file);
+        const parsed = parseAppleHealthXML(xmlString);
+        const preview = getAppleHealthPreview(parsed);
+        if (Object.keys(preview).length === 0) {
+          setImportError('No supported health records found in this Apple Health export.');
+          return;
+        }
+        setImportData(parsed);
+        setImportValidation({ valid: true, mode: 'merge', preview, normalized: parsed, source: 'apple-health' });
+        return;
+      }
 
-        // Check if file is encrypted
+      // ── Apple Health XML (extracted manually) ──
+      if (name.endsWith('.xml') || name === 'export.xml') {
+        const text = await readFileText(file);
+        const parsed = parseAppleHealthXML(text);
+        const preview = getAppleHealthPreview(parsed);
+        if (Object.keys(preview).length === 0) {
+          setImportError('No supported health records found in this file.');
+          return;
+        }
+        setImportData(parsed);
+        setImportValidation({ valid: true, mode: 'merge', preview, normalized: parsed, source: 'apple-health' });
+        return;
+      }
+
+      // ── JSON files (Salve backup, encrypted, MCP sync) ──
+      if (name.endsWith('.json')) {
+        const text = await readFileText(file);
+        let parsed;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          setImportError('Could not parse file. Make sure it is valid JSON.');
+          return;
+        }
+
+        // Encrypted backup
         if (parsed._encrypted) {
-          setImportFile(file.name);
           setImportData(parsed);
           setImportValidation({ encrypted: true });
           return;
         }
 
+        // Standard Salve/MCP import
         const validation = validateImport(parsed);
-
         if (!validation.valid) {
           setImportError(validation.error);
           return;
         }
-
-        setImportFile(file.name);
         setImportData(parsed);
         setImportValidation(validation);
-      } catch {
-        setImportError('Could not parse file. Make sure it is valid JSON.');
+        return;
       }
-    };
-    reader.readAsText(file);
-  }
 
+      setImportError('Unsupported file type. Drop a .json, .zip (Apple Health), or .xml file.');
+    } catch (e) {
+      setImportError(e.message || 'Failed to process file.');
+    } finally {
+      setProcessing(false);
+    }
+  }, []);
+
+  // ── Drag & drop handlers ──
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  const handleFileInput = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  }, [processFile]);
+
+  // ── Execute import (works for all types) ──
   async function executeImport() {
     if (!importValidation) return;
-
     setImporting(true);
     setImportError(null);
 
@@ -86,12 +149,16 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
           parts.push(`${count} ${key}`);
         }
 
+        // If Apple Health included height in settings, update profile
+        if (importValidation.source === 'apple-health' && importValidation.normalized.settings?.height) {
+          await updateSettings({ height: importValidation.normalized.settings.height });
+        }
+
         setImportResult(
           addedTotal > 0
             ? `Added ${parts.join(', ')}. Skipped ${skippedTotal} existing records.`
             : `All ${skippedTotal} records already exist. Nothing new to add.`
         );
-
         await reloadData();
       } else {
         await importRestore(importValidation.normalized);
@@ -114,15 +181,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   async function handleExport() {
     const exported = await exportAll();
     const json = JSON.stringify(exported, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `salve-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    downloadBlob(json, 'application/json', `salve-backup-${new Date().toISOString().slice(0, 10)}.json`);
   }
 
   async function handleEncryptedExport() {
@@ -134,15 +193,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
     try {
       const exported = await exportAll();
       const encrypted = await encryptExport(exported, exportPassphrase);
-      const blob = new Blob([encrypted], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `salve-backup-encrypted-${new Date().toISOString().slice(0, 10)}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadBlob(encrypted, 'application/json', `salve-backup-encrypted-${new Date().toISOString().slice(0, 10)}.json`);
       setExportPassphrase('');
     } catch {
       setExportError('Encryption failed.');
@@ -155,7 +206,16 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
     setImportFile(null);
     setImportError(null);
     setImportResult(null);
+    setProcessing(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  }
+
+  // ── Source label for detected file types ──
+  function getSourceLabel() {
+    if (importValidation?.source === 'apple-health') return { icon: Smartphone, label: 'Apple Health', color: 'text-salve-sage' };
+    if (importValidation?.encrypted) return { icon: Lock, label: 'Encrypted Backup', color: 'text-salve-amber' };
+    if (importValidation?.mode === 'merge') return { icon: FileText, label: 'Salve Sync', color: 'text-salve-sage' };
+    return { icon: FileText, label: 'Salve Backup', color: 'text-salve-lav' };
   }
 
   return (
@@ -252,7 +312,203 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         />
       </Card>
 
-      <SectionTitle>Data</SectionTitle>
+      {/* ═══════════════════════════════════════════════════════
+          IMPORT — Drag & Drop Zone
+          ═══════════════════════════════════════════════════════ */}
+      <SectionTitle>Import Health Data</SectionTitle>
+      <Card>
+        {/* Drop zone */}
+        <div
+          ref={dropRef}
+          onDragOver={handleDragOver}
+          onDragEnter={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => !importValidation && !processing && fileInputRef.current?.click()}
+          className={`relative rounded-xl border-2 border-dashed p-6 text-center transition-all cursor-pointer ${
+            dragOver
+              ? 'border-salve-lav bg-salve-lav/10 scale-[1.01]'
+              : importValidation
+                ? 'border-salve-border bg-salve-card2 cursor-default'
+                : 'border-salve-border hover:border-salve-lavDim hover:bg-salve-card2/50'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,.zip,.xml"
+            onChange={handleFileInput}
+            className="hidden"
+          />
+
+          {/* State: empty / ready for drop */}
+          {!importValidation && !processing && !importFile && (
+            <>
+              <Upload size={28} className="mx-auto mb-3 text-salve-lavDim" strokeWidth={1.5} />
+              <p className="text-sm font-medium text-salve-text mb-1">
+                Drop a file here or tap to browse
+              </p>
+              <p className="text-xs text-salve-textFaint leading-relaxed">
+                Salve backup (.json) or Apple Health export (.zip)
+              </p>
+              <div className="flex items-center justify-center gap-4 mt-4">
+                <div className="flex items-center gap-1.5 text-[11px] text-salve-textFaint">
+                  <FileText size={12} /> .json
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-salve-textFaint">
+                  <Smartphone size={12} /> .zip
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-salve-textFaint">
+                  <Lock size={12} /> encrypted
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* State: processing file */}
+          {processing && (
+            <div className="py-4">
+              <div className="w-6 h-6 border-2 border-salve-lav border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-salve-textMid">Reading {importFile}...</p>
+            </div>
+          )}
+
+          {/* State: encrypted file — needs passphrase */}
+          {importValidation?.encrypted && (
+            <div className="text-left" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center gap-2 mb-3">
+                <Lock size={16} className="text-salve-amber" />
+                <span className="text-sm font-medium text-salve-text">Encrypted Backup</span>
+                <span className="text-[11px] text-salve-textFaint ml-auto">{importFile}</span>
+              </div>
+              <p className="text-xs text-salve-textMid mb-3">Enter the passphrase used when this backup was created.</p>
+              <input
+                type="password"
+                value={importPassphrase}
+                onChange={e => setImportPassphrase(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleDecrypt()}
+                placeholder="Passphrase"
+                autoFocus
+                className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2.5 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-3"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={handleDecrypt}
+                  className="flex-1 py-2.5 rounded-lg font-medium text-sm bg-salve-lav/20 text-salve-lav hover:bg-salve-lav/30 transition-colors"
+                >
+                  Decrypt & Preview
+                </button>
+                <button onClick={cancelImport} className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* State: file recognized — show preview */}
+          {importValidation && !importValidation.encrypted && (
+            <div className="text-left" onClick={e => e.stopPropagation()}>
+              {(() => {
+                const src = getSourceLabel();
+                return (
+                  <div className="flex items-center gap-2 mb-3">
+                    <src.icon size={16} className={src.color} />
+                    <span className="text-sm font-medium text-salve-text">{src.label}</span>
+                    <span className={`text-[11px] ml-auto px-2 py-0.5 rounded-md ${
+                      importValidation.mode === 'merge'
+                        ? 'bg-salve-sage/20 text-salve-sage'
+                        : 'bg-salve-amber/20 text-salve-amber'
+                    }`}>
+                      {importValidation.mode === 'merge' ? 'Add new records' : 'Full restore'}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              <div className="text-[11px] text-salve-textFaint mb-2">{importFile}</div>
+
+              <div className="space-y-1 mb-4">
+                {Object.entries(importValidation.preview).map(([key, count]) => (
+                  <div key={key} className="flex justify-between text-sm py-0.5">
+                    <span className="text-salve-textMid capitalize">{key.replace(/_/g, ' ')}</span>
+                    <span className="text-salve-text font-medium">{count}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={executeImport}
+                  disabled={importing}
+                  className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                    importValidation.mode === 'merge'
+                      ? 'bg-salve-sage/20 text-salve-sage hover:bg-salve-sage/30'
+                      : 'bg-salve-amber/20 text-salve-amber hover:bg-salve-amber/30'
+                  } disabled:opacity-50`}
+                >
+                  <Upload size={14} />
+                  {importing
+                    ? 'Importing...'
+                    : importValidation.source === 'apple-health'
+                      ? 'Import Apple Health Data'
+                      : importValidation.mode === 'merge'
+                        ? 'Merge New Records'
+                        : 'Restore All Data'}
+                </button>
+                <button
+                  onClick={cancelImport}
+                  className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {importValidation.mode === 'restore' && (
+                <p className="mt-3 text-xs text-salve-rose/80 leading-relaxed">
+                  This will replace all current data. Any records not in this file will be lost.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Error message */}
+        {importError && (
+          <div className="mt-3 p-3 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-sm flex items-start gap-2">
+            <span className="flex-1">{importError}</span>
+            <button onClick={cancelImport} className="text-salve-rose/60 hover:text-salve-rose text-xs bg-transparent border-none cursor-pointer shrink-0">
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Success message */}
+        {importResult && (
+          <div className="mt-3 p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm">
+            {importResult}
+          </div>
+        )}
+
+        {/* How-to for Apple Health */}
+        <details className="mt-4 text-xs text-salve-textFaint">
+          <summary className="cursor-pointer hover:text-salve-textMid transition-colors flex items-center gap-1.5">
+            <Smartphone size={12} />
+            How to export from iPhone / Apple Watch
+          </summary>
+          <div className="mt-2 pl-4 space-y-1 leading-relaxed">
+            <p>1. Open the <strong className="text-salve-textMid">Health</strong> app on your iPhone</p>
+            <p>2. Tap your <strong className="text-salve-textMid">profile picture</strong> (top right)</p>
+            <p>3. Scroll down and tap <strong className="text-salve-textMid">Export All Health Data</strong></p>
+            <p>4. Wait for it to prepare, then save or share the .zip file</p>
+            <p>5. Drop that .zip file right here</p>
+            <p className="text-salve-textFaint/70 italic mt-2">
+              Imports: heart rate, blood pressure, weight, sleep, temperature, blood glucose, steps, medications, immunizations, and lab results.
+            </p>
+          </div>
+        </details>
+      </Card>
+
+      <SectionTitle>Data Management</SectionTitle>
       <Card>
         <p className="text-[13px] text-salve-textMid mb-3.5 leading-relaxed">
           All data is synced to your account and available across devices.
@@ -278,132 +534,8 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         )}
       </Card>
 
-      <SectionTitle>Import Data</SectionTitle>
-      <Card>
-        <p className="text-[13px] text-salve-textMid mb-3.5 leading-relaxed">
-          Upload a backup file or a health sync file.
-        </p>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleFileSelect}
-          className="block w-full text-sm text-salve-textMid
-            file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
-            file:text-sm file:font-medium file:bg-salve-card2 file:text-salve-lav
-            file:cursor-pointer hover:file:bg-salve-border cursor-pointer"
-        />
-
-        {importError && (
-          <div className="mt-3 p-3 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-sm">
-            {importError}
-          </div>
-        )}
-
-        {importValidation && importValidation.encrypted && (
-          <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
-            <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-2 block">Encrypted Backup</span>
-            <p className="text-[13px] text-salve-textMid mb-3">Enter the passphrase to decrypt this backup file.</p>
-            <input
-              type="password"
-              value={importPassphrase}
-              onChange={e => setImportPassphrase(e.target.value)}
-              placeholder="Passphrase"
-              className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-3"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={async () => {
-                  if (!importPassphrase) { setImportError('Passphrase is required.'); return; }
-                  setImportError(null);
-                  try {
-                    const decrypted = await decryptExport(importData, importPassphrase);
-                    const validation = validateImport(decrypted);
-                    if (!validation.valid) { setImportError(validation.error); return; }
-                    setImportData(decrypted);
-                    setImportValidation(validation);
-                    setImportPassphrase('');
-                  } catch {
-                    setImportError('Incorrect passphrase or corrupted file.');
-                  }
-                }}
-                className="flex-1 py-2.5 rounded-lg font-medium text-sm bg-salve-lav/20 text-salve-lav hover:bg-salve-lav/30 transition-colors"
-              >
-                Decrypt
-              </button>
-              <button onClick={cancelImport} className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {importValidation && !importValidation.encrypted && (
-          <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint">
-                {importValidation.mode === 'merge' ? 'Sync Preview' : 'Restore Preview'}
-              </span>
-              <span className={`text-xs px-2 py-0.5 rounded-md ${
-                importValidation.mode === 'merge'
-                  ? 'bg-salve-sage/20 text-salve-sage'
-                  : 'bg-salve-amber/20 text-salve-amber'
-              }`}>
-                {importValidation.mode === 'merge' ? 'Add new only' : 'Full overwrite'}
-              </span>
-            </div>
-
-            <div className="space-y-1.5">
-              {Object.entries(importValidation.preview).map(([key, count]) => (
-                <div key={key} className="flex justify-between text-sm">
-                  <span className="text-salve-textMid capitalize">{key}</span>
-                  <span className="text-salve-text">{count}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={executeImport}
-                disabled={importing}
-                className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                  importValidation.mode === 'merge'
-                    ? 'bg-salve-sage/20 text-salve-sage hover:bg-salve-sage/30'
-                    : 'bg-salve-amber/20 text-salve-amber hover:bg-salve-amber/30'
-                } disabled:opacity-50`}
-              >
-                <Upload size={14} />
-                {importing ? 'Importing...' : importValidation.mode === 'merge' ? 'Merge New Records' : 'Restore All Data'}
-              </button>
-              <button
-                onClick={cancelImport}
-                className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {importValidation.mode === 'restore' && (
-              <p className="mt-3 text-xs text-salve-rose/80 leading-relaxed">
-                This will replace all current data. Any records not in this file will be lost.
-              </p>
-            )}
-          </div>
-        )}
-
-        {importResult && (
-          <div className="mt-3 p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm">
-            {importResult}
-          </div>
-        )}
-      </Card>
-
       <SectionTitle>Download Backup</SectionTitle>
       <Card>
-        <p className="text-[13px] text-salve-textMid mb-3.5 leading-relaxed">
-          Save all your health data as a JSON file. Use this to restore later or transfer to another device.
-        </p>
         <button
           onClick={handleExport}
           className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm
@@ -415,7 +547,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
 
         <div className="mt-4 pt-4 border-t border-salve-border">
           <p className="text-[13px] text-salve-textMid mb-2.5 leading-relaxed">
-            Or download an encrypted backup protected with a passphrase.
+            Encrypted backup with passphrase protection.
           </p>
           <input
             type="password"
@@ -449,6 +581,45 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       </div>
     </div>
   );
+
+  // ── Decrypt handler ──
+  async function handleDecrypt() {
+    if (!importPassphrase) { setImportError('Passphrase is required.'); return; }
+    setImportError(null);
+    try {
+      const decrypted = await decryptExport(importData, importPassphrase);
+      const validation = validateImport(decrypted);
+      if (!validation.valid) { setImportError(validation.error); return; }
+      setImportData(decrypted);
+      setImportValidation(validation);
+      setImportPassphrase('');
+    } catch {
+      setImportError('Incorrect passphrase or corrupted file.');
+    }
+  }
+}
+
+// ── Helpers ──
+
+function readFileText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.readAsText(file);
+  });
+}
+
+function downloadBlob(content, type, filename) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function SectionTitle({ children, action }) {
