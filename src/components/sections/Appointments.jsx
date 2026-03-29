@@ -36,11 +36,11 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" required />
         <Field label="Time" value={form.time} onChange={v => sf('time', v)} type="time" />
-        <Field label="Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
-        <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Clinic, hospital..." />
-        <Field label="Reason" value={form.reason} onChange={v => sf('reason', v)} placeholder="Follow-up, labs..." />
-        <Field label="Questions to Ask" value={form.questions} onChange={v => sf('questions', v)} textarea placeholder="Things to bring up..." />
-        <Field label="Post-Visit Notes" value={form.post_notes} onChange={v => sf('post_notes', v)} textarea placeholder="What happened..." />
+        <Field label="Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Provider" />
+        <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Location" />
+        <Field label="Reason" value={form.reason} onChange={v => sf('reason', v)} placeholder="Reason" />
+        <Field label="Questions to Ask" value={form.questions} onChange={v => sf('questions', v)} textarea placeholder="Questions" />
+        <Field label="Post-Visit Notes" value={form.post_notes} onChange={v => sf('post_notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={saveA} disabled={!form.date}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_APPOINTMENT); setEditId(null); }}>Cancel</Button>

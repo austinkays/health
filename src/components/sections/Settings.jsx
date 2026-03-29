@@ -162,7 +162,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
     <div className="mt-2">
       <SectionTitle>Profile</SectionTitle>
       <Card>
-        <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
+        <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="Your name" />
         <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
       </Card>
 
@@ -202,12 +202,12 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
 
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>
-        <Field label="Preferred Pharmacy" value={s.pharmacy || ''} onChange={v => set('pharmacy', v)} placeholder="Name & location" />
+        <Field label="Preferred Pharmacy" value={s.pharmacy || ''} onChange={v => set('pharmacy', v)} placeholder="Pharmacy" />
       </Card>
 
       <SectionTitle>Insurance</SectionTitle>
       <Card>
-        <Field label="Plan" value={s.insurance_plan || ''} onChange={v => set('insurance_plan', v)} placeholder="e.g. Kaiser HMO" />
+        <Field label="Plan" value={s.insurance_plan || ''} onChange={v => set('insurance_plan', v)} placeholder="Plan name" />
         <Field label="Member ID" value={s.insurance_id || ''} onChange={v => set('insurance_id', v)} placeholder="Member ID" />
         <Field label="Group #" value={s.insurance_group || ''} onChange={v => set('insurance_group', v)} placeholder="Group number" />
         <Field label="Member Services" value={s.insurance_phone || ''} onChange={v => set('insurance_phone', v)} type="tel" placeholder="Phone" />
@@ -223,7 +223,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
           value={s.health_background || ''}
           onChange={v => set('health_background', v)}
           textarea
-          placeholder="e.g. I've had chronic fatigue since 2019, my pain flares are worst in cold weather..."
+          placeholder="Anything the AI should know about your health history..."
         />
       </Card>
 

@@ -35,11 +35,11 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
     <FormWrap title={`${editId ? 'Edit' : 'New'} Entry`} onBack={() => { setSubView(null); setForm(EMPTY_JOURNAL); setEditId(null); }}>
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
-        <Field label="Title (optional)" value={form.title} onChange={v => sf('title', v)} placeholder="Quick label for today" />
+        <Field label="Title (optional)" value={form.title} onChange={v => sf('title', v)} placeholder="Title" />
         <Field label="Mood" value={form.mood} onChange={v => sf('mood', v)} options={MOODS} />
         <Field label="Symptom Severity" value={form.severity} onChange={v => sf('severity', v)} options={[...Array(10)].map((_, i) => ({ value: String(i + 1), label: `${i + 1}/10${i === 0 ? ' (minimal)' : i === 9 ? ' (worst)' : ''}` }))} />
-        <Field label="What's going on?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="Symptoms, triggers, what helped..." />
-        <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="flare, fatigue, headache..." />
+        <Field label="What's going on?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="Write here..." />
+        <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="Tags" />
         <div className="flex gap-2">
           <Button onClick={saveJ} disabled={!form.content.trim() && !form.title.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_JOURNAL); setEditId(null); }}>Cancel</Button>

@@ -39,14 +39,14 @@ export default function Allergies({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Allergy`} onBack={() => { setSubView(null); setForm(EMPTY_ALLERGY); setEditId(null); }}>
       <Card>
-        <Field label="Substance" value={form.substance} onChange={v => sf('substance', v)} placeholder="e.g. Penicillin, Latex" required />
-        <Field label="Reaction" value={form.reaction} onChange={v => sf('reaction', v)} placeholder="e.g. Hives, anaphylaxis" />
+        <Field label="Substance" value={form.substance} onChange={v => sf('substance', v)} placeholder="Substance" required />
+        <Field label="Reaction" value={form.reaction} onChange={v => sf('reaction', v)} placeholder="Reaction" />
         <Field label="Severity" value={form.severity} onChange={v => sf('severity', v)} options={[
           { value: 'mild', label: 'Mild' },
           { value: 'moderate', label: 'Moderate' },
           { value: 'severe', label: 'Severe — Anaphylaxis' },
         ]} />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Cross-sensitivities..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={saveAl} disabled={!form.substance.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_ALLERGY); setEditId(null); }}>Cancel</Button>

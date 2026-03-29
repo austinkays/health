@@ -41,7 +41,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Condition`} onBack={() => { setSubView(null); setForm(EMPTY_CONDITION); setEditId(null); }}>
       <Card>
-        <Field label="Condition / Diagnosis" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Fibromyalgia" required />
+        <Field label="Condition / Diagnosis" value={form.name} onChange={v => sf('name', v)} placeholder="Condition name" required />
         <Field label="Date Diagnosed" value={form.diagnosed_date} onChange={v => sf('diagnosed_date', v)} type="date" />
         <Field label="Status" value={form.status} onChange={v => sf('status', v)} options={[
           { value: 'active', label: 'Active' },
@@ -49,9 +49,9 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
           { value: 'remission', label: 'In Remission' },
           { value: 'resolved', label: 'Resolved' },
         ]} />
-        <Field label="Treating Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
-        <Field label="Related Medications" value={form.linked_meds} onChange={v => sf('linked_meds', v)} placeholder="Meds for this condition" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="History, triggers..." />
+        <Field label="Treating Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Provider" />
+        <Field label="Related Medications" value={form.linked_meds} onChange={v => sf('linked_meds', v)} placeholder="Related medications" />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={saveC} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_CONDITION); setEditId(null); }}>Cancel</Button>

@@ -37,12 +37,12 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Insurance`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Plan Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. CareOregon OHP, OHSU Charity Care" required />
+        <Field label="Plan Name" value={form.name} onChange={v => sf('name', v)} placeholder="Plan name" required />
         <Field label="Type" value={form.type} onChange={v => sf('type', v)} options={TYPES} />
-        <Field label="Member ID" value={form.member_id} onChange={v => sf('member_id', v)} placeholder="Your member number" />
-        <Field label="Group Number" value={form.group} onChange={v => sf('group', v)} placeholder="Group / plan code" />
-        <Field label="Phone" value={form.phone} onChange={v => sf('phone', v)} placeholder="Member services number" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Coverage details, deductible, prior auth contacts..." />
+        <Field label="Member ID" value={form.member_id} onChange={v => sf('member_id', v)} placeholder="Member ID" />
+        <Field label="Group Number" value={form.group} onChange={v => sf('group', v)} placeholder="Group number" />
+        <Field label="Phone" value={form.phone} onChange={v => sf('phone', v)} placeholder="Phone" />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

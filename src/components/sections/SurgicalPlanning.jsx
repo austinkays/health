@@ -74,17 +74,17 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Surgical Plan`} onBack={() => { setSubView(null); }}>
       <Card>
-        <Field label="Facility" value={form.facility} onChange={v => sf('facility', v)} placeholder="Hospital or surgical center" />
-        <Field label="Surgeon" value={form.surgeon} onChange={v => sf('surgeon', v)} placeholder="Dr. Name" />
-        <Field label="Coordinator" value={form.coordinator} onChange={v => sf('coordinator', v)} placeholder="Name and contact" />
-        <Field label="Case Number" value={form.case_number} onChange={v => sf('case_number', v)} placeholder="Reference / case ID" />
-        <Field label="Target Date" value={form.target_date} onChange={v => sf('target_date', v)} placeholder="e.g. 2026, 2026-09" />
+        <Field label="Facility" value={form.facility} onChange={v => sf('facility', v)} placeholder="Facility" />
+        <Field label="Surgeon" value={form.surgeon} onChange={v => sf('surgeon', v)} placeholder="Surgeon" />
+        <Field label="Coordinator" value={form.coordinator} onChange={v => sf('coordinator', v)} placeholder="Coordinator" />
+        <Field label="Case Number" value={form.case_number} onChange={v => sf('case_number', v)} placeholder="Case number" />
+        <Field label="Target Date" value={form.target_date} onChange={v => sf('target_date', v)} placeholder="Target date" />
         <Field label="Status" value={form.status} onChange={v => sf('status', v)} options={STATUSES} />
-        <Field label="Accommodation Notes" value={form.accommodation} onChange={v => sf('accommodation', v)} textarea placeholder="Travel, lodging, recovery stay..." />
-        <Field label="Planned Procedures (one per line)" value={proceduresTxt} onChange={setProceduresTxt} textarea placeholder="Laparoscopic hysterectomy&#10;Bilateral salpingo-oophorectomy" />
-        <Field label="Procedures NOT on Approved List (one per line)" value={notOnListTxt} onChange={setNotOnListTxt} textarea placeholder="Appendectomy (if incidental)" />
-        <Field label="Constraints (one per line)" value={constraintsTxt} onChange={setConstraintsTxt} textarea placeholder="Must avoid succinylcholine&#10;Regional anesthesia preferred" />
-        <Field label="Outstanding Items (one per line)" value={outstandingTxt} onChange={setOutstandingTxt} textarea placeholder="Pre-op clearance from cardiology&#10;Insurance auth pending" />
+        <Field label="Accommodation Notes" value={form.accommodation} onChange={v => sf('accommodation', v)} textarea placeholder="Accommodation notes" />
+        <Field label="Planned Procedures (one per line)" value={proceduresTxt} onChange={setProceduresTxt} textarea placeholder="One per line" />
+        <Field label="Procedures NOT on Approved List (one per line)" value={notOnListTxt} onChange={setNotOnListTxt} textarea placeholder="One per line" />
+        <Field label="Constraints (one per line)" value={constraintsTxt} onChange={setConstraintsTxt} textarea placeholder="One per line" />
+        <Field label="Outstanding Items (one per line)" value={outstandingTxt} onChange={setOutstandingTxt} textarea placeholder="One per line" />
         <div className="flex gap-2">
           <Button onClick={save}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => setSubView(null)}>Cancel</Button>

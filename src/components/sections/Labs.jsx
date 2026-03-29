@@ -39,14 +39,14 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Lab / Imaging`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Test / Study Name" value={form.test_name} onChange={v => sf('test_name', v)} placeholder="e.g. CBC, CT Chest, Echo" required />
+        <Field label="Test / Study Name" value={form.test_name} onChange={v => sf('test_name', v)} placeholder="Test name" required />
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
-        <Field label="Result" value={form.result} onChange={v => sf('result', v)} placeholder="e.g. 12.4, Negative, See report" />
-        <Field label="Unit" value={form.unit} onChange={v => sf('unit', v)} placeholder="e.g. g/dL, mmol/L" />
-        <Field label="Reference Range" value={form.range} onChange={v => sf('range', v)} placeholder="e.g. 12.0–16.0" />
+        <Field label="Result" value={form.result} onChange={v => sf('result', v)} placeholder="Result" />
+        <Field label="Unit" value={form.unit} onChange={v => sf('unit', v)} placeholder="Unit" />
+        <Field label="Reference Range" value={form.range} onChange={v => sf('range', v)} placeholder="Reference range" />
         <Field label="Flag" value={form.flag} onChange={v => sf('flag', v)} options={FLAG_OPTS} />
-        <Field label="Ordering Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Clinical context, follow-up needed..." />
+        <Field label="Ordering Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Provider" />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.test_name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

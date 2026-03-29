@@ -46,11 +46,11 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Care Gap`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Item" value={form.item} onChange={v => sf('item', v)} placeholder="e.g. TSH thyroid panel, Shingrix vaccine" required />
+        <Field label="Item" value={form.item} onChange={v => sf('item', v)} placeholder="Item" required />
         <Field label="Category" value={form.category} onChange={v => sf('category', v)} options={CATEGORIES} />
         <Field label="Urgency" value={form.urgency} onChange={v => sf('urgency', v)} options={URGENCIES} />
-        <Field label="Last Done" value={form.last_done} onChange={v => sf('last_done', v)} placeholder="Date, 'never', or 'in progress'" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Context, barriers, plan..." />
+        <Field label="Last Done" value={form.last_done} onChange={v => sf('last_done', v)} placeholder="Last done" />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.item.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

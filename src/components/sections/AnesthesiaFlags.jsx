@@ -28,9 +28,9 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem 
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Anesthesia Flag`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Condition / Medication" value={form.condition} onChange={v => sf('condition', v)} placeholder="e.g. Suxamethonium apnoea, CRPS" required />
-        <Field label="Implication for Surgical Team" value={form.implication} onChange={v => sf('implication', v)} textarea placeholder="Why this matters (e.g. prolonged paralysis, autonomic crisis)" />
-        <Field label="Action Required" value={form.action_required} onChange={v => sf('action_required', v)} textarea placeholder="What the team must do or avoid" />
+        <Field label="Condition / Medication" value={form.condition} onChange={v => sf('condition', v)} placeholder="Condition or medication" required />
+        <Field label="Implication for Surgical Team" value={form.implication} onChange={v => sf('implication', v)} textarea placeholder="Implication" />
+        <Field label="Action Required" value={form.action_required} onChange={v => sf('action_required', v)} textarea placeholder="Action required" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.condition.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

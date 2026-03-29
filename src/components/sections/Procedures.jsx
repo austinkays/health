@@ -37,14 +37,14 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Procedure`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Procedure Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Epidural steroid injection" required />
+        <Field label="Procedure Name" value={form.name} onChange={v => sf('name', v)} placeholder="Procedure name" required />
         <Field label="Type" value={form.type} onChange={v => sf('type', v)} options={TYPES} />
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
-        <Field label="Provider / Surgeon" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
-        <Field label="Facility / Location" value={form.location} onChange={v => sf('location', v)} placeholder="Hospital or clinic name" />
-        <Field label="Reason / Indication" value={form.reason} onChange={v => sf('reason', v)} placeholder="Why was this done?" />
-        <Field label="Outcome" value={form.outcome} onChange={v => sf('outcome', v)} placeholder="Result or findings" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Complications, recovery, follow-up..." />
+        <Field label="Provider / Surgeon" value={form.provider} onChange={v => sf('provider', v)} placeholder="Provider" />
+        <Field label="Facility / Location" value={form.location} onChange={v => sf('location', v)} placeholder="Location" />
+        <Field label="Reason / Indication" value={form.reason} onChange={v => sf('reason', v)} placeholder="Reason" />
+        <Field label="Outcome" value={form.outcome} onChange={v => sf('outcome', v)} placeholder="Outcome" />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

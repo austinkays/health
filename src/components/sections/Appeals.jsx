@@ -39,12 +39,12 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Appeal / Dispute`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Subject / Description" value={form.subject} onChange={v => sf('subject', v)} placeholder="e.g. Denial of Spravato coverage" required />
-        <Field label="Against (insurer / entity)" value={form.against} onChange={v => sf('against', v)} placeholder="e.g. CareOregon, Providence" />
+        <Field label="Subject / Description" value={form.subject} onChange={v => sf('subject', v)} placeholder="Subject" required />
+        <Field label="Against (insurer / entity)" value={form.against} onChange={v => sf('against', v)} placeholder="Insurer or entity" />
         <Field label="Status" value={form.status} onChange={v => sf('status', v)} options={STATUSES} />
         <Field label="Date Filed" value={form.date_filed} onChange={v => sf('date_filed', v)} type="date" />
         <Field label="Deadline" value={form.deadline} onChange={v => sf('deadline', v)} type="date" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Case number, contact, next steps..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.subject.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

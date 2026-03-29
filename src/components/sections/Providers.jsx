@@ -31,13 +31,13 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>
       <Card>
-        <Field label="Name" value={form.name} onChange={v => sf('name', v)} placeholder="Dr. Name" required />
-        <Field label="Specialty" value={form.specialty} onChange={v => sf('specialty', v)} placeholder="e.g. Rheumatology" />
-        <Field label="Clinic / Office" value={form.clinic} onChange={v => sf('clinic', v)} placeholder="Clinic name" />
-        <Field label="Phone" value={form.phone} onChange={v => sf('phone', v)} type="tel" placeholder="(555) 555-5555" />
+        <Field label="Name" value={form.name} onChange={v => sf('name', v)} placeholder="Name" required />
+        <Field label="Specialty" value={form.specialty} onChange={v => sf('specialty', v)} placeholder="Specialty" />
+        <Field label="Clinic / Office" value={form.clinic} onChange={v => sf('clinic', v)} placeholder="Clinic or office" />
+        <Field label="Phone" value={form.phone} onChange={v => sf('phone', v)} type="tel" placeholder="Phone" />
         <Field label="Fax" value={form.fax} onChange={v => sf('fax', v)} type="tel" />
         <Field label="Patient Portal" value={form.portal_url} onChange={v => sf('portal_url', v)} placeholder="https://..." />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Office hours, best contact..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex gap-2">
           <Button onClick={saveP} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>Cancel</Button>

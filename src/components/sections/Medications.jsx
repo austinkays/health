@@ -38,16 +38,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Medication`} onBack={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>
       <Card>
-        <Field label="Medication Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Sertraline" required />
-        <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
+        <Field label="Medication Name" value={form.name} onChange={v => sf('name', v)} placeholder="Medication name" required />
+        <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="Dose" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
-        <Field label="Prescriber" value={form.prescriber} onChange={v => sf('prescriber', v)} placeholder="Dr. Name" />
+        <Field label="Prescriber" value={form.prescriber} onChange={v => sf('prescriber', v)} placeholder="Prescriber" />
         <Field label="Pharmacy" value={form.pharmacy} onChange={v => sf('pharmacy', v)} placeholder="Pharmacy name" />
-        <Field label="Purpose / Condition" value={form.purpose} onChange={v => sf('purpose', v)} placeholder="What is this for?" />
+        <Field label="Purpose / Condition" value={form.purpose} onChange={v => sf('purpose', v)} placeholder="Purpose" />
         <Field label="Start Date" value={form.start_date} onChange={v => sf('start_date', v)} type="date" />
         <Field label="Next Refill" value={form.refill_date} onChange={v => sf('refill_date', v)} type="date" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Side effects, instructions..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <div className="flex items-center gap-2 mb-4">
           <input type="checkbox" checked={form.active !== false} onChange={e => sf('active', e.target.checked)} id="medActive" />
           <label htmlFor="medActive" className="text-sm text-salve-textMid">Currently taking</label>

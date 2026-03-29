@@ -28,13 +28,13 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Immunization`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Vaccine Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. COVID-19 mRNA, Tdap, Flu" required />
+        <Field label="Vaccine Name" value={form.name} onChange={v => sf('name', v)} placeholder="Vaccine name" required />
         <Field label="Date Administered" value={form.date} onChange={v => sf('date', v)} type="date" />
-        <Field label="Dose / Series" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. Dose 1 of 2, Booster" />
-        <Field label="Injection Site" value={form.site} onChange={v => sf('site', v)} placeholder="e.g. Left deltoid" />
-        <Field label="Lot Number" value={form.lot_number} onChange={v => sf('lot_number', v)} placeholder="From vaccine label" />
-        <Field label="Administered By" value={form.provider} onChange={v => sf('provider', v)} placeholder="Provider or pharmacist" />
-        <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Clinic, pharmacy, or hospital" />
+        <Field label="Dose / Series" value={form.dose} onChange={v => sf('dose', v)} placeholder="Dose or series" />
+        <Field label="Injection Site" value={form.site} onChange={v => sf('site', v)} placeholder="Injection site" />
+        <Field label="Lot Number" value={form.lot_number} onChange={v => sf('lot_number', v)} placeholder="Lot number" />
+        <Field label="Administered By" value={form.provider} onChange={v => sf('provider', v)} placeholder="Provider name" />
+        <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Location" />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

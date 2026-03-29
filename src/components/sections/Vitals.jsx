@@ -47,7 +47,7 @@ export default function Vitals({ data, addItem, removeItem }) {
         ) : (
           <Field label="Value" value={form.value} onChange={v => sf('value', v)} type="number" placeholder={vi?.unit || ''} />
         )}
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Context, how you feel..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Notes" />
         <Button onClick={saveV} disabled={!form.value}><Check size={15} /> Save</Button>
       </Card>
     </FormWrap>
