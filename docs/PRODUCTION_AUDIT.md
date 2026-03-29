@@ -207,7 +207,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| Abnormal labs missing from alerts | Alerts card shows anesthesia flags + interactions + care gaps, but NOT abnormal lab results. A critical high or low lab value should appear here. |
+| ~~Abnormal labs missing from alerts~~ | ✅ FIXED 2026-03-29 — Abnormal labs now appear in Dashboard alerts card with count and link to Labs section. |
 | No immunization/procedure alerts | Overdue vaccines and recent procedures with pending follow-ups should show in alerts. |
 | No "Refresh insight" button | AI insight loads once on mount. If it fails or the user wants a new tip, there's no way to retry without navigating away and back. |
 | Timeline limited to 3 items | Users with many upcoming events see only 3. No "View all" or expansion. |
@@ -217,7 +217,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| No allergy cross-check | Adding a medication never checks against the user's allergy list. This is a patient-safety gap. |
+| ~~No allergy cross-check~~ | ✅ FIXED 2026-03-29 — Medication form now shows allergy warnings when med name matches a known allergy substance. |
 | No refill reminder system | Refill dates are displayed but there's no reminder, countdown, or "due soon" urgency indicator. |
 | Dose/date validation missing | `dose` field accepts any string ("banana"). `start_date` can be after `refill_date`. No numeric validation. |
 | Frequency abbreviations unexplained | Dropdown shows BID, TID, PRN, QHS without tooltips explaining what they mean. |
@@ -227,25 +227,25 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| No reference ranges | Chart shows raw values but never displays what "normal" is. User can't tell if 138/88 is concerning. |
-| No abnormal value flags | Entering BP 180/120 looks the same as 120/80. No visual urgency for dangerous values. |
+| ~~No reference ranges~~ | ✅ FIXED 2026-03-29 — Charts now show reference range lines; normal range displayed below chart. |
+| ~~No abnormal value flags~~ | ✅ FIXED 2026-03-29 — Entries show colored flag indicators (High/Low/Critical) with border accents for abnormal values. |
 | No trend interpretation | Chart exists but there's no text analysis of the trend direction. |
-| Numeric validation missing | Value field accepts non-numeric input. BP form allows save with one field empty. |
+| ~~Numeric validation missing~~ | ✅ FIXED 2026-03-29 — Save requires valid numeric values; BP form validates both systolic and diastolic. |
 
 ### Labs (`Labs.jsx`)
 
 | Issue | Details |
 |-------|---------|
-| No result interpretation | Biggest UX gap. Abnormal flags are shown but never explained. What does "high TSH" mean for __this__ user? |
+| ~~No result interpretation~~ | ✅ FIXED 2026-03-29 — AI "Explain this result" button on abnormal labs sends result + patient profile for contextual interpretation. |
 | No historical comparison | Cannot compare current result to previous results for the same test. "Your hemoglobin was 11.2 last time, now 10.8 — declining" would be invaluable. |
 | No file upload | Users can't attach actual lab report PDFs. The "result" is a text field. |
-| Dashboard integration missing | Abnormal lab results don't appear in Dashboard alerts card. |
+| ~~Dashboard integration missing~~ | ✅ FIXED 2026-03-29 — Abnormal labs now appear in Dashboard alerts card. |
 
 ### Conditions (`Conditions.jsx`)
 
 | Issue | Details |
 |-------|---------|
-| No status filter | User must scroll through all conditions. Should have tabs: Active / Managed / Resolved / All. |
+| ~~No status filter~~ | ✅ FIXED 2026-03-29 — Filter tabs added: All / Active / Managed / Remission / Resolved. |
 | `linked_meds` is free text | Should be a multi-select or autocomplete from the user's medication list. Typos make links useless. |
 | No status history | Changing from "active" to "remission" overwrites the previous status. No timeline of progression. |
 | No provider linkage | Which provider manages this condition? Free text, not linked to Providers list. |
@@ -254,7 +254,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| Not integrated with Medications | Adding a med that conflicts with a known allergy produces no warning. |
+| ~~Not integrated with Medications~~ | ✅ FIXED 2026-03-29 — Medication form now cross-checks allergy list and shows warnings. |
 | Severe allergies not on Dashboard | A "severe — anaphylaxis" allergy should appear in the Dashboard alerts card. |
 | No cross-sensitivity info | Penicillin allergy doesn't suggest documenting cephalosporin risk. |
 
@@ -280,8 +280,8 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| Portal URL not clickable | URL is displayed as plain text. Should be an `<a href>` link. |
-| Phone not a `tel:` link | Phone number displayed as text. Should be `<a href="tel:...">` for tap-to-call. |
+| ~~Portal URL not clickable~~ | ✅ FIXED 2026-03-29 — Portal URL now renders as clickable link opening in new tab. |
+| ~~Phone not a `tel:` link~~ | ✅ FIXED 2026-03-29 — Phone number now renders as `tel:` link for tap-to-call. |
 | No linked conditions | No indication of which conditions each provider manages. |
 | No sorting | Providers are in insertion order. No alphabetical, specialty, or "recently visited" sort. |
 
@@ -549,15 +549,15 @@ Or wrap the chart component itself in `React.lazy()`.
 7. [x] Complete `buildProfile()` with all 7 missing sections (§3.1)
 8. [x] Make `eraseAll()` sequential with error handling (§2.3) — ✅ 2026-03-29
 
-### Phase 2 — High-Impact UX (first sprint post-launch)
-8. [ ] Add abnormal labs to Dashboard alerts card (§5 Dashboard)
-9. [ ] Add allergy cross-check on medication add/edit (§5 Medications)
-10. [ ] Add AI lab interpretation button (§4.1)
-11. [ ] Add reference ranges and abnormal flags to Vitals (§5 Vitals)
-12. [ ] Add status filter tabs to Conditions (§5 Conditions)
-13. [ ] Make Provider phone/portal clickable links (§5 Providers)
+### Phase 2 — High-Impact UX (first sprint post-launch) ✅ COMPLETED 2026-03-29
+8. [x] Add abnormal labs to Dashboard alerts card (§5 Dashboard) — ✅ 2026-03-29
+9. [x] Add allergy cross-check on medication add/edit (§5 Medications) — ✅ 2026-03-29
+10. [x] Add AI lab interpretation button (§4.1) — ✅ 2026-03-29
+11. [x] Add reference ranges and abnormal flags to Vitals (§5 Vitals) — ✅ 2026-03-29
+12. [x] Add status filter tabs to Conditions (§5 Conditions) — ✅ 2026-03-29
+13. [x] Make Provider phone/portal clickable links (§5 Providers) — ✅ 2026-03-29
 14. [x] Add rate limiting to `/api/chat.js` (§1.3) — ✅ 2026-03-29
-15. [ ] Fix form validation: numeric vitals, date ranges, severity constraints (§5 Vitals, Journal)
+15. [x] Fix form validation: numeric vitals, date ranges, severity constraints (§5 Vitals, Journal) — ✅ 2026-03-29
 
 ### Phase 3 — AI Expansion (second sprint)
 16. [ ] AI vitals trend analysis (§4.3)

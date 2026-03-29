@@ -23,6 +23,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_CONDITION);
   const [editId, setEditId] = useState(null);
+  const [filter, setFilter] = useState('all');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -65,8 +66,25 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
       <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
         Conditions & Diagnoses
       </SectionTitle>
-      {data.conditions.length === 0 ? <EmptyState icon={Stethoscope} text="No conditions recorded" motif="star" /> :
-        data.conditions.map(c => {
+
+      <div className="flex gap-1.5 flex-wrap mb-3.5">
+        {['all', 'active', 'managed', 'remission', 'resolved'].map(f => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat capitalize ${
+              filter === f ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
+      {(() => {
+        const fl = data.conditions.filter(c => filter === 'all' ? true : c.status === filter);
+        return fl.length === 0 ? <EmptyState icon={Stethoscope} text={filter === 'all' ? 'No conditions recorded' : `No ${filter} conditions`} motif="star" /> :
+        fl.map(c => {
           const st = STATUS_COLORS[c.status] || STATUS_COLORS.active;
           return (
             <Card key={c.id}>
@@ -89,8 +107,8 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('conditions', id))} onCancel={del.cancel} itemId={c.id} />
           </Card>
           );
-        })
-      }
+        });
+      })()}
     </div>
   );
 }

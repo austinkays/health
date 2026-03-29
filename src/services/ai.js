@@ -16,6 +16,9 @@ export const PROMPTS = {
 
   ask:
     'You are a knowledgeable, compassionate health companion. You have access to this patient\'s complete health profile. Answer their question with their specific health context in mind. Be thorough but warm. Reference their specific medications, conditions, and history where relevant. Always note that your response is informational and not a substitute for professional medical advice.',
+
+  labInterpret:
+    'You are a knowledgeable health companion helping a patient understand their lab results. Given their health profile and a specific lab result, explain: what the test measures, what their result means in context of their conditions and medications, whether the result is concerning, and what they might discuss with their provider. Be concise (3-5 sentences), warm, and specific to THEIR profile. Do not be alarmist but be honest.',
 };
 
 const DISCLAIMER = '\n\n---\n*AI suggestions are not medical advice. Always consult your healthcare providers.*';
@@ -103,5 +106,14 @@ export async function sendChat(messages, profileText) {
   return callAPI(
     messages,
     PROMPTS.ask + '\n\n' + profileText
+  );
+}
+
+export async function fetchLabInterpretation(lab, profileText) {
+  const labDesc = `Test: ${lab.test_name}, Result: ${lab.result}${lab.unit ? ' ' + lab.unit : ''}${lab.range ? ', Ref range: ' + lab.range : ''}, Flag: ${lab.flag || 'none'}${lab.date ? ', Date: ' + lab.date : ''}`;
+  return callAPI(
+    [{ role: 'user', content: `Explain this lab result in context of my health: ${labDesc}` }],
+    PROMPTS.labInterpret + '\n\n' + profileText,
+    1000
   );
 }

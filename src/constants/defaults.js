@@ -41,17 +41,17 @@ export const DEFAULT_SETTINGS = {
   insurance_group: '', insurance_phone: '', health_background: '',
 };
 
-// Vital types reference
+// Vital types reference (with normal ranges)
 export const VITAL_TYPES = [
-  { id: 'pain', label: 'Pain', unit: '/10' },
-  { id: 'mood', label: 'Mood', unit: '/10' },
-  { id: 'energy', label: 'Energy', unit: '/10' },
-  { id: 'sleep', label: 'Sleep', unit: 'hrs' },
-  { id: 'bp', label: 'Blood Pressure', unit: 'mmHg' },
-  { id: 'hr', label: 'Heart Rate', unit: 'bpm' },
+  { id: 'pain', label: 'Pain', unit: '/10', min: 0, max: 10, warnHigh: 7 },
+  { id: 'mood', label: 'Mood', unit: '/10', min: 0, max: 10, warnLow: 3 },
+  { id: 'energy', label: 'Energy', unit: '/10', min: 0, max: 10, warnLow: 3 },
+  { id: 'sleep', label: 'Sleep', unit: 'hrs', min: 0, max: 24, normalLow: 6, normalHigh: 9 },
+  { id: 'bp', label: 'Blood Pressure', unit: 'mmHg', normalLow: 90, normalHigh: 140, normalLow2: 60, normalHigh2: 90 },
+  { id: 'hr', label: 'Heart Rate', unit: 'bpm', normalLow: 60, normalHigh: 100 },
   { id: 'weight', label: 'Weight', unit: 'lbs' },
-  { id: 'temp', label: 'Temperature', unit: '°F' },
-  { id: 'glucose', label: 'Blood Sugar', unit: 'mg/dL' },
+  { id: 'temp', label: 'Temperature', unit: '°F', normalLow: 97.0, normalHigh: 99.5 },
+  { id: 'glucose', label: 'Blood Sugar', unit: 'mg/dL', normalLow: 70, normalHigh: 140 },
 ];
 
 // Mood options for journal entries

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -59,7 +59,8 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
                 <div className="text-[15px] font-semibold text-salve-text">{p.name}</div>
                 {p.specialty && <div className="text-[13px] text-salve-lav font-medium">{p.specialty}</div>}
                 {p.clinic && <div className="text-xs text-salve-textMid mt-0.5">{p.clinic}</div>}
-                {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> {p.phone}</div>}
+                {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
+                {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
               </div>
               <div className="flex gap-2">
                 <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>

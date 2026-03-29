@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Pill } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -22,6 +22,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [filter, setFilter] = useState('active');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  /* ── Allergy cross-check ── */
+  const allergyWarnings = useMemo(() => {
+    const name = form.name.trim().toLowerCase();
+    if (!name) return [];
+    return (data.allergies || []).filter(a => {
+      const sub = (a.substance || '').toLowerCase();
+      return sub && (name.includes(sub) || sub.includes(name));
+    });
+  }, [form.name, data.allergies]);
 
   const saveMed = async () => {
     if (!form.name.trim()) return;
@@ -52,6 +62,20 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           <input type="checkbox" checked={form.active !== false} onChange={e => sf('active', e.target.checked)} id="medActive" />
           <label htmlFor="medActive" className="text-sm text-salve-textMid">Currently taking</label>
         </div>
+        {allergyWarnings.length > 0 && (
+          <div className="mb-4 p-3 rounded-xl border border-salve-rose/40 bg-salve-rose/10">
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertTriangle size={14} color={C.rose} />
+              <span className="text-xs font-semibold text-salve-rose">Allergy Warning</span>
+            </div>
+            {allergyWarnings.map((a, i) => (
+              <div key={i} className="text-xs text-salve-textMid leading-relaxed">
+                Known allergy to <span className="font-semibold text-salve-rose">{a.substance}</span>
+                {a.reaction ? ` — ${a.reaction}` : ''}{a.severity ? ` (${a.severity})` : ''}
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <Button onClick={saveMed} disabled={!form.name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>Cancel</Button>

@@ -92,16 +92,16 @@ health/
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab
 │   │   └── sections/             # One file per app section (19 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
-│   │       ├── Medications.jsx   # Med list + add/edit form
-│   │       ├── Vitals.jsx        # Vitals tracking + chart
-│   │       ├── Conditions.jsx    # Condition list + add/edit
-│   │       ├── Providers.jsx     # Provider directory + add/edit
+│   │       ├── Medications.jsx   # Med list + add/edit form + allergy cross-check warnings
+│   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
+│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs
+│   │       ├── Providers.jsx     # Provider directory + add/edit + clickable phone/portal links
 │   │       ├── Allergies.jsx     # Allergy list + add/edit
 │   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (standalone view)
 │   │       ├── AIPanel.jsx       # AI chat panel with health context
-│   │       ├── Labs.jsx          # Lab results + flag-based filtering
+│   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
 │   │       ├── CareGaps.jsx      # Preventive care gaps + urgency sorting
@@ -186,6 +186,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 3. **Health news** - web-search-powered recent medical news for user's conditions
 4. **Disability resources** - web-search-powered programs/benefits finder
 5. **AI chat panel** - multi-turn conversation with health context as system prompt
+6. **Lab interpretation** - contextual explanation of abnormal lab results using patient profile
 
 ### Vercel Configuration
 
@@ -292,7 +293,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Delete confirmation appears and can be cancelled
 - [ ] Drug interaction checker flags known combos
 - [ ] Dashboard: contextual greeting shows correct time-of-day message
-- [ ] Dashboard: alerts consolidate into single card (anesthesia + interactions + care gaps)
+- Dashboard: alerts consolidate into single card (anesthesia + interactions + care gaps + abnormal labs)
 - [ ] Dashboard: AI insight hidden when no consent; shimmer when loading; quote-style when loaded
 - [ ] Dashboard: unified timeline shows appointments and refills sorted by date
 - [ ] Dashboard: Quick Access shows 6 primary tiles; "More" expands to reveal all

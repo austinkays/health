@@ -26,9 +26,9 @@ function getTimeGreeting() {
   return { text: 'Good evening', icon: Moon, motif: 'moon' };
 }
 
-function getContextLine(data, interactions, urgentGaps, anesthesiaCount) {
+function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount) {
   // Priority: critical alerts → upcoming events → encouragement
-  const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0);
+  const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0) + abnormalLabCount;
   if (totalAlerts > 0) return `${totalAlerts} item${totalAlerts > 1 ? 's' : ''} need${totalAlerts === 1 ? 's' : ''} your attention`;
 
   const soon = data.appts.filter(a => {
@@ -105,6 +105,10 @@ export default function Dashboard({ data, interactions, onNav }) {
     () => (data.anesthesia_flags || []).length,
     [data.anesthesia_flags]
   );
+  const abnormalLabs = useMemo(
+    () => (data.labs || []).filter(l => ['abnormal', 'high', 'low'].includes(l.flag)),
+    [data.labs]
+  );
 
   /* ── AI Insight ─────────────────────────────── */
   const loadInsight = async () => {
@@ -135,14 +139,17 @@ export default function Dashboard({ data, interactions, onNav }) {
     if (interactions.length > 0) {
       items.push({ id: 'interactions', icon: AlertTriangle, color: C.rose, text: `${interactions.length} Drug Interaction${interactions.length > 1 ? 's' : ''} detected`, nav: 'interactions' });
     }
+    if (abnormalLabs.length > 0) {
+      items.push({ id: 'labs', icon: FlaskConical, color: C.rose, text: `${abnormalLabs.length} Abnormal Lab Result${abnormalLabs.length > 1 ? 's' : ''}`, nav: 'labs' });
+    }
     if (urgentGaps > 0) {
       items.push({ id: 'care_gaps', icon: AlertTriangle, color: C.amber, text: `${urgentGaps} Urgent Care Gap${urgentGaps > 1 ? 's' : ''}`, nav: 'care_gaps' });
     }
     return items;
-  }, [anesthesiaCount, interactions, urgentGaps]);
+  }, [anesthesiaCount, interactions, abnormalLabs, urgentGaps]);
 
   const greeting = getTimeGreeting();
-  const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount);
+  const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length);
 
   const toggleMore = () => {
     const next = !showMore;

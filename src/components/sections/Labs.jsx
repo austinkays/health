@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, FlaskConical } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -10,6 +10,9 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { fetchLabInterpretation } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 const EMPTY = { date: '', test_name: '', result: '', unit: '', range: '', flag: '', provider: '', notes: '' };
 const FLAG_OPTS = ['', 'normal', 'abnormal', 'high', 'low', 'mild-abnormal', 'completed', 'never'];
@@ -26,8 +29,30 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [interpretId, setInterpretId] = useState(null);
+  const [interpretation, setInterpretation] = useState({});
+  const [interpretLoading, setInterpretLoading] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const explainLab = async (lab) => {
+    if (interpretLoading) return;
+    if (interpretation[lab.id]) {
+      setInterpretId(interpretId === lab.id ? null : lab.id);
+      return;
+    }
+    setInterpretId(lab.id);
+    setInterpretLoading(lab.id);
+    try {
+      const profile = buildProfile(data);
+      const result = await fetchLabInterpretation(lab, profile);
+      setInterpretation(prev => ({ ...prev, [lab.id]: result }));
+    } catch (e) {
+      setInterpretation(prev => ({ ...prev, [lab.id]: 'Unable to interpret. ' + e.message }));
+    } finally {
+      setInterpretLoading(null);
+    }
+  };
 
   const save = async () => {
     if (!form.test_name.trim()) return;
@@ -96,6 +121,22 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                   )}
                   {l.flag && <Badge label={l.flag} color={fc.color} bg={fc.bg} className="mt-1.5" />}
                   {l.notes && <div className="text-xs text-salve-textFaint mt-1">{l.notes}</div>}
+                  {hasAIConsent() && l.flag && l.flag !== 'normal' && l.flag !== 'completed' && (
+                    <button
+                      onClick={() => explainLab(l)}
+                      className="mt-2 flex items-center gap-1 bg-transparent border border-salve-lav/30 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-salve-lav/10 transition-colors"
+                    >
+                      <Sparkles size={12} color={C.lav} />
+                      <span className="text-[11px] text-salve-lav font-montserrat">
+                        {interpretLoading === l.id ? 'Analyzing...' : interpretation[l.id] ? (interpretId === l.id ? 'Hide' : 'Show') + ' interpretation' : 'Explain this result'}
+                      </span>
+                    </button>
+                  )}
+                  {interpretId === l.id && interpretation[l.id] && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
+                      <p className="text-xs text-salve-textMid leading-relaxed m-0 whitespace-pre-line">{interpretation[l.id]}</p>
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2 ml-2">
                   <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
