@@ -40,7 +40,11 @@ health/
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
 ├── api/
-│   └── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   ├── places.js                 # Vercel serverless: Google Places API proxy (nearby/text search)
+│   ├── openfda.js                # Vercel serverless: OpenFDA drug labeling, adverse events, interactions
+│   ├── rxnorm.js                 # Vercel serverless: RxNorm drug lookup, interactions, multi-drug checks
+│   └── npi.js                    # Vercel serverless: NPI Registry provider lookup
 ├── public/
 │   ├── manifest.json             # PWA manifest
 │   └── favicon.svg
@@ -64,6 +68,9 @@ health/
 │   │   ├── cache.js              # Encrypted offline localStorage cache + pending write queue + sync
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
 │   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent)
+│   │   ├── places.js             # Google Places: searchNearby, searchPlaces, getUserLocation
+│   │   ├── medications.js        # OpenFDA + RxNorm: drug labels, adverse events, interactions, RxCUI lookup
+│   │   ├── npi.js                # NPI Registry: provider search by name, specialty, NPI number
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   └── profile.js            # buildProfile() - assembles health context for AI prompts
 │   ├── hooks/
@@ -153,18 +160,19 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `setupOfflineSync()` flushes the pending queue when connectivity returns
 - `crypto.js` provides `encrypt()`, `decrypt()`, and `clearKeyCache()` used by both cache and export encryption
 
-### API Proxy
+### API Proxies
 
-`api/chat.js` is a Vercel serverless function:
-- **Verifies Supabase auth token** via `Authorization: Bearer <token>` header
-- Validates token against Supabase Auth API using `SUPABASE_SERVICE_ROLE_KEY`
+All API proxies are Vercel serverless functions in `api/`. They share a common pattern:
+- **Auth-gated** — verify Supabase auth token via `Authorization: Bearer <token>` header
 - **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var, and `localhost:5173` (dev)
+- Client-side services **fail early** if no auth token — never send unauthenticated requests
+
+#### `api/chat.js` — Anthropic AI Proxy
+
 - Accepts POST with `{ messages, system, max_tokens?, use_web_search? }`
 - Forwards to `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`
 - Optionally includes Anthropic web search tool when `use_web_search` is true
-- Returns the response JSON
 - 120-second timeout configured in vercel.json
-- Client-side (`ai.js`) **fails early** if no auth token — never sends unauthenticated requests
 
 **AI features using this proxy:**
 1. **Dashboard insight** - one-shot health tip based on full profile
@@ -173,14 +181,59 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 4. **Disability resources** - web-search-powered programs/benefits finder
 5. **AI chat panel** - multi-turn conversation with health context as system prompt
 
+#### `api/places.js` — Google Places API Proxy
+
+- Requires `GOOGLE_PLACES_API_KEY` env var (server-only, never exposed to client)
+- Uses Google Places API (New) — `places.googleapis.com/v1/`
+- **Actions:**
+  - `nearby` — find pharmacies, doctors, hospitals by lat/lng + type + radius
+  - `search` — text search (e.g. "CVS pharmacy near Austin TX") with optional location bias
+- Returns normalized results: name, address, phone, rating, openNow, website, mapsUrl
+- 15-second timeout
+- Client: `src/services/places.js` — `searchNearby()`, `searchPlaces()`, `getUserLocation()`
+
+#### `api/openfda.js` — OpenFDA Drug API Proxy
+
+- Optional `OPENFDA_API_KEY` env var (works without key at lower rate limits: 240/min, 1K/day vs 120K/day with key)
+- Proxies `https://api.fda.gov/drug/`
+- **Actions:**
+  - `label` — drug labeling info (indications, warnings, dosage, interactions, adverse reactions)
+  - `adverse` — top reported adverse reactions with counts
+  - `interactions` — drug interaction text from FDA labeling
+- 15-second timeout
+- Client: `src/services/medications.js` — `getDrugLabel()`, `getAdverseEvents()`, `getDrugInteractionsFromFDA()`
+
+#### `api/rxnorm.js` — RxNorm (NLM) API Proxy
+
+- **No API key required** — NLM APIs are free and open (20 req/sec)
+- Proxies `https://rxnav.nlm.nih.gov/REST/`
+- **Actions:**
+  - `lookup` — find RxCUI by drug name (exact + approximate matching)
+  - `info` — get drug properties by RxCUI
+  - `interactions` — single drug interaction check via DrugBank
+  - `multi-interactions` — multi-drug interaction check (2+ RxCUIs)
+- 15-second timeout
+- Client: `src/services/medications.js` — `lookupRxCUI()`, `getDrugInfo()`, `checkDrugInteractions()`, `checkMultiDrugInteractions()`
+
+#### `api/npi.js` — NPI Registry (NPPES) Proxy
+
+- **No API key required** — NPPES is a public federal API
+- Proxies `https://npiregistry.cms.hhs.gov/api/`
+- Supports search by: name, first/last name, NPI number, specialty, city, state, zip
+- Returns normalized results: npi, type (individual/organization), name, credential, specialty, address, phone
+- 15-second timeout
+- Client: `src/services/npi.js` — `searchByName()`, `searchByFullName()`, `lookupByNPI()`, `searchBySpecialty()`
+
 ### Vercel Configuration
 
 ```json
 {
   "functions": {
-    "api/chat.js": {
-      "maxDuration": 120
-    }
+    "api/chat.js": { "maxDuration": 120 },
+    "api/places.js": { "maxDuration": 15 },
+    "api/openfda.js": { "maxDuration": 15 },
+    "api/rxnorm.js": { "maxDuration": 15 },
+    "api/npi.js": { "maxDuration": 15 }
   },
   "headers": [
     {
@@ -196,6 +249,8 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 }
 ```
 
+Note: CSP `connect-src` only needs `'self'` and Supabase because all external APIs (Google Places, OpenFDA, RxNorm, NPPES) are called server-side from Vercel functions. The client only talks to `/api/*` endpoints (same-origin).
+
 ### Security
 
 | Layer | Mechanism |
@@ -207,7 +262,8 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
 | **HTTP headers** | CSP, X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy |
-| **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
+| **Secrets** | `ANTHROPIC_API_KEY`, `GOOGLE_PLACES_API_KEY`, `OPENFDA_API_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
+| **External APIs** | Google Places, OpenFDA, RxNorm, NPI Registry all called server-side from Vercel functions; client only hits same-origin `/api/*` endpoints |
 
 ## Design System
 
@@ -303,6 +359,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel env vars only | Server-side auth token verification |
 | `SUPABASE_URL` | Vercel env vars (fallback) | Fallback for api/chat.js if VITE_ prefix not available server-side |
 | `ALLOWED_ORIGIN` | Vercel env vars (optional) | Custom allowed CORS origin for api/chat.js (e.g. your production domain) |
+| `GOOGLE_PLACES_API_KEY` | Vercel env vars only | Google Places API (New) — for pharmacy/doctor/clinic nearby search |
+| `OPENFDA_API_KEY` | Vercel env vars (optional) | OpenFDA API key — optional, increases rate limit from 1K/day to 120K/day |
 
 ## Commands
 

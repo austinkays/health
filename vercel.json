@@ -2,6 +2,18 @@
   "functions": {
     "api/chat.js": {
       "maxDuration": 120
+    },
+    "api/places.js": {
+      "maxDuration": 15
+    },
+    "api/openfda.js": {
+      "maxDuration": 15
+    },
+    "api/rxnorm.js": {
+      "maxDuration": 15
+    },
+    "api/npi.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
