@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { db } from '../services/db';
+import { hasAIConsent } from '../components/ui/AIConsentGate';
+import { generateHealthContext } from '../services/ai';
+import { buildProfile } from '../services/profile';
 
 export default function useHealthData(session) {
   const [data, setData] = useState({
@@ -10,6 +13,7 @@ export default function useHealthData(session) {
     settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
   });
   const [loading, setLoading] = useState(true);
+  const [contextUpdating, setContextUpdating] = useState(false);
 
   // Load from Supabase only when authenticated
   useEffect(() => {
@@ -19,7 +23,26 @@ export default function useHealthData(session) {
     }
     setLoading(true);
     db.loadAll()
-      .then(d => setData(d))
+      .then(async (d) => {
+        setData(d);
+        // Check if a restore import flagged a pending context update
+        if (localStorage.getItem('salve:pending-context-update') === '1') {
+          localStorage.removeItem('salve:pending-context-update');
+          if (hasAIConsent()) {
+            setContextUpdating(true);
+            try {
+              const profileText = buildProfile(d);
+              const summary = await generateHealthContext(profileText);
+              const saved = await db.profile.update({ health_background: summary });
+              setData(prev => ({ ...prev, settings: saved }));
+            } catch (e) {
+              console.error('Auto health context update failed:', e);
+            } finally {
+              setContextUpdating(false);
+            }
+          }
+        }
+      })
       .catch(err => console.error('Failed to load data:', err))
       .finally(() => setLoading(false));
   }, [session]);
@@ -78,7 +101,7 @@ export default function useHealthData(session) {
     window.location.reload();
   }, []);
 
-  return { data, loading, update, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData };
+  return { data, loading, contextUpdating, update, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData };
 }
 
 function tableToKey(table) {

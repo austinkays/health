@@ -105,3 +105,34 @@ export async function sendChat(messages, profileText) {
     PROMPTS.ask + '\n\n' + profileText
   );
 }
+
+const HEALTH_CONTEXT_PROMPT = `You are a medical records analyst. Given a patient's complete health data, write a comprehensive Health Background summary that captures everything important about this patient in natural language.
+
+Include:
+- Overview of all conditions (active, managed, in remission) and how they relate to each other
+- Complete medication regimen with purposes and any notable patterns
+- Allergy profile and severity
+- Relevant vital sign trends or patterns
+- Key themes from journal entries (symptom patterns, triggers, quality of life factors)
+- Any notable connections between conditions, medications, and symptoms
+- Timeline context (when conditions were diagnosed, how long on medications)
+
+Write in third person as a clinical summary, but keep it warm and readable. Be thorough — this summary will be used as context for all future AI interactions with this patient. Do not include generic health advice. Focus only on synthesizing THEIR specific data into a cohesive narrative.
+
+Do NOT include any disclaimer or "consult your doctor" language — this is an internal data summary, not medical advice.
+
+Keep it under 800 words. Use plain paragraphs, no headers or bullet points.`;
+
+/**
+ * Generate a comprehensive health background summary from all user data.
+ * Used to auto-update the health_background field after imports or data changes.
+ */
+export async function generateHealthContext(profileText) {
+  const result = await callAPI(
+    [{ role: 'user', content: 'Analyze all my health data and write a comprehensive health background summary.' }],
+    HEALTH_CONTEXT_PROMPT + '\n\n' + profileText,
+    2000
+  );
+  // Strip the disclaimer that callAPI appends — this is an internal summary
+  return result.replace(/\n\n---\n\*AI suggestions are not medical advice\. Always consult your healthcare providers\.\*$/, '').trim();
+}

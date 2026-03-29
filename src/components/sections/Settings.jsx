@@ -1,11 +1,14 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, RefreshCw } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
+import { generateHealthContext } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { db } from '../../services/db';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -23,7 +26,26 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   const [exportPassphrase, setExportPassphrase] = useState('');
   const [exportError, setExportError] = useState(null);
   const [importPassphrase, setImportPassphrase] = useState('');
+  const [contextUpdating, setContextUpdating] = useState(false);
+  const [contextResult, setContextResult] = useState(null);
   const fileInputRef = useRef(null);
+
+  async function updateHealthContext(healthData) {
+    if (!hasAIConsent()) return;
+    setContextUpdating(true);
+    setContextResult(null);
+    try {
+      const profileText = buildProfile(healthData);
+      const summary = await generateHealthContext(profileText);
+      await updateSettings({ health_background: summary });
+      setContextResult('Health context updated from your data.');
+    } catch (e) {
+      console.error('Failed to update health context:', e);
+      setContextResult('Could not update — ' + e.message);
+    } finally {
+      setContextUpdating(false);
+    }
+  }
 
   function handleFileSelect(e) {
     const file = e.target.files?.[0];
@@ -93,8 +115,17 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         );
 
         await reloadData();
+
+        // Auto-update health context if new records were added
+        if (addedTotal > 0 && hasAIConsent()) {
+          const freshData = await db.loadAll();
+          updateHealthContext(freshData);
+        }
       } else {
         await importRestore(importValidation.normalized);
+        if (hasAIConsent()) {
+          localStorage.setItem('salve:pending-context-update', '1');
+        }
         setImportResult('Full restore complete. Reloading...');
         setTimeout(() => window.location.reload(), 1500);
         return;
@@ -216,15 +247,38 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       <SectionTitle>Health Background</SectionTitle>
       <Card>
         <p className="text-xs text-salve-textMid mb-2.5 leading-relaxed italic">
-          Add context about your health history. This gets included when AI features analyze your profile.
+          AI-generated summary of your health data. Updated automatically after imports, or refresh manually. You can also edit it directly.
         </p>
         <Field
           label="Background & Context"
           value={s.health_background || ''}
           onChange={v => set('health_background', v)}
           textarea
-          placeholder="e.g. I've had chronic fatigue since 2019, my pain flares are worst in cold weather..."
+          placeholder="Import data or click 'Update from Data' to auto-generate your health context..."
         />
+        <button
+          onClick={() => updateHealthContext(data)}
+          disabled={contextUpdating || !hasAIConsent()}
+          className="w-full mt-3 py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm
+            hover:bg-salve-border transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+        >
+          <RefreshCw size={14} className={contextUpdating ? 'animate-spin' : ''} />
+          {contextUpdating ? 'Analyzing your health data...' : 'Update from Data'}
+        </button>
+        {!hasAIConsent() && (
+          <p className="text-xs text-salve-textFaint italic mt-2 text-center">
+            Enable AI data sharing above to use auto-generated health context.
+          </p>
+        )}
+        {contextResult && (
+          <div className={`mt-2.5 p-2.5 rounded-lg text-xs ${
+            contextResult.startsWith('Could not')
+              ? 'bg-salve-rose/10 border border-salve-rose/30 text-salve-rose'
+              : 'bg-salve-sage/10 border border-salve-sage/30 text-salve-sage'
+          }`}>
+            {contextResult}
+          </div>
+        )}
       </Card>
 
       <SectionTitle>Data</SectionTitle>
