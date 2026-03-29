@@ -70,7 +70,7 @@ health/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
 │   ├── components/
-│   │   ├── Auth.jsx              # Magic link sign-in screen
+│   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen
 │   │   ├── ui/                   # Shared primitives
 │   │   │   ├── Card.jsx
 │   │   │   ├── Button.jsx
@@ -138,8 +138,8 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 
 ### Auth Flow
 
-- `Auth.jsx` renders a magic-link email sign-in form
-- `auth.js` wraps Supabase auth: `signIn(email)` sends OTP, `signOut()`, `getSession()`, `onAuthChange()`
+- `Auth.jsx` renders a magic-link email sign-in form with 8-digit OTP code entry (auto-advance, paste support, auto-submit)
+- `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange()`
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth
 - Unauthenticated users see the sign-in screen; authenticated users see the full app
 
