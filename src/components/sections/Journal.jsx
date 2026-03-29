@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, BookOpen } from 'lucide-react';
+import { Plus, Check, BookOpen, Sparkles, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,13 +11,31 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_JOURNAL, MOODS } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { fetchJournalPatterns } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 export default function Journal({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_JOURNAL });
   const [editId, setEditId] = useState(null);
+  const [patternsAI, setPatternsAI] = useState(null);
+  const [patternsLoading, setPatternsLoading] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const analyzePatterns = async () => {
+    setPatternsLoading(true);
+    setPatternsAI(null);
+    try {
+      const result = await fetchJournalPatterns(data.journal.slice(0, 30), buildProfile(data));
+      setPatternsAI(result);
+    } catch (e) {
+      setPatternsAI('Unable to analyze patterns right now. ' + e.message);
+    } finally {
+      setPatternsLoading(false);
+    }
+  };
 
   const saveJ = async () => {
     if (!form.content.trim() && !form.title.trim()) return;
@@ -53,6 +71,26 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
       <SectionTitle action={<Button variant="lavender" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Write</Button>}>
         Symptom Journal
       </SectionTitle>
+
+      {data.journal.length >= 3 && hasAIConsent() && (
+        <div className="mb-3">
+          <Button
+            variant="ghost"
+            onClick={analyzePatterns}
+            disabled={patternsLoading}
+            className="!text-xs w-full !justify-center"
+          >
+            {patternsLoading ? <><Loader size={13} className="animate-spin" /> Finding patterns...</> : <><Sparkles size={13} /> Analyze Patterns with AI</>}
+          </Button>
+          {patternsAI && (
+            <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
+              <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> Pattern Insights</div>
+              <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{patternsAI}</div>
+            </Card>
+          )}
+        </div>
+      )}
+
       {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
         data.journal.map(e => {
           const sev = Number(e.severity);

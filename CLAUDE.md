@@ -187,6 +187,13 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 4. **Disability resources** - web-search-powered programs/benefits finder
 5. **AI chat panel** - multi-turn conversation with health context as system prompt
 6. **Lab interpretation** - contextual explanation of abnormal lab results using patient profile
+7. **Vitals trend analysis** - analyzes last 20 vitals readings for trend direction, patterns, and correlations with conditions/meds
+8. **Appointment preparation** - generates personalized questions based on provider specialty, active conditions, recent vitals/labs, and journal
+9. **Care gap suggestions** - analyzes profile against clinical guidelines (USPSTF, CDC) to suggest missing preventive screenings
+10. **Journal pattern recognition** - identifies recurring symptoms, mood-severity correlations, triggers across journal entries
+11. **Immunization schedule review** - checks immunization records against CDC/ACIP schedules, flags overdue boosters and contraindications
+12. **Appeal letter drafting** - generates professional appeal letters using patient health profile and appeal details
+13. **Medication cross-reactivity** - AI analysis of drug-class relationships when adding meds with known allergies (e.g., penicillin→cephalosporin)
 
 ### Vercel Configuration
 

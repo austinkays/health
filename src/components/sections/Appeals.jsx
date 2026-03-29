@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Scale } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Scale, FileText, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -10,6 +10,9 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { fetchAppealDraft } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 const EMPTY = { date_filed: '', subject: '', against: '', status: 'Active', deadline: '', notes: '' };
 const STATUSES = ['Active', 'Draft', 'Filed', 'Resolved'];
@@ -26,8 +29,22 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('active');
+  const [draftLoading, setDraftLoading] = useState(null);
+  const [draftResult, setDraftResult] = useState({});
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const draftLetter = async (appeal) => {
+    setDraftLoading(appeal.id);
+    try {
+      const result = await fetchAppealDraft(appeal, buildProfile(data));
+      setDraftResult(p => ({ ...p, [appeal.id]: result }));
+    } catch (e) {
+      setDraftResult(p => ({ ...p, [appeal.id]: 'Unable to draft letter right now. ' + e.message }));
+    } finally {
+      setDraftLoading(null);
+    }
+  };
 
   const save = async () => {
     if (!form.subject.trim()) return;
@@ -96,6 +113,22 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
                   <button onClick={() => del.ask(a.id, a.subject)} className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
                 </div>
               </div>
+              {hasAIConsent() && a.status !== 'Resolved' && (
+                <button
+                  onClick={() => draftLetter(a)}
+                  disabled={draftLoading === a.id}
+                  className="mt-2 bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
+                >
+                  {draftLoading === a.id ? <Loader size={11} className="animate-spin" /> : <FileText size={11} />}
+                  {draftLoading === a.id ? 'Drafting...' : 'Draft Appeal Letter'}
+                </button>
+              )}
+              {draftResult[a.id] && (
+                <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
+                  <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><FileText size={11} /> AI Draft</div>
+                  <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{draftResult[a.id]}</div>
+                </div>
+              )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appeals_and_disputes', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
           );

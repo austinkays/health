@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, AlertTriangle, Sparkles, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -9,6 +9,9 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
+import { fetchCareGapSuggestions } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 const EMPTY = { category: '', item: '', last_done: '', urgency: '', notes: '' };
 
@@ -33,8 +36,23 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('active');
+  const [aiSuggestions, setAiSuggestions] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const suggestGaps = async () => {
+    setAiLoading(true);
+    setAiSuggestions(null);
+    try {
+      const result = await fetchCareGapSuggestions(buildProfile(data));
+      setAiSuggestions(result);
+    } catch (e) {
+      setAiSuggestions('Unable to generate suggestions right now. ' + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const save = async () => {
     if (!form.item.trim()) return;
@@ -78,6 +96,25 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
         <div className="mb-3 px-3 py-2.5 rounded-lg border text-[12px] font-medium"
           style={{ background: 'rgba(232,138,154,0.1)', borderColor: C.rose, color: C.rose }}>
           ⚠ {urgentCount} item{urgentCount > 1 ? 's' : ''} marked urgent
+        </div>
+      )}
+
+      {hasAIConsent() && (
+        <div className="mb-3">
+          <Button
+            variant="ghost"
+            onClick={suggestGaps}
+            disabled={aiLoading}
+            className="!text-xs w-full !justify-center"
+          >
+            {aiLoading ? <><Loader size={13} className="animate-spin" /> Analyzing your profile...</> : <><Sparkles size={13} /> Suggest Care Gaps with AI</>}
+          </Button>
+          {aiSuggestions && (
+            <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
+              <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> AI Suggestions</div>
+              <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{aiSuggestions}</div>
+            </Card>
+          )}
         </div>
       )}
 

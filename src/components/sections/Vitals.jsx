@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Heart, Trash2, AlertTriangle } from 'lucide-react';
+import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -12,6 +12,9 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { fetchVitalsTrend } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 function getVitalFlag(type, value, value2) {
   const t = VITAL_TYPES.find(x => x.id === type);
@@ -44,6 +47,8 @@ export default function Vitals({ data, addItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_VITAL });
   const [ct, setCt] = useState('pain');
+  const [trendAI, setTrendAI] = useState(null);
+  const [trendLoading, setTrendLoading] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -134,6 +139,39 @@ export default function Vitals({ data, addItem, removeItem }) {
           <Motif type="sparkle" size={20} className="block mb-2 mx-auto" />
           <span className="text-[13px] text-salve-textFaint">{cd.length === 0 ? 'No entries yet' : 'Log one more to see the trend'}</span>
         </Card>
+      )}
+
+      {data.vitals.length >= 3 && hasAIConsent() && (
+        <div className="mb-3">
+          <Button
+            variant="ghost"
+            onClick={async () => {
+              setTrendLoading(true);
+              setTrendAI(null);
+              try {
+                const recent = data.vitals.slice().reverse().slice(0, 20).map(v => {
+                  const t = VITAL_TYPES.find(x => x.id === v.type);
+                  return { type: t?.label || v.type, value: v.value, value2: v.value2, unit: t?.unit || '', date: v.date, notes: v.notes };
+                });
+                const result = await fetchVitalsTrend(recent, buildProfile(data));
+                setTrendAI(result);
+              } catch (e) {
+                setTrendAI('Unable to analyze trends right now. ' + e.message);
+              } finally {
+                setTrendLoading(false);
+              }
+            }}
+            disabled={trendLoading}
+            className="!text-xs w-full !justify-center"
+          >
+            {trendLoading ? <><Loader size={13} className="animate-spin" /> Analyzing trends...</> : <><TrendingUp size={13} /> Analyze Trends with AI</>}
+          </Button>
+          {trendAI && (
+            <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
+              <div className="text-[13px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{trendAI}</div>
+            </Card>
+          )}
+        </div>
       )}
 
       <SectionTitle>Recent Entries</SectionTitle>

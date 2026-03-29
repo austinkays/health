@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, ShieldCheck } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, ShieldCheck, Sparkles, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -8,6 +8,9 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
+import { fetchImmunizationReview } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 const EMPTY = { date: '', name: '', dose: '', site: '', lot_number: '', provider: '', location: '' };
 
@@ -15,8 +18,23 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
+  const [scheduleAI, setScheduleAI] = useState(null);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const reviewSchedule = async () => {
+    setScheduleLoading(true);
+    setScheduleAI(null);
+    try {
+      const result = await fetchImmunizationReview(buildProfile(data));
+      setScheduleAI(result);
+    } catch (e) {
+      setScheduleAI('Unable to review schedule right now. ' + e.message);
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
 
   const save = async () => {
     if (!form.name.trim()) return;
@@ -49,6 +67,24 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
         Immunizations
       </SectionTitle>
 
+      {hasAIConsent() && (
+        <div className="mb-3">
+          <Button
+            variant="ghost"
+            onClick={reviewSchedule}
+            disabled={scheduleLoading}
+            className="!text-xs w-full !justify-center"
+          >
+            {scheduleLoading ? <><Loader size={13} className="animate-spin" /> Reviewing schedule...</> : <><Sparkles size={13} /> Review Schedule with AI</>}
+          </Button>
+          {scheduleAI && (
+            <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
+              <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> Schedule Review</div>
+              <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{scheduleAI}</div>
+            </Card>
+          )}
+        </div>
+      )}
 
       {data.immunizations.length === 0 ? <EmptyState icon={ShieldCheck} text="No immunizations recorded yet" motif="leaf" /> :
         data.immunizations.map(imm => (

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,9 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_MED } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { fetchCrossReactivity } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -20,6 +23,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [form, setForm] = useState(EMPTY_MED);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('active');
+  const [crossReactAI, setCrossReactAI] = useState(null);
+  const [crossReactLoading, setCrossReactLoading] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -74,6 +79,35 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 {a.reaction ? ` — ${a.reaction}` : ''}{a.severity ? ` (${a.severity})` : ''}
               </div>
             ))}
+          </div>
+        )}
+        {form.name.trim() && (data.allergies || []).length > 0 && allergyWarnings.length === 0 && hasAIConsent() && (
+          <div className="mb-4">
+            <button
+              onClick={async () => {
+                setCrossReactLoading(true);
+                setCrossReactAI(null);
+                try {
+                  const result = await fetchCrossReactivity(form.name, data.allergies, buildProfile(data));
+                  setCrossReactAI(result);
+                } catch (e) {
+                  setCrossReactAI('Unable to check cross-reactivity right now. ' + e.message);
+                } finally {
+                  setCrossReactLoading(false);
+                }
+              }}
+              disabled={crossReactLoading}
+              className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
+            >
+              {crossReactLoading ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
+              {crossReactLoading ? 'Checking cross-reactivity...' : 'Check AI cross-reactivity with allergies'}
+            </button>
+            {crossReactAI && (
+              <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
+                <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> Cross-Reactivity Analysis</div>
+                <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{crossReactAI}</div>
+              </div>
+            )}
           </div>
         )}
         <div className="flex gap-2">

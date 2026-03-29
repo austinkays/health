@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Calendar } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,13 +11,30 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_APPOINTMENT } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { fetchAppointmentPrep } from '../../services/ai';
+import { buildProfile } from '../../services/profile';
+import { hasAIConsent } from '../ui/AIConsentGate';
 
 export default function Appointments({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_APPOINTMENT);
   const [editId, setEditId] = useState(null);
+  const [prepLoading, setPrepLoading] = useState(null);
+  const [prepResult, setPrepResult] = useState({});
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const prepareVisit = async (appt) => {
+    setPrepLoading(appt.id);
+    try {
+      const result = await fetchAppointmentPrep(appt, buildProfile(data));
+      setPrepResult(p => ({ ...p, [appt.id]: result }));
+    } catch (e) {
+      setPrepResult(p => ({ ...p, [appt.id]: 'Unable to prepare suggestions right now. ' + e.message }));
+    } finally {
+      setPrepLoading(null);
+    }
+  };
 
   const saveA = async () => {
     if (!form.date) return;
@@ -82,7 +99,23 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               <div className="flex gap-2.5 mt-2">
                 <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
                 <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
+                {hasAIConsent() && (
+                  <button
+                    onClick={() => prepareVisit(a)}
+                    disabled={prepLoading === a.id}
+                    className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
+                  >
+                    {prepLoading === a.id ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
+                    {prepLoading === a.id ? 'Preparing...' : 'Prepare'}
+                  </button>
+                )}
               </div>
+              {prepResult[a.id] && (
+                <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
+                  <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> AI Visit Prep</div>
+                  <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{prepResult[a.id]}</div>
+                </div>
+              )}
           </Card>
           ))}
           {past.length > 0 && <><Divider /><div className="text-[11px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}

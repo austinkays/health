@@ -164,40 +164,40 @@ if (labs.length) {
 
 The AI proxy currently powers 5 features: dashboard insight, health connections, news, resources, and chat. These are the biggest opportunities for deeper AI integration:
 
-### 4.1 Lab result interpretation
+### 4.1 Lab result interpretation — ✅ FIXED 2026-03-29
 
 **Current state:** Labs section displays values and flags but provides zero interpretation.
-**Opportunity:** When a user views an abnormal lab result, offer an "Explain this result" button that sends the result + their conditions/meds to the AI for contextual interpretation. Example: "Your TSH of 4.2 mIU/L is slightly elevated. Given your hypothyroidism diagnosis and current levothyroxine dose, this may suggest a dosage adjustment is needed. Discuss with your endocrinologist."
+**Fix applied:** AI "Explain this result" button on abnormal labs sends result + patient profile for contextual interpretation via `/api/chat` proxy.
 
-### 4.2 Medication-allergy cross-reference
+### 4.2 Medication-allergy cross-reference — ✅ FIXED 2026-03-29
 
-**Current state:** Allergies and medications are completely siloed. Adding a new medication never checks against known allergies.
-**Opportunity:** On medication add/edit, cross-reference the substance against the allergy list. For non-exact matches (e.g., "amoxicillin" added when "penicillin" allergy exists), use AI to identify drug-class cross-reactivity risks.
+**Current state:** Basic string-matching allergy warnings added in Phase 2.
+**Fix applied:** Added AI cross-reactivity check button in medication form. When a med name doesn't exact-match an allergy but allergies exist, user can click "Check AI cross-reactivity" to analyze drug-class relationships (e.g., penicillin→cephalosporin). Uses dedicated `crossReactivity` prompt via `/api/chat` proxy.
 
-### 4.3 Vitals trend analysis
+### 4.3 Vitals trend analysis — ✅ FIXED 2026-03-29
 
 **Current state:** Vitals shows a raw chart with no interpretation.
-**Opportunity:** Add a "Trends" button that sends the last 20 vitals readings to AI for analysis. Example: "Your systolic blood pressure has increased from an average of 125 to 138 over the past 3 months. This upward trend, combined with your CKD diagnosis, warrants discussion with your nephrologist."
+**Fix applied:** Added "Analyze Trends with AI" button below the vitals chart. Sends last 20 vitals readings to AI for trend analysis. Requires ≥3 entries and AI consent. Results displayed in expandable card.
 
-### 4.4 Immunization schedule awareness
+### 4.4 Immunization schedule awareness — ✅ FIXED 2026-03-29
 
 **Current state:** Immunizations is a simple record list. No schedule tracking, no overdue detection.
-**Opportunity:** AI can analyze immunization records + patient age/conditions to flag: "You received your last Tdap booster 11 years ago. CDC recommends every 10 years. Consider scheduling with your PCP." Also flag contraindications: "Your egg allergy may affect flu vaccine selection."
+**Fix applied:** Added "Review Schedule with AI" button in Immunizations section. AI analyzes immunization records + patient conditions/allergies against CDC/ACIP schedules. Flags overdue boosters, condition-specific recommendations, and allergy contraindications.
 
-### 4.5 Appointment preparation
+### 4.5 Appointment preparation — ✅ FIXED 2026-03-29
 
 **Current state:** Appointments have a "questions to ask" text field, but no AI assistance.
-**Opportunity:** Before an upcoming appointment, offer "Prepare for this visit" which generates suggested questions based on: the provider's specialty, active conditions managed by that provider, recent vitals/labs, and current medications. Example: "For your rheumatology visit on 4/15, consider asking about: your rising ESR levels, whether methotrexate dose needs adjustment, and the new joint pain noted in your 3/20 journal entry."
+**Fix applied:** Added "Prepare" button on each upcoming appointment card. AI generates 4-6 personalized questions based on provider specialty, active conditions, recent vitals/labs, current medications, and journal entries. Includes preparation tips.
 
-### 4.6 Care gap auto-detection
+### 4.6 Care gap auto-detection — ✅ FIXED 2026-03-29
 
 **Current state:** Care gaps are 100% manually entered by the user.
-**Opportunity:** Based on conditions, age, gender, and last procedure/lab dates, AI can suggest standard screening gaps. Example: "Based on your age (45) and family history of colon cancer, a colonoscopy is typically recommended. No colonoscopy found in your procedures." These would be AI-suggested care gaps the user can accept or dismiss.
+**Fix applied:** Added "Suggest Care Gaps with AI" button in CareGaps section. AI analyzes patient profile (conditions, medications, procedures, immunizations, existing gaps) against clinical guidelines (USPSTF, CDC) to suggest 3-6 missing preventive screenings. Does not duplicate existing gaps.
 
-### 4.7 Journal pattern recognition
+### 4.7 Journal pattern recognition — ✅ FIXED 2026-03-29
 
 **Current state:** Journal entries are listed chronologically with no analysis.
-**Opportunity:** AI can analyze journal entries over time to identify patterns. Example: "You've mentioned 'fatigue' in 8 of your last 12 entries. This correlates with your pain scores above 6. Consider discussing chronic fatigue management with your provider."
+**Fix applied:** Added "Analyze Patterns with AI" button in Journal section. Sends last 30 entries to AI for pattern analysis: recurring symptoms, mood-severity correlations, trigger identification, and actionable insights. Requires ≥3 entries and AI consent.
 
 ---
 
@@ -229,7 +229,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 |-------|---------|
 | ~~No reference ranges~~ | ✅ FIXED 2026-03-29 — Charts now show reference range lines; normal range displayed below chart. |
 | ~~No abnormal value flags~~ | ✅ FIXED 2026-03-29 — Entries show colored flag indicators (High/Low/Critical) with border accents for abnormal values. |
-| No trend interpretation | Chart exists but there's no text analysis of the trend direction. |
+| ~~No trend interpretation~~ | ✅ FIXED 2026-03-29 — AI "Analyze Trends" button sends last 20 vitals for AI trend analysis. |
 | ~~Numeric validation missing~~ | ✅ FIXED 2026-03-29 — Save requires valid numeric values; BP form validates both systolic and diastolic. |
 
 ### Labs (`Labs.jsx`)
@@ -265,7 +265,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 | No calendar export | No iCal/Google Calendar link. Users must manually add appointments to their phone calendar. |
 | Past appointments hard-limited to 10 | No pagination or "Load more" for past visits. History is inaccessible beyond the last 10. |
 | No post-visit follow-up prompts | After an appointment date passes, no prompt to "Add notes from this visit." |
-| No appointment prep | AI could generate suggested questions based on provider specialty + active conditions. |
+| ~~No appointment prep~~ | ✅ FIXED 2026-03-29 — AI "Prepare" button generates personalized questions based on provider, conditions, recent vitals/labs, and journal. |
 
 ### Journal (`Journal.jsx`)
 
@@ -274,7 +274,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 | No search | Cannot search across journal entries for a keyword like "fatigue" or "flare." |
 | No tag-based filtering | Tags are displayed as pills but clicking them does nothing. |
 | Severity accepts non-numeric | Field accepts "banana" as severity. Should be constrained to 1-10 or a slider. |
-| No pattern analysis | AI could identify recurring symptoms, triggers, or mood patterns over time. |
+| ~~No pattern analysis~~ | ✅ FIXED 2026-03-29 — AI "Analyze Patterns" button identifies recurring symptoms, triggers, and mood patterns across entries. |
 
 ### Providers (`Providers.jsx`)
 
@@ -298,8 +298,8 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| No schedule tracking | No indication of which boosters are due or overdue. |
-| No contraindication warnings | Doesn't cross-reference allergies (e.g., egg allergy + flu shot). |
+| ~~No schedule tracking~~ | ✅ FIXED 2026-03-29 — AI "Review Schedule" button analyzes immunization records against CDC/ACIP schedules for overdue boosters. |
+| ~~No contraindication warnings~~ | ✅ FIXED 2026-03-29 — AI schedule review cross-references allergies with vaccine contraindications. |
 | No adverse reaction tracking | No way to record a reaction to a vaccine separately from notes. |
 
 ### Procedures (`Procedures.jsx`)
@@ -314,7 +314,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| 100% manual entry | All care gaps must be manually created. AI should suggest gaps based on age, conditions, and clinical guidelines. |
+| ~~100% manual entry~~ | ✅ FIXED 2026-03-29 — AI "Suggest Care Gaps" button analyzes profile against clinical guidelines to suggest missing screenings. |
 | No linked follow-up actions | Cannot create an appointment reminder directly from a care gap. |
 
 ### Insurance (`Insurance.jsx`)
@@ -339,7 +339,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 | Issue | Details |
 |-------|---------|
-| No AI assistance for drafting | AI could help draft appeal letters based on the diagnosis, procedure, and denial reason. |
+| ~~No AI assistance for drafting~~ | ✅ FIXED 2026-03-29 — AI "Draft Appeal Letter" button generates professional appeal letters using patient health profile and appeal details. |
 | No deadline tracking | Appeals have deadlines. No urgency/countdown display. |
 
 ### Interactions (`Interactions.jsx`)
@@ -559,14 +559,14 @@ Or wrap the chart component itself in `React.lazy()`.
 14. [x] Add rate limiting to `/api/chat.js` (§1.3) — ✅ 2026-03-29
 15. [x] Fix form validation: numeric vitals, date ranges, severity constraints (§5 Vitals, Journal) — ✅ 2026-03-29
 
-### Phase 3 — AI Expansion (second sprint)
-16. [ ] AI vitals trend analysis (§4.3)
-17. [ ] AI appointment preparation (§4.5)
-18. [ ] AI care gap auto-detection (§4.6)
-19. [ ] AI journal pattern recognition (§4.7)
-20. [ ] AI immunization schedule awareness (§4.4)
-21. [ ] AI appeal letter drafting (§5 Appeals)
-22. [ ] Medication-allergy AI cross-reactivity check (§4.2)
+### Phase 3 — AI Expansion (second sprint) ✅ COMPLETED 2026-03-29
+16. [x] AI vitals trend analysis (§4.3) — ✅ 2026-03-29
+17. [x] AI appointment preparation (§4.5) — ✅ 2026-03-29
+18. [x] AI care gap auto-detection (§4.6) — ✅ 2026-03-29
+19. [x] AI journal pattern recognition (§4.7) — ✅ 2026-03-29
+20. [x] AI immunization schedule awareness (§4.4) — ✅ 2026-03-29
+21. [x] AI appeal letter drafting (§5 Appeals) — ✅ 2026-03-29
+22. [x] Medication-allergy AI cross-reactivity check (§4.2) — ✅ 2026-03-29
 
 ### Phase 4 — Polish & Accessibility
 23. [~] Add ARIA labels to all interactive elements (§6.1) — ✅ partially done 2026-03-29 (Header, FormWrap, BottomNav, Motif, LoadingSpinner; remaining: section edit/delete buttons, AIPanel send)
