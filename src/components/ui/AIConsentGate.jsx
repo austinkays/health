@@ -1,0 +1,65 @@
+import { useState, useEffect } from 'react';
+import { Shield, ExternalLink } from 'lucide-react';
+import Card from '../ui/Card';
+import Button from '../ui/Button';
+
+const CONSENT_KEY = 'salve:ai-consent';
+
+export function hasAIConsent() {
+  try {
+    return localStorage.getItem(CONSENT_KEY) === 'granted';
+  } catch {
+    return false;
+  }
+}
+
+export function revokeAIConsent() {
+  localStorage.removeItem(CONSENT_KEY);
+}
+
+export default function AIConsentGate({ children }) {
+  const [consented, setConsented] = useState(() => hasAIConsent());
+
+  if (consented) return children;
+
+  const grant = () => {
+    localStorage.setItem(CONSENT_KEY, 'granted');
+    setConsented(true);
+  };
+
+  return (
+    <div className="mt-2">
+      <Card className="!border-salve-lav/30">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield size={20} className="text-salve-lav" />
+          <h3 className="font-playfair text-base font-semibold text-salve-text m-0">Health Data & AI</h3>
+        </div>
+
+        <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
+          Salve's AI features send parts of your health profile to <strong className="text-salve-text">Anthropic</strong> (a third-party AI provider) to generate personalized insights. This may include:
+        </p>
+
+        <ul className="text-[13px] text-salve-textMid leading-relaxed mb-3 list-disc pl-4 space-y-1">
+          <li>Your name and location</li>
+          <li>Medications, conditions, and allergies</li>
+          <li>Recent vitals and journal entries</li>
+          <li>Insurance plan name</li>
+        </ul>
+
+        <p className="text-[13px] text-salve-textMid leading-relaxed mb-4">
+          Your data is sent over an encrypted connection and is not used to train AI models. You can revoke this consent at any time in Settings.
+        </p>
+
+        <div className="flex gap-2">
+          <Button variant="lavender" onClick={grant} className="flex-1 justify-center">
+            I Understand — Enable AI
+          </Button>
+        </div>
+
+        <p className="text-[10px] text-salve-textFaint italic text-center mt-3 leading-relaxed">
+          AI suggestions are not medical advice. Always consult your healthcare providers.
+        </p>
+      </Card>
+    </div>
+  );
+}

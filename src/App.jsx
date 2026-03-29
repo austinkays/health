@@ -1,0 +1,114 @@
+import { useState, useEffect, useMemo } from 'react';
+import { getSession, onAuthChange } from './services/auth';
+import { supabase } from './services/supabase';
+import Auth from './components/Auth';
+import Header from './components/layout/Header';
+import BottomNav from './components/layout/BottomNav';
+import useHealthData from './hooks/useHealthData';
+import { checkInteractions } from './utils/interactions';
+
+import Dashboard from './components/sections/Dashboard';
+import Medications from './components/sections/Medications';
+import Vitals from './components/sections/Vitals';
+import Appointments from './components/sections/Appointments';
+import Conditions from './components/sections/Conditions';
+import Providers from './components/sections/Providers';
+import Allergies from './components/sections/Allergies';
+import Journal from './components/sections/Journal';
+import AIPanel from './components/sections/AIPanel';
+import Interactions from './components/sections/Interactions';
+import Settings from './components/sections/Settings';
+import LoadingSpinner from './components/ui/LoadingSpinner';
+
+export default function App() {
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [tab, setTab] = useState('dash');
+  const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData();
+
+  const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
+
+  const onNav = (t) => {
+    setTab(t);
+    window.scrollTo(0, 0);
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    if (code) {
+      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+        if (!error && data.session) {
+          setSession(data.session);
+        }
+        window.history.replaceState({}, '', window.location.pathname);
+        setAuthLoading(false);
+      });
+    } else {
+      getSession().then(s => {
+        setSession(s);
+        setAuthLoading(false);
+      });
+    }
+
+    const subscription = onAuthChange(s => {
+      setSession(s);
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-salve-bg flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-salve-textFaint text-sm tracking-widest mb-3">✶ · ✶</div>
+          <p className="text-salve-lav font-playfair text-xl">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Auth />;
+  }
+
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-salve-bg flex items-center justify-center">
+        <LoadingSpinner text="Loading your health data..." />
+      </div>
+    );
+  }
+
+  const renderSection = () => {
+    const shared = { data, addItem, updateItem, removeItem };
+    switch (tab) {
+      case 'dash': return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      case 'meds': return <Medications {...shared} interactions={interactions} />;
+      case 'vitals': return <Vitals {...shared} />;
+      case 'appts': return <Appointments {...shared} />;
+      case 'conditions': return <Conditions {...shared} />;
+      case 'providers': return <Providers {...shared} />;
+      case 'allergies': return <Allergies {...shared} />;
+      case 'journal': return <Journal {...shared} />;
+      case 'ai': return <AIPanel data={data} />;
+      case 'interactions': return <Interactions interactions={interactions} meds={data.meds} />;
+      case 'settings': return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} />;
+      default: return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-salve-bg">
+      <div className="max-w-[480px] mx-auto pb-24 relative">
+        <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} />
+        <div className="px-4">
+          {renderSection()}
+        </div>
+        <BottomNav tab={tab} onNav={onNav} />
+      </div>
+    </div>
+  );
+}

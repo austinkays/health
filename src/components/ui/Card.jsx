@@ -1,0 +1,11 @@
+export default function Card({ children, className = '', onClick, style }) {
+  return (
+    <div
+      onClick={onClick}
+      style={style}
+      className={`bg-salve-card border border-salve-border rounded-xl p-4 mb-2.5 shadow-sm transition-shadow ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
