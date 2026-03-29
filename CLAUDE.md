@@ -86,7 +86,7 @@ health/
 │   │   │   ├── Header.jsx
 │   │   │   └── BottomNav.jsx
 │   │   └── sections/             # One file per app section
-│   │       ├── Dashboard.jsx     # Home: greeting, quick stats, AI insight, interaction alerts
+│   │       ├── Dashboard.jsx     # Home: greeting, quick stats, AI insight, dismissible alerts
 │   │       ├── Medications.jsx   # Med list + add/edit form
 │   │       ├── Vitals.jsx        # Vitals tracking + chart
 │   │       ├── Conditions.jsx    # Condition list + add/edit
@@ -249,6 +249,10 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - Quick Access is a grid menu linking to: Conditions, Providers, Allergies, Appointments, Interactions, Settings
 - All section views have a back arrow in the header that returns to Dashboard
 
+## UX Behaviors
+
+- **Anesthesia flags alert (Dashboard):** Dismissible via X button. When dismissed, collapses to a small inline indicator showing the count. Clicking the indicator re-expands the full alert. Dismiss state is session-only (`useState`) — resets on page reload so flags remain discoverable. Clicking the flag text navigates to the full Anesthesia Flags view.
+
 ## Key Design Decisions
 
 1. **Preserve the visual design precisely.** The warm dark theme with lavender/sage/amber accents is intentional and personal. When converting inline styles to Tailwind, match colors and spacing exactly.
@@ -304,6 +308,16 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `SUPABASE_URL` | Vercel env vars (fallback) | Fallback for api/chat.js if VITE_ prefix not available server-side |
 | `ALLOWED_ORIGIN` | Vercel env vars (optional) | Custom allowed CORS origin for api/chat.js (e.g. your production domain) |
 
+## Agent Workflow — IMPORTANT
+
+**Every agent session that commits and pushes code MUST also update this CLAUDE.md file** with:
+1. Any architectural or behavioral changes (new components, modified UX flows, new services, etc.)
+2. Bug fixes and what was wrong
+3. New features or sections added
+4. Notes in the Changelog below
+
+This keeps future agents current on the state of the codebase. Do NOT skip this step — stale documentation causes regressions and duplicated work.
+
 ## Commands
 
 ```bash
@@ -312,3 +326,9 @@ npm run build        # Production build
 npm run preview      # Preview production build locally
 vercel --prod        # Deploy to production
 ```
+
+## Changelog
+
+| Date | Change | Files |
+|------|--------|-------|
+| 2026-03-29 | Made anesthesia flags alert on Dashboard dismissible (X button → collapsed inline indicator, session-only state) | `Dashboard.jsx` |
