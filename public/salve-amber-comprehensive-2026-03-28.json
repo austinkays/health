@@ -1,0 +1,1245 @@
+{
+  "_export": {
+    "app": "salve",
+    "type": "mcp-sync-comprehensive",
+    "exportedAt": "2026-03-28T00:00:00.000Z",
+    "source": "claude-cowork-full-pull",
+    "dataAsOf": "2026-03-21",
+    "dataSources": [
+      "HealthEx FHIR (Providence/OHSU, Legacy Health, NW Urology, NW Women's Clinic, OCHIN/La Clinica, Asante, Pacific Sleep Program, NW Rheumatology) — last synced 2026-03-02",
+      "Providence MyChart CCD export (414 XML documents) — pulled 2026-03-21",
+      "Claude project knowledge (medications, diagnoses, providers not in HealthEx: Active Path, Pacific Phoenix, Portland Pain Care, NW Compounders, Wolfpack)"
+    ],
+    "knownGaps": [
+      "CareOregon mental health records (separate system, no API access)",
+      "Portland Pain Care / Dr. Stapleton procedures (not connected to HealthEx)",
+      "Active Path / Spravato sessions (not connected)",
+      "Pacific Phoenix Psychiatry (not connected)",
+      "Pre-2014 records may exist but not in structured data",
+      "414 individual Providence XML visit notes not individually parsed"
+    ],
+    "version": "3.0"
+  },
+
+  "medications": [
+    {
+      "_sync_id": "mcp-med-1a2b3c4d",
+      "name": "dextroamphetamine-amphetamine (Adderall XR)",
+      "dose": "30 mg",
+      "frequency": "Once daily in the morning",
+      "route": "oral",
+      "prescriber": "Dr. Michele Sharp",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "ADHD",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "AM dose. Hold 24-48 hrs before surgery due to cardiovascular effects."
+    },
+    {
+      "_sync_id": "mcp-med-2b3c4d5e",
+      "name": "dextroamphetamine-amphetamine (Adderall IR)",
+      "dose": "20 mg",
+      "frequency": "Twice daily in afternoon",
+      "route": "oral",
+      "prescriber": "Dr. Michele Sharp",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "ADHD",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "Two IR doses in the afternoon. Hold 24-48 hrs before surgery."
+    },
+    {
+      "_sync_id": "mcp-med-3c4d5e6f",
+      "name": "Auvelity (dextromethorphan / bupropion)",
+      "dose": "45-105 mg",
+      "frequency": "Once daily",
+      "route": "oral",
+      "prescriber": "Dr. Michele Sharp",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "Depression (NMDA antagonist)",
+      "start_date": "2025-06-29",
+      "refill_date": "",
+      "active": true,
+      "notes": "ANESTHESIA FLAG: DXM component interacts with ketamine-based agents. Bupropion lowers seizure threshold and can raise blood pressure. Must flag for all surgical/procedural teams."
+    },
+    {
+      "_sync_id": "mcp-med-4d5e6f7g",
+      "name": "tirzepatide (compounded)",
+      "dose": "current dose per NW Compounders protocol",
+      "frequency": "Once weekly subcutaneous injection",
+      "route": "subcutaneous injection",
+      "prescriber": "Dr. Brian Little",
+      "pharmacy": "NW Compounders",
+      "purpose": "Weight management (GLP-1/GIP agonist)",
+      "start_date": "2025-04-04",
+      "refill_date": "",
+      "active": true,
+      "notes": "SURGERY FLAG: Must hold minimum 1 week before any procedure due to gastric emptying effects and aspiration risk. Do NOT have surgery during active weight loss phase. Compounded; not the brand-name Mounjaro 5mg dose anymore."
+    },
+    {
+      "_sync_id": "mcp-med-5e6f7g8h",
+      "name": "fludrocortisone",
+      "dose": "",
+      "frequency": "Once daily",
+      "route": "oral",
+      "prescriber": "Dr. Brian Little",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "Dysautonomia (sodium retention / autonomic support)",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "Monitor blood pressure carefully given newly diagnosed hypertension (Feb 2026). Not for POTS — for dysautonomia."
+    },
+    {
+      "_sync_id": "mcp-med-6f7g8h9i",
+      "name": "vibegron (Gemtesa)",
+      "dose": "",
+      "frequency": "Once daily",
+      "route": "oral",
+      "prescriber": "NW Urology",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "Interstitial cystitis / urge incontinence",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "Recently switched FROM mirabegron (Myrbetriq). Do NOT list mirabegron as current. Do not restart mirabegron."
+    },
+    {
+      "_sync_id": "mcp-med-7g8h9i0j",
+      "name": "loratadine",
+      "dose": "10 mg",
+      "frequency": "Once daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "MCAS (H1 antihistamine) / environmental allergies",
+      "start_date": "2024-10-29",
+      "refill_date": "",
+      "active": true,
+      "notes": "Part of dual H1+H2 antihistamine MCAS protocol."
+    },
+    {
+      "_sync_id": "mcp-med-8h9i0j1k",
+      "name": "naltrexone LDN (compounded)",
+      "dose": "3 mg",
+      "frequency": "Once nightly",
+      "route": "oral",
+      "prescriber": "Dr. Brian Little",
+      "pharmacy": "NW Compounders",
+      "purpose": "Low-dose naltrexone (immune modulation, pain, inflammation)",
+      "start_date": "2024-07-03",
+      "refill_date": "",
+      "active": true,
+      "notes": "SURGERY FLAG: Must hold before surgery for adequate opioid-based post-operative pain management. Confirm hold timeline with prescriber. Pending possible increase to 4.5 mg per Dr. Brian Little."
+    },
+    {
+      "_sync_id": "mcp-med-9i0j1k2l",
+      "name": "scopolamine patch",
+      "dose": "1 mg over 3 days",
+      "frequency": "Every 3 days as needed",
+      "route": "transdermal",
+      "prescriber": "Dr. Michele Sharp",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "Nausea prevention during Spravato (esketamine) treatment sessions",
+      "start_date": "2025-03-05",
+      "refill_date": "",
+      "active": true,
+      "notes": "Spravato treatment days only."
+    },
+    {
+      "_sync_id": "mcp-med-0j1k2l3m",
+      "name": "tretinoin",
+      "dose": "0.05% cream",
+      "frequency": "Once nightly",
+      "route": "topical",
+      "prescriber": "Heather M Onoday (OHSU Dermatology)",
+      "pharmacy": "Fred Meyer N Lombard (drive-thru)",
+      "purpose": "Skincare / dermatology",
+      "start_date": "2025-03-03",
+      "refill_date": "",
+      "active": true,
+      "notes": "Apply to face QHS (PM only)."
+    },
+    {
+      "_sync_id": "mcp-med-1k2l3m4n",
+      "name": "benzocaine-lidocaine-tetracaine compound cream",
+      "dose": "20-6-4%",
+      "frequency": "As needed before procedures",
+      "route": "topical",
+      "prescriber": "Heather M Onoday (OHSU Dermatology)",
+      "pharmacy": "Compounded",
+      "purpose": "Topical anesthetic prior to procedures",
+      "start_date": "2025-08-05",
+      "refill_date": "",
+      "active": true,
+      "notes": "Apply 40 minutes prior to procedure. Disp 5g, 3 refills. Related to hEDS local anesthetic resistance."
+    },
+    {
+      "_sync_id": "mcp-med-2l3m4n5o",
+      "name": "famotidine (Pepcid AC)",
+      "dose": "20 mg",
+      "frequency": "Once daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "OTC (Fred Meyer N Lombard)",
+      "purpose": "MCAS (H2 antihistamine) / GI support",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "Daily MCAS protocol — H1 (loratadine) + H2 (famotidine) dual stack. Currently OTC. Attempting to get prescribed through OHP via MyChart request."
+    },
+    {
+      "_sync_id": "mcp-med-3m4n5o6p",
+      "name": "Hibicleanse (chlorhexidine gluconate 4%)",
+      "dose": "topical",
+      "frequency": "Daily",
+      "route": "topical",
+      "prescriber": "",
+      "pharmacy": "OTC",
+      "purpose": "Hidradenitis Suppurativa (HS) prevention — posterior/backs of thighs",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "HS well-controlled on this regimen. Also relevant as MRSA carrier — flag for all surgical teams."
+    },
+    {
+      "_sync_id": "mcp-med-4n5o6p7q",
+      "name": "esketamine nasal spray (Spravato)",
+      "dose": "per protocol",
+      "frequency": "Ongoing sessions",
+      "route": "intranasal",
+      "prescriber": "Dr. Michele Sharp",
+      "pharmacy": "Active Path Mental Health (in-office)",
+      "purpose": "Treatment-resistant depression / C-PTSD",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "Sessions timed to allow DBT group shortly after for neuroplasticity window. Clinic: Active Path Mental Health. NMDA-related — coordinate with anesthesia if surgery planned."
+    },
+    {
+      "_sync_id": "mcp-med-5o6p7q8r",
+      "name": "fluticasone propionate (Flonase) nasal spray",
+      "dose": "standard",
+      "frequency": "Most days",
+      "route": "intranasal",
+      "prescriber": "",
+      "pharmacy": "OTC",
+      "purpose": "Environmental allergies / nasal congestion",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-med-6p7q8r9s",
+      "name": "Slow Fe iron supplement",
+      "dose": "45 mg",
+      "frequency": "Daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "OTC",
+      "purpose": "Iron deficiency / low ferritin",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": "Ferritin trend: 15.1 (2019) → 36.1 (2020) → 97 (Mar 2025). Significantly improved on this regimen."
+    },
+    {
+      "_sync_id": "mcp-med-7q8r9s0t",
+      "name": "L-Methylfolate",
+      "dose": "standard",
+      "frequency": "Daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "Supplement ($63.75/90 days)",
+      "purpose": "Methylation support",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-med-8r9s0t1u",
+      "name": "Prelief (calcium glycerophosphate)",
+      "dose": "standard",
+      "frequency": "Daily preventive",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "OTC",
+      "purpose": "Interstitial cystitis bladder support",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-med-9s0t1u2v",
+      "name": "D-Mannose (NOW brand)",
+      "dose": "standard",
+      "frequency": "Daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "OTC",
+      "purpose": "Interstitial cystitis / UTI prevention",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-med-0t1u2v3w",
+      "name": "Florastor Daily Probiotic",
+      "dose": "standard",
+      "frequency": "Daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "OTC",
+      "purpose": "Gut health / GI support",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-med-1u2v3w4x",
+      "name": "Etta Vita Creatine Monohydrate Gummies",
+      "dose": "standard",
+      "frequency": "Daily",
+      "route": "oral",
+      "prescriber": "",
+      "pharmacy": "Supplement",
+      "purpose": "Muscle/energy support",
+      "start_date": "",
+      "refill_date": "",
+      "active": true,
+      "notes": ""
+    }
+  ],
+
+  "conditions": [
+    {
+      "_sync_id": "mcp-cond-heds001",
+      "name": "Hypermobile Ehlers-Danlos Syndrome (hEDS)",
+      "diagnosed_date": "2023-04-06",
+      "status": "active",
+      "provider": "Northwest Rheumatology Associates",
+      "linked_meds": "",
+      "notes": "Primary connective tissue disorder. Accounts for joint instability, chronic pain, local anesthetic resistance. HIGH local anesthetic failure rate (Schubart 2019: ~88%). All procedures require MAC or general anesthesia — no local-only sedation."
+    },
+    {
+      "_sync_id": "mcp-cond-mcas001",
+      "name": "Mast Cell Activation Syndrome (MCAS)",
+      "diagnosed_date": "",
+      "status": "active",
+      "provider": "Dr. Brian Little",
+      "linked_meds": "loratadine, famotidine (Pepcid AC), cromolyn sodium (pending)",
+      "notes": "Daily H1+H2 antihistamine protocol. Elevated anesthetic reaction risk — requires pre-medication protocol (H1 + H2 antihistamine + corticosteroids before procedural induction). Avoid known MCAS triggers."
+    },
+    {
+      "_sync_id": "mcp-cond-hs001",
+      "name": "Hidradenitis Suppurativa (HS)",
+      "diagnosed_date": "",
+      "status": "active",
+      "provider": "",
+      "linked_meds": "Hibicleanse daily",
+      "notes": "Active near posterior/backs of thighs. Significantly improved with ~80 lb weight loss. Flares now rare. Flag for any surgical team operating near these sites. MRSA carrier status relevant."
+    },
+    {
+      "_sync_id": "mcp-cond-ic001",
+      "name": "Chronic interstitial cystitis (IC)",
+      "diagnosed_date": "2017-07-06",
+      "status": "active",
+      "provider": "OR - Northwest Urology",
+      "linked_meds": "vibegron (Gemtesa), Prelief, D-Mannose",
+      "notes": "Onset 2017-06-02. Managed at NW Urology. Cystoscopy 2025-02-06."
+    },
+    {
+      "_sync_id": "mcp-cond-ui001",
+      "name": "Urge incontinence of urine",
+      "diagnosed_date": "2024-12-19",
+      "status": "active",
+      "provider": "OR - Northwest Urology",
+      "linked_meds": "vibegron (Gemtesa)",
+      "notes": "New patient NW Urology Dec 2024. Bladder scan 2024-12-19."
+    },
+    {
+      "_sync_id": "mcp-cond-adhd001",
+      "name": "ADHD, inattentive type",
+      "diagnosed_date": "2014-09-08",
+      "status": "active",
+      "provider": "The Portland Clinic",
+      "linked_meds": "Adderall XR 30mg, Adderall IR 20mg",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-ptsd001",
+      "name": "C-PTSD (Complex Post-Traumatic Stress Disorder)",
+      "diagnosed_date": "2019-01-16",
+      "status": "active",
+      "provider": "OR - Northwest Women's Clinic",
+      "linked_meds": "Auvelity, Spravato (esketamine)",
+      "notes": "Active DBT-based IOP; beginning to apply DBT skills automatically. Stellate ganglion blocks also indicated for C-PTSD (currently inaccessible due to insurance/provider dispute). Legal matter ongoing with victim advocate Slava."
+    },
+    {
+      "_sync_id": "mcp-cond-asd001",
+      "name": "Autism Spectrum Disorder (ASD)",
+      "diagnosed_date": "2019-05-28",
+      "status": "active",
+      "provider": "OR - Northwest Women's Clinic",
+      "linked_meds": "",
+      "notes": "Adult diagnosis. Severe sensory processing differences. Requires written communication preferences and hospital-grade sedation for all procedures. Procedural anxiety is severe. Document explicitly on all intake forms."
+    },
+    {
+      "_sync_id": "mcp-cond-fibro001",
+      "name": "Fibromyalgia",
+      "diagnosed_date": "2019-09-18",
+      "status": "active",
+      "provider": "The Portland Clinic",
+      "linked_meds": "",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-dysauto001",
+      "name": "Dysautonomia",
+      "diagnosed_date": "2022-10-04",
+      "status": "active",
+      "provider": "OHSU / Tuality Healthcare",
+      "linked_meds": "fludrocortisone",
+      "notes": "Autonomic reflex testing 2022-10-04 at OHSU — abnormal study, excessive HR response during tilt (58→99 bpm). Cardiologist cleared Feb 2026; stated POTS resolved. Do NOT use POTS language. Still on fludrocortisone. ANESTHESIA FLAG: hemodynamic instability risk — careful fluid and vasopressor management required."
+    },
+    {
+      "_sync_id": "mcp-cond-htn001",
+      "name": "Hypertension, unspecified",
+      "diagnosed_date": "2026-02-10",
+      "status": "active",
+      "provider": "OHSU Knight Cardiovascular Institute",
+      "linked_meds": "",
+      "notes": "Newly diagnosed Feb 2026. Treatment plan not yet established. Monitor carefully given fludrocortisone and Auvelity (bupropion component can raise BP)."
+    },
+    {
+      "_sync_id": "mcp-cond-ana001",
+      "name": "Positive ANA (antinuclear antibody) with polyarthralgia",
+      "diagnosed_date": "2025-07-07",
+      "status": "active",
+      "provider": "OHSU Rheumatology (Dr. Gina Ferrero)",
+      "linked_meds": "",
+      "notes": "ANA positive July 2025 and December 2025. Follow-up bloodwork reportedly came back fine per Amber but full results not in records. Ordered by Dr. Lauren Fisher; referred to rheumatology. Titer and pattern not documented."
+    },
+    {
+      "_sync_id": "mcp-cond-sleep001",
+      "name": "Sleep disorders: UARS, OSA, chronic insomnia, hypersomnia, circadian rhythm delay (DSPD)",
+      "diagnosed_date": "2023-07-19",
+      "status": "active",
+      "provider": "Pacific Sleep Program Portland (Dr. Radhika Breaden)",
+      "linked_meds": "",
+      "notes": "Diagnostic polysomnogram 2023-10-11. No CPAP or active treatment in records."
+    },
+    {
+      "_sync_id": "mcp-cond-cataplexy001",
+      "name": "Cataplexy",
+      "diagnosed_date": "2023-07-19",
+      "status": "active",
+      "provider": "Pacific Sleep Program Portland",
+      "linked_meds": "",
+      "notes": "Listed at July 2023 sleep clinic visit alongside hypersomnia, UARS, OSA, and circadian rhythm disorder. Narcolepsy status unclear."
+    },
+    {
+      "_sync_id": "mcp-cond-pcos001",
+      "name": "PCOS (polycystic ovarian syndrome)",
+      "diagnosed_date": "2023-07-18",
+      "status": "active",
+      "provider": "Legacy Health",
+      "linked_meds": "",
+      "notes": "Documented but without adequate monitoring or hormonal workup. No testosterone, LH/FSH, or fasting insulin on record."
+    },
+    {
+      "_sync_id": "mcp-cond-gerd001",
+      "name": "GERD",
+      "diagnosed_date": "2023-07-18",
+      "status": "active",
+      "provider": "Legacy Health",
+      "linked_meds": "",
+      "notes": "Pantoprazole and omeprazole tried and discontinued."
+    },
+    {
+      "_sync_id": "mcp-cond-anxiety001",
+      "name": "Anxiety disorder",
+      "diagnosed_date": "2015-07-10",
+      "status": "active",
+      "provider": "La Clinica Del Valle Family HC",
+      "linked_meds": "",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-dep001",
+      "name": "Severe major depression",
+      "diagnosed_date": "2019-04-17",
+      "status": "active",
+      "provider": "The Portland Clinic",
+      "linked_meds": "Auvelity, Spravato",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-panic001",
+      "name": "Panic disorder",
+      "diagnosed_date": "2022-11-09",
+      "status": "active",
+      "provider": "Northwest Rheumatology Associates",
+      "linked_meds": "",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-hmob001",
+      "name": "Hypermobility syndrome",
+      "diagnosed_date": "2023-04-06",
+      "status": "active",
+      "provider": "Northwest Rheumatology Associates",
+      "linked_meds": "",
+      "notes": "Coded separately from hEDS in HealthEx records."
+    },
+    {
+      "_sync_id": "mcp-cond-mrsa001",
+      "name": "MRSA carrier (methicillin-resistant Staph aureus)",
+      "diagnosed_date": "2014-10-30",
+      "status": "managed",
+      "provider": "The Portland Clinic",
+      "linked_meds": "Hibicleanse",
+      "notes": "Active in records. No decolonization protocol documented. Flag for ALL surgical teams. Relevant to HS and surgical planning. Decolonization may be needed pre-operatively."
+    },
+    {
+      "_sync_id": "mcp-cond-herpes001",
+      "name": "Genital herpes simplex",
+      "diagnosed_date": "2019-05-28",
+      "status": "active",
+      "provider": "OR - Northwest Women's Clinic",
+      "linked_meds": "",
+      "notes": "No suppressive antiviral in current medication list."
+    },
+    {
+      "_sync_id": "mcp-cond-prediab001",
+      "name": "Prediabetic fasting glucose",
+      "diagnosed_date": "2024-08-20",
+      "status": "active",
+      "provider": "Legacy Salmon Creek ED",
+      "linked_meds": "",
+      "notes": "Fasting glucose 112 mg/dL (Aug 2024). No HbA1c on record anywhere. POC glucose 105 at same visit. Follow-up not documented."
+    },
+    {
+      "_sync_id": "mcp-cond-wbc001",
+      "name": "Elevated WBC with neutrophilia",
+      "diagnosed_date": "2024-08-20",
+      "status": "active",
+      "provider": "Legacy Salmon Creek ED",
+      "linked_meds": "",
+      "notes": "WBC 18.44 with 85% neutrophils (Aug 2024 ER, during abdominal pain visit). Follow-up CBC status unclear. May have been done via Wolfpack/LabCorp (not connected)."
+    },
+    {
+      "_sync_id": "mcp-cond-pfibro001",
+      "name": "Plantar fascial fibromatosis",
+      "diagnosed_date": "2022-11-09",
+      "status": "active",
+      "provider": "Northwest Rheumatology Associates",
+      "linked_meds": "",
+      "notes": "No current treatment."
+    },
+    {
+      "_sync_id": "mcp-cond-tmj001",
+      "name": "TMJ (temporomandibular joint disorder)",
+      "diagnosed_date": "2023-07-18",
+      "status": "active",
+      "provider": "Legacy Health",
+      "linked_meds": "",
+      "notes": "No current treatment."
+    },
+    {
+      "_sync_id": "mcp-cond-hyperhid001",
+      "name": "Hyperhidrosis",
+      "diagnosed_date": "",
+      "status": "active",
+      "provider": "",
+      "linked_meds": "",
+      "notes": "Researched; Botox treatment being considered. Under evaluation for Bangkok 2027 trip."
+    },
+    {
+      "_sync_id": "mcp-cond-vitd001",
+      "name": "Vitamin D deficiency",
+      "diagnosed_date": "2022-11-09",
+      "status": "managed",
+      "provider": "Northwest Rheumatology Associates",
+      "linked_meds": "",
+      "notes": "15.6 ng/mL (Feb 2019 — deficient). 44.6 ng/mL (Feb 2020 — borderline). Recheck overdue."
+    },
+    {
+      "_sync_id": "mcp-cond-ferritin001",
+      "name": "Low serum ferritin (iron deficiency)",
+      "diagnosed_date": "2019-02-21",
+      "status": "managed",
+      "provider": "The Portland Clinic",
+      "linked_meds": "Slow Fe 45mg",
+      "notes": "Ferritin trend: 15.1 (2019) → 36.1 (2020) → 32 (2022) → 30 (2023) → 41 (2024) → 97 (Mar 2025). Significantly improved on Slow Fe."
+    },
+    {
+      "_sync_id": "mcp-cond-chestwall001",
+      "name": "Dextroscoliosis (thoracolumbar)",
+      "diagnosed_date": "2016-02-08",
+      "status": "active",
+      "provider": "The Portland Clinic",
+      "linked_meds": "",
+      "notes": "Mild to moderate degree, noted on chest X-ray 2016-02-08. No further workup in records."
+    },
+    {
+      "_sync_id": "mcp-cond-rectalbleed001",
+      "name": "History of rectal bleeding",
+      "diagnosed_date": "2015-08-01",
+      "status": "resolved",
+      "provider": "",
+      "linked_meds": "",
+      "notes": "Documented 2015. No colonoscopy on record."
+    },
+    {
+      "_sync_id": "mcp-cond-gisurg001",
+      "name": "History of GI surgery",
+      "diagnosed_date": "2016-01-01",
+      "status": "resolved",
+      "provider": "",
+      "linked_meds": "",
+      "notes": "Approximate date. Details not fully documented in available records."
+    },
+    {
+      "_sync_id": "mcp-cond-wristfx001",
+      "name": "History of right distal radius fracture (comminuted intra-articular) with ORIF + hardware",
+      "diagnosed_date": "2020-09-29",
+      "status": "resolved",
+      "provider": "Dr. Michael D. Hwang (OHSU Orthopedics Tigard)",
+      "linked_meds": "",
+      "notes": "Fracture 2020-09-29. ORIF surgery 2020-10-16 (plate + 8 screws). Extensor tendon rupture of right hand with repair 2020-12-22. Multiple post-op visits. Hardware in place."
+    },
+    {
+      "_sync_id": "mcp-cond-foreignobj001",
+      "name": "History of foreign object rejection",
+      "diagnosed_date": "",
+      "status": "active",
+      "provider": "",
+      "linked_meds": "",
+      "notes": "Flag for any implants, mesh, or anchors in future surgeries."
+    },
+    {
+      "_sync_id": "mcp-cond-chronic-fatigue001",
+      "name": "Chronic fatigue",
+      "diagnosed_date": "2019-09-18",
+      "status": "active",
+      "provider": "The Portland Clinic",
+      "linked_meds": "",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-envallergy001",
+      "name": "Environmental allergies",
+      "diagnosed_date": "2023-07-18",
+      "status": "active",
+      "provider": "Legacy Health",
+      "linked_meds": "loratadine, fluticasone",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-cond-chronicpain001",
+      "name": "Chronic pain syndrome",
+      "diagnosed_date": "2023-07-18",
+      "status": "active",
+      "provider": "Legacy Health",
+      "linked_meds": "",
+      "notes": "RFA at L4/L5/S1 indicated; currently inaccessible due to insurance/provider dispute."
+    },
+    {
+      "_sync_id": "mcp-cond-scoliosis001",
+      "name": "Sleep-disordered breathing",
+      "diagnosed_date": "2023-04-06",
+      "status": "active",
+      "provider": "Northwest Rheumatology Associates",
+      "linked_meds": "",
+      "notes": "Noted in rheumatology visit."
+    }
+  ],
+
+  "allergies": [
+    {
+      "_sync_id": "mcp-alrg-a1b2c3d4",
+      "substance": "Latex",
+      "reaction": "Itching",
+      "severity": "mild",
+      "notes": "Confirmed. Onset 2023-03-08. Flag for all procedures and surgical environments."
+    },
+    {
+      "_sync_id": "mcp-alrg-b2c3d4e5",
+      "substance": "Adhesive tape",
+      "reaction": "Skin eruption",
+      "severity": "mild",
+      "notes": "Confirmed. Onset 2014-06-06. Use paper or silicone-based tape alternatives."
+    },
+    {
+      "_sync_id": "mcp-alrg-c3d4e5f6",
+      "substance": "Sulfa antibiotics (sulfonamides)",
+      "reaction": "unknown",
+      "severity": "moderate",
+      "notes": "Includes Bactrim (sulfamethoxazole-trimethoprim). Do not prescribe."
+    },
+    {
+      "_sync_id": "mcp-alrg-d4e5f6g7",
+      "substance": "Bactrim (sulfamethoxazole-trimethoprim)",
+      "reaction": "unknown",
+      "severity": "moderate",
+      "notes": "Documented separately from sulfa class entry."
+    },
+    {
+      "_sync_id": "mcp-alrg-e5f6g7h8",
+      "substance": "Strattera (atomoxetine)",
+      "reaction": "unknown",
+      "severity": "moderate",
+      "notes": "Documented 2014-09-22."
+    }
+  ],
+
+  "providers": [
+    {
+      "_sync_id": "mcp-prov-a1b2c3d4",
+      "name": "Dr. Brian Little",
+      "specialty": "Primary Care (PCP)",
+      "clinic": "",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Current PCP."
+    },
+    {
+      "_sync_id": "mcp-prov-b2c3d4e5",
+      "name": "Dr. Michele Sharp",
+      "specialty": "Psychiatry",
+      "clinic": "Portland DBT",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Current psychiatrist. Manages Spravato, Adderall, Auvelity, LDN (via Dr. Little), scopolamine."
+    },
+    {
+      "_sync_id": "mcp-prov-c3d4e5f6",
+      "name": "Northwest Urology",
+      "specialty": "Urology",
+      "clinic": "OR - Northwest Urology, Barnes Road",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "IC and urge incontinence care."
+    },
+    {
+      "_sync_id": "mcp-prov-d4e5f6g7",
+      "name": "Dr. Gina Ferrero",
+      "specialty": "Rheumatology",
+      "clinic": "OHSU Rheumatology, Physicians Pavilion",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Rheumatology visits July and December 2025. Positive ANA + polyarthralgia workup."
+    },
+    {
+      "_sync_id": "mcp-prov-e5f6g7h8",
+      "name": "Dr. Lauren Fisher (Winslow)",
+      "specialty": "General",
+      "clinic": "",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Ordered labs that triggered rheumatology referral (positive ANA)."
+    },
+    {
+      "_sync_id": "mcp-prov-f6g7h8i9",
+      "name": "Active Path Mental Health",
+      "specialty": "Mental Health / Spravato",
+      "clinic": "Active Path Mental Health",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Current Spravato clinic. Exploring possible transfer to Pacific Phoenix Psychiatry (Salmon Creek)."
+    },
+    {
+      "_sync_id": "mcp-prov-g7h8i9j0",
+      "name": "OHSU Knight Cardiovascular Institute",
+      "specialty": "Cardiology",
+      "clinic": "OHSU Knight Cardiovascular, Beaverton",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Cardiology visit 2026-02-10 for hypertension. ECG: normal sinus rhythm."
+    },
+    {
+      "_sync_id": "mcp-prov-h8i9j0k1",
+      "name": "Pacific Sleep Program Portland",
+      "specialty": "Sleep Medicine",
+      "clinic": "Pacific Sleep Program Portland",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Dr. Radhika Breaden. Sleep study 2023-10-11. Diagnoses: UARS, OSA, insomnia, cataplexy, circadian rhythm disorder."
+    },
+    {
+      "_sync_id": "mcp-prov-i9j0k1l2",
+      "name": "OHSU Dermatology",
+      "specialty": "Dermatology",
+      "clinic": "Dermatology Medical, Center for Health & Healing, Building 1",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Multiple visits 2025-2026. Heather M. Onoday (primary), Justin J. Leitenberger, Carrie Seid, Anna Bar."
+    },
+    {
+      "_sync_id": "mcp-prov-j0k1l2m3",
+      "name": "Dr. Andrew Joyce",
+      "specialty": "Physiatry",
+      "clinic": "Providence Physiatry",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Attempted transfer for RFA. Callback never received as of early March 2026. Does not appear to use sedation; PPMC no longer allows RFA anyway."
+    },
+    {
+      "_sync_id": "mcp-prov-k1l2m3n4",
+      "name": "Dr. Stapleton",
+      "specialty": "Pain Management",
+      "clinic": "Portland Pain Care",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Former pain management provider. Moved RFA to private surgery centers (East Portland Surgery Center / NW Spine & Laser Surgery Center) triggering coverage/cost dispute. Procedures done through PPMC previously: epidurals, stellate ganglion blocks, medial branch blocks (all with sedation + PFA covering 100%)."
+    },
+    {
+      "_sync_id": "mcp-prov-l2m3n4o5",
+      "name": "Tami Ozgul",
+      "specialty": "Case Management",
+      "clinic": "Multnomah County IDD Program",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Monthly email check-ins."
+    },
+    {
+      "_sync_id": "mcp-prov-m3n4o5p6",
+      "name": "Dr. Michael D. Hwang",
+      "specialty": "Orthopedic Surgery",
+      "clinic": "OHSU Orthopedics, Tigard Medical Office",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Performed ORIF right distal radius (2020-10-16) and extensor tendon transfer (2020-12-22). Post-op complete."
+    },
+    {
+      "_sync_id": "mcp-prov-n4o5p6q7",
+      "name": "Bumrungrad International Hospital",
+      "specialty": "International Surgery (Bangkok 2027)",
+      "clinic": "Bumrungrad International Hospital, Bangkok, Thailand",
+      "phone": "",
+      "fax": "crm_email@bumrungrad.com",
+      "portal_url": "",
+      "notes": "Case #19109331. Coordinator: Cherry V. Surgeon: Dr. Seree Iamphongsai. Planned procedures: open rhinoplasty, lip lift, mastopexy (no implants), possible lateral chest lipo + autologous fat transfer to breast. Pending: banana fold correction (right buttock)."
+    },
+    {
+      "_sync_id": "mcp-prov-o5p6q7r8",
+      "name": "Northwest Rheumatology Associates",
+      "specialty": "Rheumatology",
+      "clinic": "Northwest Rheumatology Associates",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "Historical care. Multiple visits 2022-2023."
+    },
+    {
+      "_sync_id": "mcp-prov-p6q7r8s9",
+      "name": "Legacy Health / Legacy Salmon Creek",
+      "specialty": "Multiple (ED, General)",
+      "clinic": "Legacy Salmon Creek, Legacy Health",
+      "phone": "",
+      "fax": "",
+      "portal_url": "",
+      "notes": "ED visit 2024-08-20 for abdominal pain/nausea. Prior PCP care."
+    }
+  ],
+
+  "vitals": [
+    { "_sync_id": "mcp-vital-a1b2", "date": "2026-02-10", "type": "bp", "value": 120, "value2": 72, "unit": "mmHg", "notes": "Left upper arm, OHSU Cardiology, reading 1" },
+    { "_sync_id": "mcp-vital-a1b3", "date": "2026-02-10", "type": "bp", "value": 112, "value2": 72, "unit": "mmHg", "notes": "Left upper arm, OHSU Cardiology, reading 2" },
+    { "_sync_id": "mcp-vital-a1b4", "date": "2026-02-10", "type": "bp", "value": 125, "value2": 78, "unit": "mmHg", "notes": "Left upper arm, OHSU Cardiology, reading 3" },
+    { "_sync_id": "mcp-vital-a1b5", "date": "2026-02-10", "type": "hr", "value": 90, "value2": null, "unit": "bpm", "notes": "OHSU Cardiology" },
+    { "_sync_id": "mcp-vital-a1b6", "date": "2026-02-10", "type": "weight", "value": 68.6, "value2": null, "unit": "kg", "notes": "~151 lbs. Approx 80 lb loss from peak." },
+    { "_sync_id": "mcp-vital-a1b7", "date": "2026-02-10", "type": "glucose", "value": 100, "value2": null, "unit": "%", "notes": "SpO2 100%" },
+    { "_sync_id": "mcp-vital-b2c3", "date": "2025-07-07", "type": "bp", "value": 118, "value2": 77, "unit": "mmHg", "notes": "OHSU Rheumatology" },
+    { "_sync_id": "mcp-vital-b2c4", "date": "2025-07-07", "type": "weight", "value": 73.5, "value2": null, "unit": "kg", "notes": "~162 lbs" },
+    { "_sync_id": "mcp-vital-b2c5", "date": "2025-07-07", "type": "hr", "value": 86, "value2": null, "unit": "bpm", "notes": "" },
+    { "_sync_id": "mcp-vital-b2c6", "date": "2025-07-07", "type": "temp", "value": 36.7, "value2": null, "unit": "C", "notes": "" },
+    { "_sync_id": "mcp-vital-c3d4", "date": "2025-02-06", "type": "weight", "value": 87.9, "value2": null, "unit": "kg", "notes": "~194 lbs. NW Urology." },
+    { "_sync_id": "mcp-vital-d4e5", "date": "2024-12-19", "type": "bp", "value": 105, "value2": 70, "unit": "mmHg", "notes": "NW Urology" },
+    { "_sync_id": "mcp-vital-d4e6", "date": "2024-12-19", "type": "weight", "value": 87.9, "value2": null, "unit": "kg", "notes": "~194 lbs. NW Urology." },
+    { "_sync_id": "mcp-vital-e5f6", "date": "2024-08-20", "type": "bp", "value": 132, "value2": 80, "unit": "mmHg", "notes": "Legacy Salmon Creek ED, sitting" },
+    { "_sync_id": "mcp-vital-e5f7", "date": "2024-08-20", "type": "bp", "value": 144, "value2": 92, "unit": "mmHg", "notes": "Legacy Salmon Creek ED, initial triage" },
+    { "_sync_id": "mcp-vital-e5f8", "date": "2024-08-20", "type": "temp", "value": 35.9, "value2": null, "unit": "C", "notes": "Legacy Salmon Creek ED" },
+    { "_sync_id": "mcp-vital-f6g7", "date": "2023-10-11", "type": "weight", "value": 96.3, "value2": null, "unit": "kg", "notes": "~212 lbs. Sleep study." },
+    { "_sync_id": "mcp-vital-g7h8", "date": "2023-07-19", "type": "weight", "value": 90.7, "value2": null, "unit": "kg", "notes": "~200 lbs." },
+    { "_sync_id": "mcp-vital-h8i9", "date": "2021-07-16", "type": "weight", "value": 101.7, "value2": null, "unit": "kg", "notes": "~224 lbs. Flagged abnormal in records." },
+    { "_sync_id": "mcp-vital-i9j0", "date": "2021-06-08", "type": "bp", "value": 138, "value2": 84, "unit": "mmHg", "notes": "" },
+    { "_sync_id": "mcp-vital-i9j1", "date": "2021-06-08", "type": "weight", "value": 93, "value2": null, "unit": "kg", "notes": "~205 lbs." },
+    { "_sync_id": "mcp-vital-j0k1", "date": "2021-05-24", "type": "bp", "value": 118, "value2": 80, "unit": "mmHg", "notes": "" },
+    { "_sync_id": "mcp-vital-j0k2", "date": "2021-05-24", "type": "weight", "value": 102.1, "value2": null, "unit": "kg", "notes": "~225 lbs. Flagged abnormal." },
+    { "_sync_id": "mcp-vital-k1l2", "date": "2020-10-16", "type": "weight", "value": 86.6, "value2": null, "unit": "kg", "notes": "~191 lbs. Pre-op ORIF." },
+    { "_sync_id": "mcp-vital-k1l3", "date": "2020-10-16", "type": "bp", "value": 133, "value2": 75, "unit": "mmHg", "notes": "Pre-op." },
+    { "_sync_id": "mcp-vital-l2m3", "date": "2020-09-29", "type": "bp", "value": 153, "value2": 92, "unit": "mmHg", "notes": "ED triage, arm injury. Flagged abnormal." }
+  ],
+
+  "appointments": [
+    { "_sync_id": "mcp-appt-a1b2", "date": "2026-02-10", "time": "", "provider": "OHSU Knight Cardiovascular Institute", "location": "Beaverton", "reason": "New patient cardiology — hypertension", "questions": "", "post_notes": "ECG: normal sinus rhythm. BP 120/72. Hypertension diagnosed. Treatment plan not yet established." },
+    { "_sync_id": "mcp-appt-a1b3", "date": "2026-02-02", "time": "", "provider": "OHSU Dermatology (Justin J. Leitenberger)", "location": "CHH Building 1", "reason": "Cosmetic/elective procedure", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-b2c3", "date": "2025-11-21", "time": "", "provider": "OHSU Dermatology (Heather M. Onoday)", "location": "CHH Building 1", "reason": "Cosmetic procedure", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-b2c4", "date": "2025-10-24", "time": "", "provider": "OHSU Dermatology (Heather M. Onoday)", "location": "CHH Building 1", "reason": "Cosmetic procedure", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-b2c5", "date": "2025-09-24", "time": "", "provider": "OHSU Dermatology (Anna Bar)", "location": "CHH Building 1", "reason": "New patient consultation — dermatology", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-b2c6", "date": "2025-09-16", "time": "", "provider": "OHSU Dermatology (Heather M. Onoday)", "location": "CHH Building 1", "reason": "Cosmetic procedure", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-c3d4", "date": "2025-08-29", "time": "", "provider": "OR - Northwest Urology", "location": "Barnes Road", "reason": "Urge incontinence follow-up", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-c3d5", "date": "2025-08-05", "time": "", "provider": "OHSU Dermatology (Heather M. Onoday)", "location": "CHH Building 1", "reason": "Cosmetic procedure", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-d4e5", "date": "2025-07-07", "time": "", "provider": "OHSU Rheumatology (Dr. Gina Ferrero)", "location": "Physicians Pavilion", "reason": "New patient — polyarthralgia, positive ANA", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-e5f6", "date": "2025-04-03", "time": "", "provider": "OHSU Dermatology (Carrie Seid)", "location": "CHH Building 1", "reason": "New patient dermatology consultation", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-f6g7", "date": "2025-02-06", "time": "", "provider": "OR - Northwest Urology", "location": "Barnes Road", "reason": "IC follow-up — cystoscopy", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-g7h8", "date": "2024-12-19", "time": "", "provider": "OR - Northwest Urology", "location": "Barnes Road", "reason": "New patient — urge incontinence and IC", "questions": "", "post_notes": "Bladder scan performed." },
+    { "_sync_id": "mcp-appt-h8i9", "date": "2024-08-20", "time": "", "provider": "Legacy Salmon Creek ED", "location": "Legacy Salmon Creek", "reason": "Abdominal pain, nausea", "questions": "", "post_notes": "CT abdomen/pelvis: no acute findings. IV saline 1L, IV ketorolac 15mg, IV ondansetron 4mg. WBC 18.44 (elevated). Glucose 112 (prediabetic). Discharged to home." },
+    { "_sync_id": "mcp-appt-i9j0", "date": "2023-10-23", "time": "", "provider": "Pacific Sleep Program Portland (Dr. Radhika Breaden)", "location": "Telemedicine", "reason": "Sleep follow-up", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-j0k1", "date": "2023-10-11", "time": "", "provider": "Pacific Sleep Program Portland", "location": "In person", "reason": "Diagnostic polysomnogram (sleep study)", "questions": "", "post_notes": "Sleep study completed. Diagnoses confirmed: UARS, OSA, insomnia, cataplexy, circadian rhythm disorder." },
+    { "_sync_id": "mcp-appt-k1l2", "date": "2022-10-04", "time": "", "provider": "OHSU Neurophysiology / Dr. Alexandra Dimitrova", "location": "Hatfield Research Center", "reason": "Autonomic reflex testing (tilt table)", "questions": "", "post_notes": "Abnormal study. Excessive HR response during tilt (58→99 bpm). Consistent with POTS/deconditioning/anxiety. Clinical correlation suggested." },
+    { "_sync_id": "mcp-appt-l2m3", "date": "2021-04-14", "time": "", "provider": "Oregon Convention Center Mass Vaccination Site", "location": "Oregon Convention Center", "reason": "COVID-19 Pfizer Dose 1", "questions": "", "post_notes": "" },
+    { "_sync_id": "mcp-appt-l2m4", "date": "2021-05-05", "time": "", "provider": "Oregon Convention Center Mass Vaccination Site", "location": "Oregon Convention Center", "reason": "COVID-19 Pfizer Dose 2", "questions": "", "post_notes": "" }
+  ],
+
+  "labs": [
+    { "_sync_id": "mcp-lab-ferr001", "date": "2025-03-01", "test_name": "Ferritin", "result": "97", "unit": "ng/mL", "range": "11-307", "flag": "normal", "provider": "", "notes": "Significant improvement from 15.1 in 2019. Slow Fe 45mg working." },
+    { "_sync_id": "mcp-lab-ferr002", "date": "2024-10-01", "test_name": "Ferritin (approximate)", "result": "41", "unit": "ng/mL", "range": "11-307", "flag": "normal", "provider": "", "notes": "" },
+    { "_sync_id": "mcp-lab-ferr003", "date": "2020-02-10", "test_name": "Ferritin", "result": "36.1", "unit": "ng/mL", "range": "11-307", "flag": "normal", "provider": "The Portland Clinic", "notes": "" },
+    { "_sync_id": "mcp-lab-ferr004", "date": "2019-02-21", "test_name": "Ferritin", "result": "15.1", "unit": "ng/mL", "range": "11-307", "flag": "low-normal", "provider": "The Portland Clinic", "notes": "Functionally deficient." },
+    { "_sync_id": "mcp-lab-vitd001", "date": "2020-02-10", "test_name": "Vitamin D, 25-Hydroxy", "result": "44.6", "unit": "ng/mL", "range": "30-100", "flag": "normal", "provider": "The Portland Clinic", "notes": "Borderline. Outdated — recheck needed." },
+    { "_sync_id": "mcp-lab-vitd002", "date": "2019-02-19", "test_name": "Vitamin D, 25-Hydroxy", "result": "15.6", "unit": "ng/mL", "range": "30-100", "flag": "low", "provider": "The Portland Clinic", "notes": "Deficient in 2019." },
+    { "_sync_id": "mcp-lab-b12001", "date": "2020-02-10", "test_name": "Vitamin B-12", "result": "736", "unit": "pg/mL", "range": "180-914", "flag": "normal", "provider": "The Portland Clinic", "notes": "Outdated — recheck especially given tirzepatide and LDN use." },
+    { "_sync_id": "mcp-lab-tsh001", "date": "2019-02-19", "test_name": "TSH", "result": "0.79", "unit": "uIU/mL", "range": "0.45-5.33", "flag": "normal", "provider": "The Portland Clinic", "notes": "Last done 2019. Significantly overdue." },
+    { "_sync_id": "mcp-lab-tsh002", "date": "2016-04-29", "test_name": "TSH", "result": "1.2", "unit": "uIU/mL", "range": "0.3-5.6", "flag": "normal", "provider": "The Portland Clinic", "notes": "" },
+    { "_sync_id": "mcp-lab-gluc001", "date": "2024-08-20", "test_name": "Glucose (fasting equivalent)", "result": "112", "unit": "mg/dL", "range": "74-99", "flag": "high", "provider": "Legacy Salmon Creek ED", "notes": "PREDIABETIC RANGE. No HbA1c ever ordered. Follow-up not documented." },
+    { "_sync_id": "mcp-lab-wbc001", "date": "2024-08-20", "test_name": "WBC", "result": "18.44", "unit": "x10^3/uL", "range": "4-10", "flag": "high", "provider": "Legacy Salmon Creek ED", "notes": "85% neutrophils (Auto % Neut 85%, H). ABS neutrophils 15.68 (H). Lymphocytes 8.7% (L). Follow-up CBC status unclear." },
+    { "_sync_id": "mcp-lab-ecg001", "date": "2026-02-10", "test_name": "ECG", "result": "Sinus rhythm — NORMAL ECG", "unit": "", "range": "", "flag": "normal", "provider": "OHSU Knight Cardiovascular (Dr. Henrikson)", "notes": "P axis 50°, QRS 89ms, HR 81bpm, QTc-Bazett 432ms." },
+    { "_sync_id": "mcp-lab-ct001", "date": "2024-08-20", "test_name": "CT Abdomen and Pelvis with contrast", "result": "No acute findings", "unit": "", "range": "", "flag": "normal", "provider": "Legacy Salmon Creek / Dr. Haddy Jarmakani", "notes": "All organs unremarkable. Symmetric ovaries. Trace free fluid (physiologic). Normal appendix." },
+    { "_sync_id": "mcp-lab-auto001", "date": "2022-10-04", "test_name": "Autonomic Reflex Study (tilt table / QSWEAT)", "result": "ABNORMAL — excessive HR response during tilt", "unit": "", "range": "", "flag": "abnormal", "provider": "OHSU Dr. Alexandra Dimitrova", "notes": "HR supine 58 → tilt 99 bpm. Cardiovagal normal. Adrenergic BP normal. QSWEAT normal. Conclusion: consistent with POTS, deconditioning, hyperadrenergic state, or anxiety." },
+    { "_sync_id": "mcp-lab-pap001", "date": "2019-07-18", "test_name": "Cervical cytology (Pap smear)", "result": "See report", "unit": "", "range": "", "flag": "normal", "provider": "OR - Northwest Women's Clinic", "notes": "Pap smear 2019. Also: pelvic ultrasound 2019-07-15. Most recent Pap smear completed 2025 or 2026 (per Amber)." },
+    { "_sync_id": "mcp-lab-hep001", "date": "2016-04-29", "test_name": "Hepatitis panel (A IgM, B surface Ag, B core IgM, C Ab) + HIV Ag/Ab", "result": "All Non-Reactive", "unit": "", "range": "", "flag": "normal", "provider": "The Portland Clinic", "notes": "" },
+    { "_sync_id": "mcp-lab-tibc001", "date": "2020-02-10", "test_name": "TIBC / Iron / Iron Saturation", "result": "Iron 172 mcg/dL | TIBC 374 mcg/dL | Sat 46%", "unit": "", "range": "Iron 50-212 | TIBC 220-390 | Sat 15-50%", "flag": "normal", "provider": "The Portland Clinic", "notes": "" },
+    { "_sync_id": "mcp-lab-ana001", "date": "2025-12-05", "test_name": "Positive ANA (antinuclear antibody)", "result": "Positive", "unit": "", "range": "", "flag": "abnormal", "provider": "OHSU Rheumatology", "notes": "Also positive July 2025 (OHSU Rheumatology). Titer and pattern not documented in available records. Follow-up bloodwork reportedly normal per Amber but not confirmed in records." },
+    { "_sync_id": "mcp-lab-xray-wrist001", "date": "2020-09-29", "test_name": "X-ray right wrist/forearm (3 views)", "result": "Acute comminuted distal radial fracture with intra-articular extension, volar displacement ~6mm", "unit": "", "range": "", "flag": "abnormal", "provider": "Tuality Healthcare ED / Dr. Jeremy Cannell", "notes": "Injury date 2020-09-28. ORIF performed 2020-10-16." },
+    { "_sync_id": "mcp-lab-xray-foot001", "date": "2019-11-04", "test_name": "X-ray bilateral feet (3 views each)", "result": "R: very small posterior calcaneal enthesophyte. L: unremarkable. Bilateral: congenital fusion 5th distal IP joint.", "unit": "", "range": "", "flag": "mild-abnormal", "provider": "The Portland Clinic / Dr. Michael Rethy", "notes": "" },
+    { "_sync_id": "mcp-lab-xray-chest001", "date": "2016-02-08", "test_name": "Chest X-ray PA and lateral", "result": "Dextroscoliosis thoracolumbar spine mild-moderate. No acute cardiopulmonary findings.", "unit": "", "range": "", "flag": "abnormal", "provider": "The Portland Clinic / Dr. Thomas Hirsh", "notes": "Cardiac silhouette and pulmonary vascularity within normal limits." },
+    { "_sync_id": "mcp-lab-us-abd001", "date": "2015-09-03", "test_name": "Abdominal ultrasound", "result": "Liver 23cm craniocaudally — possible hepatomegaly or Riedel lobe. Otherwise normal.", "unit": "", "range": "", "flag": "mild-abnormal", "provider": "The Portland Clinic", "notes": "All other structures normal including kidneys, gallbladder, pancreas, spleen, aorta." },
+    { "_sync_id": "mcp-lab-us-pelvis001", "date": "2015-03-24", "test_name": "Transvaginal pelvic ultrasound", "result": "Displaced IUD (lower uterine segment/cervix). Multiple bilateral ovarian cysts <1cm. Collapsed right ovarian cyst 1.7x1.3cm.", "unit": "", "range": "", "flag": "abnormal", "provider": "The Portland Clinic", "notes": "" }
+  ],
+
+  "procedures": [
+    {
+      "_sync_id": "mcp-proc-orif001",
+      "date": "2020-10-16",
+      "name": "ORIF right distal radius (comminuted intra-articular fracture)",
+      "type": "Surgical procedure",
+      "provider": "Dr. Michael D. Hwang",
+      "location": "Alberty Surgical Center",
+      "reason": "Comminuted intra-articular distal radial fracture with displacement",
+      "outcome": "Plate and 8 screws placed. Normal alignment restored. Healed with routine follow-up through June 2021.",
+      "notes": "Hardware in place. Anesthesia: bupivacaine, lidocaine, fentanyl, ondansetron, Zofran, acetaminophen pre-op. Scopolamine patch pre-op. Multiple oxycodone PRN post-op. Hospitalization: same day. First surgery at Alberty Surgical Center."
+    },
+    {
+      "_sync_id": "mcp-proc-tendon001",
+      "date": "2020-12-22",
+      "name": "Transfer of extensor tendon, right hand",
+      "type": "Surgical procedure",
+      "provider": "Dr. Michael D. Hwang",
+      "location": "Alberty Surgical Center",
+      "reason": "Extensor tendon rupture of right hand",
+      "outcome": "Procedure completed. Multiple weeks of occupational therapy follow-up.",
+      "notes": "Anesthesia agents used: bupivacaine, lidocaine, fentanyl, hydromorphone, meperidine, ondansetron, promethazine, cefazolin, LR. Post-op OT at OHSU Rehabilitation, Tigard through mid-2021."
+    },
+    {
+      "_sync_id": "mcp-proc-auto001",
+      "date": "2022-10-04",
+      "name": "Autonomic reflex testing (tilt table + QSWEAT)",
+      "type": "Diagnostic procedure",
+      "provider": "Dr. Alexandra Dimitrova (OHSU)",
+      "location": "Neurophysiology EMG, Hatfield Research Center, OHSU",
+      "reason": "Evaluation for POTS / autonomic dysfunction",
+      "outcome": "Abnormal — excessive HR response to tilt. Cardiovagal and QSWEAT normal.",
+      "notes": "Referred by Dr. Brian Little. Medications withheld pre-test: Doxazosin 5 days, Propranolol 1 day, Zoloft 5 days."
+    },
+    {
+      "_sync_id": "mcp-proc-sleep001",
+      "date": "2023-10-11",
+      "name": "Diagnostic polysomnogram",
+      "type": "Diagnostic procedure",
+      "provider": "Dr. Radhika Breaden",
+      "location": "Pacific Sleep Program Portland",
+      "reason": "Sleep-disordered breathing, UARS, hypersomnia, possible cataplexy",
+      "outcome": "Diagnoses confirmed: UARS, OSA, chronic insomnia, cataplexy, circadian rhythm disorder (DSPD), hypersomnia.",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-proc-cystoscopy001",
+      "date": "2025-02-06",
+      "name": "Cystoscopy (CPT 52000)",
+      "type": "Diagnostic procedure",
+      "provider": "NW Urology",
+      "location": "OR - Northwest Urology, Barnes Road",
+      "reason": "Interstitial cystitis follow-up",
+      "outcome": "Completed.",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-proc-bladder001",
+      "date": "2024-12-19",
+      "name": "Bladder scan / post-void residual (CPT 51798)",
+      "type": "Diagnostic procedure",
+      "provider": "NW Urology",
+      "location": "OR - Northwest Urology, Barnes Road",
+      "reason": "New patient evaluation — urge incontinence and IC",
+      "outcome": "Completed.",
+      "notes": ""
+    },
+    {
+      "_sync_id": "mcp-proc-mbb001",
+      "date": "2025-12-12",
+      "name": "Diagnostic medial branch blocks L4, L5, S1 (bilateral)",
+      "type": "Diagnostic pain procedure",
+      "provider": "Dr. Stapleton",
+      "location": "Providence Medical Center Portland (PPMC)",
+      "reason": "Diagnostic for RFA candidacy — chronic lower back/hip pain",
+      "outcome": "Successful — positive response confirming RFA candidacy.",
+      "notes": "Performed with sedation/MAC anesthesia. PFA covered 100% facility cost. This procedure is the basis for RFA appeal — RFA denied/inaccessible due to Dr. Stapleton moving procedures to independent surgery centers not honoring PFA."
+    },
+    {
+      "_sync_id": "mcp-proc-stellate001",
+      "date": "",
+      "name": "Stellate ganglion blocks (historical, multiple)",
+      "type": "Pain/psychiatric procedure",
+      "provider": "Dr. Stapleton",
+      "location": "Providence Medical Center Portland (PPMC)",
+      "reason": "C-PTSD and pain management",
+      "outcome": "Effective when performed. Currently inaccessible due to insurance/provider dispute.",
+      "notes": "All procedures at PPMC were done with sedation + PFA covering 100% facility cost. Access disrupted late 2025."
+    }
+  ],
+
+  "immunizations": [
+    {
+      "_sync_id": "mcp-imm-covid1",
+      "date": "2021-04-14",
+      "name": "COVID-19 Pfizer mRNA (dose 1)",
+      "dose": "0.3 mL",
+      "site": "Left deltoid",
+      "lot_number": "EW0169",
+      "provider": "Kimberly Garrett",
+      "location": "Oregon Convention Center Mass Vaccination Site"
+    },
+    {
+      "_sync_id": "mcp-imm-covid2",
+      "date": "2021-05-05",
+      "name": "COVID-19 Pfizer mRNA (dose 2)",
+      "dose": "0.3 mL",
+      "site": "Left deltoid",
+      "lot_number": "EW0179",
+      "provider": "Steve L Gordon, MD",
+      "location": "Oregon Convention Center Mass Vaccination Site"
+    }
+  ],
+
+  "care_gaps": [
+    { "_sync_id": "mcp-gap-hba1c", "category": "Lab — never done", "item": "HbA1c", "last_done": "never", "urgency": "needs prompt attention", "notes": "Fasting glucose 112 mg/dL in Aug 2024 (prediabetic range). HbA1c has never been ordered." },
+    { "_sync_id": "mcp-gap-tsh", "category": "Lab — severely outdated", "item": "TSH (thyroid)", "last_done": "2019-02-19", "urgency": "worth raising at next appointment", "notes": "Last done 2019. Overdue." },
+    { "_sync_id": "mcp-gap-testosterone", "category": "Lab — never done", "item": "Testosterone (free + total)", "last_done": "never", "urgency": "worth raising at next appointment", "notes": "Relevant to PCOS workup." },
+    { "_sync_id": "mcp-gap-lhfsh", "category": "Lab — never done", "item": "LH / FSH", "last_done": "never", "urgency": "worth raising at next appointment", "notes": "Relevant to PCOS workup." },
+    { "_sync_id": "mcp-gap-fastinginsulin", "category": "Lab — never done", "item": "Fasting insulin", "last_done": "never", "urgency": "worth raising at next appointment", "notes": "Relevant to PCOS and prediabetes workup." },
+    { "_sync_id": "mcp-gap-lipids", "category": "Lab — never done", "item": "Lipid panel", "last_done": "never", "urgency": "needs prompt attention", "notes": "Never in records. Relevant to hypertension and tirzepatide monitoring." },
+    { "_sync_id": "mcp-gap-magnesium", "category": "Lab — never done", "item": "Magnesium serum", "last_done": "never", "urgency": "routine", "notes": "" },
+    { "_sync_id": "mcp-gap-crp", "category": "Lab — severely outdated", "item": "CRP / ESR (inflammation markers)", "last_done": "2014", "urgency": "worth raising at next appointment", "notes": "Last 2014. Relevant to ANA/polyarthralgia workup." },
+    { "_sync_id": "mcp-gap-cortisol", "category": "Lab — never done", "item": "AM cortisol", "last_done": "never", "urgency": "worth raising at next appointment", "notes": "" },
+    { "_sync_id": "mcp-gap-anatiter", "category": "Lab — incomplete", "item": "ANA titer and pattern", "last_done": "2025-12 (positive but no titer/pattern documented)", "urgency": "needs prompt attention", "notes": "ANA positive July and December 2025 but titer and pattern never documented in records." },
+    { "_sync_id": "mcp-gap-vitd", "category": "Lab — outdated", "item": "Vitamin D recheck", "last_done": "2020-02-10 (44.6 ng/mL)", "urgency": "routine", "notes": "" },
+    { "_sync_id": "mcp-gap-b12", "category": "Lab — outdated", "item": "B12 recheck", "last_done": "2020 (736 pg/mL)", "urgency": "routine", "notes": "Especially relevant given tirzepatide and LDN use." },
+    { "_sync_id": "mcp-gap-flu", "category": "Immunization — overdue", "item": "Influenza vaccine", "last_done": "2011", "urgency": "needs prompt attention", "notes": "~15 years ago. Due annually." },
+    { "_sync_id": "mcp-gap-tdap", "category": "Immunization — overdue", "item": "Tdap", "last_done": "2008", "urgency": "needs prompt attention", "notes": "17+ years ago. Due every 10 years." },
+    { "_sync_id": "mcp-gap-rsv", "category": "Immunization — not on record", "item": "RSV vaccine", "last_done": "never", "urgency": "routine", "notes": "" },
+    { "_sync_id": "mcp-gap-shingles", "category": "Immunization — not on record", "item": "Shingles vaccine (Shingrix)", "last_done": "never", "urgency": "worth raising at next appointment", "notes": "Recommended 19+ for immunocompromised individuals." },
+    { "_sync_id": "mcp-gap-covidbooster", "category": "Immunization — outdated", "item": "COVID-19 booster(s)", "last_done": "2021-05-05 (primary series only)", "urgency": "needs prompt attention", "notes": "Only original 2-dose primary series. No boosters on record." },
+    { "_sync_id": "mcp-gap-pap", "category": "Screening", "item": "Pap smear", "last_done": "2025 or 2026 (per Amber)", "urgency": "completed", "notes": "Recent." },
+    { "_sync_id": "mcp-gap-colonoscopy", "category": "Screening", "item": "Colonoscopy", "last_done": "never", "urgency": "routine", "notes": "Not due until 45, but GI surgery history and rectal bleeding history noted." },
+    { "_sync_id": "mcp-gap-dexa", "category": "Screening", "item": "DEXA (bone density)", "last_done": "never", "urgency": "worth raising at next appointment", "notes": "Not due until 65 typically, but worth discussing given long-term fludrocortisone use." },
+    { "_sync_id": "mcp-gap-hsvantiviral", "category": "Treatment gap", "item": "Suppressive antiviral for HSV (genital herpes)", "last_done": "never current", "urgency": "worth raising at next appointment", "notes": "Active diagnosis, no suppressive antiviral in current medication list." },
+    { "_sync_id": "mcp-gap-cromolyn", "category": "Medication — pending", "item": "Cromolyn sodium (mast cell stabilizer for IC/MCAS)", "last_done": "never", "urgency": "routine", "notes": "Remind Amber to raise with provider after adequate Gemtesa trial." },
+    { "_sync_id": "mcp-gap-famotidinerx", "category": "Medication — pending Rx", "item": "Famotidine prescription through OHP", "last_done": "requested via MyChart", "urgency": "routine", "notes": "Currently OTC. Attempting to get prescribed." }
+  ],
+
+  "anesthesia_flags": [
+    {
+      "_sync_id": "mcp-anes-heds",
+      "condition": "hEDS — local anesthetic resistance",
+      "implication": "~88% local anesthetic failure rate (Schubart 2019). Standard local-only sedation will not work.",
+      "action_required": "MAC (Monitored Anesthesia Care) or general anesthesia required for ALL procedures. Document on all pre-procedure intake forms."
+    },
+    {
+      "_sync_id": "mcp-anes-dysauto",
+      "condition": "Dysautonomia — hemodynamic instability",
+      "implication": "Risk of hemodynamic instability under anesthesia.",
+      "action_required": "Careful fluid and vasopressor management required. Communicate to anesthesia team in advance."
+    },
+    {
+      "_sync_id": "mcp-anes-mcas",
+      "condition": "MCAS — elevated anesthetic reaction risk",
+      "implication": "Risk of anaphylactoid or mast cell-mediated reaction to anesthetic agents.",
+      "action_required": "Pre-medication protocol required before induction: H1 antihistamine + H2 antihistamine + corticosteroids. Avoid known MCAS triggers."
+    },
+    {
+      "_sync_id": "mcp-anes-asd",
+      "condition": "Autism Spectrum Disorder — severe procedural anxiety",
+      "implication": "Sensory processing differences; standard pre-procedure communication insufficient.",
+      "action_required": "Hospital-grade sedation required. Written communication preferences. Document explicitly on all intake forms."
+    },
+    {
+      "_sync_id": "mcp-anes-auvelity",
+      "condition": "Auvelity (dextromethorphan/bupropion) — NMDA antagonist",
+      "implication": "DXM component interacts with ketamine-based anesthetic agents. Bupropion lowers seizure threshold.",
+      "action_required": "Flag for ALL anesthesia teams. Discuss specific agents with prescriber. Bupropion may also elevate BP."
+    },
+    {
+      "_sync_id": "mcp-anes-ldn",
+      "condition": "LDN (low-dose naltrexone) — opioid antagonist",
+      "implication": "Will block opioid-based post-operative pain management if not held.",
+      "action_required": "Must hold LDN before surgery. Confirm hold timeline with prescriber (Dr. Brian Little)."
+    },
+    {
+      "_sync_id": "mcp-anes-tirzepatide",
+      "condition": "Tirzepatide (GLP-1/GIP agonist) — delayed gastric emptying",
+      "implication": "Aspiration risk if not held before surgery.",
+      "action_required": "Hold tirzepatide minimum 1 week before any procedure. Do not schedule surgery during active weight loss phase."
+    },
+    {
+      "_sync_id": "mcp-anes-adderall",
+      "condition": "Adderall (amphetamine) — cardiovascular effects",
+      "implication": "Cardiovascular effects and vasopressor interactions.",
+      "action_required": "Hold 24-48 hours pre-procedure. Plan cognitively for surgery prep without medication."
+    },
+    {
+      "_sync_id": "mcp-anes-mrsa",
+      "condition": "MRSA carrier",
+      "implication": "Risk of surgical site infection and transmission.",
+      "action_required": "Flag for all surgical teams. Decolonization protocol may be needed pre-operatively."
+    },
+    {
+      "_sync_id": "mcp-anes-foreignobj",
+      "condition": "History of foreign object rejection",
+      "implication": "Risk of rejection of implants, mesh, anchors, or hardware.",
+      "action_required": "Flag for any procedure involving implantable materials."
+    },
+    {
+      "_sync_id": "mcp-anes-hs",
+      "condition": "Hidradenitis Suppurativa — posterior/backs of thighs",
+      "implication": "Active HS near potential surgical/positioning sites.",
+      "action_required": "Flag for any procedure requiring positioning near posterior thighs."
+    },
+    {
+      "_sync_id": "mcp-anes-blooddraw",
+      "condition": "Difficult blood draws",
+      "implication": "Multiple attempts typically required.",
+      "action_required": "Use leg elevation and hot pack on arm. Severe procedural anxiety — document explicitly. Allow extra time and staffing."
+    }
+  ],
+
+  "appeals_and_disputes": [
+    {
+      "_sync_id": "mcp-appeal-rfa001",
+      "date_filed": "2026-02-04",
+      "subject": "Radiofrequency Ablation (RFA) L4/L5/S1 — access and financial assistance dispute",
+      "against": "Providence Health Assurance / Health Share of Oregon (CareOregon CCO)",
+      "status": "Active — escalated",
+      "deadline": "2026-05-02 (appeal deadline, approximately)",
+      "notes": "Core issue: Dr. Stapleton moved RFA from PPMC (where PFA covered 100% facility cost) to East Portland Surgery Center and NW Spine & Laser Surgery Center, which do not honor Providence Financial Assistance. Upfront demand: $3,116.19. Amber is on SSI/OHP. Formal grievances filed with OHA Ombuds and Providence Grievance on 2026-03-04. Health Share response letter (2026-03-03) acknowledged facts but offered no resolution. Contradictory statements: said both 'PPMC no longer allowing RFA' AND 'procedure not approved by Plan.' Follow-up escalation email sent 2026-03-13 with 10-day deadline. No response by 2026-03-25. Formal appeal v2 drafted 2026-03-25. Legal angles: ADA Title II, Section 1557 ACA, Section 504, OAR 410-141-3515, network adequacy. New provider options from nurse (2026-03-25): Pain Care Specialists and Columbia Pain Management — need to verify if they do all 3 procedures + sedation + hospital setting + PFA. CareOregon contact: Wendy (503-416-4100)."
+    },
+    {
+      "_sync_id": "mcp-appeal-hhs001",
+      "date_filed": "2026-03-25",
+      "subject": "HHS OCR Complaint — ADA/Section 504/Section 1557 re: pain management access",
+      "against": "Providence Health & Services Oregon / Health Share of Oregon",
+      "status": "Draft — not yet filed",
+      "deadline": "",
+      "notes": "Drafted 2026-03-25. Document: Amber_Haddock_HHS_OCR_Complaint_2026-03-25.docx in Healthcare folder."
+    }
+  ],
+
+  "surgical_planning": [
+    {
+      "_sync_id": "mcp-surg-bangkok001",
+      "facility": "Bumrungrad International Hospital, Bangkok, Thailand",
+      "surgeon": "Dr. Seree Iamphongsai",
+      "coordinator": "Cherry V. (crm_email@bumrungrad.com)",
+      "case_number": "19109331",
+      "procedures": [
+        "Open rhinoplasty",
+        "Lip lift",
+        "Mastopexy — no implants; possibly with lateral chest liposuction and autologous fat transfer to breast",
+        "Banana fold correction (right buttock) — pending decision"
+      ],
+      "procedures_not_on_list": [
+        "Facial fat grafting (removed from plan)",
+        "Knee liposuction (removed from plan)",
+        "Botox for hyperhidrosis (saved for consideration, not scheduled)"
+      ],
+      "target_date": "2027",
+      "accommodation": "137 Pillars Residences Bangkok (minimum 14 nights, up to 21)",
+      "constraints": [
+        "Must be at stable goal weight for at least 6 months before surgery",
+        "Weight loss via tirzepatide ongoing — do not schedule surgery during active loss phase",
+        "Surgical clearance to fly required before return to US West Coast post-op",
+        "LDN hold required pre-op",
+        "Tirzepatide hold required 1 week pre-op",
+        "Adderall hold required 24-48 hrs pre-op",
+        "Full MCAS pre-medication protocol required",
+        "hEDS local anesthetic resistance — MAC or general required",
+        "MRSA carrier — flag for surgical team, decolonization may be needed",
+        "Foreign object rejection history — relevant if any anchors used",
+        "Dysautonomia — hemodynamic monitoring required under anesthesia"
+      ],
+      "outstanding_items": [
+        "US-based post-op follow-up provider",
+        "Medical tourism travel insurance",
+        "VitalLife wellness center comprehensive workup (under consideration during same trip)",
+        "Dental care during trip (under consideration)",
+        "Botox for hyperhidrosis (under consideration during trip)"
+      ],
+      "status": "Planning phase"
+    }
+  ],
+
+  "insurance": [
+    {
+      "_sync_id": "mcp-ins-ohp",
+      "name": "Oregon Health Plan (OHP)",
+      "type": "Medicaid",
+      "member_id": "",
+      "group": "CareOregon CCO",
+      "phone": "503-416-4100 (Wendy at CareOregon)",
+      "notes": "Primary coverage. Providence Financial Assistance (PFA) at 100% for Providence facilities. PFA does NOT apply to East Portland Surgery Center or NW Spine & Laser Surgery Center."
+    },
+    {
+      "_sync_id": "mcp-ins-pfa",
+      "name": "Providence Financial Assistance",
+      "type": "Hospital charity care",
+      "member_id": "",
+      "group": "Providence Health & Services Oregon",
+      "phone": "",
+      "notes": "100% coverage for facility fees at Providence-affiliated facilities. Does not extend to independent surgery centers. Central to RFA access dispute."
+    }
+  ],
+
+  "journal_entries": []
+}
