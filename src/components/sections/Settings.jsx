@@ -163,7 +163,32 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       <SectionTitle>Profile</SectionTitle>
       <Card>
         <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
+        <Field label="Date of Birth" value={s.dob || ''} onChange={v => set('dob', v)} type="date" />
+        <Field label="Sex" value={s.sex || ''} onChange={v => set('sex', v)} options={[
+          { value: '', label: 'Select...' },
+          { value: 'female', label: 'Female' },
+          { value: 'male', label: 'Male' },
+          { value: 'intersex', label: 'Intersex' },
+          { value: 'prefer-not', label: 'Prefer not to say' },
+        ]} />
+        <Field label="Height" value={s.height || ''} onChange={v => set('height', v)} placeholder="e.g. 5'6&quot; or 168cm" />
+        <Field label="Blood Type" value={s.blood_type || ''} onChange={v => set('blood_type', v)} options={[
+          { value: '', label: 'Select...' },
+          { value: 'A+', label: 'A+' }, { value: 'A-', label: 'A-' },
+          { value: 'B+', label: 'B+' }, { value: 'B-', label: 'B-' },
+          { value: 'AB+', label: 'AB+' }, { value: 'AB-', label: 'AB-' },
+          { value: 'O+', label: 'O+' }, { value: 'O-', label: 'O-' },
+          { value: 'unknown', label: 'Unknown' },
+        ]} />
         <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
+        <Field label="Primary Care Provider" value={s.primary_provider || ''} onChange={v => set('primary_provider', v)} placeholder="Dr. Name" />
+      </Card>
+
+      <SectionTitle>Emergency Contact</SectionTitle>
+      <Card>
+        <Field label="Contact Name" value={s.emergency_name || ''} onChange={v => set('emergency_name', v)} placeholder="Full name" />
+        <Field label="Phone" value={s.emergency_phone || ''} onChange={v => set('emergency_phone', v)} type="tel" placeholder="(555) 555-5555" />
+        <Field label="Relationship" value={s.emergency_relationship || ''} onChange={v => set('emergency_relationship', v)} placeholder="e.g. Spouse, Parent, Sibling" />
       </Card>
 
       <SectionTitle>AI Companion</SectionTitle>

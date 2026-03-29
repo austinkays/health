@@ -4,20 +4,24 @@ export const EMPTY_MED = {
   name: '', dose: '', frequency: '', route: 'Oral',
   prescriber: '', pharmacy: '', start_date: '', purpose: '',
   refill_date: '', active: true, notes: '',
+  time_of_day: '', quantity: '', days_supply: '', manufacturer: '', prior_auth: '',
 };
 
 export const EMPTY_CONDITION = {
   name: '', diagnosed_date: '', status: 'active',
   provider: '', linked_meds: '', notes: '',
+  icd10: '', severity: '', facility: '',
 };
 
 export const EMPTY_ALLERGY = {
   substance: '', reaction: '', severity: 'moderate', notes: '',
+  type: '', onset_date: '', confirmed_by: '',
 };
 
 export const EMPTY_PROVIDER = {
   name: '', specialty: '', clinic: '',
   phone: '', fax: '', portal_url: '', notes: '',
+  address: '', city: '', state: '', zip: '', email: '', npi: '', accepted_insurance: '',
 };
 
 export const EMPTY_VITAL = {
@@ -28,6 +32,7 @@ export const EMPTY_VITAL = {
 export const EMPTY_APPOINTMENT = {
   date: '', time: '', provider: '', location: '',
   reason: '', questions: '', post_notes: '',
+  visit_type: '', telehealth_url: '', linked_condition: '',
 };
 
 export const EMPTY_JOURNAL = {
@@ -39,6 +44,9 @@ export const DEFAULT_SETTINGS = {
   name: '', location: '', ai_mode: 'onDemand',
   pharmacy: '', insurance_plan: '', insurance_id: '',
   insurance_group: '', insurance_phone: '', health_background: '',
+  dob: '', sex: '', height: '', blood_type: '',
+  emergency_name: '', emergency_phone: '', emergency_relationship: '',
+  primary_provider: '',
 };
 
 // Vital types reference

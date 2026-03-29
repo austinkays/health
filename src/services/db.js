@@ -162,6 +162,9 @@ export const db = {
         name: '', location: '', pharmacy: '',
         insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '',
         health_background: '', ai_mode: 'onDemand',
+        dob: '', sex: '', height: '', blood_type: '',
+        emergency_name: '', emergency_phone: '', emergency_relationship: '',
+        primary_provider: '',
       }).eq('id', uid),
     ]);
   },

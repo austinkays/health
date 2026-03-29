@@ -36,9 +36,23 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" required />
         <Field label="Time" value={form.time} onChange={v => sf('time', v)} type="time" />
+        <Field label="Visit Type" value={form.visit_type} onChange={v => sf('visit_type', v)} options={[
+          { value: '', label: 'Select...' },
+          { value: 'in-person', label: 'In-Person' },
+          { value: 'telehealth', label: 'Telehealth / Video' },
+          { value: 'phone', label: 'Phone Call' },
+          { value: 'lab', label: 'Lab Work' },
+          { value: 'imaging', label: 'Imaging / Scan' },
+          { value: 'procedure', label: 'Procedure' },
+          { value: 'emergency', label: 'Emergency / Urgent' },
+        ]} />
         <Field label="Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
         <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Clinic, hospital..." />
+        {(form.visit_type === 'telehealth') && (
+          <Field label="Telehealth Link" value={form.telehealth_url} onChange={v => sf('telehealth_url', v)} placeholder="https://zoom.us/..." />
+        )}
         <Field label="Reason" value={form.reason} onChange={v => sf('reason', v)} placeholder="Follow-up, labs..." />
+        <Field label="Related Condition" value={form.linked_condition} onChange={v => sf('linked_condition', v)} placeholder="e.g. Fibromyalgia follow-up" />
         <Field label="Questions to Ask" value={form.questions} onChange={v => sf('questions', v)} textarea placeholder="Things to bring up..." />
         <Field label="Post-Visit Notes" value={form.post_notes} onChange={v => sf('post_notes', v)} textarea placeholder="What happened..." />
         <div className="flex gap-2">
@@ -69,8 +83,12 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
             <Card key={a.id} style={{ borderLeft: `3px solid ${C.sage}` }}>
               <div className="flex justify-between">
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
+                    {a.visit_type && <span className="text-[10px] px-1.5 py-0.5 rounded bg-salve-lav/15 text-salve-lavDim">{a.visit_type}</span>}
+                  </div>
                   <div className="text-xs text-salve-textMid mt-0.5">{a.provider}{a.location ? ` · ${a.location}` : ''}</div>
+                  {a.linked_condition && <div className="text-xs text-salve-lav mt-0.5">Re: {a.linked_condition}</div>}
                   {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">📝 {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">

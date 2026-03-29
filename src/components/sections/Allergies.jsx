@@ -40,12 +40,23 @@ export default function Allergies({ data, addItem, updateItem, removeItem }) {
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Allergy`} onBack={() => { setSubView(null); setForm(EMPTY_ALLERGY); setEditId(null); }}>
       <Card>
         <Field label="Substance" value={form.substance} onChange={v => sf('substance', v)} placeholder="e.g. Penicillin, Latex" required />
+        <Field label="Allergen Type" value={form.type} onChange={v => sf('type', v)} options={[
+          { value: '', label: 'Select type...' },
+          { value: 'drug', label: 'Drug / Medication' },
+          { value: 'food', label: 'Food' },
+          { value: 'environmental', label: 'Environmental' },
+          { value: 'insect', label: 'Insect' },
+          { value: 'latex', label: 'Latex' },
+          { value: 'other', label: 'Other' },
+        ]} />
         <Field label="Reaction" value={form.reaction} onChange={v => sf('reaction', v)} placeholder="e.g. Hives, anaphylaxis" />
         <Field label="Severity" value={form.severity} onChange={v => sf('severity', v)} options={[
           { value: 'mild', label: 'Mild' },
           { value: 'moderate', label: 'Moderate' },
           { value: 'severe', label: 'Severe — Anaphylaxis' },
         ]} />
+        <Field label="Onset Date" value={form.onset_date} onChange={v => sf('onset_date', v)} type="date" />
+        <Field label="Confirmed By" value={form.confirmed_by} onChange={v => sf('confirmed_by', v)} placeholder="Dr. Name or allergy test" />
         <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Cross-sensitivities..." />
         <div className="flex gap-2">
           <Button onClick={saveAl} disabled={!form.substance.trim()}><Check size={15} /> Save</Button>
@@ -71,7 +82,9 @@ export default function Allergies({ data, addItem, updateItem, removeItem }) {
                     <span className="text-[15px] font-semibold text-salve-text">{a.substance}</span>
                     <Badge label={a.severity} color={s.c} bg={s.bg} />
                   </div>
+                  {a.type && <div className="text-xs text-salve-textMid">Type: {a.type}</div>}
                   {a.reaction && <div className="text-xs text-salve-textMid">Reaction: {a.reaction}</div>}
+                  {a.confirmed_by && <div className="text-xs text-salve-textFaint">Confirmed by: {a.confirmed_by}</div>}
                   {a.notes && <div className="text-xs text-salve-textFaint mt-0.5">{a.notes}</div>}
                 </div>
                 <div className="flex gap-2">

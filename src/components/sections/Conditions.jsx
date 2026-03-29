@@ -42,6 +42,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Condition`} onBack={() => { setSubView(null); setForm(EMPTY_CONDITION); setEditId(null); }}>
       <Card>
         <Field label="Condition / Diagnosis" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Fibromyalgia" required />
+        <Field label="ICD-10 Code" value={form.icd10} onChange={v => sf('icd10', v)} placeholder="e.g. M79.7, G43.909" />
         <Field label="Date Diagnosed" value={form.diagnosed_date} onChange={v => sf('diagnosed_date', v)} type="date" />
         <Field label="Status" value={form.status} onChange={v => sf('status', v)} options={[
           { value: 'active', label: 'Active' },
@@ -49,7 +50,15 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
           { value: 'remission', label: 'In Remission' },
           { value: 'resolved', label: 'Resolved' },
         ]} />
+        <Field label="Severity / Stage" value={form.severity} onChange={v => sf('severity', v)} options={[
+          { value: '', label: 'Not specified' },
+          { value: 'mild', label: 'Mild' },
+          { value: 'moderate', label: 'Moderate' },
+          { value: 'severe', label: 'Severe' },
+          { value: 'critical', label: 'Critical' },
+        ]} />
         <Field label="Treating Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
+        <Field label="Treating Facility" value={form.facility} onChange={v => sf('facility', v)} placeholder="Hospital or clinic name" />
         <Field label="Related Medications" value={form.linked_meds} onChange={v => sf('linked_meds', v)} placeholder="Meds for this condition" />
         <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="History, triggers..." />
         <div className="flex gap-2">
@@ -76,8 +85,11 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                     <span className="text-[15px] font-semibold text-salve-text">{c.name}</span>
                     <Badge label={c.status} color={st.c} bg={st.bg} />
                   </div>
+                  {c.icd10 && <div className="text-[11px] text-salve-textFaint font-mono">ICD-10: {c.icd10}</div>}
                   {c.diagnosed_date && <div className="text-xs text-salve-textMid">Diagnosed: {fmtDate(c.diagnosed_date)}</div>}
+                  {c.severity && <div className="text-xs text-salve-textMid">Severity: {c.severity}</div>}
                   {c.provider && <div className="text-xs text-salve-textMid">Provider: {c.provider}</div>}
+                  {c.facility && <div className="text-xs text-salve-textMid">Facility: {c.facility}</div>}
                   {c.linked_meds && <div className="text-xs text-salve-sage mt-0.5">Meds: {c.linked_meds}</div>}
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
                 </div>

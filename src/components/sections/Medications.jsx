@@ -42,11 +42,32 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
+        <Field label="Time of Day" value={form.time_of_day} onChange={v => sf('time_of_day', v)} options={[
+          { value: '', label: 'Any / Not specified' },
+          { value: 'morning', label: 'Morning' },
+          { value: 'afternoon', label: 'Afternoon' },
+          { value: 'evening', label: 'Evening' },
+          { value: 'bedtime', label: 'Bedtime' },
+          { value: 'with-meals', label: 'With meals' },
+          { value: 'multiple', label: 'Multiple times' },
+        ]} />
         <Field label="Prescriber" value={form.prescriber} onChange={v => sf('prescriber', v)} placeholder="Dr. Name" />
         <Field label="Pharmacy" value={form.pharmacy} onChange={v => sf('pharmacy', v)} placeholder="Pharmacy name" />
         <Field label="Purpose / Condition" value={form.purpose} onChange={v => sf('purpose', v)} placeholder="What is this for?" />
+        <Field label="Manufacturer / Brand" value={form.manufacturer} onChange={v => sf('manufacturer', v)} placeholder="e.g. Pfizer, generic" />
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Quantity" value={form.quantity} onChange={v => sf('quantity', v)} placeholder="e.g. 30 tablets" />
+          <Field label="Days Supply" value={form.days_supply} onChange={v => sf('days_supply', v)} placeholder="e.g. 30, 90" />
+        </div>
         <Field label="Start Date" value={form.start_date} onChange={v => sf('start_date', v)} type="date" />
         <Field label="Next Refill" value={form.refill_date} onChange={v => sf('refill_date', v)} type="date" />
+        <Field label="Prior Authorization" value={form.prior_auth} onChange={v => sf('prior_auth', v)} options={[
+          { value: '', label: 'Not applicable' },
+          { value: 'approved', label: 'Approved' },
+          { value: 'pending', label: 'Pending' },
+          { value: 'denied', label: 'Denied' },
+          { value: 'appealing', label: 'Appealing' },
+        ]} />
         <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Side effects, instructions..." />
         <div className="flex items-center gap-2 mb-4">
           <input type="checkbox" checked={form.active !== false} onChange={e => sf('active', e.target.checked)} id="medActive" />
@@ -108,6 +129,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency, m.route].filter(Boolean).join(' · ')}</div>
                 {m.purpose && <div className="text-xs text-salve-textFaint mt-0.5">For: {m.purpose}</div>}
                 {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
+                {m.manufacturer && <div className="text-xs text-salve-textFaint">Mfr: {m.manufacturer}</div>}
+                {m.prior_auth && m.prior_auth !== '' && <div className={`text-xs mt-0.5 font-medium ${m.prior_auth === 'approved' ? 'text-salve-sage' : m.prior_auth === 'denied' ? 'text-salve-rose' : 'text-salve-amber'}`}>PA: {m.prior_auth}</div>}
                 {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
               </div>
               <div className="flex gap-2">
