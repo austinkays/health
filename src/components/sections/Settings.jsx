@@ -1,11 +1,12 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, RefreshCw, Loader2 } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
+import { generateHealthSummary } from '../../services/ai';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -24,6 +25,11 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   const [exportError, setExportError] = useState(null);
   const [importPassphrase, setImportPassphrase] = useState('');
   const fileInputRef = useRef(null);
+
+  // AI Health Summary state
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [summaryError, setSummaryError] = useState(null);
+  const [showPostImportPrompt, setShowPostImportPrompt] = useState(false);
 
   function handleFileSelect(e) {
     const file = e.target.files?.[0];
@@ -93,6 +99,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         );
 
         await reloadData();
+        if (hasAIConsent()) setShowPostImportPrompt(true);
       } else {
         await importRestore(importValidation.normalized);
         setImportResult('Full restore complete. Reloading...');
@@ -146,6 +153,23 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       setExportPassphrase('');
     } catch {
       setExportError('Encryption failed.');
+    }
+  }
+
+  async function handleGenerateSummary() {
+    setGeneratingSummary(true);
+    setSummaryError(null);
+    try {
+      const summary = await generateHealthSummary(data);
+      await updateSettings({
+        ai_health_summary: summary,
+        ai_summary_updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      setSummaryError('Failed to generate summary: ' + e.message);
+    } finally {
+      setGeneratingSummary(false);
+      setShowPostImportPrompt(false);
     }
   }
 
@@ -214,9 +238,100 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
       </Card>
 
       <SectionTitle>Health Background</SectionTitle>
+
+      {/* AI-Generated Health Summary */}
       <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={14} className="text-salve-lav" />
+          <span className="text-[13px] font-medium text-salve-text">AI Health Summary</span>
+        </div>
+        <p className="text-xs text-salve-textMid mb-3 leading-relaxed italic">
+          Auto-generated from all your health data. Cross-references conditions, medications, labs, and more to build a complete picture for the AI.
+        </p>
+
+        {s.ai_health_summary ? (
+          <>
+            <div className="bg-salve-bg border border-salve-border rounded-lg p-3 mb-3 max-h-64 overflow-y-auto">
+              <p className="text-[13px] text-salve-text leading-relaxed whitespace-pre-wrap">{s.ai_health_summary}</p>
+            </div>
+            {s.ai_summary_updated_at && (
+              <p className="text-[11px] text-salve-textFaint mb-3">
+                Last updated: {new Date(s.ai_summary_updated_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}
+              </p>
+            )}
+            <button
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary || !hasAIConsent()}
+              className="w-full py-2.5 rounded-lg bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm
+                hover:bg-salve-border transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              {generatingSummary ? (
+                <><Loader2 size={14} className="animate-spin" /> Regenerating...</>
+              ) : (
+                <><RefreshCw size={14} /> Regenerate Summary</>
+              )}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handleGenerateSummary}
+            disabled={generatingSummary || !hasAIConsent()}
+            className="w-full py-3 rounded-xl bg-salve-lav/15 border border-salve-lav/30 text-salve-lav font-medium text-sm
+              hover:bg-salve-lav/25 transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            {generatingSummary ? (
+              <><Loader2 size={14} className="animate-spin" /> Generating Summary...</>
+            ) : (
+              <><Sparkles size={14} /> Generate AI Health Summary</>
+            )}
+          </button>
+        )}
+
+        {!hasAIConsent() && !s.ai_health_summary && (
+          <p className="text-xs text-salve-textFaint mt-2 italic">
+            Enable AI data sharing above to generate a health summary.
+          </p>
+        )}
+
+        {summaryError && (
+          <div className="mt-3 p-3 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-sm">
+            {summaryError}
+          </div>
+        )}
+      </Card>
+
+      {/* Post-import summary prompt */}
+      {showPostImportPrompt && (
+        <Card className="!mt-2">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={14} className="text-salve-sage" />
+            <span className="text-[13px] font-medium text-salve-sage">Data imported</span>
+          </div>
+          <p className="text-xs text-salve-textMid mb-3 leading-relaxed">
+            Your data has been updated. Would you like to regenerate the AI health summary with the new data?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={handleGenerateSummary}
+              disabled={generatingSummary}
+              className="flex-1 py-2 rounded-lg bg-salve-sage/20 text-salve-sage text-sm font-medium hover:bg-salve-sage/30 transition-colors disabled:opacity-40"
+            >
+              {generatingSummary ? 'Generating...' : 'Yes, Regenerate'}
+            </button>
+            <button
+              onClick={() => setShowPostImportPrompt(false)}
+              className="px-4 py-2 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors"
+            >
+              Skip
+            </button>
+          </div>
+        </Card>
+      )}
+
+      {/* Manual health background notes */}
+      <Card className="!mt-2">
         <p className="text-xs text-salve-textMid mb-2.5 leading-relaxed italic">
-          Add context about your health history. This gets included when AI features analyze your profile.
+          Your personal notes — always preserved, never overwritten by AI.
         </p>
         <Field
           label="Background & Context"

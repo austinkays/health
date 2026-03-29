@@ -161,7 +161,8 @@ export const db = {
       supabase.from('profiles').update({
         name: '', location: '', pharmacy: '',
         insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '',
-        health_background: '', ai_mode: 'onDemand',
+        health_background: '', ai_health_summary: '', ai_summary_updated_at: null,
+        ai_mode: 'onDemand',
       }).eq('id', uid),
     ]);
   },

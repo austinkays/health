@@ -7,7 +7,7 @@ export default function useHealthData(session) {
     vitals: [], appts: [], journal: [],
     labs: [], procedures: [], immunizations: [], care_gaps: [],
     anesthesia_flags: [], appeals_and_disputes: [], surgical_planning: [], insurance: [],
-    settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
+    settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '', ai_health_summary: '', ai_summary_updated_at: null },
   });
   const [loading, setLoading] = useState(true);
 

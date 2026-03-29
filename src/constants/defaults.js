@@ -39,6 +39,7 @@ export const DEFAULT_SETTINGS = {
   name: '', location: '', ai_mode: 'onDemand',
   pharmacy: '', insurance_plan: '', insurance_id: '',
   insurance_group: '', insurance_phone: '', health_background: '',
+  ai_health_summary: '', ai_summary_updated_at: null,
 };
 
 // Vital types reference

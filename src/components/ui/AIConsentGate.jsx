@@ -43,7 +43,10 @@ export default function AIConsentGate({ children }) {
           <li>Your name and location</li>
           <li>Medications, conditions, and allergies</li>
           <li>Recent vitals and journal entries</li>
-          <li>Insurance plan name</li>
+          <li>Lab results, procedures, and immunization records</li>
+          <li>Surgical plans and anesthesia safety flags</li>
+          <li>Care gaps, appointments, and provider details</li>
+          <li>Insurance coverage and appeals</li>
         </ul>
 
         <p className="text-[13px] text-salve-textMid leading-relaxed mb-4">

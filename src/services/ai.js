@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { buildFullDataDump } from './profile';
 
 // AI system prompts
 export const PROMPTS = {
@@ -16,6 +17,9 @@ export const PROMPTS = {
 
   ask:
     'You are a knowledgeable, compassionate health companion. You have access to this patient\'s complete health profile. Answer their question with their specific health context in mind. Be thorough but warm. Reference their specific medications, conditions, and history where relevant. Always note that your response is informational and not a substitute for professional medical advice.',
+
+  healthSummary:
+    'You are a medical records analyst creating a comprehensive health background narrative for a patient\'s personal health app. Given their complete health data across all categories, write a thorough health background that:\n\n1. **Overview**: Summarize the patient\'s overall health picture — key conditions, treatment approach, and care team.\n2. **Conditions & Treatment Plan**: Cross-reference each condition with its linked medications. Identify which meds treat which conditions. Note any conditions that appear untreated or medications without a clear linked condition.\n3. **Medication Analysis**: Summarize the full medication regimen — note polypharmacy considerations, refill timing, and any medications that may interact or have overlapping side effects.\n4. **Surgical History & Planning**: Summarize past procedures and any upcoming surgical plans with their constraints and outstanding items.\n5. **Safety Alerts**: Highlight anesthesia flags, severe allergies, known drug interactions, and any critical safety information that any provider should know immediately.\n6. **Lab Trends**: Summarize recent lab results, note any flagged values, and identify trends (improving, worsening, or stable).\n7. **Care Gaps & Upcoming Needs**: List overdue screenings, outstanding labs, upcoming appointments, and preventive care needs.\n8. **Patterns & Observations**: Analyze vitals trends and journal entries for symptom patterns — correlations between pain/mood/energy/sleep, flare triggers, and quality-of-life trends.\n9. **Insurance & Access**: Note insurance coverage and any active appeals or disputes that affect care access.\n\nBe specific and clinical. Reference actual data values, dates, and names. Write in third person. Keep it structured with clear headers. Aim for 500-800 words. Do NOT include disclaimers — this is stored as a personal health reference, not live medical advice.',
 };
 
 const DISCLAIMER = '\n\n---\n*AI suggestions are not medical advice. Always consult your healthcare providers.*';
@@ -104,4 +108,15 @@ export async function sendChat(messages, profileText) {
     messages,
     PROMPTS.ask + '\n\n' + profileText
   );
+}
+
+export async function generateHealthSummary(data) {
+  const fullDump = buildFullDataDump(data);
+  const result = await callAPI(
+    [{ role: 'user', content: 'Analyze all of my health data and create a comprehensive health background narrative.' }],
+    PROMPTS.healthSummary + '\n\n' + fullDump,
+    4000
+  );
+  // Strip the standard disclaimer — this is stored data, not a live response
+  return result.replace(/\n\n---\n\*AI suggestions are not medical advice\. Always consult your healthcare providers\.\*$/, '');
 }
