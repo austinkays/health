@@ -101,3 +101,41 @@ export function buildProfile(data) {
 
   return p;
 }
+
+export function buildSafetyProfile(data, staticInteractions) {
+  let p = buildProfile(data);
+
+  // Include more vitals for trend analysis (up to 50 instead of 10)
+  const vitals = data.vitals || [];
+  if (vitals.length > 10) {
+    p += '\n— EXTENDED VITALS HISTORY (for trend analysis) —\n';
+    vitals.slice(-50).forEach(v => {
+      const t = VITAL_TYPES.find(x => x.id === v.type);
+      p += '- ' + (t ? t.label : v.type) + ': ';
+      p += v.type === 'bp' ? v.value + '/' + v.value2 : v.value;
+      if (t) p += ' ' + t.unit;
+      p += ' on ' + v.date;
+      if (v.notes) p += ' — ' + v.notes;
+      p += '\n';
+    });
+  }
+
+  // Include medication start dates for temporal correlation
+  const medsWithDates = (data.meds || []).filter(m => m.active !== false && m.start_date);
+  if (medsWithDates.length) {
+    p += '\n— MEDICATION START DATES —\n';
+    medsWithDates.forEach(m => {
+      p += '- ' + m.name + ': started ' + m.start_date + '\n';
+    });
+  }
+
+  // Include already-detected static interactions so AI skips them
+  if (staticInteractions && staticInteractions.length > 0) {
+    p += '\n— ALREADY DETECTED (static database) —\n';
+    staticInteractions.forEach(w => {
+      p += '- ' + w.medA + ' + ' + w.medB + ': ' + w.msg + ' [' + w.severity + ']\n';
+    });
+  }
+
+  return p;
+}

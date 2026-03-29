@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getSession, onAuthChange } from './services/auth';
 import { supabase } from './services/supabase';
 import Auth from './components/Auth';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import useHealthData from './hooks/useHealthData';
+import useSafetyScan from './hooks/useSafetyScan';
 import { checkInteractions } from './utils/interactions';
 
 import Dashboard from './components/sections/Dashboard';
@@ -37,6 +38,27 @@ export default function App() {
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
+  const safetyScan = useSafetyScan(data, interactions);
+
+  const SAFETY_TABLES = useMemo(() => new Set(['medications', 'conditions', 'allergies']), []);
+
+  const addItemWithSafety = useCallback(async (table, item) => {
+    const result = await addItem(table, item);
+    if (SAFETY_TABLES.has(table)) safetyScan.triggerScan();
+    return result;
+  }, [addItem, safetyScan, SAFETY_TABLES]);
+
+  const updateItemWithSafety = useCallback(async (table, id, changes) => {
+    const result = await updateItem(table, id, changes);
+    if (SAFETY_TABLES.has(table)) safetyScan.triggerScan();
+    return result;
+  }, [updateItem, safetyScan, SAFETY_TABLES]);
+
+  const removeItemWithSafety = useCallback(async (table, id) => {
+    const result = await removeItem(table, id);
+    if (SAFETY_TABLES.has(table)) safetyScan.triggerScan();
+    return result;
+  }, [removeItem, safetyScan, SAFETY_TABLES]);
 
   const onNav = (t) => {
     setTab(t);
@@ -93,9 +115,9 @@ export default function App() {
   }
 
   const renderSection = () => {
-    const shared = { data, addItem, updateItem, removeItem };
+    const shared = { data, addItem: addItemWithSafety, updateItem: updateItemWithSafety, removeItem: removeItemWithSafety };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} safetyScan={safetyScan} onNav={onNav} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
@@ -103,9 +125,9 @@ export default function App() {
       case 'providers':   return <Providers {...shared} />;
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} />;
-      case 'ai':          return <AIPanel data={data} />;
-      case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
-      case 'settings':    return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} />;
+      case 'ai':          return <AIPanel data={data} safetyScan={safetyScan} />;
+      case 'interactions':return <Interactions interactions={interactions} meds={data.meds} safetyScan={safetyScan} />;
+      case 'settings':    return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} triggerScan={safetyScan.triggerScan} />;
       // Comprehensive sections
       case 'labs':        return <Labs {...shared} />;
       case 'procedures':  return <Procedures {...shared} />;
@@ -115,7 +137,7 @@ export default function App() {
       case 'appeals':     return <Appeals {...shared} />;
       case 'surgical':    return <SurgicalPlanning {...shared} />;
       case 'insurance':   return <Insurance {...shared} />;
-      default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      default:            return <Dashboard {...shared} interactions={interactions} safetyScan={safetyScan} onNav={onNav} />;
     }
   };
 

@@ -7,7 +7,7 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 
-export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
+export default function Settings({ data, updateSettings, eraseAll, reloadData, triggerScan }) {
   const s = data.settings;
   const set = (k, v) => updateSettings({ [k]: v });
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
@@ -93,6 +93,7 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         );
 
         await reloadData();
+        if (triggerScan) triggerScan();
       } else {
         await importRestore(importValidation.normalized);
         setImportResult('Full restore complete. Reloading...');

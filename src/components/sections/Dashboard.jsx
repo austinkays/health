@@ -3,6 +3,7 @@ import {
   Pill, Calendar, AlertTriangle, Sparkles, BookOpen, Stethoscope,
   User, Shield, Activity, Settings as SettingsIcon, ChevronRight,
   FlaskConical, Syringe, ShieldCheck, AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign,
+  ShieldAlert, Loader2, CheckCircle,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -15,7 +16,7 @@ import { fetchInsight } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 
-export default function Dashboard({ data, interactions, onNav }) {
+export default function Dashboard({ data, interactions, safetyScan, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
@@ -111,6 +112,54 @@ export default function Dashboard({ data, interactions, onNav }) {
           <div className="text-xs text-salve-textMid">{interactions[0].medA} + {interactions[0].medB}: {interactions[0].msg.slice(0, 70)}...</div>
         </Card>
       )}
+
+      {/* AI Safety Scan */}
+      {safetyScan.loading ? (
+        <Card className="!p-3.5" style={{ borderLeft: `3px solid ${C.lav}`, background: 'rgba(184,169,232,0.06)' }}>
+          <div className="flex items-center gap-2">
+            <Loader2 size={15} className="animate-spin text-salve-lav" />
+            <span className="text-[13px] text-salve-lav font-medium">Scanning your health profile...</span>
+          </div>
+        </Card>
+      ) : safetyScan.results ? (
+        safetyScan.results.length > 0 ? (
+          <Card className="!p-3.5 cursor-pointer" onClick={() => onNav('interactions')}
+            style={{ borderLeft: `3px solid ${C.lav}`, background: 'rgba(184,169,232,0.06)' }}>
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldAlert size={16} color={C.lav} />
+              <span className="text-[13px] font-semibold text-salve-lav">
+                {safetyScan.results.filter(f => f.severity === 'danger').length > 0 &&
+                  `${safetyScan.results.filter(f => f.severity === 'danger').length} critical`}
+                {safetyScan.results.filter(f => f.severity === 'danger').length > 0 &&
+                  safetyScan.results.filter(f => f.severity !== 'danger').length > 0 && ', '}
+                {safetyScan.results.filter(f => f.severity === 'caution').length > 0 &&
+                  `${safetyScan.results.filter(f => f.severity === 'caution').length} caution`}
+                {safetyScan.results.filter(f => f.severity === 'caution').length > 0 &&
+                  safetyScan.results.filter(f => f.severity === 'info').length > 0 && ', '}
+                {safetyScan.results.filter(f => f.severity === 'info').length > 0 &&
+                  `${safetyScan.results.filter(f => f.severity === 'info').length} info`}
+                {' '}— AI Safety Findings
+              </span>
+              <ChevronRight size={14} className="ml-auto text-salve-textFaint" />
+            </div>
+            <div className="text-xs text-salve-textMid">{safetyScan.results[0].title}</div>
+          </Card>
+        ) : (
+          <Card className="!p-3 text-center" style={{ borderLeft: `3px solid ${C.sage}` }}>
+            <div className="flex items-center justify-center gap-2">
+              <CheckCircle size={14} className="text-salve-sage" />
+              <span className="text-[12px] text-salve-sage">AI safety scan: no additional concerns</span>
+            </div>
+          </Card>
+        )
+      ) : hasAIConsent() && (data.meds.length + data.conditions.length > 0) ? (
+        <Card className="!p-3 text-center">
+          <button onClick={safetyScan.runScan}
+            className="flex items-center justify-center gap-2 mx-auto bg-transparent border-none cursor-pointer text-salve-lav text-[13px] font-medium font-montserrat hover:underline">
+            <ShieldAlert size={14} /> Run AI Safety Scan
+          </button>
+        </Card>
+      ) : null}
 
       {/* Urgent care gaps */}
       {urgentGaps > 0 && (
