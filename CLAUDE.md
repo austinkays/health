@@ -19,6 +19,7 @@ Personal health management app. Originally a Claude.ai React artifact (~2000+ li
 - **Auth:** Supabase Auth (magic link / OTP email)
 - **Offline cache:** localStorage (AES-GCM encrypted via `cache.js` + `crypto.js`)
 - **AI Backend:** Vercel serverless function proxying Anthropic API (auth-gated)
+- **Apple Health Import:** jszip (lazy-loaded) + DOMParser for HealthKit XML
 - **Deployment:** Vercel
 
 ## Architecture
@@ -48,7 +49,9 @@ health/
 │   └── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
 ├── supabase/
 │   └── migrations/
-│       └── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
+│       ├── 001_schema.sql        # Base DB schema: profiles, meds, conditions, etc.
+│       ├── 002_enrich_data.sql   # Enriched fields: DOB, addresses, ICD-10, etc.
+│       └── 003_comprehensive_schema.sql  # v3 tables: labs, procedures, immunizations, etc.
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities
@@ -65,7 +68,8 @@ health/
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
 │   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts
+│   │   ├── appleHealth.js        # Apple Health XML/ZIP parser: parseAppleHealthXML, extractZipXML
+│   │   └── profile.js            # buildProfile() - assembles COMPLETE health context for AI (all 15 tables)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
@@ -87,16 +91,24 @@ health/
 │   │   │   └── BottomNav.jsx
 │   │   └── sections/             # One file per app section
 │   │       ├── Dashboard.jsx     # Home: greeting, quick stats, AI insight, interaction alerts
-│   │       ├── Medications.jsx   # Med list + add/edit form
+│   │       ├── Medications.jsx   # Med list + add/edit (dose, frequency, time_of_day, manufacturer, prior_auth, etc.)
 │   │       ├── Vitals.jsx        # Vitals tracking + chart
-│   │       ├── Conditions.jsx    # Condition list + add/edit
-│   │       ├── Providers.jsx     # Provider directory + add/edit
-│   │       ├── Allergies.jsx     # Allergy list + add/edit
-│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit
+│   │       ├── Conditions.jsx    # Condition list + add/edit (ICD-10, severity, facility)
+│   │       ├── Providers.jsx     # Provider directory + add/edit (address, NPI, email, accepted insurance)
+│   │       ├── Allergies.jsx     # Allergy list + add/edit (type, onset_date, confirmed_by)
+│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit (visit_type, telehealth_url, linked_condition)
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
+│   │       ├── Labs.jsx          # Lab results & imaging (flag abnormal results)
+│   │       ├── Procedures.jsx    # Surgical/diagnostic procedure history
+│   │       ├── Immunizations.jsx # Vaccination records
+│   │       ├── CareGaps.jsx      # Overdue labs, immunizations, treatment gaps
+│   │       ├── AnesthesiaFlags.jsx # Safety-critical surgical flags
+│   │       ├── Appeals.jsx       # Insurance appeals & disputes
+│   │       ├── SurgicalPlanning.jsx # Future surgery plans, constraints, outstanding items
+│   │       ├── Insurance.jsx     # Detailed insurance coverage records
 │   │       ├── Interactions.jsx  # Drug interaction checker (standalone view)
 │   │       ├── AIPanel.jsx       # AI chat panel with health context
-│   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export
+│   │       └── Settings.jsx      # Profile (DOB/sex/height/blood type/emergency contact), AI mode, pharmacy, insurance, health bg, drag-and-drop import (Salve/Apple Health/encrypted), export
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
@@ -105,36 +117,70 @@ health/
 
 ### Database (Supabase)
 
-PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supabase/migrations/001_schema.sql`.
+PostgreSQL via Supabase with Row Level Security on all tables. Schema across `supabase/migrations/001_schema.sql`, `002_enrich_data.sql`, and `003_comprehensive_schema.sql`.
 
-**Tables:**
+**Tables (17 total):**
 
 | Table | Key Fields | Notes |
 |-------|-----------|-------|
-| `profiles` | id (= auth.users.id), name, location, pharmacy, insurance_*, health_background, ai_mode | 1:1 with user, auto-created on signup via trigger |
-| `medications` | name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes | |
-| `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
-| `allergies` | substance, reaction, severity (mild/moderate/severe), notes | |
-| `providers` | name, specialty, clinic, phone, fax, portal_url, notes | |
+| `profiles` | id (= auth.users.id), name, dob, sex, height, blood_type, location, primary_provider, emergency_name/phone/relationship, pharmacy, insurance_*, health_background, ai_mode | 1:1 with user, auto-created on signup via trigger |
+| `medications` | name, dose, frequency, route, time_of_day, prescriber, pharmacy, purpose, manufacturer, quantity, days_supply, start_date, refill_date, prior_auth, active, notes | |
+| `conditions` | name, icd10, diagnosed_date, status (active/managed/remission/resolved), severity, provider, facility, linked_meds, notes | |
+| `allergies` | substance, type (drug/food/environmental/insect/latex/other), reaction, severity (mild/moderate/severe), onset_date, confirmed_by, notes | |
+| `providers` | name, specialty, npi, clinic, address, city, state, zip, phone, fax, email, portal_url, accepted_insurance, notes | |
 | `vitals` | date, type (pain/mood/energy/sleep/bp/hr/weight/temp/glucose), value, value2, unit, notes | |
-| `appointments` | date, time, provider, location, reason, questions, post_notes | |
+| `appointments` | date, time, visit_type (in-person/telehealth/phone/lab/imaging/procedure/emergency), provider, location, telehealth_url, reason, linked_condition, questions, post_notes | |
 | `journal_entries` | date, title, mood, severity, content, tags | |
 | `ai_conversations` | title, messages (JSONB) | |
+| `labs` | date, test_name, result, unit, range, flag (normal/abnormal/high/low), provider, notes | |
+| `procedures` | date, name, type (Surgical/Diagnostic/Pain), provider, location, reason, outcome, notes | |
+| `immunizations` | date, name, dose, site, lot_number, provider, location | |
+| `care_gaps` | category (lab/immunization/treatment), item, last_done, urgency (urgent/needs prompt attention/worth raising/routine/completed), notes | |
+| `anesthesia_flags` | condition, implication, action_required | Safety-critical surgical flags |
+| `appeals_and_disputes` | date_filed, subject, against, status (active/draft/filed/resolved), deadline, notes | |
+| `surgical_planning` | facility, surgeon, coordinator, case_number, procedures (jsonb[]), procedures_not_on_list (jsonb[]), target_date, accommodation, constraints (jsonb[]), outstanding_items (jsonb[]), status | |
+| `insurance` | name, type (Medicaid/Medicare/Private/Hospital charity care), member_id, group, phone, notes | |
 
-All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
+All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), `sync_id` (for import dedup), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
-The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update()`, `remove()` per table, plus `db.loadAll()` for initial hydration and `db.eraseAll()` to wipe user data.
+The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update()`, `remove()` per table, plus `db.loadAll()` for initial hydration (all 16 tables in parallel) and `db.eraseAll()` to wipe user data.
 
 ### Import / Export
 
-`storage.js` provides data portability via the Settings UI:
-- **Download Backup** — exports all current Supabase data as a JSON file with `_export` metadata envelope
-- **Download Encrypted Backup** — same as above but AES-GCM encrypted with a user-supplied passphrase (`encryptExport()`)
-- **Import Restore** — erases all data, then bulk-inserts from the uploaded file (full overwrite)
-- **Import Merge** — adds only records whose ID doesn't already exist (sync mode, triggered by `_export.type: "mcp-sync"`)
-- **Encrypted Import** — detects `_encrypted` envelope, prompts for passphrase, decrypts via `decryptExport()`, then proceeds with normal validation
-- Supports Salve v1 export format, legacy `ambers-remedy` format, and localStorage v2/v3 formats
-- After merge, `useHealthData.reloadData()` re-fetches from Supabase to update React state
+The Settings UI provides a **drag-and-drop import zone** that auto-detects file type:
+
+**Import sources:**
+- **Salve backup (.json)** — full restore or merge of all 15 data tables
+- **Encrypted backup (.json)** — auto-detected via `_encrypted` envelope, inline passphrase prompt
+- **MCP sync (.json)** — merge-only import via `_export.type: "mcp-sync"`
+- **Apple Health export (.zip or .xml)** — parses iPhone/Apple Watch HealthKit data via `appleHealth.js`
+- **Legacy formats** — `ambers-remedy`, localStorage v2/v3
+
+**Apple Health parser** (`appleHealth.js`):
+- Accepts the .zip from iPhone Health → Export All Health Data
+- Uses jszip (lazy-loaded, code-split) to extract `export.xml`
+- Maps HealthKit record types → Salve vitals (HR, BP, weight, temp, glucose, sleep, SpO2, steps, etc.)
+- Pairs BP systolic/diastolic from correlations
+- Aggregates sleep sessions by day
+- Converts units: kg→lbs, °C→°F, m→ft'in"
+- Imports medications, immunizations, lab results from iOS Clinical Records
+- Deduplicates to one reading per type per day
+
+**Export options:**
+- **Download Backup** — exports all 15 tables + profile as JSON with `_export` metadata envelope
+- **Download Encrypted Backup** — AES-GCM encrypted with user passphrase (`encryptExport()`)
+
+**Import modes:**
+- **Restore** — erases all data, bulk-inserts from file (full overwrite)
+- **Merge** — adds only records whose sync_id doesn't already exist (dedup via Supabase query)
+- After import, `useHealthData.reloadData()` re-fetches from Supabase to update React state
+
+**Drag-and-drop UI:**
+- Single drop zone accepts .json, .zip, .xml — click or drag
+- Auto-detects: Salve backup, encrypted, MCP sync, or Apple Health
+- Visual states: empty, dragover (highlight), processing (spinner), preview (record counts), error
+- Source badges with icons (Smartphone for Apple Health, Lock for encrypted, FileText for Salve)
+- Collapsible "How to export from iPhone" step-by-step instructions
 
 ### Auth Flow
 
@@ -258,28 +304,45 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 8. **AI features require explicit data-sharing consent.** `AIConsentGate` wraps all AI surfaces (AIPanel, Dashboard insight). Users must acknowledge that health data is sent to Anthropic before any AI call is made. Consent is stored in `localStorage` under `salve:ai-consent` and can be revoked in Settings.
 5. **Delete operations require confirmation.** The `useConfirmDelete` hook and `ConfirmBar` component provide inline confirm/cancel UI. No `window.confirm()` calls.
 6. **Settings save on field change** (no explicit save button). Each field calls `updateSettings({ key: value })` which writes to Supabase immediately.
-7. **Profile fields** now include: name, location, pharmacy, insurance (plan/id/group/phone), health_background, ai_mode.
+7. **Profile fields** include: name, dob, sex, height, blood_type, location, primary_provider, emergency_name/phone/relationship, pharmacy, insurance (plan/id/group/phone), health_background, ai_mode.
+8. **The AI profile builder (`buildProfile()`) must include ALL 15 data tables.** Missing data could mean missing a life-threatening drug interaction, allergy, or surgical safety flag. The profile is ordered by clinical priority: demographics → anesthesia flags → allergies → active meds → conditions → labs → procedures → immunizations → care gaps → surgical planning → providers → appointments → vitals (trends) → journal → insurance → appeals → pharmacy → health background. Safety-critical sections (anesthesia flags, allergies, active meds) are NEVER truncated.
+9. **Apple Health imports are merge-only** — they add new records via the same import pipeline as Salve backups. Vitals are deduplicated to one reading per type per day.
 
 ## Testing Checklist
 
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 11 sections render without errors (including Auth screen)
+- [ ] All sections render without errors (including Auth screen, all 19 section components)
 - [ ] Data persists across sessions (Supabase)
-- [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries
+- [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
+- [ ] New enriched fields save correctly: DOB, sex, height, blood type on profile; address/NPI on providers; ICD-10/severity on conditions; allergen type/onset on allergies; visit type/telehealth URL on appointments; time of day/manufacturer/prior auth on meds
+- [ ] Emergency contact fields save and display on profile
 - [ ] Delete confirmation appears and can be cancelled
 - [ ] Drug interaction checker flags known combos
 - [ ] AI insight loads on dashboard (with /api/chat proxy + auth token)
 - [ ] AI chat panel sends/receives messages
+- [ ] AI profile includes ALL 15 data tables (check with console.log of buildProfile output)
+- [ ] AI profile includes anesthesia flags, labs, procedures, immunizations, care gaps, surgical planning, insurance records, appeals
 - [ ] AI news and resources features work (web search)
-- [ ] Settings: all profile fields save correctly
-- [ ] Erase All Data clears Supabase data and reloads
-- [ ] Download Backup exports valid JSON with all data
+- [ ] Settings: all profile fields save correctly (including new DOB, sex, height, blood type, emergency contact, primary provider)
+- [ ] Erase All Data clears Supabase data and reloads (including new profile fields reset)
+- [ ] Download Backup exports valid JSON with all 15 tables
 - [ ] Encrypted backup: passphrase encrypts, downloads `.json` with `_encrypted` envelope
-- [ ] Encrypted import: detects encrypted file, prompts passphrase, decrypts, then validates
-- [ ] Wrong passphrase shows error, does not import
+- [ ] Drag-and-drop import: drop zone highlights on dragover
+- [ ] Drag-and-drop import: click opens file picker
+- [ ] Import auto-detects Salve backup (.json)
+- [ ] Import auto-detects encrypted backup (shows passphrase field inline)
+- [ ] Import auto-detects Apple Health ZIP (shows Apple Health badge + preview)
+- [ ] Import auto-detects Apple Health XML (export.xml)
+- [ ] Apple Health import: vitals mapped correctly (HR, BP, weight, sleep, temp, glucose)
+- [ ] Apple Health import: BP pairs systolic/diastolic correctly
+- [ ] Apple Health import: sleep aggregated by day
+- [ ] Apple Health import: unit conversions work (kg→lbs, °C→°F)
+- [ ] Apple Health import: height updates profile
+- [ ] Encrypted import: wrong passphrase shows error, does not import
 - [ ] Import Restore overwrites data and reloads
-- [ ] Import Merge adds new records, skips existing
-- [ ] Import rejects non-JSON, non-Salve, and empty files
+- [ ] Import Merge adds new records, skips existing (sync_id dedup)
+- [ ] Import rejects unsupported file types with clear error
+- [ ] "How to export from iPhone" instructions expand/collapse
 - [ ] Bottom nav switches between all tabs
 - [ ] Quick Access grid links to all subsections
 - [ ] Back button returns to Dashboard from any section
