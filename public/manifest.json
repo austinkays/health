@@ -1,12 +1,14 @@
 {
   "name": "Salve",
   "short_name": "Salve",
-  "description": "Personal health companion for Amber",
+  "description": "Personal health companion. Track medications, vitals, conditions, and get AI-powered health insights.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
   "orientation": "portrait",
+  "categories": ["health", "medical"],
   "icons": [
     {
       "src": "/icon-192.png",

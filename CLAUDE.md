@@ -10,13 +10,14 @@ Personal health management app. Originally a Claude.ai React artifact (~2000+ li
 
 ## Tech Stack
 
-- **Framework:** Vite + React 18
+- **Framework:** Vite + React 18 (code-split with `React.lazy` + `Suspense`)
+- **PWA:** `vite-plugin-pwa` (Workbox service worker, cache-first for assets, network-first for API/Supabase)
 - **Styling:** Tailwind CSS v3
 - **Charts:** Recharts
 - **Icons:** lucide-react
 - **Fonts:** Google Fonts - Playfair Display (headings), Montserrat (body)
 - **Database:** Supabase (PostgreSQL with Row Level Security)
-- **Auth:** Supabase Auth (magic link / OTP email)
+- **Auth:** Supabase Auth (magic link / OTP email; session expiry detection; OTP 10-min countdown)
 - **Offline cache:** localStorage (AES-GCM encrypted via `cache.js` + `crypto.js`)
 - **AI Backend:** Vercel serverless function proxying Anthropic API (auth-gated)
 - **Deployment:** Vercel
@@ -151,10 +152,11 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 
 ### Auth Flow
 
-- `Auth.jsx` renders a magic-link email sign-in form with 8-digit OTP code entry (auto-advance, paste support, auto-submit)
-- `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange()`
-- `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth
-- Unauthenticated users see the sign-in screen; authenticated users see the full app
+- `Auth.jsx` renders a magic-link email sign-in form with 8-digit OTP code entry (auto-advance, paste support, auto-submit, 10-minute expiry countdown)
+- `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
+- `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
+- Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
+- All 19 section components are **code-split** with `React.lazy()` + `Suspense` — only loaded when first visited
 
 ### Offline Cache
 
@@ -242,7 +244,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | **ARIA labels** | All 27 icon-only buttons (edit/delete/send) have descriptive `aria-label` attributes across all 15 section files |
 | **Color-only indicators** | Severity, urgency, status, and lab flag badges include icon prefixes (✓/◆/⚠/✦/·/↗) so information is not conveyed through color alone (WCAG 1.4.1) |
 | **Semantic HTML** | `<nav>` for BottomNav, `<header>` for Header, `<main>` for content area, `<section>` with `aria-label` for Dashboard cards, `<article>` for AIPanel chat messages |
-| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` on all form fields |
+| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` on all form fields; supports `error` prop for red inline error messages |
 | **Keyboard support** | `ConfirmBar` responds to Escape (cancel) and Enter (confirm); `role="alertdialog"` for screen readers |
 | **Chart accessibility** | Vitals chart has `role="img"` with descriptive `aria-label` + visually-hidden (`sr-only`) data table alternative |
 | **Loading states** | `LoadingSpinner` uses `role="status"` + `aria-live="polite"` with `sr-only` fallback text |
@@ -306,6 +308,11 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 ## Testing Checklist
 
+- [ ] Auth: session expiry shows "Your session expired. Please sign in again." banner on re-auth screen
+- [ ] Auth: OTP countdown shows "Code expires in X:XX"; turns red at <60 seconds; shows expired state
+- [ ] Sections load lazily (Suspense fallback spinner shown on first navigation to each section)
+- [ ] Service worker registered in production build (PWA installable)
+- [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
 - [ ] All 19 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)

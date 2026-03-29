@@ -1,6 +1,6 @@
-export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id }) {
+export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error }) {
   const inputId = id || `field-${label?.toLowerCase().replace(/\s+/g, '-')}`;
-  const inputCls = 'w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none focus:border-salve-lav transition-colors';
+  const inputCls = `w-full py-2.5 px-3.5 rounded-lg border ${error ? 'border-salve-rose' : 'border-salve-border'} text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none focus:border-salve-lav transition-colors`;
 
   return (
     <div className="mb-4">
@@ -39,6 +39,9 @@ export default function Field({ label, value, onChange, type = 'text', placehold
           placeholder={placeholder}
           className={inputCls}
         />
+      )}
+      {error && (
+        <p className="mt-1.5 text-[11px] text-salve-rose font-montserrat">{error}</p>
       )}
     </div>
   );

@@ -39,7 +39,7 @@ export async function getSession() {
 
 export function onAuthChange(callback) {
   const { data: { subscription } } = supabase.auth.onAuthStateChange(
-    (_event, session) => callback(session)
+    (event, session) => callback(event, session)
   );
   return subscription;
 }

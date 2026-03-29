@@ -18,7 +18,7 @@ export default function ConfirmBar({ pending, onConfirm, onCancel, itemId }) {
       <div
         role="alertdialog"
         aria-label={`Confirm delete ${pending.label || 'item'}`}
-        className="fixed bottom-20 left-1/2 z-50 w-full max-w-[440px] px-4"
+        className="fixed bottom-20 left-1/2 z-[60] w-full max-w-[440px] px-4"
         style={{ transform: 'translateX(-50%)' }}
         onKeyDown={e => { if (e.key === 'Escape') onCancel(); if (e.key === 'Enter') onConfirm(); }}
       >

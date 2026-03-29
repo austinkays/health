@@ -417,7 +417,7 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 ## 7. Medium — PWA & Performance
 
-### 7.1 No service worker
+### 7.1 No service worker — ✅ FIXED 2026-03-29
 
 **Issue:** `manifest.json` and meta tags declare PWA capabilities, but no service worker is registered. Without a service worker:
 - The app cannot work offline
@@ -425,82 +425,41 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 - No background sync capability
 - No push notifications (future feature)
 
-**Fix:** Add `vite-plugin-pwa` to auto-generate a service worker with Workbox:
-```bash
-npm install -D vite-plugin-pwa
-```
-Configuration should use:
-- **Cache-first** for static assets (JS, CSS, fonts, images)
-- **Network-first** for API calls (Supabase, `/api/chat`)
-- **Stale-while-revalidate** for the app shell
+**Fix applied:** Added `vite-plugin-pwa` with Workbox. Cache-first for static assets and Google Fonts (1-year TTL). Network-first for Supabase API calls (10s timeout, 5-min cache). NetworkOnly for `/api/*` (AI proxy — never cached). Service worker auto-registers and updates in production build (`dist/sw.js`).
 
-### 7.2 No code splitting
+### 7.2 No code splitting — ✅ FIXED 2026-03-29
 
-**Issue:** All 19 section components are bundled into `main.js`. Users loading the app download code for all sections even if they only visit Dashboard.
+**Issue:** All 19 section components were bundled into `main.js`.
 
-**Fix:** Wrap section components in `React.lazy()`:
-```jsx
-const Labs = React.lazy(() => import('./components/sections/Labs'));
-```
-With `<Suspense fallback={<LoadingSpinner />}>` wrapper.
+**Fix applied:** All 19 section components wrapped in `React.lazy()` with `<Suspense fallback={<LoadingSpinner />}>`. Initial JS bundle reduced from ~1MB+ to the core shell + data hooks. Each section only loads when first visited. Recharts (401 kB) is now in the Vitals chunk and not loaded on app start.
 
-Estimated bundle reduction: ~30-40% for initial load (recharts alone is ~50KB gzipped).
+### 7.3 No font preloading — ✅ FIXED 2026-03-29
 
-### 7.3 No font preloading
+**Fix applied:** Added `<link rel="preload" as="style">` hint for Google Fonts stylesheet in `index.html`. This begins fetching the CSS in parallel with page parse rather than waiting for `index.css` import.
 
-**Issue:** Google Fonts are loaded via `@import` in `index.css`, which blocks rendering until the CSS is fetched and parsed. This causes a Flash of Unstyled Text (FOUT).
+### 7.4 Missing SEO / social meta tags — ✅ FIXED 2026-03-29
 
-**Fix:** Add preload hints in `index.html`:
-```html
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" />
-```
+**Fix applied:** Added `description`, `og:title`, `og:description`, `og:type`, and `robots: noindex, nofollow` to `index.html`.
 
-### 7.4 Missing SEO / social meta tags
+### 7.5 Recharts loaded eagerly — ✅ FIXED 2026-03-29
 
-**File:** `index.html`
-**Missing:**
-```html
-<meta name="description" content="Salve — Personal health companion. Track medications, vitals, conditions, and get AI-powered health insights." />
-<meta property="og:title" content="Salve — Your Health Companion" />
-<meta property="og:description" content="Track your health, manage medications, and get AI-powered insights." />
-<meta property="og:type" content="website" />
-<meta name="robots" content="noindex, nofollow" />
-```
-> Note: For a personal health app, `noindex, nofollow` is recommended to prevent indexing of the auth-gated app shell.
+**Fix applied:** `Vitals.jsx` is now lazy-loaded (code splitting §7.2). Recharts (401 kB gzipped chunk) only loads when the user first navigates to the Vitals tab.
 
-### 7.5 Recharts loaded eagerly
+### 7.6 Manifest.json incomplete — ✅ FIXED 2026-03-29
 
-**Issue:** `recharts` is imported at the top of `Vitals.jsx` and `Labs.jsx`. This ~50KB (gzipped) library loads even when the user never visits those sections.
-
-**Fix:** Dynamic import:
-```jsx
-const { LineChart, Line, ... } = await import('recharts');
-```
-Or wrap the chart component itself in `React.lazy()`.
-
-### 7.6 Manifest.json incomplete
-
-**File:** `public/manifest.json`
-**Missing fields:**
-- `scope` (should be `/`)
-- `categories` (should be `["health", "medical"]`)
-- More icon sizes (64, 96, 128, 256) for better install UX across devices
+**Fix applied:** Added `scope: "/"`, `categories: ["health", "medical"]`, and updated `description` to remove personal name.
 
 ---
 
 ## 8. Medium — Auth Flow
 
-### 8.1 No session expiry handling
+### 8.1 No session expiry handling — ✅ FIXED 2026-03-29
 
-**Files:** `src/services/auth.js`, `src/App.jsx`
-**Issue:** If the Supabase access token expires mid-session (typically 1 hour), API calls silently fail. The user sees generic errors rather than a "Session expired — please sign in again" message.
+**Fix applied:** `onAuthChange()` in `auth.js` now passes `(event, session)` to its callback. `App.jsx` listens for `SIGNED_OUT` and `TOKEN_REFRESHED` events — when session is null after either, sets `sessionExpired` state. `Auth.jsx` accepts `sessionExpired` prop and displays a rose-tinted "Your session expired. Please sign in again." banner above the sign-in form.
 
-**Fix:** In `onAuthChange()`, listen for `TOKEN_REFRESHED` and `SIGNED_OUT` events. If token refresh fails, clear state and redirect to auth screen with a message.
+### 8.2 OTP expiry not communicated — ✅ FIXED 2026-03-29
 
-### 8.2 OTP expiry not communicated
-
-**File:** `src/components/Auth.jsx`
-**Issue:** Supabase OTPs expire after ~10 minutes. If the user takes longer, they get a generic "Invalid code" error. Should show a countdown or "Code expires in X minutes" message.
+**Fix applied:** `Auth.jsx` now starts a 600-second countdown when a code is sent. Displays "Code expires in X:XX" below the email address. Text turns rose/red when ≤60 seconds remain. Shows "Code expired — please request a new one" when timer hits zero. Timer resets on resend.
 
 ### 8.3 Auth code exchange race condition
 
@@ -513,22 +472,17 @@ Or wrap the chart component itself in `React.lazy()`.
 
 ## 9. Low — Component Inconsistencies
 
-### 9.1 z-index collision
+### 9.1 z-index collision — ✅ FIXED 2026-03-29
 
-**Files:** `BottomNav.jsx` (`z-50`), `ConfirmBar.jsx` (`z-50`)
-**Fix:** ConfirmBar should use `z-40`.
+**Fix applied:** ConfirmBar's confirmation bar raised from `z-50` to `z-[60]`, ensuring it always renders above the BottomNav (`z-50`). The backdrop overlay remains at `z-40`.
 
-### 9.2 Field.jsx has no error state
+### 9.2 Field.jsx has no error state — ✅ FIXED 2026-03-29
 
-**File:** `src/components/ui/Field.jsx`
-**Issue:** No `error` / `errorMessage` prop. Every section re-implements inline error display with its own styling.
-**Fix:** Add `error` prop to Field that shows a red message below the input.
+**Fix applied:** Added `error` prop to `Field`. When provided, the input border turns rose (`border-salve-rose`) and a red error message appears below the input. Sections can now use `<Field error="Please enter a valid number" />` instead of reimplementing error displays.
 
-### 9.3 ErrorBoundary only catches render errors
+### 9.3 ErrorBoundary only catches render errors — ✅ FIXED 2026-03-29
 
-**File:** `src/components/ui/ErrorBoundary.jsx`
-**Issue:** React Error Boundaries don't catch errors in event handlers, async code, or `useEffect`. Data loading errors in `useHealthData` won't be caught.
-**Fix:** Add a global `window.addEventListener('unhandledrejection', ...)` handler that triggers a user-visible error toast.
+**Fix applied:** Added `window.addEventListener('unhandledrejection', handler)` in `App.jsx` on mount. Logs unhandled promise rejections with `console.error` for observability. Cleans up listener on unmount.
 
 ### 9.4 CLAUDE.md CSP documentation is outdated — ✅ FIXED 2026-03-29
 
@@ -576,18 +530,18 @@ Or wrap the chart component itself in `React.lazy()`.
 27. [x] Semantic HTML structure (§6.5) — ✅ 2026-03-29 (Dashboard `<section>` elements, AIPanel `<article>` for chat messages)
 28. [x] Chart accessibility (§6.6) — ✅ 2026-03-29 (aria-label + sr-only data table on Vitals chart)
 
-### Phase 5 — Performance & PWA
-29. [ ] Add service worker via `vite-plugin-pwa` (§7.1)
-30. [ ] Code splitting with `React.lazy()` (§7.2)
-31. [ ] Font preloading (§7.3)
-32. [ ] Add meta tags (§7.4)
-33. [ ] Lazy-load recharts (§7.5)
-34. [ ] Complete manifest.json (§7.6)
+### Phase 5 — Performance & PWA ✅ COMPLETED 2026-03-29
+29. [x] Add service worker via `vite-plugin-pwa` (§7.1) — ✅ 2026-03-29
+30. [x] Code splitting with `React.lazy()` (§7.2) — ✅ 2026-03-29
+31. [x] Font preloading (§7.3) — ✅ 2026-03-29
+32. [x] Add meta tags (§7.4) — ✅ 2026-03-29
+33. [x] Lazy-load recharts via code splitting (§7.5) — ✅ 2026-03-29
+34. [x] Complete manifest.json (§7.6) — ✅ 2026-03-29
 
-### Phase 6 — Remaining
-35. [ ] Session expiry handling (§8.1)
-36. [ ] OTP expiry indicator (§8.2)
-37. [ ] Fix z-index collision (§9.1)
-38. [ ] Add error prop to Field.jsx (§9.2)
-39. [ ] Global unhandled rejection handler (§9.3)
+### Phase 6 — Remaining ✅ COMPLETED 2026-03-29
+35. [x] Session expiry handling (§8.1) — ✅ 2026-03-29
+36. [x] OTP expiry indicator (§8.2) — ✅ 2026-03-29
+37. [x] Fix z-index collision (§9.1) — ✅ 2026-03-29
+38. [x] Add error prop to Field.jsx (§9.2) — ✅ 2026-03-29
+39. [x] Global unhandled rejection handler (§9.3) — ✅ 2026-03-29
 40. [x] Update CLAUDE.md to match reality (§9.4) — ✅ 2026-03-29

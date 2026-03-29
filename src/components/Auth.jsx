@@ -1,14 +1,31 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { signIn, verifyOtp } from '../services/auth';
 
-export default function Auth() {
+// OTP codes expire after 10 minutes (600 seconds)
+const OTP_TTL = 600;
+
+export default function Auth({ sessionExpired = false, onAuthSuccess }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [code, setCode] = useState(['', '', '', '', '', '', '', '']);
+  const [otpSecondsLeft, setOtpSecondsLeft] = useState(OTP_TTL);
   const inputRefs = useRef([]);
+
+  // Countdown timer — resets when a new code is sent
+  useEffect(() => {
+    if (!sent) return;
+    setOtpSecondsLeft(OTP_TTL);
+    const interval = setInterval(() => {
+      setOtpSecondsLeft(s => {
+        if (s <= 1) { clearInterval(interval); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sent]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -109,14 +126,28 @@ export default function Auth() {
           </p>
         </div>
 
+        {/* Session expired notice */}
+        {sessionExpired && (
+          <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-lg px-4 py-3 mb-4 text-center">
+            <p className="text-salve-rose text-sm">Your session expired. Please sign in again.</p>
+          </div>
+        )}
+
         {sent ? (
           <div className="bg-salve-card rounded-xl border border-salve-border p-6 text-center">
             <div className="text-2xl mb-3">✉️</div>
             <h2 className="font-playfair text-lg text-salve-text font-semibold mb-2">
               Enter your login code
             </h2>
-            <p className="text-salve-textMid text-sm mb-5">
+            <p className="text-salve-textMid text-sm mb-1">
               We sent an 8-digit code to <span className="text-salve-lav">{email}</span>
+            </p>
+            {/* OTP expiry countdown */}
+            <p className={`text-xs mb-4 ${otpSecondsLeft <= 60 ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
+              {otpSecondsLeft > 0
+                ? `Code expires in ${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`
+                : 'Code expired — please request a new one'
+              }
             </p>
 
             {/* 6-digit code inputs */}

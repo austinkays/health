@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
 import { getSession, onAuthChange } from './services/auth';
 import { supabase } from './services/supabase';
 import { cache, setupOfflineSync } from './services/cache';
@@ -8,34 +8,34 @@ import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import useHealthData from './hooks/useHealthData';
 import { checkInteractions } from './utils/interactions';
-
-import Dashboard from './components/sections/Dashboard';
-import Medications from './components/sections/Medications';
-import Vitals from './components/sections/Vitals';
-import Appointments from './components/sections/Appointments';
-import Conditions from './components/sections/Conditions';
-import Providers from './components/sections/Providers';
-import Allergies from './components/sections/Allergies';
-import Journal from './components/sections/Journal';
-import AIPanel from './components/sections/AIPanel';
-import Interactions from './components/sections/Interactions';
-import Settings from './components/sections/Settings';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
-// New comprehensive sections
-import Labs from './components/sections/Labs';
-import Procedures from './components/sections/Procedures';
-import Immunizations from './components/sections/Immunizations';
-import CareGaps from './components/sections/CareGaps';
-import AnesthesiaFlags from './components/sections/AnesthesiaFlags';
-import Appeals from './components/sections/Appeals';
-import SurgicalPlanning from './components/sections/SurgicalPlanning';
-import Insurance from './components/sections/Insurance';
+// Code-split section components — loaded only when first visited
+const Dashboard = lazy(() => import('./components/sections/Dashboard'));
+const Medications = lazy(() => import('./components/sections/Medications'));
+const Vitals = lazy(() => import('./components/sections/Vitals'));
+const Appointments = lazy(() => import('./components/sections/Appointments'));
+const Conditions = lazy(() => import('./components/sections/Conditions'));
+const Providers = lazy(() => import('./components/sections/Providers'));
+const Allergies = lazy(() => import('./components/sections/Allergies'));
+const Journal = lazy(() => import('./components/sections/Journal'));
+const AIPanel = lazy(() => import('./components/sections/AIPanel'));
+const Interactions = lazy(() => import('./components/sections/Interactions'));
+const Settings = lazy(() => import('./components/sections/Settings'));
+const Labs = lazy(() => import('./components/sections/Labs'));
+const Procedures = lazy(() => import('./components/sections/Procedures'));
+const Immunizations = lazy(() => import('./components/sections/Immunizations'));
+const CareGaps = lazy(() => import('./components/sections/CareGaps'));
+const AnesthesiaFlags = lazy(() => import('./components/sections/AnesthesiaFlags'));
+const Appeals = lazy(() => import('./components/sections/Appeals'));
+const SurgicalPlanning = lazy(() => import('./components/sections/SurgicalPlanning'));
+const Insurance = lazy(() => import('./components/sections/Insurance'));
 
 export default function App() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [tab, setTab] = useState('dash');
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
 
@@ -64,12 +64,25 @@ export default function App() {
       });
     }
 
-    const subscription = onAuthChange(s => {
+    const subscription = onAuthChange((event, s) => {
+      // If the session was signed out or the token refresh failed, show expiry notice
+      if (!s && (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
+        setSessionExpired(true);
+      }
       setSession(s);
       setAuthLoading(false);
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Global unhandled promise rejection handler
+  useEffect(() => {
+    function handleRejection(event) {
+      console.error('Unhandled promise rejection:', event.reason);
+    }
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => window.removeEventListener('unhandledrejection', handleRejection);
   }, []);
 
   // Set cache token when session changes & wire up offline sync
@@ -113,7 +126,7 @@ export default function App() {
   }
 
   if (!session) {
-    return <Auth />;
+    return <Auth sessionExpired={sessionExpired} onAuthSuccess={() => setSessionExpired(false)} />;
   }
 
   if (dataLoading) {
@@ -157,7 +170,13 @@ export default function App() {
         <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} />
         <main className="px-4">
           <ErrorBoundary onReset={() => onNav('dash')}>
-            {renderSection()}
+            <Suspense fallback={
+              <div className="flex items-center justify-center py-20">
+                <LoadingSpinner text="Loading..." />
+              </div>
+            }>
+              {renderSection()}
+            </Suspense>
           </ErrorBoundary>
         </main>
         <p className="text-center text-salve-textFaint text-[11px] tracking-wide py-4 font-montserrat">
