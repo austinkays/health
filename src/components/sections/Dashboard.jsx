@@ -43,7 +43,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   };
 
   useEffect(() => {
-    if (data.settings.ai_mode === 'auto' && data.meds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
+    if (data.settings.ai_mode === 'alwaysOn' && data.meds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
       loadInsight();
     }
   }, [data.settings.ai_mode]); // eslint-disable-line react-hooks/exhaustive-deps

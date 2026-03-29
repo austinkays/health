@@ -45,7 +45,8 @@ health/
 │   ├── manifest.json             # PWA manifest
 │   └── favicon.svg
 ├── docs/
-│   └── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
+│   ├── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
+│   └── MIGRATION_PLAN.md         # Migration planning notes
 ├── supabase/
 │   └── migrations/
 │       └── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
@@ -96,6 +97,14 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (standalone view)
 │   │       ├── AIPanel.jsx       # AI chat panel with health context
+│   │       ├── Labs.jsx          # Lab results tracking + add/edit
+│   │       ├── Procedures.jsx    # Medical procedures + add/edit
+│   │       ├── Immunizations.jsx # Vaccine records + add/edit
+│   │       ├── CareGaps.jsx      # Care gap tracking with urgency levels
+│   │       ├── AnesthesiaFlags.jsx # Safety-critical anesthesia flags
+│   │       ├── Appeals.jsx       # Insurance appeals & disputes
+│   │       ├── SurgicalPlanning.jsx # Surgical planning notes
+│   │       ├── Insurance.jsx     # Insurance details management
 │   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
@@ -120,6 +129,14 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `appointments` | date, time, provider, location, reason, questions, post_notes | |
 | `journal_entries` | date, title, mood, severity, content, tags | |
 | `ai_conversations` | title, messages (JSONB) | |
+| `labs` | date, test_name, result, unit, reference_range, ordering_provider, notes | Lab results |
+| `procedures` | date, name, provider, location, anesthesia_type, notes | Medical procedures |
+| `immunizations` | date, vaccine_name, lot_number, site, administered_by, notes | Vaccine records |
+| `care_gaps` | name, due_date, urgency (routine/urgent), status, notes | Preventive care tracking |
+| `anesthesia_flags` | flag, severity, details, notes | Safety-critical anesthesia alerts |
+| `appeals_and_disputes` | date_filed, type, status, insurer, reason, resolution, notes | Insurance appeals |
+| `surgical_planning` | procedure, surgeon, target_date, pre_op_tasks, notes | Surgery planning |
+| `insurance` | plan_name, type, member_id, group_number, phone, notes | Insurance plan details |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -186,7 +203,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
