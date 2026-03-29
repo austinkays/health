@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { signIn } from '../services/auth';
+import { signIn, verifyOtp } from '../services/auth';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -16,6 +18,32 @@ export default function Auth() {
       setSent(true);
     } catch (err) {
       setError(err.message || 'Failed to send magic link');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setVerifying(true);
+    setError('');
+    try {
+      await verifyOtp(email, otp);
+    } catch (err) {
+      setError(err.message || 'Invalid code. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  }
+
+  async function handleResend() {
+    setLoading(true);
+    setError('');
+    try {
+      await signIn(email);
+      setOtp('');
+    } catch (err) {
+      setError(err.message || 'Failed to resend code');
     } finally {
       setLoading(false);
     }
@@ -37,21 +65,57 @@ export default function Auth() {
         </div>
 
         {sent ? (
-          <div className="bg-salve-card rounded-xl border border-salve-border p-6 text-center">
-            <div className="text-2xl mb-3">✉️</div>
-            <h2 className="font-playfair text-lg text-salve-text font-semibold mb-2">
-              Check your email
-            </h2>
-            <p className="text-salve-textMid text-sm mb-4">
-              We sent a magic link to <span className="text-salve-lav">{email}</span>.
-              Click the link to sign in.
-            </p>
-            <button
-              onClick={() => { setSent(false); setEmail(''); }}
-              className="text-salve-lavDim text-sm hover:text-salve-lav transition-colors"
-            >
-              Use a different email
-            </button>
+          <div className="bg-salve-card rounded-xl border border-salve-border p-6">
+            <div className="text-center">
+              <div className="text-2xl mb-3">✉️</div>
+              <h2 className="font-playfair text-lg text-salve-text font-semibold mb-2">
+                Check your email
+              </h2>
+              <p className="text-salve-textMid text-sm mb-4">
+                We sent a login code to <span className="text-salve-lav">{email}</span>.
+                Enter the 6-digit code below, or tap the magic link.
+              </p>
+            </div>
+
+            <form onSubmit={handleVerifyOtp}>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={otp}
+                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                placeholder="000000"
+                className="w-full bg-salve-card2 border border-salve-border rounded-lg px-4 py-3 text-salve-text placeholder-salve-textFaint text-center text-2xl tracking-[0.3em] font-mono focus:outline-none focus:border-salve-lav transition-colors mb-4"
+              />
+              {error && (
+                <p className="text-salve-rose text-sm mb-4 text-center">{error}</p>
+              )}
+              <button
+                type="submit"
+                disabled={verifying || otp.length < 6}
+                className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 text-sm hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {verifying ? 'Verifying...' : 'Sign in'}
+              </button>
+            </form>
+
+            <div className="flex items-center justify-between mt-4">
+              <button
+                onClick={handleResend}
+                disabled={loading}
+                className="text-salve-lavDim text-sm hover:text-salve-lav transition-colors disabled:opacity-50"
+              >
+                {loading ? 'Sending...' : 'Resend code'}
+              </button>
+              <button
+                onClick={() => { setSent(false); setEmail(''); setOtp(''); setError(''); }}
+                className="text-salve-lavDim text-sm hover:text-salve-lav transition-colors"
+              >
+                Different email
+              </button>
+            </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="bg-salve-card rounded-xl border border-salve-border p-6">
@@ -76,7 +140,7 @@ export default function Auth() {
               disabled={loading || !email}
               className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 text-sm hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Send magic link'}
+              {loading ? 'Sending...' : 'Send login code'}
             </button>
           </form>
         )}
