@@ -27,14 +27,14 @@ export default function Header({ tab, name, onBack }) {
   const isDash = tab === 'dash';
 
   return (
-    <div className="px-6 pt-7 pb-5 relative overflow-hidden">
+    <header className="px-6 pt-7 pb-5 relative overflow-hidden">
       {/* Decorative */}
       <div className="absolute top-2 right-5 opacity-10 text-[72px] text-salve-sage select-none pointer-events-none">☕</div>
       <div className="absolute top-12 right-14 opacity-[0.07] text-lg text-salve-lav select-none pointer-events-none">✦</div>
 
       <div className="flex items-center gap-2.5">
         {!isDash && (
-          <button onClick={onBack} className="bg-transparent border-none text-salve-textMid cursor-pointer p-1 flex">
+          <button onClick={onBack} aria-label="Go back" className="bg-transparent border-none text-salve-textMid cursor-pointer p-1 flex">
             <ChevronLeft size={20} />
           </button>
         )}
@@ -53,6 +53,6 @@ export default function Header({ tab, name, onBack }) {
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 }

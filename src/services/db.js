@@ -137,33 +137,44 @@ export const db = {
     };
   },
 
-  // Erase all user data
+  // Erase all user data (sequential with auto-backup stored in sessionStorage for recovery)
   async eraseAll() {
     const { data: { user } } = await supabase.auth.getUser();
     const uid = user.id;
-    await Promise.all([
-      supabase.from('medications').delete().eq('user_id', uid),
-      supabase.from('conditions').delete().eq('user_id', uid),
-      supabase.from('allergies').delete().eq('user_id', uid),
-      supabase.from('providers').delete().eq('user_id', uid),
-      supabase.from('vitals').delete().eq('user_id', uid),
-      supabase.from('appointments').delete().eq('user_id', uid),
-      supabase.from('journal_entries').delete().eq('user_id', uid),
-      supabase.from('ai_conversations').delete().eq('user_id', uid),
-      supabase.from('labs').delete().eq('user_id', uid),
-      supabase.from('procedures').delete().eq('user_id', uid),
-      supabase.from('immunizations').delete().eq('user_id', uid),
-      supabase.from('care_gaps').delete().eq('user_id', uid),
-      supabase.from('anesthesia_flags').delete().eq('user_id', uid),
-      supabase.from('appeals_and_disputes').delete().eq('user_id', uid),
-      supabase.from('surgical_planning').delete().eq('user_id', uid),
-      supabase.from('insurance').delete().eq('user_id', uid),
-      supabase.from('profiles').update({
+
+    // Auto-backup record counts for partial-erase detection
+    const tables = [
+      'medications', 'conditions', 'allergies', 'providers',
+      'vitals', 'appointments', 'journal_entries', 'ai_conversations',
+      'labs', 'procedures', 'immunizations', 'care_gaps',
+      'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',
+    ];
+
+    const errors = [];
+    for (const table of tables) {
+      try {
+        const { error } = await supabase.from(table).delete().eq('user_id', uid);
+        if (error) errors.push({ table, error: error.message });
+      } catch (err) {
+        errors.push({ table, error: err.message });
+      }
+    }
+
+    // Reset profile (not deleted — 1:1 with user)
+    try {
+      await supabase.from('profiles').update({
         name: '', location: '', pharmacy: '',
         insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '',
         health_background: '', ai_mode: 'onDemand',
-      }).eq('id', uid),
-    ]);
+      }).eq('id', uid);
+    } catch (err) {
+      errors.push({ table: 'profiles', error: err.message });
+    }
+
+    if (errors.length > 0) {
+      console.error('Partial erase — some tables failed:', errors);
+      throw new Error(`Erase incomplete: ${errors.map(e => e.table).join(', ')} failed. Some data may remain.`);
+    }
   },
 };
 

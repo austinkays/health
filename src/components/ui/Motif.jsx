@@ -9,6 +9,7 @@ const glyphs = {
 export default function Motif({ type = 'star', size = 14, color, className = '', style = {} }) {
   return (
     <span
+      aria-hidden="true"
       style={{ fontSize: size, color: color || '#b8a9e8', ...style }}
       className={`opacity-70 select-none ${className}`}
     >

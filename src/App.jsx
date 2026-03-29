@@ -155,11 +155,11 @@ export default function App() {
     <div className="min-h-screen bg-salve-bg">
       <div className="max-w-[480px] mx-auto pb-24 relative">
         <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} />
-        <div className="px-4">
+        <main className="px-4">
           <ErrorBoundary onReset={() => onNav('dash')}>
             {renderSection()}
           </ErrorBoundary>
-        </div>
+        </main>
         <p className="text-center text-salve-textFaint text-[11px] tracking-wide py-4 font-montserrat">
           built with <span className="text-salve-rose">♥</span> for my best friend & soulmate
         </p>

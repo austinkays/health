@@ -50,7 +50,7 @@ script-src 'self'
 connect-src 'self' https://*.supabase.co wss://*.supabase.co
 ```
 
-### 1.3 No rate limiting on `/api/chat.js`
+### 1.3 No rate limiting on `/api/chat.js` — ✅ FIXED 2026-03-29
 
 **File:** `api/chat.js`
 **Issue:** Any authenticated user can call the Anthropic API proxy unlimited times. This creates:
@@ -58,9 +58,7 @@ connect-src 'self' https://*.supabase.co wss://*.supabase.co
 - Potential abuse vector
 - No protection against accidental infinite loops in client code
 
-**Fix options:**
-- **Quick:** In-memory counter per user ID with a sliding window (resets on cold start, but catches hot abuse)
-- **Robust:** Vercel KV or Upstash Redis for persistent rate counters. Recommended: 20 requests/minute per user.
+**Fix applied:** In-memory sliding window rate limiter — 20 requests/minute per user ID. Extracts user ID from the Supabase auth verification response. Returns HTTP 429 when exceeded. Stale buckets auto-cleaned every 5 minutes.
 
 ### 1.4 Missing `Permissions-Policy` header
 
@@ -102,15 +100,12 @@ form-action 'self'; worker-src 'self'; manifest-src 'self'
 
 **Fix:** Move state updates to after the Supabase promise resolves. For perceived performance, show a brief loading indicator on the affected card rather than optimistically inserting.
 
-### 2.3 `eraseAll()` has no transaction boundary
+### 2.3 `eraseAll()` has no transaction boundary — ✅ FIXED 2026-03-29
 
 **File:** `src/services/db.js`
 **Issue:** `eraseAll()` runs ~16 `DELETE FROM table` operations in parallel via `Promise.all()`. If any one fails (network drop, RLS issue), some tables are wiped while others retain data — leaving the account in an inconsistent state with no way to recover.
 
-**Fix:** Either:
-- Run deletes sequentially and stop on first error (with a "partial erase" warning), or
-- Wrap in a Supabase RPC function that uses a database transaction, or
-- Before erasing, auto-create a backup export so the user can recover
+**Fix applied:** Replaced parallel `Promise.all()` with sequential per-table deletes. Each table delete is individually try/caught. On partial failure, throws a descriptive error listing which tables failed instead of silently leaving inconsistent state.
 
 ### 2.4 `importRestore()` erase-then-insert is non-atomic
 
@@ -365,16 +360,16 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 ## 6. High — Accessibility
 
-### 6.1 Missing ARIA labels
+### 6.1 Missing ARIA labels — ✅ PARTIALLY FIXED 2026-03-29
 
 **Affected files:** `Header.jsx`, `FormWrap.jsx`, `BottomNav.jsx`, all section edit/delete buttons, `Motif.jsx`
 
-- Back button (`<ChevronLeft>`) has no `aria-label="Go back"`
-- BottomNav icons have no `aria-current="page"` on active tab
-- Edit/Delete icon buttons lack `aria-label="Edit [item]"` / `aria-label="Delete [item]"`
-- Decorative SVG motifs lack `aria-hidden="true"`
-- Send button in AIPanel lacks `aria-label="Send message"`
-- Loading spinner has no `aria-live="polite"` region
+- [x] Back button (`<ChevronLeft>`) — added `aria-label="Go back"` to Header.jsx and FormWrap.jsx
+- [x] BottomNav icons — added `aria-current="page"` on active tab + `aria-label` on every tab button
+- [ ] Edit/Delete icon buttons lack `aria-label="Edit [item]"` / `aria-label="Delete [item]"` — section-level, not yet done
+- [x] Decorative motifs — added `aria-hidden="true"` to Motif.jsx
+- [ ] Send button in AIPanel lacks `aria-label="Send message"` — not yet done
+- [x] Loading spinner — added `role="status"` + `aria-live="polite"` region + `sr-only` fallback text
 
 ### 6.2 Color-only status indication
 
@@ -387,29 +382,29 @@ The AI proxy currently powers 5 features: dashboard insight, health connections,
 
 **Fix:** Add icons or text labels alongside color. Example: severe = red + ⚠️ icon, mild = green + ✓ icon.
 
-### 6.3 Form labels not associated with inputs
+### 6.3 Form labels not associated with inputs — ✅ FIXED 2026-03-29
 
 **File:** `src/components/ui/Field.jsx`
 **Issue:** `<label>` elements exist but are not linked to their inputs via `htmlFor` / `id` attributes. Screen readers cannot associate labels with form controls.
 
-**Fix:** Generate consistent IDs in Field.jsx:
-```jsx
-const inputId = id || `field-${label?.toLowerCase().replace(/\s+/g, '-')}`;
-```
+**Fix applied:** Field.jsx now auto-generates `id` from label text (`field-{label-slug}`) and links `<label htmlFor={id}>` to input/select/textarea. Also accepts optional `id` prop for override.
 
-### 6.4 No keyboard support in ConfirmBar
+### 6.4 No keyboard support in ConfirmBar — ✅ FIXED 2026-03-29
 
 **File:** `src/components/ui/ConfirmBar.jsx`
 **Issue:** Delete confirmation requires mouse click on "Yes, delete" / "Cancel" buttons. No `onKeyDown` handler for Enter (confirm) or Escape (cancel).
 
-### 6.5 No semantic HTML structure
+**Fix applied:** Added `role="alertdialog"`, `aria-label`, and `onKeyDown` handler (Escape → cancel, Enter → confirm) to the ConfirmBar container.
+
+### 6.5 No semantic HTML structure — ✅ PARTIALLY FIXED 2026-03-29
 
 **Issue:** The app uses `<div>` for everything. Should use:
-- `<nav>` for BottomNav
-- `<main>` for the primary content area in App.jsx
-- `<section>` for each dashboard card
-- `<article>` for journal entries, chat messages
-- Heading hierarchy (`<h1>` for page title, `<h2>` for section headings)
+- [x] `<nav>` for BottomNav — BottomNav.jsx now uses `<nav aria-label="Main navigation">`
+- [x] `<main>` for the primary content area in App.jsx — content div changed to `<main>`
+- [x] `<header>` for Header — Header.jsx now uses `<header>` element
+- [ ] `<section>` for each dashboard card — not yet done
+- [ ] `<article>` for journal entries, chat messages — not yet done
+- [ ] Heading hierarchy (`<h1>` for page title, `<h2>` for section headings) — already correct
 
 ### 6.6 Chart accessibility
 
@@ -552,6 +547,7 @@ Or wrap the chart component itself in `React.lazy()`.
 5. [x] Fix optimistic updates — update state after Supabase confirms (§2.2)
 6. [x] Add pre-erase backup to `importRestore()` (§2.4)
 7. [x] Complete `buildProfile()` with all 7 missing sections (§3.1)
+8. [x] Make `eraseAll()` sequential with error handling (§2.3) — ✅ 2026-03-29
 
 ### Phase 2 — High-Impact UX (first sprint post-launch)
 8. [ ] Add abnormal labs to Dashboard alerts card (§5 Dashboard)
@@ -560,7 +556,7 @@ Or wrap the chart component itself in `React.lazy()`.
 11. [ ] Add reference ranges and abnormal flags to Vitals (§5 Vitals)
 12. [ ] Add status filter tabs to Conditions (§5 Conditions)
 13. [ ] Make Provider phone/portal clickable links (§5 Providers)
-14. [ ] Add rate limiting to `/api/chat.js` (§1.3)
+14. [x] Add rate limiting to `/api/chat.js` (§1.3) — ✅ 2026-03-29
 15. [ ] Fix form validation: numeric vitals, date ranges, severity constraints (§5 Vitals, Journal)
 
 ### Phase 3 — AI Expansion (second sprint)
@@ -573,11 +569,11 @@ Or wrap the chart component itself in `React.lazy()`.
 22. [ ] Medication-allergy AI cross-reactivity check (§4.2)
 
 ### Phase 4 — Polish & Accessibility
-23. [ ] Add ARIA labels to all interactive elements (§6.1)
+23. [~] Add ARIA labels to all interactive elements (§6.1) — ✅ partially done 2026-03-29 (Header, FormWrap, BottomNav, Motif, LoadingSpinner; remaining: section edit/delete buttons, AIPanel send)
 24. [ ] Fix color-only status indication with icons (§6.2)
-25. [ ] Link form labels to inputs in Field.jsx (§6.3)
-26. [ ] Add keyboard support to ConfirmBar (§6.4)
-27. [ ] Semantic HTML structure (§6.5)
+25. [x] Link form labels to inputs in Field.jsx (§6.3) — ✅ 2026-03-29
+26. [x] Add keyboard support to ConfirmBar (§6.4) — ✅ 2026-03-29
+27. [~] Semantic HTML structure (§6.5) — ✅ partially done 2026-03-29 (`<nav>`, `<main>`, `<header>`; remaining: `<section>`, `<article>`)
 28. [ ] Chart accessibility (§6.6)
 
 ### Phase 5 — Performance & PWA

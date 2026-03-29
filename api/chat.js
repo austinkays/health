@@ -1,3 +1,28 @@
+// ── In-memory rate limiter (per serverless instance) ──
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 20; // max requests per window per user
+const rateBuckets = new Map(); // userId → { count, resetAt }
+
+function checkRateLimit(userId) {
+  const now = Date.now();
+  const bucket = rateBuckets.get(userId);
+  if (!bucket || now > bucket.resetAt) {
+    rateBuckets.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  if (bucket.count >= RATE_LIMIT_MAX) return false;
+  bucket.count++;
+  return true;
+}
+
+// Periodically clean up stale buckets (every 5 min)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, bucket] of rateBuckets) {
+    if (now > bucket.resetAt) rateBuckets.delete(key);
+  }
+}, 5 * 60_000);
+
 export default async function handler(req, res) {
   // CORS headers — restrict to own origin
   const allowedOrigins = [
@@ -36,6 +61,12 @@ export default async function handler(req, res) {
       });
       if (!verifyRes.ok) {
         return res.status(401).json({ error: 'Invalid session' });
+      }
+      // Extract user ID for rate limiting
+      const userData = await verifyRes.json();
+      const userId = userData.id;
+      if (userId && !checkRateLimit(userId)) {
+        return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
       }
     } catch {
       return res.status(500).json({ error: 'Auth verification failed' });

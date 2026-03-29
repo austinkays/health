@@ -11,7 +11,7 @@ const NAV_ITEMS = [
 
 export default function BottomNav({ tab, onNav }) {
   return (
-    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-salve-card border-t border-salve-border flex justify-around py-2 pb-3 z-50">
+    <nav aria-label="Main navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-salve-card border-t border-salve-border flex justify-around py-2 pb-3 z-50">
       {NAV_ITEMS.map(t => {
         const Icon = t.icon;
         const active = tab === t.id;
@@ -19,6 +19,8 @@ export default function BottomNav({ tab, onNav }) {
           <button
             key={t.id}
             onClick={() => onNav(t.id)}
+            aria-current={active ? 'page' : undefined}
+            aria-label={t.label}
             className={`bg-transparent border-none cursor-pointer flex flex-col items-center gap-0.5 px-2.5 py-1 transition-colors ${active ? 'text-salve-sage' : 'text-salve-textFaint'}`}
           >
             <Icon size={20} strokeWidth={active ? 2 : 1.4} />
@@ -27,6 +29,6 @@ export default function BottomNav({ tab, onNav }) {
           </button>
         );
       })}
-    </div>
+    </nav>
   );
 }

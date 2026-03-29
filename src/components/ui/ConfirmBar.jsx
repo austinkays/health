@@ -16,8 +16,11 @@ export default function ConfirmBar({ pending, onConfirm, onCancel, itemId }) {
       />
       {/* Confirmation bar — fixed near bottom of screen where thumb is */}
       <div
+        role="alertdialog"
+        aria-label={`Confirm delete ${pending.label || 'item'}`}
         className="fixed bottom-20 left-1/2 z-50 w-full max-w-[440px] px-4"
         style={{ transform: 'translateX(-50%)' }}
+        onKeyDown={e => { if (e.key === 'Escape') onCancel(); if (e.key === 'Enter') onConfirm(); }}
       >
         <div className="bg-salve-card border border-salve-rose/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg"
           style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.35)' }}>

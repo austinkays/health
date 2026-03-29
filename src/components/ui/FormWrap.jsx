@@ -4,7 +4,7 @@ export default function FormWrap({ title, onBack, children }) {
   return (
     <div className="mt-4">
       <div className="flex items-center gap-2 mb-4">
-        <button onClick={onBack} className="bg-transparent border-none cursor-pointer text-salve-textMid flex p-1">
+        <button onClick={onBack} aria-label="Go back" className="bg-transparent border-none cursor-pointer text-salve-textMid flex p-1">
           <ChevronLeft size={20} />
         </button>
         <h3 className="font-playfair m-0 text-[17px] font-semibold text-salve-text">{title}</h3>

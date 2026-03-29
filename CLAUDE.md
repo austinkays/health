@@ -56,7 +56,7 @@ health/
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities
-│   ├── App.jsx                   # Auth gate, session management, router shell, view switching, ErrorBoundary wrapper
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
@@ -78,18 +78,18 @@ health/
 │   │   ├── ui/                   # Shared primitives
 │   │   │   ├── Card.jsx
 │   │   │   ├── Button.jsx
-│   │   │   ├── Field.jsx         # Label + input/textarea/select
+│   │   │   ├── Field.jsx         # Label + input/textarea/select (htmlFor/id associated)
 │   │   │   ├── Badge.jsx
-│   │   │   ├── ConfirmBar.jsx    # Inline delete confirmation
+│   │   │   ├── ConfirmBar.jsx    # Inline delete confirmation (keyboard: Escape/Enter, role=alertdialog)
 │   │   │   ├── EmptyState.jsx
 │   │   │   ├── ErrorBoundary.jsx  # React error boundary with friendly fallback + Go Home
 │   │   │   ├── FormWrap.jsx      # Back-arrow + title wrapper; also exports SectionTitle
-│   │   │   ├── LoadingSpinner.jsx
+│   │   │   ├── LoadingSpinner.jsx # role=status, aria-live=polite
 │   │   │   ├── AIConsentGate.jsx  # AI data-sharing consent gate + hasAIConsent/revokeAIConsent
-│   │   │   └── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs
+│   │   │   └── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
 │   │   ├── layout/
-│   │   │   ├── Header.jsx
-│   │   │   └── BottomNav.jsx
+│   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button
+│   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab
 │   │   └── sections/             # One file per app section (19 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
 │   │       ├── Medications.jsx   # Med list + add/edit form
@@ -136,7 +136,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
-The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update()`, `remove()` per table, plus `db.loadAll()` for initial hydration and `db.eraseAll()` to wipe user data.
+The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update()`, `remove()` per table, plus `db.loadAll()` for initial hydration and `db.eraseAll()` (sequential per-table deletes with per-table error handling) to wipe user data.
 
 ### Import / Export
 
@@ -171,6 +171,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 `api/chat.js` is a Vercel serverless function:
 - **Verifies Supabase auth token** via `Authorization: Bearer <token>` header
 - Validates token against Supabase Auth API using `SUPABASE_SERVICE_ROLE_KEY`
+- **Rate limited:** In-memory sliding window — 20 requests/minute per user ID (resets on cold start)
 - **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var, and `localhost:5173` (dev)
 - Accepts POST with `{ messages, system, max_tokens?, use_web_search? }`
 - Forwards to `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`
@@ -215,7 +216,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | Layer | Mechanism |
 |-------|----------|
 | **Database** | Row Level Security on all tables, scoped to `auth.uid()` |
-| **API** | Auth token verified server-side; CORS restricted to allowlisted origins |
+| **API** | Auth token verified server-side; CORS restricted to allowlisted origins; rate limited 20 req/min per user |
 | **Client → Server** | HTTPS via Vercel; Bearer token required (fails early if missing) |
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
@@ -223,6 +224,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 | **HTTP headers** | CSP (no unsafe-inline/eval in script-src), X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy, Permissions-Policy |
 | **Import safety** | `importRestore()` creates in-memory backup before erasing; auto-restores on failure |
 | **Offline sync** | `setupOfflineSync()` wired up in App.jsx; flushes pending writes when connectivity returns |
+| **Data erase** | `eraseAll()` runs sequential per-table deletes with error handling; throws on partial failure |
 | **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
 
 ## Design System
