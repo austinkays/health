@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, ShieldCheck, Sparkles, Loader, ChevronDown } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, ShieldCheck, Sparkles, Loader, ChevronDown, MapPin, User, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -12,6 +12,8 @@ import { fetchImmunizationReview } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
+import { cdcVaccineUrl, providerLookupUrl } from '../../utils/links';
+import { mapsUrl } from '../../utils/maps';
 
 const EMPTY = { date: '', name: '', dose: '', site: '', lot_number: '', provider: '', location: '' };
 
@@ -98,7 +100,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
           <Card key={imm.id} onClick={() => setExpandedId(isExpanded ? null : imm.id)} className="cursor-pointer transition-all">
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold text-salve-text mb-0.5">{imm.name}</div>
+                <a href={cdcVaccineUrl(imm.name)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{imm.name}</a>
                 <div className="text-xs text-salve-textFaint">
                   {[imm.dose, imm.date ? fmtDate(imm.date) : ''].filter(Boolean).join(' · ')}
                 </div>
@@ -107,10 +109,20 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
             </div>
             {isExpanded && (
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                {imm.location && <div className="text-xs text-salve-textFaint">Location: {imm.location}</div>}
+                {imm.location && (
+                  <div className="text-xs text-salve-textFaint flex items-center gap-1">
+                    <MapPin size={11} strokeWidth={1.4} className="flex-shrink-0" />
+                    <a href={mapsUrl(imm.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline">{imm.location}</a>
+                  </div>
+                )}
                 {imm.site && <div className="text-xs text-salve-textFaint">Site: {imm.site}</div>}
                 {imm.lot_number && <div className="text-xs text-salve-textFaint">Lot: {imm.lot_number}</div>}
-                {imm.provider && <div className="text-xs text-salve-textMid">{imm.provider}</div>}
+                {imm.provider && (
+                  <div className="text-xs text-salve-textMid flex items-center gap-1">
+                    <User size={11} strokeWidth={1.4} className="flex-shrink-0" />
+                    <a href={providerLookupUrl(imm.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{imm.provider}</a>
+                  </div>
+                )}
                 <div className="flex gap-2.5 mt-2.5">
                   <button onClick={() => { setForm(imm); setEditId(imm.id); setSubView('form'); }} aria-label="Edit immunization" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(imm.id, imm.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>

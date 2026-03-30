@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, BadgeDollarSign, ChevronDown } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, BadgeDollarSign, ChevronDown, Phone } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -80,9 +80,10 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
                   {ins.member_id && <div className="text-xs text-salve-textMid">Member ID: {ins.member_id}</div>}
                   {ins.group && <div className="text-xs text-salve-textFaint">Group: {ins.group}</div>}
                   {ins.phone && (
-                    <a href={`tel:${ins.phone}`} className="text-xs text-salve-lav mt-0.5 block hover:opacity-80">
-                      📞 {ins.phone}
-                    </a>
+                    <div className="text-xs text-salve-textMid mt-0.5 flex items-center gap-1">
+                      <Phone size={12} strokeWidth={1.4} className="flex-shrink-0" />
+                      <a href={`tel:${ins.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{ins.phone}</a>
+                    </div>
                   )}
                   {ins.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{ins.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">

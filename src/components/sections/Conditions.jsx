@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_CONDITION } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { medlinePlusUrl, providerLookupUrl } from '../../utils/links';
 
 const STATUS_COLORS = {
   active: { c: C.rose, bg: 'rgba(232,138,154,0.15)', label: '⚠ Active' },
@@ -123,13 +124,13 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <span className="text-[15px] font-semibold text-salve-text">{c.name}</span>
+                    <a href={medlinePlusUrl(c.name)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{c.name}</a>
                     <Badge label={st.label} color={st.c} bg={st.bg} />
                   </div>
                   {!isExpanded && c.provider && (
                     <div className="text-xs text-salve-textMid truncate flex items-center gap-1">
                       <User size={10} className="text-salve-textFaint flex-shrink-0" />
-                      {c.provider}
+                      <a href={providerLookupUrl(c.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{c.provider}</a>
                     </div>
                   )}
                   {!isExpanded && relatedMeds.length > 0 && (
@@ -143,7 +144,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
               {isExpanded && (
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {c.diagnosed_date && <div className="text-xs text-salve-textMid">Diagnosed: {fmtDate(c.diagnosed_date)}</div>}
-                  {c.provider && <div className="text-xs text-salve-textMid">Provider: {c.provider}</div>}
+                  {c.provider && <div className="text-xs text-salve-textMid flex items-center gap-1">Provider: <a href={providerLookupUrl(c.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{c.provider}</a></div>}
                   {c.linked_meds && <div className="text-xs text-salve-sage mt-0.5">Meds: {c.linked_meds}</div>}
                   {relatedMeds.length > 0 && (
                     <div className="mt-1.5 pt-1.5 border-t border-salve-border/30">

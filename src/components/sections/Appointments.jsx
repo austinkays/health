@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader, MapPin, Phone } from 'lucide-react';
 import { mapsUrl } from '../../utils/maps';
+import { providerLookupUrl } from '../../utils/links';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -142,7 +143,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               <div className="flex justify-between">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
-                  <div className="text-xs text-salve-textMid mt-0.5">{a.provider}{a.location ? <>{' · '}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
+                  <div className="text-xs text-salve-textMid mt-0.5">{a.provider ? <a href={providerLookupUrl(a.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{a.provider}</a> : ''}{a.location ? <>{a.provider ? ' · ' : ''}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
                   {/* ── Provider phone quick-link ── */}
                   {a.provider && providerInfo[a.provider.trim().toLowerCase()]?.phone && (
                     <div className="text-[11px] text-salve-textFaint mt-0.5 flex items-center gap-1">
@@ -193,7 +194,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               <div className="flex justify-between">
                 <div>
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
-                  <div className="text-xs text-salve-textMid">{a.provider} · {fmtDate(a.date)}{a.location ? <>{' · '}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
+                  <div className="text-xs text-salve-textMid">{a.provider ? <a href={providerLookupUrl(a.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{a.provider}</a> : ''}{a.provider ? ' · ' : ''}{fmtDate(a.date)}{a.location ? <>{' · '}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appointment" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={14} /></button>

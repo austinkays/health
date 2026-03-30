@@ -3,7 +3,7 @@ import {
   Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
-  Grid, Sun, Moon, Sunrise, Sunset, Building2,
+  Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -51,15 +51,16 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
 /* ── Quick Access config (static — outside component) ──── */
 
 const PRIMARY_LINKS = [
+  { id: 'summary',     label: 'Summary',      icon: ClipboardList, color: C.lav },
   { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,   color: C.lav },
   { id: 'providers',    label: 'Providers',     icon: User,          color: C.sage },
   { id: 'allergies',    label: 'Allergies',     icon: Shield,        color: C.amber },
   { id: 'appts',        label: 'Appointments',  icon: Calendar,      color: C.rose },
   { id: 'labs',         label: 'Labs',          icon: FlaskConical,  color: C.lav },
-  { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign, color: C.sage },
 ];
 
 const MORE_LINKS = [
+  { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign, color: C.sage },
   { id: 'procedures',    label: 'Procedures',    icon: Syringe,       color: C.sage },
   { id: 'immunizations', label: 'Vaccines',      icon: ShieldCheck,   color: C.sage },
   { id: 'care_gaps',     label: 'Care Gaps',     icon: AlertTriangle, color: C.amber },

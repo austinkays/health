@@ -10,6 +10,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_PROVIDER } from '../../constants/defaults';
 import { searchProviders } from '../../services/npi';
 import { mapsUrl } from '../../utils/maps';
+import { dailyMedUrl } from '../../utils/links';
 
 export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
@@ -221,7 +222,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
                     {prescribedMeds.map(m => (
                       <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
                         <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
-                        <span className="font-medium text-salve-text">{m.display_name || m.name}</span>
+                        <a href={dailyMedUrl(m.name, m.rxcui)} target="_blank" rel="noopener noreferrer" className="font-medium text-salve-text hover:text-salve-sage hover:underline transition-colors">{m.display_name || m.name}</a>
                         {m.dose && <span className="text-salve-textFaint">{m.dose}</span>}
                       </div>
                     ))}

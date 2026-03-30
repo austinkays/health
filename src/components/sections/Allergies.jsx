@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Shield, ChevronDown } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Shield, ChevronDown, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -10,6 +10,7 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_ALLERGY } from '../../constants/defaults';
 import { C } from '../../constants/colors';
+import { medlinePlusUrl } from '../../utils/links';
 
 const SEV = {
   mild: { c: C.sage, bg: 'rgba(143,191,160,0.15)', label: '✓ Mild' },
@@ -70,7 +71,7 @@ export default function Allergies({ data, addItem, updateItem, removeItem }) {
               <div className="flex justify-between items-start">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[15px] font-semibold text-salve-text">{a.substance}</span>
+                    <a href={medlinePlusUrl(a.substance + ' allergy')} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{a.substance}</a>
                     <Badge label={s.label} color={s.c} bg={s.bg} />
                   </div>
                   {!isExpanded && a.reaction && <div className="text-xs text-salve-textMid truncate">{a.reaction}</div>}

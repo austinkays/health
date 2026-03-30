@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -15,6 +15,7 @@ import { fetchLabInterpretation } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
+import { medlinePlusLabUrl, providerLookupUrl } from '../../utils/links';
 
 const EMPTY = { date: '', test_name: '', result: '', unit: '', range: '', flag: '', provider: '', notes: '' };
 const FLAG_OPTS = ['', 'normal', 'abnormal', 'high', 'low', 'mild-abnormal', 'completed', 'never'];
@@ -118,7 +119,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[15px] font-semibold text-salve-text">{l.test_name}</span>
+                    <a href={medlinePlusLabUrl(l.test_name)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{l.test_name}</a>
                     {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} />}
                   </div>
                   {l.result && (
@@ -131,7 +132,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
               </div>
               {isExpanded && (
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                  {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? ` · ${l.provider}` : ''}</div>}
+                  {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? <>{' · '}<a href={providerLookupUrl(l.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{l.provider}</a></> : ''}</div>}
                   {l.range && <div className="text-xs text-salve-textFaint">Reference: {l.range}</div>}
                   {!l.range && refRange && (
                     <div className="text-xs text-salve-textFaint">

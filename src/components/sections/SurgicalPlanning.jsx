@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, PlaneTakeoff, ChevronDown } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, PlaneTakeoff, ChevronDown, MapPin, User } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -9,6 +9,8 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
+import { mapsUrl } from '../../utils/maps';
+import { providerLookupUrl } from '../../utils/links';
 
 const EMPTY = {
   facility: '', surgeon: '', coordinator: '', case_number: '',
@@ -113,10 +115,18 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[15px] font-semibold text-salve-text">{plan.facility || 'Unnamed facility'}</span>
+                    <a href={mapsUrl(plan.facility)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline flex items-center gap-1">
+                      {plan.facility || 'Unnamed facility'}
+                      {plan.facility && <MapPin size={12} strokeWidth={1.4} className="flex-shrink-0" />}
+                    </a>
                     {plan.status && <Badge label={plan.status} color={ss.color} bg={ss.bg} />}
                   </div>
-                  {plan.surgeon && <div className="text-xs text-salve-textMid">{plan.surgeon}</div>}
+                  {plan.surgeon && (
+                    <div className="text-xs text-salve-textMid flex items-center gap-1">
+                      <User size={11} strokeWidth={1.4} className="flex-shrink-0" />
+                      <a href={providerLookupUrl(plan.surgeon, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{plan.surgeon}</a>
+                    </div>
+                  )}
                   {!isExpanded && plan.target_date && <div className="text-xs text-salve-textFaint">Target: {plan.target_date}</div>}
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
@@ -125,7 +135,11 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {plan.target_date && <div className="text-xs text-salve-textFaint">Target: {plan.target_date}</div>}
                   {plan.case_number && <div className="text-xs text-salve-textFaint">Case #: {plan.case_number}</div>}
-                  {plan.coordinator && <div className="text-xs text-salve-textFaint">Coordinator: {plan.coordinator}</div>}
+                  {plan.coordinator && (
+                    <div className="text-xs text-salve-textFaint flex items-center gap-1">
+                      Coordinator: <a href={providerLookupUrl(plan.coordinator, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{plan.coordinator}</a>
+                    </div>
+                  )}
                   {plan.accommodation && <div className="text-xs text-salve-textFaint mt-1">{plan.accommodation}</div>}
 
                   {procs.length > 0 && (

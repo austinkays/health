@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info } from 'lucide-react';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -18,17 +18,71 @@ const FEATURES = [
   { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose },
 ];
 
+// Strip the AI disclaimer from markdown text for separate rendering
+function stripDisclaimer(text) {
+  if (!text) return '';
+  return text.replace(/\n---\n\*AI suggestions are not medical advice\.[^*]*\*\s*$/, '').trim();
+}
+
 // Split markdown text into sections by ## headings or --- separators
 function splitSections(text) {
   if (!text) return [];
-  // Remove the disclaimer at the end before splitting
-  const cleaned = text.replace(/\n---\n\*AI suggestions are not medical advice\.[^*]*\*\s*$/, '').trim();
+  const cleaned = stripDisclaimer(text);
   // Split by ## headings — keep the heading with its content
   const parts = cleaned.split(/(?=^## )/m).filter(s => s.trim());
   if (parts.length > 1) return parts;
   // Fallback: split by horizontal rules
   const hrParts = cleaned.split(/\n---\n/).filter(s => s.trim());
   return hrParts.length > 1 ? hrParts : [cleaned];
+}
+
+/* ── Shared Components ───────────────────────────────────── */
+
+function CopyButton({ text, className = '' }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1 transition-all duration-200 border-none cursor-pointer font-montserrat ${
+        copied
+          ? 'bg-salve-sage/20 text-salve-sage'
+          : 'bg-salve-card2 text-salve-textFaint hover:text-salve-text hover:bg-salve-border'
+      } ${className}`}
+      aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
+    >
+      {copied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+    </button>
+  );
+}
+
+function ResultHeader({ icon: Icon, label, color, text }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: color + '20' }}>
+          <Icon size={15} color={color} strokeWidth={1.8} />
+        </div>
+        <span className="text-[13px] font-semibold text-salve-text font-montserrat tracking-wide">{label}</span>
+      </div>
+      {text && <CopyButton text={stripDisclaimer(text)} />}
+    </div>
+  );
+}
+
+function Disclaimer() {
+  return (
+    <div className="flex items-center justify-center gap-1.5 mt-4 pt-3 border-t border-salve-border/30">
+      <Info size={10} className="text-salve-textFaint shrink-0" />
+      <p className="text-[10px] text-salve-textFaint italic m-0 font-montserrat">
+        AI suggestions are not medical advice. Always consult your healthcare providers.
+      </p>
+    </div>
+  );
 }
 
 function SourcesBadges({ sources }) {
@@ -55,6 +109,83 @@ function SourcesBadges({ sources }) {
   );
 }
 
+/* ── Insight Result ──────────────────────────────────────── */
+
+function InsightResult({ result }) {
+  const text = typeof result === 'string' ? result : result?.text;
+  const cleaned = stripDisclaimer(text);
+
+  return (
+    <div>
+      <ResultHeader icon={Sparkles} label="Health Insight" color={C.lav} text={text} />
+      <div className="rounded-xl border border-salve-lav/20 bg-salve-lav/5 insight-glow overflow-hidden dash-stagger">
+        <div className="border-l-[3px] border-salve-lav/40 p-4 pl-5">
+          <AIMarkdown>{cleaned}</AIMarkdown>
+        </div>
+      </div>
+      <Disclaimer />
+    </div>
+  );
+}
+
+/* ── Connections Result ───────────────────────────────────── */
+
+function ConnectionsResult({ result }) {
+  const text = typeof result === 'string' ? result : result?.text;
+  const sections = splitSections(text);
+
+  // Single section fallback
+  if (sections.length <= 1) {
+    return (
+      <div>
+        <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} />
+        <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
+          <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
+            <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
+          </div>
+        </div>
+        <Disclaimer />
+      </div>
+    );
+  }
+
+  // Parse heading from each section
+  const parsed = sections.map(s => {
+    const match = s.match(/^##\s+(.+?)[\n\r]/);
+    const title = match ? match[1].trim() : null;
+    const content = match ? s.replace(/^##\s+.+?[\n\r]/, '') : s;
+    return { title, content };
+  });
+
+  return (
+    <div>
+      <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} />
+      <div className="flex flex-col gap-2.5">
+        {parsed.map((section, i) => (
+          <div
+            key={i}
+            className="card-hover rounded-xl border border-salve-sage/15 bg-salve-card overflow-hidden dash-stagger"
+            style={{ animationDelay: `${i * 0.08}s` }}
+          >
+            <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
+              {section.title && (
+                <div className="flex items-center gap-2 mb-2">
+                  <Link size={13} className="text-salve-sage shrink-0" strokeWidth={1.8} />
+                  <span className="text-[13px] font-semibold text-salve-text font-montserrat">{section.title}</span>
+                </div>
+              )}
+              <AIMarkdown>{section.content.trim()}</AIMarkdown>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Disclaimer />
+    </div>
+  );
+}
+
+/* ── News Result ─────────────────────────────────────────── */
+
 function NewsResult({ result }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
@@ -64,40 +195,53 @@ function NewsResult({ result }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <Card><AIMarkdown>{text}</AIMarkdown></Card>
+        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} />
+        <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 overflow-hidden">
+          <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
+            <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
+          </div>
+        </div>
         <SourcesBadges sources={sources} />
+        <Disclaimer />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      {sections.map((section, i) => (
-        <div
-          key={i}
-          className="card-hover bg-salve-card border border-salve-border rounded-xl p-4 dash-stagger"
-          style={{ animationDelay: `${i * 0.08}s` }}
-        >
-          <div className="flex items-start gap-2.5 mb-1">
-            <Newspaper size={15} className="text-salve-amber mt-0.5 flex-shrink-0" strokeWidth={1.5} />
-            <div className="flex-1 min-w-0">
-              <AIMarkdown>{section.trim()}</AIMarkdown>
+    <div>
+      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} />
+      <div className="flex flex-col gap-2.5">
+        {sections.map((section, i) => (
+          <div
+            key={i}
+            className="card-hover rounded-xl border border-salve-amber/15 bg-salve-card overflow-hidden dash-stagger"
+            style={{ animationDelay: `${i * 0.08}s` }}
+          >
+            <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
+              <div className="flex items-start gap-2.5">
+                <Newspaper size={14} className="text-salve-amber mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                <div className="flex-1 min-w-0">
+                  <AIMarkdown>{section.trim()}</AIMarkdown>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
       <SourcesBadges sources={sources} />
-      <p className="text-[10px] text-salve-textFaint italic text-center mt-1">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
+      <Disclaimer />
     </div>
   );
 }
+
+/* ── Accordion Section (for Resources) ───────────────────── */
 
 function AccordionSection({ title, content, defaultOpen = false, index }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
     <div
-      className="card-hover bg-salve-card border border-salve-border rounded-xl overflow-hidden dash-stagger"
+      className="card-hover rounded-xl border border-salve-rose/15 bg-salve-card overflow-hidden dash-stagger"
       style={{ animationDelay: `${index * 0.08}s` }}
     >
       <button
@@ -117,13 +261,15 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
       <div
         className={`accordion-content ${open ? 'accordion-open' : 'accordion-closed'}`}
       >
-        <div className="px-4 pb-4 pt-0">
+        <div className="border-l-[3px] border-salve-rose/40 mx-4 mb-4 pl-4 pt-0">
           <AIMarkdown>{content.trim()}</AIMarkdown>
         </div>
       </div>
     </div>
   );
 }
+
+/* ── Resources Result ────────────────────────────────────── */
 
 function ResourcesResult({ result }) {
   const text = typeof result === 'string' ? result : result?.text;
@@ -134,8 +280,14 @@ function ResourcesResult({ result }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <Card><AIMarkdown>{text}</AIMarkdown></Card>
+        <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} />
+        <div className="rounded-xl border border-salve-rose/20 bg-salve-rose/5 overflow-hidden">
+          <div className="border-l-[3px] border-salve-rose/40 p-4 pl-5">
+            <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
+          </div>
+        </div>
         <SourcesBadges sources={sources} />
+        <Disclaimer />
       </div>
     );
   }
@@ -149,18 +301,21 @@ function ResourcesResult({ result }) {
   });
 
   return (
-    <div className="flex flex-col gap-2.5">
-      {parsed.map((section, i) => (
-        <AccordionSection
-          key={i}
-          index={i}
-          title={section.title}
-          content={section.content}
-          defaultOpen={i === 0}
-        />
-      ))}
+    <div>
+      <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} />
+      <div className="flex flex-col gap-2.5">
+        {parsed.map((section, i) => (
+          <AccordionSection
+            key={i}
+            index={i}
+            title={section.title}
+            content={section.content}
+            defaultOpen={i === 0}
+          />
+        ))}
+      </div>
       <SourcesBadges sources={sources} />
-      <p className="text-[10px] text-salve-textFaint italic text-center mt-1">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
+      <Disclaimer />
     </div>
   );
 }
@@ -218,12 +373,19 @@ export default function AIPanel({ data }) {
       </SectionTitle>
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
-          <article key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 ${
+          <article key={i} className={`max-w-[85%] rounded-xl ${
             m.role === 'user'
-              ? 'self-end bg-salve-lav/20 text-salve-text ml-auto text-[13px] leading-relaxed'
-              : 'self-start bg-salve-card border border-salve-border text-salve-textMid'
+              ? 'self-end bg-salve-lav/20 text-salve-text ml-auto px-3.5 py-2.5 text-[13px] leading-relaxed'
+              : 'self-start bg-salve-card border border-salve-border text-salve-textMid px-3.5 pt-2.5 pb-1.5'
           }`}>
-            {m.role === 'assistant' ? <AIMarkdown compact>{m.content}</AIMarkdown> : m.content}
+            {m.role === 'assistant' ? (
+              <>
+                <AIMarkdown compact>{stripDisclaimer(m.content)}</AIMarkdown>
+                <div className="flex justify-end mt-1.5 -mr-1">
+                  <CopyButton text={stripDisclaimer(m.content)} className="!text-[10px] !px-2 !py-0.5" />
+                </div>
+              </>
+            ) : m.content}
           </article>
         ))}
         {loading && (
@@ -256,16 +418,19 @@ export default function AIPanel({ data }) {
         {FEATURES.find(f => f.id === mode)?.label}
       </SectionTitle>
       {loading ? (
-        <Card className="text-center !py-8">
-          <Loader2 size={24} className="animate-spin mx-auto mb-2 text-salve-lav" />
-          <div className="text-[13px] text-salve-textMid">Analyzing your health profile...</div>
-        </Card>
+        <div className="rounded-xl border border-salve-border bg-salve-card text-center py-10">
+          <div className="w-10 h-10 rounded-full bg-salve-lav/10 flex items-center justify-center mx-auto mb-3">
+            <Loader2 size={20} className="animate-spin text-salve-lav" />
+          </div>
+          <div className="text-[13px] text-salve-textMid font-montserrat">Analyzing your health profile...</div>
+          <div className="text-[11px] text-salve-textFaint mt-1">This may take a moment</div>
+        </div>
       ) : result ? (
+        mode === 'insight' ? <InsightResult result={result} /> :
+        mode === 'connections' ? <ConnectionsResult result={result} /> :
         mode === 'news' ? <NewsResult result={result} /> :
         mode === 'resources' ? <ResourcesResult result={result} /> :
-        <Card>
-          <AIMarkdown>{typeof result === 'string' ? result : result?.text}</AIMarkdown>
-        </Card>
+        null
       ) : null}
     </div>
     </AIConsentGate>

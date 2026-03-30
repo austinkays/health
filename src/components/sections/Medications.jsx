@@ -18,6 +18,7 @@ import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { drugAutocomplete, drugDetails } from '../../services/drugs';
 import { mapsUrl } from '../../utils/maps';
+import { dailyMedUrl, providerLookupUrl } from '../../utils/links';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -470,7 +471,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
-                  {m.display_name || m.name}
+                  <a href={dailyMedUrl(m.name, m.rxcui)} target="_blank" rel="noopener noreferrer" className="text-salve-text hover:text-salve-sage transition-colors hover:underline">
+                    {m.display_name || m.name}
+                  </a>
                   {m.rxcui
                     ? <span title="Linked to NLM drug database" className="text-salve-sage"><Link2 size={11} /></span>
                     : <span title="Not linked to NLM database" className="text-salve-amber"><Unlink size={11} /></span>
@@ -499,7 +502,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                 {m.route && <div className="text-xs text-salve-textMid mb-0.5">Route: {m.route}</div>}
                 {m.purpose && <div className="text-xs text-salve-textFaint">For: {m.purpose}</div>}
-                {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
+                {m.prescriber && <div className="text-xs text-salve-textFaint flex items-center gap-1">Rx: <a href={providerLookupUrl(m.prescriber, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{m.prescriber}</a></div>}
                 {m.pharmacy && (
                   <div className="text-xs text-salve-textFaint flex items-center gap-1">
                     Pharmacy: <a href={mapsUrl(m.pharmacy)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5">{m.pharmacy} <MapPin size={10} /></a>

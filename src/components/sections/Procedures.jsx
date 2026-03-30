@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Syringe, ChevronDown } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Syringe, ChevronDown, MapPin, User } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -10,6 +10,8 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { mapsUrl } from '../../utils/maps';
+import { providerLookupUrl } from '../../utils/links';
 
 const EMPTY = { date: '', name: '', type: '', provider: '', location: '', reason: '', outcome: '', notes: '' };
 const TYPES = ['', 'Surgical procedure', 'Diagnostic procedure', 'Pain procedure'];
@@ -77,8 +79,18 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
               </div>
               {isExpanded && (
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                  {p.location && <div className="text-xs text-salve-textFaint">Location: {p.location}</div>}
-                  {p.provider && <div className="text-xs text-salve-textMid">{p.provider}</div>}
+                  {p.location && (
+                    <div className="text-xs text-salve-textFaint flex items-center gap-1">
+                      <MapPin size={11} strokeWidth={1.4} className="flex-shrink-0" />
+                      <a href={mapsUrl(p.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline">{p.location}</a>
+                    </div>
+                  )}
+                  {p.provider && (
+                    <div className="text-xs text-salve-textMid flex items-center gap-1">
+                      <User size={11} strokeWidth={1.4} className="flex-shrink-0" />
+                      <a href={providerLookupUrl(p.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{p.provider}</a>
+                    </div>
+                  )}
                   {p.reason && <div className="text-xs text-salve-textFaint mt-0.5">For: {p.reason}</div>}
                   {p.outcome && <div className="text-xs text-salve-textMid mt-0.5">Outcome: {p.outcome}</div>}
                   {p.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{p.notes}</div>}

@@ -117,7 +117,7 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: health insight, connections, news (floating cards), resources (collapsible accordions), chat; web search source badges; "What AI Sees" preview button opens full-screen slide-up panel
+│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose); ResultHeader with icon badge + copy-to-clipboard; InsightResult (single accent card), ConnectionsResult (section-split cards with stagger animation), NewsResult (per-story accent cards), ResourcesResult (accordion with accent bars); chat with per-message copy buttons; SourcesBadges for web search; styled Disclaimer component; "What AI Sees" preview button opens full-screen slide-up panel
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -383,7 +383,14 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Dashboard: "More" expanded state persists across page loads
 - [ ] AI insight loads on dashboard (with /api/chat proxy + auth token)
 - [ ] AI chat panel sends/receives messages
+- [ ] AI chat: copy button appears on assistant responses (copies text to clipboard)
 - [ ] AI news and resources features work (web search)
+- [ ] AI results: ResultHeader shows feature icon + label + copy button for each feature
+- [ ] AI results: Insight shows lavender accent card with left border
+- [ ] AI results: Connections splits into section cards with sage accent and stagger animation
+- [ ] AI results: News shows per-story amber accent cards + SourcesBadges
+- [ ] AI results: Resources shows rose accordion sections with accent bars + SourcesBadges
+- [ ] AI results: Disclaimer renders as styled component (not raw markdown)
 - [ ] Settings: all profile fields save correctly
 - [ ] Erase All Data clears Supabase data and reloads
 - [ ] Download Backup exports valid JSON with all data
