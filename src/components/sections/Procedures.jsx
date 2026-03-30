@@ -83,7 +83,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
                   {p.outcome && <div className="text-xs text-salve-textMid mt-0.5">Outcome: {p.outcome}</div>}
                   {p.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{p.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit procedure" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

@@ -86,7 +86,10 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
           </Button>
           {patternsAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
-              <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> Pattern Insights</div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Pattern Insights</div>
+                <button onClick={() => setPatternsAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss pattern insights">×</button>
+              </div>
               <AIMarkdown>{patternsAI}</AIMarkdown>
             </Card>
           )}
@@ -126,7 +129,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
                     </div>
                   )}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
+                    <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
                     <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1">Delete</button>
                   </div>
                 </div>

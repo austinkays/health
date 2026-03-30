@@ -1,20 +1,18 @@
 // Client service for drug information (RxNorm + OpenFDA)
 // All calls go through /api/drug serverless function
 
-import { supabase } from './supabase';
-
-async function getToken() {
-  const { data: { session } } = await supabase.auth.getSession();
-  return session?.access_token;
-}
+import { getAuthToken } from './token';
 
 async function drugAPI(action, params = {}) {
-  const token = await getToken();
+  const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
   const qs = new URLSearchParams({ action, ...params }).toString();
   const res = await fetch(`/api/drug?${qs}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  if (res.status === 429) {
+    throw new Error('Too many requests. Please wait a moment and try again.');
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error || `Drug API error (${res.status})`);

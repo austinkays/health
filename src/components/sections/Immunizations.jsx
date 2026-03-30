@@ -81,7 +81,10 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
           </Button>
           {scheduleAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
-              <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> Schedule Review</div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Schedule Review</div>
+                <button onClick={() => setScheduleAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss schedule review">×</button>
+              </div>
               <AIMarkdown>{scheduleAI}</AIMarkdown>
             </Card>
           )}
@@ -109,7 +112,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
                 {imm.lot_number && <div className="text-xs text-salve-textFaint">Lot: {imm.lot_number}</div>}
                 {imm.provider && <div className="text-xs text-salve-textMid">{imm.provider}</div>}
                 <div className="flex gap-2.5 mt-2.5">
-                  <button onClick={() => { setForm(imm); setEditId(imm.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                  <button onClick={() => { setForm(imm); setEditId(imm.id); setSubView('form'); }} aria-label="Edit immunization" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(imm.id, imm.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                 </div>
               </div>

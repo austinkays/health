@@ -1,11 +1,18 @@
 import { VITAL_TYPES } from '../constants/defaults';
 
+// Sanitize user-provided text to prevent prompt injection
+function san(text) {
+  if (!text) return '';
+  return String(text).replace(/[<>{}]/g, '').slice(0, 500);
+}
+
 export function buildProfile(data) {
+  if (!data) return '(No health data available)';
   const s = data.settings || {};
   let p = '';
 
-  if (s.name) p += 'Patient name: ' + s.name + '\n';
-  if (s.location) p += 'Location: ' + s.location + '\n';
+  if (s.name) p += 'Patient name: ' + san(s.name) + '\n';
+  if (s.location) p += 'Location: ' + san(s.location) + '\n';
 
   // Active medications
   p += '\n— ACTIVE MEDICATIONS —\n';
@@ -80,8 +87,8 @@ export function buildProfile(data) {
       p += '- ' + e.date;
       if (e.mood) p += ' [mood: ' + e.mood + ']';
       if (e.severity) p += ' [severity: ' + e.severity + '/10]';
-      p += ': ' + (e.content || e.title || '');
-      if (e.tags) p += ' (tags: ' + e.tags + ')';
+      p += ': ' + san(e.content || e.title || '');
+      if (e.tags) p += ' (tags: ' + san(e.tags) + ')';
       p += '\n';
     });
   }
@@ -96,7 +103,7 @@ export function buildProfile(data) {
 
   // Health background
   if (s.health_background) {
-    p += '\n— ADDITIONAL HEALTH BACKGROUND —\n' + s.health_background + '\n';
+    p += '\n— ADDITIONAL HEALTH BACKGROUND —\n' + san(s.health_background) + '\n';
   }
 
   // Labs (highlight abnormal results, last 10)

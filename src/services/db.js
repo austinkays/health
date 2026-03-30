@@ -104,12 +104,7 @@ export const db = {
 
   // Load all data at once (initial hydration)
   async loadAll() {
-    const [
-      profile, meds, conditions, allergies, providers,
-      vitals, appts, journal,
-      labs, procedures, immunizations, care_gaps,
-      anesthesia_flags, appeals_and_disputes, surgical_planning, insurance,
-    ] = await Promise.all([
+    const results = await Promise.allSettled([
       db.profile.get(),
       db.medications.list(),
       db.conditions.list(),
@@ -128,12 +123,14 @@ export const db = {
       db.insurance.list(),
     ]);
 
+    const v = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
+
     return {
-      settings: profile,
-      meds, conditions, allergies, providers,
-      vitals, appts, journal,
-      labs, procedures, immunizations, care_gaps,
-      anesthesia_flags, appeals_and_disputes, surgical_planning, insurance,
+      settings: v(0, {}),
+      meds: v(1, []), conditions: v(2, []), allergies: v(3, []), providers: v(4, []),
+      vitals: v(5, []), appts: v(6, []), journal: v(7, []),
+      labs: v(8, []), procedures: v(9, []), immunizations: v(10, []), care_gaps: v(11, []),
+      anesthesia_flags: v(12, []), appeals_and_disputes: v(13, []), surgical_planning: v(14, []), insurance: v(15, []),
     };
   },
 

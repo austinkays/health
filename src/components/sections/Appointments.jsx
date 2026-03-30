@@ -99,12 +99,13 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                 </div>
               </div>
               <div className="flex gap-2.5 mt-2">
-                <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
+                <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appointment" className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
                 <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
                 {hasAIConsent() && (
                   <button
                     onClick={() => prepareVisit(a)}
                     disabled={prepLoading === a.id}
+                    aria-label="Prepare for visit with AI"
                     className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
                   >
                     {prepLoading === a.id ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
@@ -114,7 +115,10 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               </div>
               {prepResult[a.id] && (
                 <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
-                  <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> AI Visit Prep</div>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> AI Visit Prep</div>
+                    <button onClick={() => setPrepResult(p => { const n = {...p}; delete n[a.id]; return n; })} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss visit prep">×</button>
+                  </div>
                   <AIMarkdown compact>{prepResult[a.id]}</AIMarkdown>
                 </div>
               )}

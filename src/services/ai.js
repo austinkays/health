@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { getAuthToken } from './token';
 
 // AI system prompts
 export const PROMPTS = {
@@ -45,8 +45,7 @@ export const PROMPTS = {
 const DISCLAIMER = '\n\n---\n*AI suggestions are not medical advice. Always consult your healthcare providers.*';
 
 async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  const token = await getAuthToken();
 
   if (!token) {
     throw new Error('You must be signed in to use AI features.');
@@ -69,6 +68,10 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false)
       signal: controller.signal,
     });
 
+    if (res.status === 429) {
+      throw new Error('Too many requests. Please wait a moment and try again.');
+    }
+
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || `API error ${res.status}`);
@@ -80,8 +83,10 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false)
         .filter(b => b.type === 'text')
         .map(b => b.text)
         .join('\n\n');
+      if (!text.trim()) throw new Error('AI returned an empty response. Please try again.');
       return text + DISCLAIMER;
     }
+    if (data.error) throw new Error(data.error.message || 'AI service error');
     throw new Error('Unexpected API response');
   } catch (e) {
     if (e.name === 'AbortError') throw new Error('Request timed out. Try again.');

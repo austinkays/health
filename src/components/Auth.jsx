@@ -83,7 +83,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess }) {
 
   async function handleVerify(token) {
     const otp = token || code.join('');
-    if (otp.length !== 8) return;
+    if (otp.length !== 8 || otpSecondsLeft <= 0) return;
     setVerifying(true);
     setError('');
     try {
@@ -175,10 +175,10 @@ export default function Auth({ sessionExpired = false, onAuthSuccess }) {
 
             <button
               onClick={() => handleVerify()}
-              disabled={verifying || code.some(d => d === '')}
+              disabled={verifying || code.some(d => d === '') || otpSecondsLeft <= 0}
               className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 text-sm hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
             >
-              {verifying ? 'Verifying...' : 'Sign in'}
+              {verifying ? 'Verifying...' : otpSecondsLeft <= 0 ? 'Code expired' : 'Sign in'}
             </button>
 
             <p className="text-salve-textFaint text-xs mb-3">

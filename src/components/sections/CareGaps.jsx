@@ -113,7 +113,10 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
           </Button>
           {aiSuggestions && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
-              <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> AI Suggestions</div>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> AI Suggestions</div>
+                <button onClick={() => setAiSuggestions(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss AI suggestions">×</button>
+              </div>
               <AIMarkdown>{aiSuggestions}</AIMarkdown>
             </Card>
           )}
@@ -153,7 +156,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
                   {g.last_done && <div className="text-xs text-salve-textFaint">Last done: {g.last_done}</div>}
                   {g.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{g.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(g); setEditId(g.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => { setForm(g); setEditId(g.id); setSubView('form'); }} aria-label="Edit care gap" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(g.id, g.item)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

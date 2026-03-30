@@ -8,6 +8,13 @@
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
 const rateBuckets = new Map();
+const EXTERNAL_TIMEOUT_MS = 15_000;
+
+function fetchWithTimeout(url, opts = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), EXTERNAL_TIMEOUT_MS);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
 
 function checkRateLimit(userId) {
   const now = Date.now();
@@ -75,7 +82,7 @@ function parseAddress(addrObj) {
     addrObj.city,
     addrObj.state,
     addrObj.postal_code?.slice(0, 5),
-  ].filter(Boolean);
+  ].filter(p => p && p.trim());
   return parts.join(', ');
 }
 
@@ -120,10 +127,14 @@ async function npiSearch(name, state) {
     // Single word — search as last name and also try organization
     params.set('last_name', parts[0]);
   }
-  if (state) params.set('state', state);
+  if (state) {
+    const upper = state.toUpperCase();
+    if (!/^[A-Z]{2}$/.test(upper)) return [];
+    params.set('state', upper);
+  }
 
   const url = `${NPI_BASE}/?${params}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) return [];
   const data = await res.json();
   if (!data.results || data.result_count === 0) return [];
@@ -132,7 +143,7 @@ async function npiSearch(name, state) {
 
 async function npiLookup(npiNumber) {
   const url = `${NPI_BASE}/?version=2.1&number=${encodeURIComponent(npiNumber)}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) return null;
   const data = await res.json();
   if (!data.results || data.result_count === 0) return null;
@@ -179,6 +190,9 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('Provider API error:', err);
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'External API timeout' });
+    }
     return res.status(500).json({ error: 'External API request failed' });
   }
 }

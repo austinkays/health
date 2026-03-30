@@ -107,7 +107,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                   {c.linked_meds && <div className="text-xs text-salve-sage mt-0.5">Meds: {c.linked_meds}</div>}
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} aria-label="Edit condition" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(c.id, c.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

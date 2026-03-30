@@ -71,23 +71,24 @@ health/
 │   ├── services/
 │   │   ├── supabase.js           # Supabase client init (from VITE_SUPABASE_URL/ANON_KEY)
 │   │   ├── auth.js               # signIn (magic link), signOut, getSession, onAuthChange
-│   │   ├── db.js                 # Generic CRUD factory + table-specific services + loadAll + eraseAll
+│   │   ├── db.js                 # Generic CRUD factory + table-specific services + loadAll (allSettled) + eraseAll
 │   │   ├── cache.js              # Encrypted offline localStorage cache + pending write queue + sync
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
-│   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent)
-│   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions (via /api/drug)
-│   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider)
+│   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent, 120s timeout, empty response validation)
+│   │   ├── token.js              # Shared auth token cache (5s TTL, concurrent-call dedup, clearTokenCache on sign-out)
+│   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions (via /api/drug, 429-aware)
+│   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts
+│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts (sanitized against prompt injection)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
 │   ├── components/
-│   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen
+│   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit)
 │   │   ├── ui/                   # Shared primitives
 │   │   │   ├── Card.jsx
 │   │   │   ├── Button.jsx
-│   │   │   ├── Field.jsx         # Label + input/textarea/select (htmlFor/id associated)
+│   │   │   ├── Field.jsx         # Label + input/textarea/select (htmlFor/id via React useId(); supports error prop)
 │   │   │   ├── Badge.jsx
 │   │   │   ├── ConfirmBar.jsx    # Inline delete confirmation (keyboard: Escape/Enter, role=alertdialog)
 │   │   │   ├── EmptyState.jsx
@@ -148,7 +149,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
-The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update()`, `remove()` per table, plus `db.loadAll()` for initial hydration and `db.eraseAll()` (sequential per-table deletes with per-table error handling) to wipe user data.
+The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update()`, `remove()` per table, plus `db.loadAll()` (uses `Promise.allSettled()` for resilient initial hydration — individual table failures return empty defaults) and `db.eraseAll()` (sequential per-table deletes with per-table error handling) to wipe user data.
 
 ### Import / Export
 
@@ -163,7 +164,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 
 ### Auth Flow
 
-- `Auth.jsx` renders a magic-link email sign-in form with 8-digit OTP code entry (auto-advance, paste support, auto-submit, 10-minute expiry countdown)
+- `Auth.jsx` renders a magic-link email sign-in form with 8-digit OTP code entry (auto-advance, paste support, auto-submit, 10-minute expiry countdown; sign-in button disabled after OTP expiry)
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
@@ -188,6 +189,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var, and `localhost:5173` (dev)
 - Accepts POST with `{ messages, system, max_tokens?, use_web_search? }`
 - Forwards to `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`
+- **Fetch timeout:** 115-second AbortController timeout (under Vercel's 120s function limit); returns 504 on timeout
 - Optionally includes Anthropic web search tool when `use_web_search` is true
 - Returns the response JSON
 - 120-second timeout configured in vercel.json
@@ -195,7 +197,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 
 ### Medical API Proxies
 
-Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`.
+Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`. Both use `fetchWithTimeout()` (15-second AbortController) for external API calls.
 
 **`api/drug.js`** — RxNorm + OpenFDA proxy:
 - **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup), `interactions` (RxNorm interaction list for multiple RxCUIs)
@@ -264,29 +266,34 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 |-------|----------|
 | **Database** | Row Level Security on all tables, scoped to `auth.uid()` |
 | **API** | Auth token verified server-side; CORS restricted to allowlisted origins; rate limited 20 req/min per user |
-| **Client → Server** | HTTPS via Vercel; Bearer token required (fails early if missing) |
+| **API Timeouts** | `chat.js`: 115s AbortController timeout; `drug.js`/`provider.js`: 15s `fetchWithTimeout()` for external calls |
+| **Client → Server** | HTTPS via Vercel; Bearer token required (fails early if missing); shared token cache with concurrent-call dedup (`token.js`) |
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
+| **AI prompt safety** | `profile.js` sanitizes all user-provided text (strips `<>{}`, truncates to 500 chars) before embedding in AI prompts |
 | **HTTP headers** | CSP (no unsafe-inline/eval in script-src), X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy, Permissions-Policy |
 | **Stale chunk recovery** | `lazyWithRetry()` wrapper catches chunk load failures from stale deploys; one-time `sessionStorage`-guarded page reload fetches updated assets |
 | **Import safety** | `importRestore()` creates in-memory backup before erasing; auto-restores on failure |
 | **Offline sync** | `setupOfflineSync()` wired up in App.jsx; flushes pending writes when connectivity returns |
 | **Data erase** | `eraseAll()` runs sequential per-table deletes with error handling; throws on partial failure |
 | **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
+| **Resilient loading** | `loadAll()` uses `Promise.allSettled()` — individual table failures return empty defaults instead of crashing the app |
 
 ### Accessibility (WCAG 2.1 Level A)
 
 | Feature | Implementation |
 |---------|---------------|
-| **ARIA labels** | All 27 icon-only buttons (edit/delete/send) have descriptive `aria-label` attributes across all 15 section files |
+| **ARIA labels** | All icon-only and text-only action buttons (edit/delete/send/drug-info) have descriptive `aria-label` attributes across all 19 section files |
 | **Color-only indicators** | Severity, urgency, status, and lab flag badges include icon prefixes (✓/◆/⚠/✦/·/↗) so information is not conveyed through color alone (WCAG 1.4.1) |
 | **Semantic HTML** | `<nav>` for BottomNav, `<header>` for Header, `<main>` for content area, `<section>` with `aria-label` for Dashboard cards, `<article>` for AIPanel chat messages |
-| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` on all form fields; supports `error` prop for red inline error messages |
+| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` using React `useId()` for guaranteed uniqueness; supports `error` prop for red inline error messages |
 | **Keyboard support** | `ConfirmBar` responds to Escape (cancel) and Enter (confirm); `role="alertdialog"` for screen readers |
 | **Chart accessibility** | Vitals chart has `role="img"` with descriptive `aria-label` + visually-hidden (`sr-only`) data table alternative |
 | **Loading states** | `LoadingSpinner` uses `role="status"` + `aria-live="polite"` with `sr-only` fallback text |
 | **Decorative elements** | `Motif.jsx` SVGs have `aria-hidden="true"` |
+| **Autocomplete ARIA** | Drug and NPI autocomplete dropdowns use `role="listbox"` / `role="option"` with `aria-label` |
+| **Error announcements** | Autocomplete errors use `role="alert"` for screen reader announcement |
 
 ## Design System
 
@@ -349,6 +356,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 - [ ] Auth: session expiry shows "Your session expired. Please sign in again." banner on re-auth screen
 - [ ] Auth: OTP countdown shows "Code expires in X:XX"; turns red at <60 seconds; shows expired state
+- [ ] Auth: Sign-in button disabled and shows "Code expired" after OTP expiry; auto-submit blocked
 - [ ] Sections load lazily (Suspense fallback spinner shown on first navigation to each section)
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)

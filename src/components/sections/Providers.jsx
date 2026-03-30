@@ -18,6 +18,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [expandedId, setExpandedId] = useState(null);
   const [npiResults, setNpiResults] = useState([]);
   const [npiLoading, setNpiLoading] = useState(false);
+  const [npiError, setNpiError] = useState(null);
   const [showNpi, setShowNpi] = useState(false);
   const npiRef = useRef(null);
   const npiTimerRef = useRef(null);
@@ -29,10 +30,11 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
     const name = form.name?.trim();
     if (!name || name.length < 3) return;
     setNpiLoading(true);
+    setNpiError(null);
     setShowNpi(true);
     searchProviders(name)
       .then(results => setNpiResults(results))
-      .catch(() => setNpiResults([]))
+      .catch(() => { setNpiResults([]); setNpiError('Search unavailable'); })
       .finally(() => setNpiLoading(false));
   }, [form.name]);
 
@@ -84,13 +86,15 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
             {npiLoading ? <Loader size={10} className="animate-spin" /> : <Search size={10} />}
             NPI Lookup
           </button>
-          {showNpi && (npiResults.length > 0 || npiLoading) && (
-            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+          {showNpi && (npiResults.length > 0 || npiLoading || npiError) && (
+            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-56 overflow-y-auto" role="listbox" aria-label="Provider suggestions">
               {npiLoading && <div className="px-3 py-2 text-xs text-salve-textFaint flex items-center gap-1.5"><Loader size={11} className="animate-spin" /> Searching NPI Registry...</div>}
+              {npiError && !npiLoading && <div className="px-3 py-2 text-xs text-salve-rose" role="alert">{npiError}</div>}
               {npiResults.map((r, i) => (
                 <button
                   key={`${r.npi}-${i}`}
                   onClick={() => selectNpiResult(r)}
+                  role="option"
                   className="w-full text-left px-3 py-2.5 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat border-b border-salve-border/30 last:border-b-0 transition-colors"
                 >
                   <div className="font-medium text-[13px]">{r.name}</div>
@@ -158,7 +162,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
                 {p.npi && <div className="text-[10px] text-salve-textFaint mt-1">NPI: {p.npi}</div>}
                 {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
                 <div className="flex gap-2.5 mt-2.5">
-                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit provider" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                 </div>
               </div>

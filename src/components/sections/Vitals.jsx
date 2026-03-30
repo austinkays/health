@@ -176,6 +176,10 @@ export default function Vitals({ data, addItem, removeItem }) {
           </Button>
           {trendAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><TrendingUp size={11} /> Trend Analysis</div>
+                <button onClick={() => setTrendAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss trend analysis">×</button>
+              </div>
               <AIMarkdown>{trendAI}</AIMarkdown>
             </Card>
           )}

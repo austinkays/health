@@ -32,6 +32,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
   const [filter, setFilter] = useState('active');
   const [draftLoading, setDraftLoading] = useState(null);
   const [draftResult, setDraftResult] = useState({});
+  const [copiedId, setCopiedId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -122,6 +123,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
                     <button
                       onClick={() => draftLetter(a)}
                       disabled={draftLoading === a.id}
+                      aria-label="Draft appeal letter with AI"
                       className="mt-2 bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
                     >
                       {draftLoading === a.id ? <Loader size={11} className="animate-spin" /> : <FileText size={11} />}
@@ -130,12 +132,18 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
                   )}
                   {draftResult[a.id] && (
                     <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
-                      <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><FileText size={11} /> AI Draft</div>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><FileText size={11} /> AI Draft</div>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => { navigator.clipboard.writeText(draftResult[a.id]); setCopiedId(a.id); setTimeout(() => setCopiedId(null), 2000); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav p-0 text-[11px] font-montserrat" aria-label="Copy draft to clipboard">{copiedId === a.id ? '✓ Copied' : 'Copy'}</button>
+                          <button onClick={() => setDraftResult(p => { const n = {...p}; delete n[a.id]; return n; })} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss draft">×</button>
+                        </div>
+                      </div>
                       <AIMarkdown>{draftResult[a.id]}</AIMarkdown>
                     </div>
                   )}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appeal" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(a.id, a.subject)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

@@ -86,7 +86,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
                   )}
                   {ins.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{ins.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(ins); setEditId(ins.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => { setForm(ins); setEditId(ins.id); setSubView('form'); }} aria-label="Edit insurance plan" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(ins.id, ins.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

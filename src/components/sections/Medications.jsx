@@ -31,6 +31,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [expandedId, setExpandedId] = useState(null);
   const [acResults, setAcResults] = useState([]);
   const [acLoading, setAcLoading] = useState(false);
+  const [acError, setAcError] = useState(null);
   const [showAc, setShowAc] = useState(false);
   const [drugInfo, setDrugInfo] = useState({});
   const [drugInfoLoading, setDrugInfoLoading] = useState(null);
@@ -48,10 +49,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     if (v.length < 2) { setAcResults([]); return; }
     acTimerRef.current = setTimeout(async () => {
       setAcLoading(true);
+      setAcError(null);
       try {
         const results = await drugAutocomplete(v);
         setAcResults(results);
-      } catch { setAcResults([]); }
+      } catch { setAcResults([]); setAcError('Search unavailable'); }
       finally { setAcLoading(false); }
     }, 300);
   }, []);
@@ -112,13 +114,15 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       <Card>
         <div className="relative" ref={acRef}>
           <Field label="Medication Name" value={form.name} onChange={handleNameChange} placeholder="e.g. Sertraline" required />
-          {showAc && (acResults.length > 0 || acLoading) && (
-            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {showAc && (acResults.length > 0 || acLoading || acError) && (
+            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-48 overflow-y-auto" role="listbox" aria-label="Medication suggestions">
               {acLoading && <div className="px-3 py-2 text-xs text-salve-textFaint flex items-center gap-1.5"><Loader size={11} className="animate-spin" /> Searching...</div>}
+              {acError && !acLoading && <div className="px-3 py-2 text-xs text-salve-rose" role="alert">{acError}</div>}
               {acResults.map((item, i) => (
                 <button
                   key={`${item.rxcui}-${i}`}
                   onClick={() => selectAcResult(item)}
+                  role="option"
                   className="w-full text-left px-3 py-2 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat flex items-center gap-2 transition-colors"
                 >
                   <Search size={11} className="text-salve-textFaint flex-shrink-0" />
@@ -127,7 +131,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               ))}
             </div>
           )}
-          {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
+          {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier — links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
         </div>
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
@@ -260,10 +264,10 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 )}
                 {m.start_date && <div className="text-xs text-salve-textFaint">Started: {fmtDate(m.start_date)}</div>}
                 {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
-                {m.rxcui && <div className="text-[10px] text-salve-textFaint mt-1">RxCUI: {m.rxcui}</div>}
+                {m.rxcui && <div className="text-[10px] text-salve-textFaint mt-1" title="RxNorm Concept Unique Identifier — enables drug interaction checking and FDA drug info lookup">RxCUI: {m.rxcui}</div>}
                 {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
                 <div className="flex gap-2.5 mt-2.5 flex-wrap">
-                  <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                  <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   <button onClick={() => loadDrugInfo(m)} className="bg-transparent border-none cursor-pointer text-salve-sage text-xs font-montserrat p-0 flex items-center gap-1">
                     {drugInfoLoading === m.id ? <Loader size={11} className="animate-spin" /> : <Info size={12} />}

@@ -10,6 +10,13 @@
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 40; // higher than chat — these are lightweight lookups
 const rateBuckets = new Map();
+const EXTERNAL_TIMEOUT_MS = 15_000; // 15s timeout for external API calls
+
+function fetchWithTimeout(url, opts = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), EXTERNAL_TIMEOUT_MS);
+  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
 
 function checkRateLimit(userId) {
   const now = Date.now();
@@ -75,7 +82,7 @@ const RXNORM_BASE = 'https://rxnav.nlm.nih.gov/REST';
 
 async function rxAutocomplete(term) {
   const url = `${RXNORM_BASE}/approximateTerm.json?term=${encodeURIComponent(term)}&maxEntries=8`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) return [];
   const data = await res.json();
   const candidates = data?.approximateGroup?.candidate || [];
@@ -93,7 +100,7 @@ async function rxAutocomplete(term) {
 async function rxInteractions(rxcuis) {
   if (!rxcuis || rxcuis.length < 2) return [];
   const url = `${RXNORM_BASE}/interaction/list.json?rxcuis=${rxcuis.join('+')}`;
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) return [];
   const data = await res.json();
   const results = [];
@@ -127,7 +134,7 @@ async function fdaDrugLabel(query) {
     const encoded = encodeURIComponent(query);
     url = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:"${encoded}"+openfda.generic_name:"${encoded}")&limit=1`;
   }
-  const res = await fetch(url);
+  const res = await fetchWithTimeout(url);
   if (!res.ok) return null;
   const data = await res.json();
   const label = data?.results?.[0];
@@ -204,6 +211,9 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error('Drug API error:', err);
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'External API timeout' });
+    }
     return res.status(500).json({ error: 'External API request failed' });
   }
 }

@@ -2,7 +2,10 @@
 
 export function fmtDate(d) {
   if (!d) return '';
-  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {
+  // If input is date-only (YYYY-MM-DD), append noon to avoid timezone shift
+  const dateStr = String(d);
+  const parsed = dateStr.includes('T') ? new Date(dateStr) : new Date(dateStr + 'T12:00:00');
+  return parsed.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',

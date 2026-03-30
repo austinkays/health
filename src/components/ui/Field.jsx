@@ -1,5 +1,8 @@
+import { useId } from 'react';
+
 export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error }) {
-  const inputId = id || `field-${label?.toLowerCase().replace(/\s+/g, '-')}`;
+  const autoId = useId();
+  const inputId = id || `field-${autoId}`;
   const inputCls = `w-full py-2.5 px-3.5 rounded-lg border ${error ? 'border-salve-rose' : 'border-salve-border'} text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none focus:border-salve-lav transition-colors`;
 
   return (

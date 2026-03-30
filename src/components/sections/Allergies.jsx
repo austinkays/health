@@ -82,7 +82,7 @@ export default function Allergies({ data, addItem, updateItem, removeItem }) {
                   {a.reaction && <div className="text-xs text-salve-textMid">Reaction: {a.reaction}</div>}
                   {a.notes && <div className="text-xs text-salve-textFaint mt-0.5 leading-relaxed">{a.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit allergy" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(a.id, a.substance)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

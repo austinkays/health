@@ -51,30 +51,33 @@ export default async function handler(req, res) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (supabaseUrl && serviceKey) {
-    try {
-      const verifyRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: serviceKey,
-        },
-      });
-      if (!verifyRes.ok) {
-        return res.status(401).json({ error: 'Invalid session' });
-      }
-      // Extract user ID for rate limiting
-      const userData = await verifyRes.json();
-      const userId = userData.id;
-      if (userId && !checkRateLimit(userId)) {
-        return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
-      }
-    } catch {
-      return res.status(500).json({ error: 'Auth verification failed' });
+  if (!supabaseUrl || !serviceKey) {
+    return res.status(500).json({ error: 'Server configuration error' });
+  }
+
+  try {
+    const verifyRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: serviceKey,
+      },
+    });
+    if (!verifyRes.ok) {
+      return res.status(401).json({ error: 'Invalid session' });
     }
+    // Extract user ID for rate limiting
+    const userData = await verifyRes.json();
+    const userId = userData.id;
+    if (userId && !checkRateLimit(userId)) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
+    }
+  } catch {
+    return res.status(500).json({ error: 'Auth verification failed' });
   }
 
   // Proxy to Anthropic
-  const { messages, system, max_tokens = 2000, use_web_search = false } = req.body;
+  const { messages, system, max_tokens: rawMaxTokens = 2000, use_web_search = false } = req.body;
+  const max_tokens = Math.min(Number(rawMaxTokens) || 2000, 4096);
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages array is required' });
@@ -96,6 +99,9 @@ export default async function handler(req, res) {
       body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
     }
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 115_000); // 115s (under Vercel's 120s limit)
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -104,11 +110,16 @@ export default async function handler(req, res) {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify(body),
+      signal: controller.signal,
     });
 
+    clearTimeout(timer);
     const data = await response.json();
     return res.status(response.status).json(data);
   } catch (err) {
+    if (err.name === 'AbortError') {
+      return res.status(504).json({ error: 'AI service timed out' });
+    }
     return res.status(500).json({ error: 'Failed to reach AI service' });
   }
 }

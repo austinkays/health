@@ -150,7 +150,7 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                   )}
 
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => openForm(plan)} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => openForm(plan)} aria-label="Edit surgical plan" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>

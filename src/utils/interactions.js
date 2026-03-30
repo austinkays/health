@@ -1,8 +1,9 @@
 import { INTERACTIONS } from '../constants/interactions';
 
 export function checkInteractions(meds) {
+  if (!meds?.length) return [];
   const warnings = [];
-  const activeMeds = meds.filter(m => m.active !== false);
+  const activeMeds = meds.filter(m => m?.active !== false && m?.name);
   const names = activeMeds.map(m => m.name.toLowerCase().trim());
 
   for (let i = 0; i < names.length; i++) {

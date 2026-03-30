@@ -1,4 +1,4 @@
-# Salve — Production Readiness Audit
+do # Salve — Production Readiness Audit
 
 > **Date:** 2026-03-29
 > **Scope:** Full codebase audit — security, data integrity, AI utilization, UX, accessibility, PWA, performance, build/deploy
