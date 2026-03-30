@@ -117,6 +117,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                   <AIMarkdown compact>{prepResult[a.id]}</AIMarkdown>
                 </div>
               )}
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
           ))}
           {past.length > 0 && <><Divider /><div className="text-[11px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}

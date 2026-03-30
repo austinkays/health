@@ -67,7 +67,7 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem 
           <Card key={flag.id} style={{ borderLeft: `3px solid ${C.rose}` }}>
             <div className="flex justify-between items-start">
               <div className="flex-1">
-                <div className="text-[14px] font-bold mb-1" style={{ color: C.rose }}>
+                <div className="text-[15px] font-bold mb-1" style={{ color: C.rose }}>
                   {flag.condition}
                 </div>
                 {flag.implication && (

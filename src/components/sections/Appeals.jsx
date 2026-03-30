@@ -102,7 +102,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[14px] font-semibold text-salve-text">{a.subject}</span>
+                    <span className="text-[15px] font-semibold text-salve-text">{a.subject}</span>
                     {a.status && <Badge label={a.status} color={ss.color} bg={ss.bg} />}
                   </div>
                   {a.against && <div className="text-xs text-salve-textFaint">vs. {a.against}</div>}

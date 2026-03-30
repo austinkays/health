@@ -73,8 +73,8 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat capitalize ${
-              filter === f ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+            className={`py-1.5 px-4 rounded-full text-xs font-medium border cursor-pointer font-montserrat capitalize ${
+              filter === f ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
             {f}
@@ -92,7 +92,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
             <Card key={c.id} onClick={() => setExpandedId(isExpanded ? null : c.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
+                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="text-[15px] font-semibold text-salve-text">{c.name}</span>
                     <Badge label={st.label} color={st.c} bg={st.bg} />
                   </div>

@@ -4,14 +4,14 @@ const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home },
   { id: 'meds', label: 'Meds', icon: Pill },
   { id: 'vitals', label: 'Vitals', icon: Heart },
-  { id: 'ai', label: 'Insight', icon: Sparkles },
+  { id: 'ai', label: 'Familiar', icon: Sparkles },
   { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
 export default function BottomNav({ tab, onNav }) {
   return (
-    <nav aria-label="Main navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-salve-card border-t border-salve-border flex justify-around py-2 pb-3 z-50">
+    <nav aria-label="Main navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-salve-card border-t border-salve-border flex justify-around py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-50">
       {NAV_ITEMS.map(t => {
         const Icon = t.icon;
         const active = tab === t.id;

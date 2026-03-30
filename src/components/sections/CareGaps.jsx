@@ -140,7 +140,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <span className="text-[14px] font-semibold text-salve-text">{g.item}</span>
+                    <span className="text-[15px] font-semibold text-salve-text">{g.item}</span>
                     {g.urgency && <Badge label={us.label} color={us.color} bg={us.bg} />}
                   </div>
                   {!isExpanded && g.category && <div className="text-xs text-salve-textFaint truncate">{g.category}</div>}
