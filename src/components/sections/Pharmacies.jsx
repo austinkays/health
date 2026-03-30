@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Building2, Phone, ExternalLink, ChevronDown, MapPin, Star, Pill, Clock } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Building2, Phone, ExternalLink, ChevronDown, MapPin, Star, Pill, Clock, ArrowUpRight } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -21,30 +21,47 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  /* ── Count meds per pharmacy (by name match) ── */
-  const medsByPharmacy = useMemo(() => {
-    const map = {};
-    (data.pharmacies || []).forEach(p => {
-      const name = p.name.trim().toLowerCase();
-      map[p.id] = (data.meds || []).filter(m =>
-        m.active !== false && m.pharmacy && m.pharmacy.trim().toLowerCase() === name
-      );
-    });
-    return map;
-  }, [data.pharmacies, data.meds]);
+  /* ── Unified pharmacy list: saved records + discovered from meds ── */
+  const { allPharmacies, medsByKey, refillsByKey } = useMemo(() => {
+    const saved = (data.pharmacies || []).map(p => ({ ...p, _saved: true, _key: p.id }));
+    const savedNames = new Set(saved.map(p => p.name.trim().toLowerCase()));
 
-  /* ── Upcoming refills per pharmacy ── */
-  const refillsByPharmacy = useMemo(() => {
+    // Discover unique pharmacy names from meds that aren't already saved
+    const discovered = [];
+    const seen = new Set();
+    (data.meds || []).forEach(m => {
+      if (!m.pharmacy) return;
+      const key = m.pharmacy.trim().toLowerCase();
+      if (!key || savedNames.has(key) || seen.has(key)) return;
+      seen.add(key);
+      discovered.push({ name: m.pharmacy.trim(), _saved: false, _key: `disc:${key}` });
+    });
+
+    const all = [...saved, ...discovered].sort((a, b) => {
+      // preferred first, then saved, then discovered, then alphabetical
+      if (a.is_preferred && !b.is_preferred) return -1;
+      if (!a.is_preferred && b.is_preferred) return 1;
+      if (a._saved && !b._saved) return -1;
+      if (!a._saved && b._saved) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    // Build meds/refills maps keyed by lowercase pharmacy name
+    const mMap = {};
+    const rMap = {};
     const now = new Date(new Date().toDateString());
-    const map = {};
-    (data.pharmacies || []).forEach(p => {
-      const name = p.name.trim().toLowerCase();
-      map[p.id] = (data.meds || []).filter(m => {
+    all.forEach(p => {
+      const pName = p.name.trim().toLowerCase();
+      mMap[p._key] = (data.meds || []).filter(m =>
+        m.active !== false && m.pharmacy && m.pharmacy.trim().toLowerCase() === pName
+      );
+      rMap[p._key] = (data.meds || []).filter(m => {
         if (m.active === false || !m.refill_date || !m.pharmacy) return false;
-        return m.pharmacy.trim().toLowerCase() === name && new Date(m.refill_date) >= now;
+        return m.pharmacy.trim().toLowerCase() === pName && new Date(m.refill_date) >= now;
       }).sort((a, b) => new Date(a.refill_date) - new Date(b.refill_date));
     });
-    return map;
+
+    return { allPharmacies: all, medsByKey: mMap, refillsByKey: rMap };
   }, [data.pharmacies, data.meds]);
 
   const saveP = async () => {
@@ -61,6 +78,13 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
 
   const togglePreferred = async (pharmacy) => {
     await updateItem('pharmacies', pharmacy.id, { is_preferred: !pharmacy.is_preferred });
+  };
+
+  /* ── Promote a discovered pharmacy to a saved record ── */
+  const promotePharmacy = (name) => {
+    setForm({ ...EMPTY_PHARMACY, name });
+    setEditId(null);
+    setSubView('form');
   };
 
   if (subView === 'form') return (
@@ -89,16 +113,11 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
 
   /* ── Filter ── */
   const filtered = useMemo(() => {
-    let list = data.pharmacies || [];
+    let list = allPharmacies;
     if (filter === 'preferred') list = list.filter(p => p.is_preferred);
-    if (filter === 'has_meds') list = list.filter(p => (medsByPharmacy[p.id] || []).length > 0);
-    // Sort preferred first, then by name
-    return [...list].sort((a, b) => {
-      if (a.is_preferred && !b.is_preferred) return -1;
-      if (!a.is_preferred && b.is_preferred) return 1;
-      return (a.name || '').localeCompare(b.name || '');
-    });
-  }, [data.pharmacies, filter, medsByPharmacy]);
+    if (filter === 'has_meds') list = list.filter(p => (medsByKey[p._key] || []).length > 0);
+    return list;
+  }, [allPharmacies, filter, medsByKey]);
 
   const fmtRefill = (dateStr) => {
     const d = Math.ceil((new Date(dateStr) - new Date(new Date().toDateString())) / 86400000);
@@ -129,19 +148,22 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={Building2} text={filter === 'all' ? 'No pharmacies added' : `No ${filter === 'preferred' ? 'preferred' : ''} pharmacies`} motif="leaf" />
+        <EmptyState icon={Building2} text={filter === 'all' ? 'No pharmacies found' : `No ${filter === 'preferred' ? 'preferred' : ''} pharmacies`} motif="leaf" />
       ) : filtered.map(p => {
-        const isExpanded = expandedId === p.id;
-        const meds = medsByPharmacy[p.id] || [];
-        const refills = refillsByPharmacy[p.id] || [];
+        const isExpanded = expandedId === p._key;
+        const meds = medsByKey[p._key] || [];
+        const refills = refillsByKey[p._key] || [];
         return (
-          <Card key={p.id} onClick={() => setExpandedId(isExpanded ? null : p.id)} className="cursor-pointer transition-all">
+          <Card key={p._key} onClick={() => setExpandedId(isExpanded ? null : p._key)} className="cursor-pointer transition-all">
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text flex items-center gap-1.5">
                   {p.name}
                   {p.is_preferred && (
                     <Star size={12} className="text-salve-amber fill-salve-amber flex-shrink-0" />
+                  )}
+                  {!p._saved && (
+                    <span className="text-[9px] font-medium text-salve-lav bg-salve-lav/10 border border-salve-lav/20 px-1.5 py-0.5 rounded-full flex-shrink-0">from meds</span>
                   )}
                 </div>
                 {!isExpanded && p.address && <div className="text-xs text-salve-textMid mt-0.5 truncate">{p.address}</div>}
@@ -162,26 +184,26 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
             </div>
             {isExpanded && (
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                {p.address && (
+                {p._saved && p.address && (
                   <div className="text-xs text-salve-textMid flex items-center gap-1 mb-1">
                     <MapPin size={12} strokeWidth={1.4} className="flex-shrink-0" />
                     <a href={mapsUrl(p.address)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline">{p.address}</a>
                   </div>
                 )}
-                {p.phone && (
+                {p._saved && p.phone && (
                   <div className="text-xs text-salve-textMid flex items-center gap-1 mb-1">
                     <Phone size={12} strokeWidth={1.4} className="flex-shrink-0" />
                     <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a>
                   </div>
                 )}
-                {p.fax && <div className="text-xs text-salve-textFaint mb-1">Fax: {p.fax}</div>}
-                {p.hours && (
+                {p._saved && p.fax && <div className="text-xs text-salve-textFaint mb-1">Fax: {p.fax}</div>}
+                {p._saved && p.hours && (
                   <div className="text-xs text-salve-textMid flex items-center gap-1 mb-1">
                     <Clock size={12} strokeWidth={1.4} className="flex-shrink-0" />
                     <span>{p.hours}</span>
                   </div>
                 )}
-                {p.website && (
+                {p._saved && p.website && (
                   <div className="text-xs text-salve-textMid flex items-center gap-1 mb-1">
                     <ExternalLink size={12} strokeWidth={1.4} className="flex-shrink-0" />
                     <a
@@ -194,11 +216,11 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
                     </a>
                   </div>
                 )}
-                {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
+                {p._saved && p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
 
                 {/* ── Medications at this pharmacy ── */}
                 {meds.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-salve-border/30">
+                  <div className={`${p._saved ? 'mt-2.5 pt-2 border-t border-salve-border/30' : ''}`}>
                     <div className="text-[11px] font-semibold text-salve-sage mb-1.5 flex items-center gap-1">
                       <Pill size={11} /> Medications ({meds.length})
                     </div>
@@ -226,20 +248,31 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
                 )}
 
                 <div className="flex gap-2.5 mt-2.5 flex-wrap">
-                  <button
-                    onClick={() => togglePreferred(p)}
-                    aria-label={p.is_preferred ? 'Remove preferred' : 'Set as preferred'}
-                    className="bg-transparent border-none cursor-pointer text-salve-amber text-xs font-montserrat p-0 flex items-center gap-1"
-                  >
-                    <Star size={12} className={p.is_preferred ? 'fill-salve-amber' : ''} />
-                    {p.is_preferred ? 'Preferred' : 'Set preferred'}
-                  </button>
-                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit pharmacy" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-                  <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  {p._saved ? (
+                    <>
+                      <button
+                        onClick={() => togglePreferred(p)}
+                        aria-label={p.is_preferred ? 'Remove preferred' : 'Set as preferred'}
+                        className="bg-transparent border-none cursor-pointer text-salve-amber text-xs font-montserrat p-0 flex items-center gap-1"
+                      >
+                        <Star size={12} className={p.is_preferred ? 'fill-salve-amber' : ''} />
+                        {p.is_preferred ? 'Preferred' : 'Set preferred'}
+                      </button>
+                      <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit pharmacy" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                      <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => promotePharmacy(p.name)}
+                      className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
+                    >
+                      <ArrowUpRight size={12} /> Save &amp; Add Details
+                    </button>
+                  )}
                 </div>
               </div>
             )}
-            <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('pharmacies', id))} onCancel={del.cancel} itemId={p.id} />
+            {p._saved && <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('pharmacies', id))} onCancel={del.cancel} itemId={p.id} />}
           </Card>
         );
       })}

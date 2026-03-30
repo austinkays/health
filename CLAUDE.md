@@ -116,7 +116,7 @@ health/
 │   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links + provider picker + auto-fill location + provider phone quick-link
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
-│   │       ├── Pharmacies.jsx    # Pharmacy directory + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter
+│   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
 │   │       ├── AIPanel.jsx       # AI Insight panel: health insight, connections, news (floating cards), resources (collapsible accordions), chat; web search source badges; "What AI Sees" preview button opens full-screen slide-up panel
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
