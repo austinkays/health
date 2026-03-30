@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, AlertTriangle, Sparkles, Loader } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, AlertTriangle, Sparkles, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -12,6 +12,7 @@ import { C } from '../../constants/colors';
 import { fetchCareGapSuggestions } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 const EMPTY = { category: '', item: '', last_done: '', urgency: '', notes: '' };
 
@@ -38,6 +39,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
   const [filter, setFilter] = useState('active');
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -112,7 +114,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
           {aiSuggestions && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> AI Suggestions</div>
-              <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{aiSuggestions}</div>
+              <AIMarkdown>{aiSuggestions}</AIMarkdown>
             </Card>
           )}
         </div>
@@ -132,21 +134,30 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
       {fl.length === 0 ? <EmptyState icon={AlertTriangle} text={filter === 'active' ? 'No open care gaps' : 'No care gaps recorded'} motif="leaf" /> :
         fl.map(g => {
           const us = urgencyStyle(g.urgency);
+          const isExpanded = expandedId === g.id;
           return (
-            <Card key={g.id} style={{ borderLeft: `3px solid ${us.border}` }}>
+            <Card key={g.id} style={{ borderLeft: `3px solid ${us.border}` }} onClick={() => setExpandedId(isExpanded ? null : g.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-[14px] font-semibold text-salve-text mb-0.5">{g.item}</div>
-                  {g.category && <div className="text-xs text-salve-textFaint mb-1">{g.category}</div>}
-                  {g.last_done && <div className="text-xs text-salve-textFaint">Last done: {g.last_done}</div>}
-                  {g.urgency && <Badge label={us.label} color={us.color} bg={us.bg} className="mt-1.5" />}
-                  {g.notes && <div className="text-xs text-salve-textFaint mt-1">{g.notes}</div>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[14px] font-semibold text-salve-text">{g.item}</span>
+                    {g.urgency && <Badge label={us.label} color={us.color} bg={us.bg} />}
+                  </div>
+                  {!isExpanded && g.category && <div className="text-xs text-salve-textFaint truncate">{g.category}</div>}
                 </div>
-                <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(g); setEditId(g.id); setSubView('form'); }} aria-label="Edit care gap" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(g.id, g.item)} aria-label="Delete care gap" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-                </div>
+                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
+              {isExpanded && (
+                <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+                  {g.category && <div className="text-xs text-salve-textFaint">{g.category}</div>}
+                  {g.last_done && <div className="text-xs text-salve-textFaint">Last done: {g.last_done}</div>}
+                  {g.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{g.notes}</div>}
+                  <div className="flex gap-2.5 mt-2.5">
+                    <button onClick={() => { setForm(g); setEditId(g.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => del.ask(g.id, g.item)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  </div>
+                </div>
+              )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('care_gaps', id))} onCancel={del.cancel} itemId={g.id} />
           </Card>
           );

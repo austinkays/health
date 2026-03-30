@@ -15,6 +15,7 @@ import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 function getVitalFlag(type, value, value2) {
   const t = VITAL_TYPES.find(x => x.id === type);
@@ -175,7 +176,7 @@ export default function Vitals({ data, addItem, removeItem }) {
           </Button>
           {trendAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
-              <div className="text-[13px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{trendAI}</div>
+              <AIMarkdown>{trendAI}</AIMarkdown>
             </Card>
           )}
         </div>

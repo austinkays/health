@@ -14,6 +14,7 @@ import { C } from '../../constants/colors';
 import { fetchInsight } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -217,9 +218,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                 <Sparkles size={14} color={C.lav} />
                 <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
               </div>
-              <p className="text-[13px] text-salve-textMid leading-relaxed m-0 font-playfair italic">
-                "{insight}"
-              </p>
+              <AIMarkdown compact>{insight}</AIMarkdown>
             </Card>
           )}
         </section>

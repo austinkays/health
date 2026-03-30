@@ -14,6 +14,7 @@ import { C } from '../../constants/colors';
 import { fetchAppointmentPrep } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 export default function Appointments({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
@@ -113,7 +114,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               {prepResult[a.id] && (
                 <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
                   <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> AI Visit Prep</div>
-                  <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{prepResult[a.id]}</div>
+                  <AIMarkdown compact>{prepResult[a.id]}</AIMarkdown>
                 </div>
               )}
           </Card>

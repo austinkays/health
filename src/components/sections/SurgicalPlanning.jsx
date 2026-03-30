@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, PlaneTakeoff } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, PlaneTakeoff, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -38,6 +38,7 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
   const [constraintsTxt, setConstraintsTxt] = useState('');
   const [outstandingTxt, setOutstandingTxt] = useState('');
   const [editId, setEditId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -106,40 +107,52 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
           const procs = Array.isArray(plan.procedures) ? plan.procedures : [];
           const outstanding = Array.isArray(plan.outstanding_items) ? plan.outstanding_items : [];
           const constraints = Array.isArray(plan.constraints) ? plan.constraints : [];
+          const isExpanded = expandedId === plan.id;
           return (
-            <Card key={plan.id}>
-              <div className="flex justify-between items-start mb-2">
-                <div className="flex-1">
-                  <div className="text-[15px] font-semibold text-salve-text">{plan.facility || 'Unnamed facility'}</div>
+            <Card key={plan.id} onClick={() => setExpandedId(isExpanded ? null : plan.id)} className="cursor-pointer transition-all">
+              <div className="flex justify-between items-start">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[15px] font-semibold text-salve-text">{plan.facility || 'Unnamed facility'}</span>
+                    {plan.status && <Badge label={plan.status} color={ss.color} bg={ss.bg} />}
+                  </div>
                   {plan.surgeon && <div className="text-xs text-salve-textMid">{plan.surgeon}</div>}
+                  {!isExpanded && plan.target_date && <div className="text-xs text-salve-textFaint">Target: {plan.target_date}</div>}
+                </div>
+                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+              {isExpanded && (
+                <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {plan.target_date && <div className="text-xs text-salve-textFaint">Target: {plan.target_date}</div>}
                   {plan.case_number && <div className="text-xs text-salve-textFaint">Case #: {plan.case_number}</div>}
-                  {plan.status && <Badge label={plan.status} color={ss.color} bg={ss.bg} className="mt-1.5" />}
-                </div>
-                <div className="flex gap-2 ml-2">
-                  <button onClick={() => openForm(plan)} aria-label="Edit surgical plan" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} aria-label="Delete surgical plan" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-                </div>
-              </div>
+                  {plan.coordinator && <div className="text-xs text-salve-textFaint">Coordinator: {plan.coordinator}</div>}
+                  {plan.accommodation && <div className="text-xs text-salve-textFaint mt-1">{plan.accommodation}</div>}
 
-              {procs.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Planned Procedures</div>
-                  {procs.map((p, i) => <div key={i} className="text-[12px] text-salve-textMid">· {p}</div>)}
-                </div>
-              )}
+                  {procs.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Planned Procedures</div>
+                      {procs.map((p, i) => <div key={i} className="text-[12px] text-salve-textMid">· {p}</div>)}
+                    </div>
+                  )}
 
-              {constraints.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: C.rose }}>Constraints</div>
-                  {constraints.map((c, i) => <div key={i} className="text-[12px]" style={{ color: C.rose }}>⚠ {c}</div>)}
-                </div>
-              )}
+                  {constraints.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: C.rose }}>Constraints</div>
+                      {constraints.map((c, i) => <div key={i} className="text-[12px]" style={{ color: C.rose }}>⚠ {c}</div>)}
+                    </div>
+                  )}
 
-              {outstanding.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Outstanding Items</div>
-                  {outstanding.map((o, i) => <div key={i} className="text-[12px] text-salve-amber">□ {o}</div>)}
+                  {outstanding.length > 0 && (
+                    <div className="mt-2">
+                      <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Outstanding Items</div>
+                      {outstanding.map((o, i) => <div key={i} className="text-[12px] text-salve-amber">□ {o}</div>)}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2.5 mt-2.5">
+                    <button onClick={() => openForm(plan)} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  </div>
                 </div>
               )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('surgical_planning', id))} onCancel={del.cancel} itemId={plan.id} />

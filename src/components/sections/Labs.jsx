@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -13,6 +13,7 @@ import { C } from '../../constants/colors';
 import { fetchLabInterpretation } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 const EMPTY = { date: '', test_name: '', result: '', unit: '', range: '', flag: '', provider: '', notes: '' };
 const FLAG_OPTS = ['', 'normal', 'abnormal', 'high', 'low', 'mild-abnormal', 'completed', 'never'];
@@ -32,6 +33,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
   const [interpretId, setInterpretId] = useState(null);
   const [interpretation, setInterpretation] = useState({});
   const [interpretLoading, setInterpretLoading] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -108,19 +110,28 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
       {fl.length === 0 ? <EmptyState icon={FlaskConical} text="No labs or imaging results yet" motif="leaf" /> :
         fl.map(l => {
           const fc = flagColor(l.flag);
+          const isExpanded = expandedId === l.id;
           return (
-            <Card key={l.id}>
+            <Card key={l.id} onClick={() => setExpandedId(isExpanded ? null : l.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-[15px] font-semibold text-salve-text mb-0.5">{l.test_name}</div>
-                  {l.date && <div className="text-xs text-salve-textFaint mb-1">{fmtDate(l.date)}{l.provider ? ` · ${l.provider}` : ''}</div>}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[15px] font-semibold text-salve-text">{l.test_name}</span>
+                    {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} />}
+                  </div>
                   {l.result && (
                     <div className="text-[13px] text-salve-textMid">
-                      {l.result}{l.unit ? ` ${l.unit}` : ''}{l.range ? <span className="text-salve-textFaint"> (ref: {l.range})</span> : ''}
+                      {l.result}{l.unit ? ` ${l.unit}` : ''}{!isExpanded && l.date ? <span className="text-salve-textFaint text-xs ml-2">{fmtDate(l.date)}</span> : ''}
                     </div>
                   )}
-                  {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} className="mt-1.5" />}
-                  {l.notes && <div className="text-xs text-salve-textFaint mt-1">{l.notes}</div>}
+                </div>
+                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+              {isExpanded && (
+                <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+                  {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? ` · ${l.provider}` : ''}</div>}
+                  {l.range && <div className="text-xs text-salve-textFaint">Reference: {l.range}</div>}
+                  {l.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{l.notes}</div>}
                   {hasAIConsent() && l.flag && l.flag !== 'normal' && l.flag !== 'completed' && (
                     <button
                       onClick={() => explainLab(l)}
@@ -134,15 +145,15 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                   )}
                   {interpretId === l.id && interpretation[l.id] && (
                     <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
-                      <p className="text-xs text-salve-textMid leading-relaxed m-0 whitespace-pre-line">{interpretation[l.id]}</p>
+                      <AIMarkdown compact>{interpretation[l.id]}</AIMarkdown>
                     </div>
                   )}
+                  <div className="flex gap-2.5 mt-2.5">
+                    <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => del.ask(l.id, l.test_name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  </div>
                 </div>
-                <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} aria-label="Edit lab result" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(l.id, l.test_name)} aria-label="Delete lab result" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-                </div>
-              </div>
+              )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />
           </Card>
           );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, BadgeDollarSign } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, BadgeDollarSign, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -24,6 +24,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -61,11 +62,21 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
       {data.insurance.length === 0 ? <EmptyState icon={BadgeDollarSign} text="No insurance plans recorded" motif="leaf" /> :
         data.insurance.map(ins => {
           const ts = ins.type ? typeStyle(ins.type) : null;
+          const isExpanded = expandedId === ins.id;
           return (
-            <Card key={ins.id}>
+            <Card key={ins.id} onClick={() => setExpandedId(isExpanded ? null : ins.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-[15px] font-semibold text-salve-text mb-0.5">{ins.name}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[15px] font-semibold text-salve-text">{ins.name}</span>
+                    {ts && <Badge label={ins.type} color={ts.color} bg={ts.bg} />}
+                  </div>
+                  {!isExpanded && ins.member_id && <div className="text-xs text-salve-textMid truncate">ID: {ins.member_id}</div>}
+                </div>
+                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+              {isExpanded && (
+                <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {ins.member_id && <div className="text-xs text-salve-textMid">Member ID: {ins.member_id}</div>}
                   {ins.group && <div className="text-xs text-salve-textFaint">Group: {ins.group}</div>}
                   {ins.phone && (
@@ -73,14 +84,13 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
                       📞 {ins.phone}
                     </a>
                   )}
-                  {ts && <Badge label={ins.type} color={ts.color} bg={ts.bg} className="mt-1.5" />}
-                  {ins.notes && <div className="text-xs text-salve-textFaint mt-1">{ins.notes}</div>}
+                  {ins.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{ins.notes}</div>}
+                  <div className="flex gap-2.5 mt-2.5">
+                    <button onClick={() => { setForm(ins); setEditId(ins.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => del.ask(ins.id, ins.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  </div>
                 </div>
-                <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(ins); setEditId(ins.id); setSubView('form'); }} aria-label="Edit insurance plan" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(ins.id, ins.name)} aria-label="Delete insurance plan" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-                </div>
-              </div>
+              )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('insurance', id))} onCancel={del.cancel} itemId={ins.id} />
           </Card>
           );

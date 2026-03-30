@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -14,6 +14,7 @@ import { C } from '../../constants/colors';
 import { fetchCrossReactivity } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -25,6 +26,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [filter, setFilter] = useState('active');
   const [crossReactAI, setCrossReactAI] = useState(null);
   const [crossReactLoading, setCrossReactLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -105,7 +107,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             {crossReactAI && (
               <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
                 <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> Cross-Reactivity Analysis</div>
-                <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{crossReactAI}</div>
+                <AIMarkdown compact>{crossReactAI}</AIMarkdown>
               </div>
             )}
           </div>
@@ -158,25 +160,40 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
 
       {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
-        fl.map(m => (
-          <Card key={m.id}>
+        fl.map(m => {
+          const isExpanded = expandedId === m.id;
+          return (
+          <Card key={m.id} onClick={() => setExpandedId(isExpanded ? null : m.id)} className="cursor-pointer transition-all">
             <div className="flex justify-between items-start">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5">{m.name}</div>
-                <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency, m.route].filter(Boolean).join(' · ')}</div>
-                {m.purpose && <div className="text-xs text-salve-textFaint mt-0.5">For: {m.purpose}</div>}
-                {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
-                {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+                <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+                {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                <button onClick={() => del.ask(m.id, m.name)} aria-label="Delete medication" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
+              <div className="flex items-center gap-1 ml-2">
+                {m.refill_date && !isExpanded && <span className="text-[11px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
+                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
             </div>
-            {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" />}
+            {isExpanded && (
+              <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+                {m.route && <div className="text-xs text-salve-textMid mb-0.5">Route: {m.route}</div>}
+                {m.purpose && <div className="text-xs text-salve-textFaint">For: {m.purpose}</div>}
+                {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
+                {m.pharmacy && <div className="text-xs text-salve-textFaint">Pharmacy: {m.pharmacy}</div>}
+                {m.start_date && <div className="text-xs text-salve-textFaint">Started: {fmtDate(m.start_date)}</div>}
+                {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+                {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
+                <div className="flex gap-2.5 mt-2.5">
+                  <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                  <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                </div>
+              </div>
+            )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
           </Card>
-        ))
+          );
+        })
       }
     </div>
   );

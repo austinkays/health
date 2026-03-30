@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2 } from 'lucide-react';
+import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
@@ -8,6 +9,7 @@ import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { fetchInsight, fetchConnections, fetchNews, fetchResources, sendChat } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
+import AIProfilePreview from '../ui/AIProfilePreview';
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -56,6 +58,11 @@ export default function AIPanel({ data }) {
     }
   };
 
+  const chatEndRef = useRef(null);
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, loading]);
+
   if (mode === 'ask') return (
     <AIConsentGate>
     <div className="mt-2">
@@ -64,12 +71,12 @@ export default function AIPanel({ data }) {
       </SectionTitle>
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
-          <article key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${
+          <article key={i} className={`max-w-[85%] rounded-xl px-3.5 py-2.5 ${
             m.role === 'user'
-              ? 'self-end bg-salve-lav/20 text-salve-text ml-auto'
+              ? 'self-end bg-salve-lav/20 text-salve-text ml-auto text-[13px] leading-relaxed'
               : 'self-start bg-salve-card border border-salve-border text-salve-textMid'
           }`}>
-            {m.content}
+            {m.role === 'assistant' ? <AIMarkdown compact>{m.content}</AIMarkdown> : m.content}
           </article>
         ))}
         {loading && (
@@ -77,6 +84,7 @@ export default function AIPanel({ data }) {
             <Loader2 size={14} className="animate-spin" /> Thinking...
           </div>
         )}
+        <div ref={chatEndRef} />
       </div>
       <div className="flex gap-2">
         <input
@@ -107,7 +115,7 @@ export default function AIPanel({ data }) {
         </Card>
       ) : result ? (
         <Card>
-          <div className="text-[13px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{result}</div>
+          <AIMarkdown>{result}</AIMarkdown>
         </Card>
       ) : null}
     </div>
@@ -123,7 +131,9 @@ export default function AIPanel({ data }) {
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
-        {FEATURES.map(f => (
+        <AIProfilePreview data={data} />
+
+      {FEATURES.map(f => (
           <button
             key={f.id}
             onClick={() => runFeature(f.id)}

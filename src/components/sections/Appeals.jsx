@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Scale, FileText, Loader } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Scale, FileText, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -13,6 +13,7 @@ import { C } from '../../constants/colors';
 import { fetchAppealDraft } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 const EMPTY = { date_filed: '', subject: '', against: '', status: 'Active', deadline: '', notes: '' };
 const STATUSES = ['Active', 'Draft', 'Filed', 'Resolved'];
@@ -31,6 +32,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
   const [filter, setFilter] = useState('active');
   const [draftLoading, setDraftLoading] = useState(null);
   const [draftResult, setDraftResult] = useState({});
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -94,39 +96,48 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
       {fl.length === 0 ? <EmptyState icon={Scale} text={filter === 'active' ? 'No open appeals' : 'No appeals recorded'} motif="leaf" /> :
         fl.map(a => {
           const ss = statusStyle(a.status);
+          const isExpanded = expandedId === a.id;
           return (
-            <Card key={a.id}>
+            <Card key={a.id} onClick={() => setExpandedId(isExpanded ? null : a.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="text-[14px] font-semibold text-salve-text mb-0.5">{a.subject}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="text-[14px] font-semibold text-salve-text">{a.subject}</span>
+                    {a.status && <Badge label={a.status} color={ss.color} bg={ss.bg} />}
+                  </div>
                   {a.against && <div className="text-xs text-salve-textFaint">vs. {a.against}</div>}
-                  <div className="text-xs text-salve-textFaint mt-0.5">
+                  {!isExpanded && a.deadline && <div className="text-xs mt-0.5" style={{ color: C.amber }}>Deadline: {fmtDate(a.deadline)}</div>}
+                </div>
+                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
+              </div>
+              {isExpanded && (
+                <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+                  <div className="text-xs text-salve-textFaint">
                     {a.date_filed ? `Filed: ${fmtDate(a.date_filed)}` : ''}
                     {a.date_filed && a.deadline ? ' · ' : ''}
                     {a.deadline ? <span style={{ color: C.amber }}>Deadline: {fmtDate(a.deadline)}</span> : ''}
                   </div>
-                  {a.status && <Badge label={a.status} color={ss.color} bg={ss.bg} className="mt-1.5" />}
-                  {a.notes && <div className="text-xs text-salve-textFaint mt-1">{a.notes}</div>}
-                </div>
-                <div className="flex gap-2 ml-2">
-                  <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appeal" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                  <button onClick={() => del.ask(a.id, a.subject)} aria-label="Delete appeal" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-                </div>
-              </div>
-              {hasAIConsent() && a.status !== 'Resolved' && (
-                <button
-                  onClick={() => draftLetter(a)}
-                  disabled={draftLoading === a.id}
-                  className="mt-2 bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
-                >
-                  {draftLoading === a.id ? <Loader size={11} className="animate-spin" /> : <FileText size={11} />}
-                  {draftLoading === a.id ? 'Drafting...' : 'Draft Appeal Letter'}
-                </button>
-              )}
-              {draftResult[a.id] && (
-                <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
-                  <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><FileText size={11} /> AI Draft</div>
-                  <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{draftResult[a.id]}</div>
+                  {a.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{a.notes}</div>}
+                  {hasAIConsent() && a.status !== 'Resolved' && (
+                    <button
+                      onClick={() => draftLetter(a)}
+                      disabled={draftLoading === a.id}
+                      className="mt-2 bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
+                    >
+                      {draftLoading === a.id ? <Loader size={11} className="animate-spin" /> : <FileText size={11} />}
+                      {draftLoading === a.id ? 'Drafting...' : 'Draft Appeal Letter'}
+                    </button>
+                  )}
+                  {draftResult[a.id] && (
+                    <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
+                      <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><FileText size={11} /> AI Draft</div>
+                      <AIMarkdown>{draftResult[a.id]}</AIMarkdown>
+                    </div>
+                  )}
+                  <div className="flex gap-2.5 mt-2.5">
+                    <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                    <button onClick={() => del.ask(a.id, a.subject)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  </div>
                 </div>
               )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appeals_and_disputes', id))} onCancel={del.cancel} itemId={a.id} />

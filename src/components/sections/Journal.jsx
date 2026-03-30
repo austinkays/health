@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, BookOpen, Sparkles, Loader } from 'lucide-react';
+import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -14,6 +14,7 @@ import { C } from '../../constants/colors';
 import { fetchJournalPatterns } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 export default function Journal({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
@@ -21,6 +22,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
   const [editId, setEditId] = useState(null);
   const [patternsAI, setPatternsAI] = useState(null);
   const [patternsLoading, setPatternsLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -85,7 +87,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
           {patternsAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="text-[11px] font-semibold text-salve-lav mb-1.5 flex items-center gap-1"><Sparkles size={11} /> Pattern Insights</div>
-              <div className="text-[12px] text-salve-textMid leading-relaxed whitespace-pre-wrap">{patternsAI}</div>
+              <AIMarkdown>{patternsAI}</AIMarkdown>
             </Card>
           )}
         </div>
@@ -96,30 +98,39 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
           const sev = Number(e.severity);
           const sevColor = sev >= 7 ? C.rose : sev >= 4 ? C.amber : C.sage;
           const sevBg = sev >= 7 ? 'rgba(232,138,154,0.15)' : sev >= 4 ? 'rgba(232,200,138,0.15)' : 'rgba(143,191,160,0.15)';
+          const isExpanded = expandedId === e.id;
           return (
-            <Card key={e.id} className="!bg-salve-lav/10 !border-salve-lav/20">
-              <div className="flex justify-between items-start mb-1.5">
-                <div>
+            <Card key={e.id} className="!bg-salve-lav/10 !border-salve-lav/20 cursor-pointer transition-all" onClick={() => setExpandedId(isExpanded ? null : e.id)}>
+              <div className="flex justify-between items-start mb-0.5">
+                <div className="flex-1 min-w-0">
                   <span className="font-playfair text-sm font-medium text-salve-text">{e.title || fmtDate(e.date)}</span>
                   {e.title && <span className="text-[11px] text-salve-textFaint ml-2">{fmtDate(e.date)}</span>}
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 ml-2">
                   {e.mood && <span className="text-base">{e.mood.split(' ')[0]}</span>}
                   {e.severity && <Badge label={`${e.severity}/10`} color={sevColor} bg={sevBg} />}
+                  <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
               </div>
-              <div className="text-[13px] text-salve-textMid leading-relaxed">{e.content}</div>
-              {e.tags && (
-                <div className="mt-2 flex gap-1 flex-wrap">
-                  {e.tags.split(',').map((t, i) => (
-                    <span key={i} className="bg-salve-card2 text-salve-textMid text-[11px] px-2.5 py-0.5 rounded-full border border-salve-border">{t.trim()}</span>
-                  ))}
+              {!isExpanded && e.content && (
+                <div className="text-[13px] text-salve-textMid leading-relaxed line-clamp-2">{e.content}</div>
+              )}
+              {isExpanded && (
+                <div className="mt-1.5 pt-1.5 border-t border-salve-lav/15" onClick={ev => ev.stopPropagation()}>
+                  <div className="text-[13px] text-salve-textMid leading-relaxed">{e.content}</div>
+                  {e.tags && (
+                    <div className="mt-2 flex gap-1 flex-wrap">
+                      {e.tags.split(',').map((t, i) => (
+                        <span key={i} className="bg-salve-card2 text-salve-textMid text-[11px] px-2.5 py-0.5 rounded-full border border-salve-border">{t.trim()}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2.5 mt-2.5">
+                    <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
+                    <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1">Delete</button>
+                  </div>
                 </div>
               )}
-              <div className="flex gap-2.5 mt-2">
-                <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
-                <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
-              </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} itemId={e.id} />
           </Card>
           );

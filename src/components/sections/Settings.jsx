@@ -6,6 +6,7 @@ import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
+import AIProfilePreview from '../ui/AIProfilePreview';
 
 export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
   const s = data.settings;
@@ -199,6 +200,8 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
           </div>
         </Card>
       )}
+
+      <AIProfilePreview data={data} />
 
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>

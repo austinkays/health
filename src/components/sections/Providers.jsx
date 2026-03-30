@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -13,6 +13,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_PROVIDER);
   const [editId, setEditId] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -52,24 +53,35 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
         Providers
       </SectionTitle>
       {data.providers.length === 0 ? <EmptyState icon={User} text="No providers added" motif="leaf" /> :
-        data.providers.map(p => (
-          <Card key={p.id}>
+        data.providers.map(p => {
+          const isExpanded = expandedId === p.id;
+          return (
+          <Card key={p.id} onClick={() => setExpandedId(isExpanded ? null : p.id)} className="cursor-pointer transition-all">
             <div className="flex justify-between items-start">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text">{p.name}</div>
                 {p.specialty && <div className="text-[13px] text-salve-lav font-medium">{p.specialty}</div>}
-                {p.clinic && <div className="text-xs text-salve-textMid mt-0.5">{p.clinic}</div>}
-                {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
-                {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
+                {p.clinic && !isExpanded && <div className="text-xs text-salve-textMid mt-0.5 truncate">{p.clinic}</div>}
               </div>
-              <div className="flex gap-2">
-                <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit provider" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={15} /></button>
-                <button onClick={() => del.ask(p.id, p.name)} aria-label="Delete provider" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={15} /></button>
-              </div>
+              <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
+            {isExpanded && (
+              <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+                {p.clinic && <div className="text-xs text-salve-textMid mb-0.5">{p.clinic}</div>}
+                {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
+                {p.fax && <div className="text-xs text-salve-textFaint mt-0.5">Fax: {p.fax}</div>}
+                {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
+                {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
+                <div className="flex gap-2.5 mt-2.5">
+                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+                  <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                </div>
+              </div>
+            )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('providers', id))} onCancel={del.cancel} itemId={p.id} />
           </Card>
-        ))
+          );
+        })
       }
     </div>
   );
