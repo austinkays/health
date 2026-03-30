@@ -91,3 +91,212 @@
   animation: gentleFloat 4s ease-in-out infinite;
   display: inline-block;
 }
+
+/* ── Magical hover & interaction effects ──────── */
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184, 169, 232, 0); }
+  50% { box-shadow: 0 0 12px 2px rgba(184, 169, 232, 0.15); }
+}
+
+@keyframes borderShimmer {
+  0% { border-color: rgba(51, 51, 90, 1); }
+  50% { border-color: rgba(184, 169, 232, 0.35); }
+  100% { border-color: rgba(51, 51, 90, 1); }
+}
+
+@keyframes subtleGlow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+@keyframes sparkleRotate {
+  0% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(180deg) scale(1.1); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes focusRing {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(184, 169, 232, 0.2); }
+  50% { box-shadow: 0 0 0 3px rgba(184, 169, 232, 0.35); }
+}
+
+/* Card hover lift + glow */
+.card-hover {
+  transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.card-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(184, 169, 232, 0.08), 0 0 0 1px rgba(184, 169, 232, 0.1);
+  border-color: rgba(184, 169, 232, 0.2);
+}
+.card-hover:active {
+  transform: translateY(0);
+}
+
+/* Button hover shimmer overlay */
+.btn-magic {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.3s ease;
+}
+.btn-magic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.08) 55%,
+    transparent 60%
+  );
+  transform: translateX(-200%);
+  transition: transform 0.6s ease;
+}
+.btn-magic:hover::after {
+  transform: translateX(200%);
+}
+.btn-magic:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(143, 191, 160, 0.2);
+}
+.btn-magic:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Lavender variant button glow */
+.btn-magic-lav:hover {
+  box-shadow: 0 4px 16px rgba(184, 169, 232, 0.25);
+}
+
+/* Danger variant button glow */
+.btn-magic-danger:hover {
+  box-shadow: 0 4px 16px rgba(232, 138, 154, 0.2);
+}
+
+/* Nav item hover effect */
+.nav-item-magic {
+  position: relative;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.nav-item-magic::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 12px;
+  background: radial-gradient(circle, rgba(143, 191, 160, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.nav-item-magic:hover::before {
+  opacity: 1;
+}
+.nav-item-magic:hover {
+  transform: translateY(-1px);
+}
+
+/* Quick access tile magic hover */
+.tile-magic {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.tile-magic::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(184, 169, 232, 0.06) 60deg,
+    rgba(143, 191, 160, 0.06) 120deg,
+    transparent 180deg
+  );
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  animation: sparkleRotate 8s linear infinite;
+}
+.tile-magic:hover::before {
+  opacity: 1;
+}
+.tile-magic:hover {
+  transform: translateY(-2px) scale(1.02);
+  border-color: rgba(184, 169, 232, 0.25);
+  box-shadow: 0 8px 24px rgba(184, 169, 232, 0.1), 0 0 0 1px rgba(143, 191, 160, 0.08);
+}
+.tile-magic:active {
+  transform: translateY(0) scale(0.97);
+}
+
+/* Badge subtle shimmer */
+.badge-glow {
+  position: relative;
+  overflow: hidden;
+}
+.badge-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Input/field focus glow */
+.field-magic:focus {
+  border-color: rgba(184, 169, 232, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(184, 169, 232, 0.1), 0 0 12px rgba(184, 169, 232, 0.08);
+}
+
+/* Gradient text for special headings */
+.text-gradient-magic {
+  background: linear-gradient(135deg, #b8a9e8, #8fbfa0, #e8c88a);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradientShift 6s ease infinite;
+}
+
+/* Subtle divider glow */
+.divider-glow {
+  background: linear-gradient(90deg, transparent, rgba(184, 169, 232, 0.2), rgba(143, 191, 160, 0.2), transparent);
+  height: 1px;
+}
+
+/* Alert row hover */
+.alert-row:hover {
+  background: rgba(42, 42, 68, 0.5);
+}
+
+/* Timeline row hover */
+.timeline-row {
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+.timeline-row:hover {
+  background: rgba(42, 42, 68, 0.3);
+  transform: translateX(2px);
+}
+
+/* Insight card ambient glow */
+.insight-glow {
+  box-shadow: 0 0 20px rgba(184, 169, 232, 0.06), inset 0 1px 0 rgba(184, 169, 232, 0.08);
+}
+
+/* Section enter animation (for non-dashboard pages) */
+.section-enter {
+  animation: fadeSlideUp 0.35s ease-out;
+}

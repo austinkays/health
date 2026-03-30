@@ -197,7 +197,9 @@ export default function App() {
                 <LoadingSpinner text="Loading..." />
               </div>
             }>
-              {renderSection()}
+              <div key={tab} className="section-enter">
+                {renderSection()}
+              </div>
             </Suspense>
           </ErrorBoundary>
         </main>

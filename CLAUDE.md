@@ -61,8 +61,8 @@ health/
 │       └── 005_api_enrichment_columns.sql  # Add rxcui to meds, npi+address to providers
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
-│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery
+│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter animations
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
@@ -101,13 +101,13 @@ health/
 │   │   │   └── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button
-│   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, fixed "built with ♥" tagline
+│   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
 │   │   └── sections/             # One file per app section (19 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
 │   │       ├── Medications.jsx   # Med list + add/edit + RxNorm autocomplete + OpenFDA drug info + maps links
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs
-│   │       ├── Providers.jsx     # Provider directory + NPI registry search + maps links + phone/portal links
+│   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links
 │   │       ├── Allergies.jsx     # Allergy list + add/edit
 │   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
@@ -291,7 +291,8 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Keyboard support** | `ConfirmBar` responds to Escape (cancel) and Enter (confirm); `role="alertdialog"` for screen readers |
 | **Chart accessibility** | Vitals chart has `role="img"` with descriptive `aria-label` + visually-hidden (`sr-only`) data table alternative |
 | **Loading states** | `LoadingSpinner` uses `role="status"` + `aria-live="polite"` with `sr-only` fallback text |
-| **Decorative elements** | `Motif.jsx` SVGs have `aria-hidden="true"` |
+| **Decorative elements** | `Motif.jsx` SVGs have `aria-hidden="true"`; Divider uses gradient glow |
+| **Hover interactions** | Cards lift with lavender glow; buttons have shimmer sweep; quick-access tiles scale with conic gradient; nav items hover-lift with radial glow; timeline rows slide-right on hover |
 | **Autocomplete ARIA** | Drug and NPI autocomplete dropdowns use `role="listbox"` / `role="option"` with `aria-label` |
 | **Error announcements** | Autocomplete errors use `role="alert"` for screen reader announcement |
 
@@ -332,7 +333,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 - Max width 480px, centered (mobile-first, phone-optimized)
 - Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
-- "built with ♥ for my best friend & soulmate" tagline fixed above bottom nav (inside BottomNav component, always visible)
+- "made with love for my best friend & soulmate" tagline above bottom nav — scroll-reveal (hidden until user scrolls to bottom, transparent background, 500ms fade-in transition)
+- Magical UI effects: card hover lift + lavender glow, button shimmer sweep, quick-access tile rotating conic gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade-slide-up animations
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
 - Dashboard sections: contextual greeting → consolidated alerts → AI insight → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
 - Quick Access primary 6: Conditions, Providers, Allergies, Appointments, Labs, Insurance; "More" expander reveals 8 additional sections
@@ -407,7 +409,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Providers: NPI Lookup button triggers NPPES search and shows dropdown
 - [ ] Providers: selecting NPI result auto-populates name, specialty, clinic, phone, fax, NPI, address
 - [ ] Providers: address in expanded card links to Google Maps; fallback uses clinic name
-- [ ] Providers: NPI number displayed in expanded card
+- [ ] Providers: NPI number links to CMS NPPES registry (`npiregistry.cms.hhs.gov/provider-view/{NPI}`)
 - [ ] Appointments: location field in upcoming/past cards links to Google Maps
 - [ ] Interactions: meds with rxcui show ✓ indicator in active meds list
 - [ ] Interactions: "Check NLM Interactions" button appears when 2+ meds have rxcui

@@ -170,7 +170,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               <span className="greeting-motif">
                 <Motif type={greeting.motif} size={16} color={C.sage} />
               </span>
-              <span className="font-playfair text-lg text-salve-text font-medium">{greeting.text}</span>
+              <span className="font-playfair text-lg font-medium text-gradient-magic">{greeting.text}</span>
             </div>
             <p className="text-[13px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
           </div>
@@ -185,7 +185,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               <button
                 key={a.id}
                 onClick={() => onNav(a.nav)}
-                className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer transition-colors hover:bg-salve-card2/50 ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
+                className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
               >
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
                 <a.icon size={14} color={a.color} className="flex-shrink-0" />
@@ -201,7 +201,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       {hasAIConsent() && (insight || insightLoading) && (
         <section aria-label="Daily insight" className="dash-stagger dash-stagger-3 mb-4">
           {insightLoading ? (
-            <Card className="!bg-salve-lav/5 !border-salve-lav/15 shimmer-bg">
+            <Card className="!bg-salve-lav/5 !border-salve-lav/15 shimmer-bg insight-glow">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={14} color={C.lavDim} />
                 <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
@@ -213,7 +213,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               </div>
             </Card>
           ) : insight && (
-            <Card className="!bg-salve-lav/5 !border-salve-lav/15">
+            <Card className="!bg-salve-lav/5 !border-salve-lav/15 insight-glow">
               <div className="flex items-center gap-2 mb-2.5">
                 <Sparkles size={14} color={C.lav} />
                 <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
@@ -237,7 +237,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               <button
                 key={item.id || i}
                 onClick={() => onNav(isAppt ? 'appts' : 'meds')}
-                className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 transition-colors hover:bg-salve-card2/30 rounded-lg group"
+                className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
                 <div className="flex-1 text-left min-w-0">
@@ -283,7 +283,7 @@ export default function Dashboard({ data, interactions, onNav }) {
             <button
               key={l.id}
               onClick={() => onNav(l.id)}
-              className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-all active:scale-[0.97]"
+              className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
             >
               <l.icon size={20} color={l.color} strokeWidth={1.5} />
               <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
@@ -294,7 +294,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         {/* Expand / collapse more sections */}
         <button
           onClick={toggleMore}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 bg-transparent border border-salve-border rounded-xl cursor-pointer hover:border-salve-border2 transition-all"
+          className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 bg-transparent border border-salve-border rounded-xl cursor-pointer tile-magic"
         >
           <Grid size={13} className="text-salve-textFaint" />
           <span className="text-[11px] text-salve-textFaint font-montserrat">
@@ -308,7 +308,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               <button
                 key={l.id}
                 onClick={() => onNav(l.id)}
-                className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer hover:border-salve-border2 transition-all active:scale-[0.97]"
+                className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
               >
                 <l.icon size={20} color={l.color} strokeWidth={1.5} />
                 <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
