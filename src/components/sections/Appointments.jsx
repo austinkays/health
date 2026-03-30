@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader, MapPin } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader, MapPin, Phone } from 'lucide-react';
 import { mapsUrl } from '../../utils/maps';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -25,6 +25,40 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
   const [prepResult, setPrepResult] = useState({});
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  /* ── Provider options from saved providers ── */
+  const providerOptions = useMemo(() => [
+    { value: '', label: 'Select provider...' },
+    ...(data.providers || []).map(p => ({
+      value: p.name,
+      label: `${p.name}${p.specialty ? ` — ${p.specialty}` : ''}`,
+    })),
+    { value: '__custom', label: '— Type custom —' },
+  ], [data.providers]);
+
+  /* ── Location autofill options from provider addresses ── */
+  const locationOptions = useMemo(() => {
+    const locs = new Set();
+    (data.providers || []).forEach(p => {
+      if (p.address) locs.add(p.address);
+      if (p.clinic) locs.add(p.clinic);
+    });
+    if (locs.size === 0) return null;
+    return [
+      { value: '', label: 'Select location...' },
+      ...[...locs].map(l => ({ value: l, label: l })),
+      { value: '__custom', label: '— Type custom —' },
+    ];
+  }, [data.providers]);
+
+  /* ── Provider info lookup for appointments ── */
+  const providerInfo = useMemo(() => {
+    const map = {};
+    (data.providers || []).forEach(p => {
+      map[p.name.trim().toLowerCase()] = p;
+    });
+    return map;
+  }, [data.providers]);
 
   const prepareVisit = async (appt) => {
     setPrepLoading(appt.id);
@@ -55,8 +89,27 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" required />
         <Field label="Time" value={form.time} onChange={v => sf('time', v)} type="time" />
-        <Field label="Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
-        <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Clinic, hospital..." />
+        <Field label="Provider" value={form.provider} onChange={v => {
+          sf('provider', v);
+          // Auto-fill location from provider's address if available
+          if (v && v !== '__custom') {
+            const prov = providerInfo[v.trim().toLowerCase()];
+            if (prov?.address && !form.location) sf('location', prov.address);
+          }
+        }} options={providerOptions} />
+        {form.provider === '__custom' && (
+          <Field label="Custom Provider" value="" onChange={v => sf('provider', v)} placeholder="Dr. Name" />
+        )}
+        {locationOptions ? (
+          <>
+            <Field label="Location" value={form.location} onChange={v => sf('location', v)} options={locationOptions} />
+            {form.location === '__custom' && (
+              <Field label="Custom Location" value="" onChange={v => sf('location', v)} placeholder="Clinic, hospital..." />
+            )}
+          </>
+        ) : (
+          <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Clinic, hospital..." />
+        )}
         <Field label="Reason" value={form.reason} onChange={v => sf('reason', v)} placeholder="Follow-up, labs..." />
         <Field label="Questions to Ask" value={form.questions} onChange={v => sf('questions', v)} textarea placeholder="Things to bring up..." />
         <Field label="Post-Visit Notes" value={form.post_notes} onChange={v => sf('post_notes', v)} textarea placeholder="What happened..." />
@@ -90,6 +143,15 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                 <div className="flex-1">
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
                   <div className="text-xs text-salve-textMid mt-0.5">{a.provider}{a.location ? <>{' · '}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
+                  {/* ── Provider phone quick-link ── */}
+                  {a.provider && providerInfo[a.provider.trim().toLowerCase()]?.phone && (
+                    <div className="text-[11px] text-salve-textFaint mt-0.5 flex items-center gap-1">
+                      <Phone size={10} strokeWidth={1.4} />
+                      <a href={`tel:${providerInfo[a.provider.trim().toLowerCase()].phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">
+                        {providerInfo[a.provider.trim().toLowerCase()].phone}
+                      </a>
+                    </div>
+                  )}
                   {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">✧ {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">

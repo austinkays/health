@@ -60,7 +60,9 @@ health/
 │       ├── 003_comprehensive_schema.sql  # Labs, procedures, immunizations, etc.
 │       ├── 004_remove_fabricated_conditions.sql
 │       ├── 005_api_enrichment_columns.sql  # Add rxcui to meds, npi+address to providers
-│       └── 006_display_name.sql              # Add display_name to medications
+│       ├── 006_display_name.sql              # Add display_name to medications
+│       ├── 007_fda_enrichment.sql            # Add fda_data JSONB to medications for OpenFDA label cache
+│       └── 008_pharmacies_table.sql          # Pharmacies table with preferred flag, hours, website
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects
@@ -98,23 +100,24 @@ health/
 │   │   │   ├── FormWrap.jsx      # Back-arrow + title wrapper; also exports SectionTitle
 │   │   │   ├── LoadingSpinner.jsx # role=status, aria-live=polite
 │   │   │   ├── AIConsentGate.jsx  # AI data-sharing consent gate + hasAIConsent/revokeAIConsent
-│   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown)
+│   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown, auto-linkifies bare URLs)
 │   │   │   ├── AIProfilePreview.jsx # "What AI Sees" pill button + full-screen slide-up panel
 │   │   │   └── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
-│   │   └── sections/             # One file per app section (19 total)
+│   │   └── sections/             # One file per app section (20 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
-│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + maps links
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment + auto-enrich on link + maps links + pharmacy picker + pharmacy filter
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
-│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs
-│   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links
+│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications
+│   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
 │   │       ├── Allergies.jsx     # Allergy list + add/edit
-│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links
+│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links + provider picker + auto-fill location + provider phone quick-link
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
-│   │       ├── AIPanel.jsx       # AI Insight panel: health insight, connections, news, resources, chat; "What AI Sees" preview button opens full-screen slide-up panel
+│   │       ├── Pharmacies.jsx    # Pharmacy directory + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter
+│   │       ├── AIPanel.jsx       # AI Insight panel: health insight, connections, news (floating cards), resources (collapsible accordions), chat; web search source badges; "What AI Sees" preview button opens full-screen slide-up panel
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -140,7 +143,8 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | Table | Key Fields | Notes |
 |-------|-----------|-------|
 | `profiles` | id (= auth.users.id), name, location, pharmacy, insurance_*, health_background, ai_mode | 1:1 with user, auto-created on signup via trigger |
-| `medications` | name, display_name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui | rxcui links to RxNorm drug database; display_name is optional user-friendly casual name |
+│ `pharmacies` | name, address, phone, fax, hours, website, is_preferred, notes | Preferred pharmacy badge; cross-linked with medications |
+| `medications` | name, display_name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui, fda_data | rxcui links to RxNorm drug database; display_name is optional user-friendly casual name; fda_data (JSONB) stores OpenFDA label info (auto-populated on RxCUI link); pharmacy links to pharmacies table by name |
 | `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
 | `allergies` | substance, reaction, severity (mild/moderate/severe), notes | |
 | `providers` | name, specialty, clinic, phone, fax, portal_url, notes, npi, address | npi links to NPPES registry; address enables maps |
@@ -170,7 +174,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 19 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 20 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -365,7 +369,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 19 sections render without errors (including Auth screen)
+- [ ] All 20 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
 - [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
@@ -390,7 +394,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 19 sections reachable via Quick Access (6 primary + 8 in More expander + 5 in bottom nav)
+- [ ] All 20 sections reachable via Quick Access (6 primary + 9 in More expander + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
@@ -403,6 +407,30 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] ErrorBoundary catches section crashes and shows fallback with Go Home button
 - [ ] No console errors in production build
 
+### Pharmacy & QoL Cross-Reference Tests
+- [ ] Pharmacies: CRUD works (add, edit, delete with confirmation)
+- [ ] Pharmacies: preferred toggle sets/unsets star badge
+- [ ] Pharmacies: filter tabs work (All, Preferred, With Meds)
+- [ ] Pharmacies: expanded card shows Maps link, phone link, website link, hours
+- [ ] Pharmacies: medication count badge shows correct count of active meds at that pharmacy
+- [ ] Pharmacies: expanded card lists medications with doses and refill dates
+- [ ] Pharmacies: upcoming refills badge shows count
+- [ ] Medications: pharmacy picker dropdown shows saved pharmacies (with ★ for preferred)
+- [ ] Medications: "Type custom" option allows freetext pharmacy entry
+- [ ] Medications: pharmacy filter pills appear when 2+ distinct pharmacies exist
+- [ ] Medications: pharmacy filter correctly filters med list
+- [ ] Conditions: provider picker dropdown shows saved providers with specialties
+- [ ] Conditions: "Type custom" option allows freetext provider entry
+- [ ] Conditions: collapsed card shows med count badge when related meds exist
+- [ ] Conditions: expanded card lists active medications related to the condition
+- [ ] Providers: collapsed card shows med count and condition count badges
+- [ ] Providers: expanded card lists "Prescribed Medications" with doses
+- [ ] Providers: expanded card lists "Conditions" with status
+- [ ] Appointments: provider picker dropdown shows saved providers
+- [ ] Appointments: selecting provider auto-fills location from provider address
+- [ ] Appointments: upcoming card shows provider phone quick-link when available
+- [ ] Dashboard: Pharmacies tile appears in "More sections" grid
+
 ### Medical API Integration Tests
 - [ ] Medications: typing in name field triggers RxNorm autocomplete dropdown after 300ms debounce
 - [ ] Medications: selecting autocomplete result stores name + rxcui
@@ -410,6 +438,12 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Medications: unlinked meds (no rxcui) show amber unlink indicator; linked meds show sage link indicator
 - [ ] Medications: bulk "Link All" button appears when ≥1 active med has no rxcui; iterates drugAutocomplete per med
 - [ ] Medications: bulk link shows progress ("Linking 2 of 5...") and result summary
+- [ ] Medications: bulk link also fetches FDA data for each linked med (fda_data auto-populated)
+- [ ] Medications: selecting autocomplete result auto-fetches FDA data in background, auto-suggests route and purpose
+- [ ] Medications: "Enrich All" button appears when ≥1 linked med has no fda_data; fetches FDA label for each
+- [ ] Medications: collapsed card shows drug class badge (sage) and boxed warning badge (rose) when fda_data present
+- [ ] Medications: expanded card shows inline FDA summary (generic/brand, class, manufacturer, boxed warning indicator)
+- [ ] Medications: expanded card shows "Fetch drug info" link for linked meds missing fda_data
 - [ ] Medications: "Drug Info" button fetches and displays FDA label data (generic, brand, class, warnings, side effects)
 - [ ] Medications: pharmacy name links to Google Maps
 - [ ] Providers: NPI Lookup button triggers NPPES search and shows dropdown

@@ -3,7 +3,7 @@
 export const EMPTY_MED = {
   name: '', display_name: '', dose: '', frequency: '', route: 'Oral',
   prescriber: '', pharmacy: '', start_date: '', purpose: '',
-  refill_date: '', active: true, notes: '', rxcui: '',
+  refill_date: '', active: true, notes: '', rxcui: '', fda_data: null,
 };
 
 export const EMPTY_CONDITION = {
@@ -24,6 +24,11 @@ export const EMPTY_PROVIDER = {
 export const EMPTY_VITAL = {
   date: new Date().toISOString().slice(0, 10),
   type: 'pain', value: '', value2: '', unit: '', notes: '',
+};
+
+export const EMPTY_PHARMACY = {
+  name: '', address: '', phone: '', fax: '',
+  hours: '', website: '', is_preferred: false, notes: '',
 };
 
 export const EMPTY_APPOINTMENT = {

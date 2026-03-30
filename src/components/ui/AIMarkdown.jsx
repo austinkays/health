@@ -1,6 +1,16 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+// Convert bare URLs (not already in markdown link/image syntax) into markdown links
+function linkifyBareUrls(text) {
+  if (!text) return text;
+  // Match URLs not preceded by ]( or ( or " or ' — i.e. bare URLs in text
+  return text.replace(
+    /(?<!\]\()(?<!\()(?<!")(?<!')(?<!=)(https?:\/\/[^\s)<>\]"']+)/g,
+    '[$1]($1)'
+  );
+}
+
 const components = {
   h1: ({ children }) => <h1 className="text-base font-semibold text-salve-lav font-playfair mt-3 mb-1.5 first:mt-0">{children}</h1>,
   h2: ({ children }) => <h2 className="text-[14px] font-semibold text-salve-lav font-playfair mt-3 mb-1 first:mt-0">{children}</h2>,
@@ -37,12 +47,13 @@ const compactComponents = {
 
 export default function AIMarkdown({ children, compact = false }) {
   if (!children) return null;
+  const processed = linkifyBareUrls(children);
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={compact ? compactComponents : components}
     >
-      {children}
+      {processed}
     </ReactMarkdown>
   );
 }

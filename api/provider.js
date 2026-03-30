@@ -115,18 +115,40 @@ function formatProvider(result) {
 
 async function npiSearch(name, state) {
   const params = new URLSearchParams({ version: '2.1', limit: '10' });
-  // Split name to try first/last
-  const parts = name.trim().split(/\s+/);
-  if (parts.length >= 2) {
-    // Remove common prefixes
-    const first = parts[0].replace(/^(dr\.?|md|do)$/i, '').trim();
-    const last = parts[parts.length - 1].replace(/,?\s*(md|do|phd|np|pa|rn)$/i, '').trim();
-    if (first) params.set('first_name', first);
-    if (last) params.set('last_name', last);
+  // Clean and parse name into first/last for NPPES API
+  let cleaned = name.trim();
+  // Strip leading titles (Dr., Prof., etc.)
+  cleaned = cleaned.replace(/^(dr\.?|prof\.?|mr\.?|ms\.?|mrs\.?)\s+/i, '');
+  // Strip trailing credentials — common US healthcare suffixes, with optional commas/periods
+  // Iteratively strip from the end to handle chains like ", MD, FACP"
+  const credentialPattern = /[,\s]+(md|do|phd|np|pa|pa-c|rn|dpm|od|dds|dmd|aprn|lcsw|facp|facs|facep|dnp|fnp|msn|bsn|mph|mba|dc|pt|dpt|ot|pharmd|cns|cnp|acnp|agacnp|crna|crnp|lmft|lpcc|psyd|edd|jr\.?|sr\.?|ii|iii|iv)\.?\s*$/i;
+  let prev;
+  do { prev = cleaned; cleaned = cleaned.replace(credentialPattern, ''); } while (cleaned !== prev);
+  // Strip any trailing commas/periods left over
+  cleaned = cleaned.replace(/[,.\s]+$/, '').trim();
+
+  // Detect "Last, First" format (comma inside the remaining name)
+  const commaParts = cleaned.split(/,\s*/);
+  let firstName = '', lastName = '';
+  if (commaParts.length === 2 && commaParts[0] && commaParts[1]) {
+    // "Smith, John" → first=John, last=Smith
+    lastName = commaParts[0].trim();
+    firstName = commaParts[1].trim();
   } else {
-    // Single word — search as last name and also try organization
-    params.set('last_name', parts[0]);
+    const parts = cleaned.split(/\s+/);
+    if (parts.length >= 2) {
+      firstName = parts[0];
+      lastName = parts[parts.length - 1];
+    } else if (parts.length === 1 && parts[0]) {
+      lastName = parts[0];
+    }
   }
+
+  // Use wildcard suffix for partial/short names (NPPES supports trailing *)
+  if (firstName) params.set('first_name', firstName.length <= 2 ? firstName + '*' : firstName);
+  if (lastName) params.set('last_name', lastName);
+  // Enable nickname matching (Bob→Robert, etc.)
+  if (firstName) params.set('use_first_name_alias', 'True');
   if (state) {
     const upper = state.toUpperCase();
     if (!/^[A-Z]{2}$/.test(upper)) return [];

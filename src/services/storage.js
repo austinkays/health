@@ -11,6 +11,7 @@ const TABLE_MAP = {
   vitals:     'vitals',
   appts:      'appointments',
   journal:    'journal_entries',
+  pharmacies:           'pharmacies',
   // Comprehensive schema v3 — new 8 sections
   // These use the same name internally and externally
   labs:                 'labs',

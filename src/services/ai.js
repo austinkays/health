@@ -9,10 +9,10 @@ export const PROMPTS = {
     'You are an insightful health analyst. Given this patient\'s complete health profile, look for non-obvious connections, patterns, and insights across their medications, conditions, symptoms, and vitals. Consider: medications that might worsen another condition, overlapping side effects, symptom patterns in their journal, vitals trends that correlate with entries, nutritional or lifestyle factors linking conditions, whether their med regimen is internally consistent. Be specific and reference THEIR actual data. Format with clear sections. Be warm but thorough. End with a note that this is not medical advice.',
 
   news:
-    'You are a health news curator. Search for recent medical news, research breakthroughs, or treatment developments related to the patient\'s specific conditions. Provide 3-5 recent items with brief summaries. Focus on actionable or hopeful developments. Be specific about what\'s new. Format clearly with headlines and 1-2 sentence summaries each.',
+    'You are a health news curator. Today\'s date is {DATE}. Search for RECENT medical news, research breakthroughs, clinical trial results, or treatment developments related to the patient\'s specific conditions. CRITICAL: Focus EXCLUSIVELY on developments from the past 6 months. Do NOT include anything older than 6 months. Provide 4-6 items. For EACH item, format as:\n\n## [Headline]\n\n[1-2 sentence summary explaining what\'s new and why it matters for this patient]. *Source: [publication/organization name]*\n\n---\n\nFocus on actionable, hopeful, or clinically significant developments. Be specific about dates and what changed.',
 
   resources:
-    'You are a disability resources specialist. Search for programs, benefits, discounts, passes, and assistance available for someone with these conditions in their area. Include: government disability programs, national park/recreation access passes, transit discounts, utility assistance, prescription assistance programs, tax deductions, workplace accommodations under ADA, state-specific programs, nonprofit resources, and anything else helpful. Be specific with program names, eligibility, and how to apply. Format clearly.',
+    'You are a disability resources specialist. Today\'s date is {DATE}. Search for programs, benefits, discounts, passes, and assistance available for someone with these conditions in their area. Include: government disability programs, national park/recreation access passes, transit discounts, utility assistance, prescription assistance programs, tax deductions, workplace accommodations under ADA, state-specific programs, nonprofit resources, and anything else helpful.\n\nCRITICAL FORMATTING: Organize results into clear categories. For EACH category use:\n\n## [Category Name]\n\nThen for each program/resource within that category:\n\n**[Program Name]** — [1-2 sentence description including eligibility]. [Direct URL if available]\n\n---\n\nBe specific with program names, eligibility requirements, and how to apply. Include direct URLs whenever possible.',
 
   ask:
     'You are a knowledgeable, compassionate health companion. You have access to this patient\'s complete health profile. Answer their question with their specific health context in mind. Be thorough but warm. Reference their specific medications, conditions, and history where relevant. Always note that your response is informational and not a substitute for professional medical advice.',
@@ -43,6 +43,32 @@ export const PROMPTS = {
 };
 
 const DISCLAIMER = '\n\n---\n*AI suggestions are not medical advice. Always consult your healthcare providers.*';
+
+function extractSources(data) {
+  const seen = new Set();
+  const sources = [];
+  for (const block of data.content || []) {
+    // Extract from web_search_tool_result blocks
+    if (block.type === 'web_search_tool_result' && Array.isArray(block.content)) {
+      for (const r of block.content) {
+        if (r.type === 'web_search_result' && r.url && !seen.has(r.url)) {
+          seen.add(r.url);
+          sources.push({ url: r.url, title: r.title || new URL(r.url).hostname, page_age: r.page_age || null });
+        }
+      }
+    }
+    // Extract from inline citations on text blocks
+    if (block.type === 'text' && Array.isArray(block.citations)) {
+      for (const c of block.citations) {
+        if (c.url && !seen.has(c.url)) {
+          seen.add(c.url);
+          sources.push({ url: c.url, title: c.title || new URL(c.url).hostname });
+        }
+      }
+    }
+  }
+  return sources;
+}
 
 async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false) {
   const token = await getAuthToken();
@@ -84,6 +110,10 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false)
         .map(b => b.text)
         .join('\n\n');
       if (!text.trim()) throw new Error('AI returned an empty response. Please try again.');
+      if (useWebSearch) {
+        const sources = extractSources(data);
+        return { text: text + DISCLAIMER, sources };
+      }
       return text + DISCLAIMER;
     }
     if (data.error) throw new Error(data.error.message || 'AI service error');
@@ -111,19 +141,21 @@ export async function fetchConnections(profileText) {
 }
 
 export async function fetchNews(profileText) {
+  const today = new Date().toISOString().split('T')[0];
   return callAPI(
-    [{ role: 'user', content: 'Find recent health news relevant to my conditions.' }],
-    PROMPTS.news + '\n\n' + profileText,
-    2000,
+    [{ role: 'user', content: `Find the most recent health news relevant to my conditions. Today is ${today}. Only include news from the past 6 months.` }],
+    PROMPTS.news.replace('{DATE}', today) + '\n\n' + profileText,
+    3000,
     true
   );
 }
 
 export async function fetchResources(profileText) {
+  const today = new Date().toISOString().split('T')[0];
   return callAPI(
-    [{ role: 'user', content: 'Find disability resources and assistance programs for me.' }],
-    PROMPTS.resources + '\n\n' + profileText,
-    2000,
+    [{ role: 'user', content: `Find disability resources and assistance programs for me. Today is ${today}.` }],
+    PROMPTS.resources.replace('{DATE}', today) + '\n\n' + profileText,
+    3000,
     true
   );
 }

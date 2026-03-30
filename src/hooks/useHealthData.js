@@ -4,7 +4,7 @@ import { db } from '../services/db';
 export default function useHealthData(session) {
   const [data, setData] = useState({
     meds: [], conditions: [], allergies: [], providers: [],
-    vitals: [], appts: [], journal: [],
+    pharmacies: [], vitals: [], appts: [], journal: [],
     labs: [], procedures: [], immunizations: [], care_gaps: [],
     anesthesia_flags: [], appeals_and_disputes: [], surgical_planning: [], insurance: [],
     settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
@@ -87,6 +87,7 @@ function tableToKey(table) {
     conditions: 'conditions',
     allergies: 'allergies',
     providers: 'providers',
+    pharmacies: 'pharmacies',
     vitals: 'vitals',
     appointments: 'appts',
     journal: 'journal',

@@ -300,3 +300,17 @@
 .section-enter {
   animation: fadeSlideUp 0.35s ease-out;
 }
+
+/* Accordion expand/collapse */
+.accordion-content {
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease;
+}
+.accordion-open {
+  max-height: 2000px;
+  opacity: 1;
+}
+.accordion-closed {
+  max-height: 0;
+  opacity: 0;
+}

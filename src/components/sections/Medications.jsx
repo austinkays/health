@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink, Link2, Unlink } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink, Link2, Unlink, Download } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_MED } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { Building2 } from 'lucide-react';
 import { fetchCrossReactivity } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
@@ -39,6 +40,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [bulkLinking, setBulkLinking] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
+  const [enriching, setEnriching] = useState(false);
+  const [enrichProgress, setEnrichProgress] = useState(null);
+  const [enrichResult, setEnrichResult] = useState(null);
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
@@ -61,10 +65,45 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     }, 300);
   }, []);
 
+  // Map FDA route strings (e.g. "ORAL") to our ROUTES dropdown values
+  const mapFdaRoute = (fdaRoutes) => {
+    if (!fdaRoutes?.length) return null;
+    const raw = fdaRoutes[0].toLowerCase();
+    const mapping = {
+      oral: 'Oral', topical: 'Topical', subcutaneous: 'Injection (SC)',
+      intramuscular: 'Injection (IM)', intravenous: 'IV', inhalation: 'Inhaled',
+      sublingual: 'Sublingual', transdermal: 'Transdermal patch', rectal: 'Rectal',
+      ophthalmic: 'Ophthalmic', otic: 'Otic', nasal: 'Nasal',
+    };
+    return mapping[raw] || null;
+  };
+
   const selectAcResult = useCallback((item) => {
     setForm(p => ({ ...p, name: item.name, rxcui: item.rxcui }));
     setAcResults([]);
     setShowAc(false);
+    // Background-fetch FDA data for auto-enrichment
+    if (item.rxcui) {
+      drugDetails(item.rxcui).then(info => {
+        if (!info) return;
+        setForm(p => {
+          const updates = { ...p, fda_data: info };
+          // Auto-suggest route if still default
+          if (p.route === 'Oral' || !p.route) {
+            const mapped = mapFdaRoute(info.route);
+            if (mapped) updates.route = mapped;
+          }
+          // Auto-suggest purpose if empty and indications available
+          if (!p.purpose && info.indications?.length) {
+            const raw = info.indications[0];
+            // Extract first sentence, cap at 120 chars
+            const first = raw.split(/\.|\n/)[0]?.trim();
+            if (first && first.length > 5) updates.purpose = first.slice(0, 120);
+          }
+          return updates;
+        });
+      }).catch(() => { /* non-blocking */ });
+    }
   }, []);
 
   // Close autocomplete when clicking outside
@@ -100,6 +139,37 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     });
   }, [form.name, data.allergies]);
 
+  /* ── Fetch FDA data for a single med and persist ── */
+  const enrichFdaData = async (med) => {
+    const key = med.rxcui || med.name;
+    if (!key) return null;
+    try {
+      const info = await drugDetails(key);
+      if (info) {
+        await updateItem('medications', med.id, { fda_data: info });
+        return info;
+      }
+    } catch { /* non-blocking */ }
+    return null;
+  };
+
+  /* ── Bulk enrich linked meds missing FDA data ── */
+  const bulkEnrichMeds = async () => {
+    const unenriched = data.meds.filter(m => m.rxcui && !m.fda_data);
+    if (unenriched.length === 0) return;
+    setEnriching(true);
+    setEnrichResult(null);
+    let enriched = 0;
+    for (let i = 0; i < unenriched.length; i++) {
+      setEnrichProgress({ current: i + 1, total: unenriched.length, name: unenriched[i].display_name || unenriched[i].name });
+      const info = await enrichFdaData(unenriched[i]);
+      if (info) enriched++;
+    }
+    setEnrichProgress(null);
+    setEnrichResult({ enriched, total: unenriched.length });
+    setEnriching(false);
+  };
+
   /* ── Bulk link unlinked meds to RxNorm ── */
   const bulkLinkMeds = async () => {
     const unlinked = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim());
@@ -115,7 +185,14 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           const nameLC = unlinked[i].name.trim().toLowerCase();
           const exact = results.find(r => r.name.toLowerCase() === nameLC);
           const match = exact || results[0];
-          await updateItem('medications', unlinked[i].id, { rxcui: match.rxcui, name: match.name });
+          // Also fetch FDA data during bulk link
+          let fda_data = null;
+          try {
+            fda_data = await drugDetails(match.rxcui);
+          } catch { /* non-blocking */ }
+          const updates = { rxcui: match.rxcui, name: match.name };
+          if (fda_data) updates.fda_data = fda_data;
+          await updateItem('medications', unlinked[i].id, updates);
           linked++;
         }
       } catch { /* skip this med */ }
@@ -166,7 +243,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
         <Field label="Prescriber" value={form.prescriber} onChange={v => sf('prescriber', v)} placeholder="Dr. Name" />
-        <Field label="Pharmacy" value={form.pharmacy} onChange={v => sf('pharmacy', v)} placeholder="Pharmacy name" />
+        <Field label="Pharmacy" value={form.pharmacy} onChange={v => sf('pharmacy', v)}
+          options={[
+            { value: '', label: 'Select pharmacy...' },
+            ...((data.pharmacies || []).map(p => ({ value: p.name, label: p.name + (p.is_preferred ? ' ★' : '') }))),
+            { value: '__custom', label: '— Type custom —' },
+          ]}
+        />
+        {form.pharmacy === '__custom' && (
+          <Field label="Custom Pharmacy" value="" onChange={v => sf('pharmacy', v)} placeholder="Pharmacy name" />
+        )}
         <Field label="Purpose / Condition" value={form.purpose} onChange={v => sf('purpose', v)} placeholder="What is this for?" />
         <Field label="Start Date" value={form.start_date} onChange={v => sf('start_date', v)} type="date" />
         <Field label="Next Refill" value={form.refill_date} onChange={v => sf('refill_date', v)} type="date" />
@@ -226,7 +312,19 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     </FormWrap>
   );
 
-  const fl = data.meds.filter(m => filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false);
+  /* ── Pharmacy filter support ── */
+  const pharmacyNames = useMemo(() => {
+    const names = new Set();
+    data.meds.forEach(m => { if (m.pharmacy?.trim()) names.add(m.pharmacy.trim()); });
+    return [...names].sort();
+  }, [data.meds]);
+  const [pharmacyFilter, setPharmacyFilter] = useState('all');
+
+  const fl = data.meds.filter(m => {
+    const statusOk = filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false;
+    const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
+    return statusOk && pharmaOk;
+  });
 
   return (
     <div className="mt-2">
@@ -263,6 +361,67 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           </button>
         ))}
       </div>
+
+      {/* ── Pharmacy filter ── */}
+      {pharmacyNames.length > 1 && (
+        <div className="flex gap-1.5 mb-3.5 flex-wrap">
+          <button
+            onClick={() => setPharmacyFilter('all')}
+            className={`py-1 px-3 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat flex items-center gap-1 ${
+              pharmacyFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+            }`}
+          >
+            <Building2 size={10} /> All pharmacies
+          </button>
+          {pharmacyNames.map(name => (
+            <button
+              key={name}
+              onClick={() => setPharmacyFilter(pharmacyFilter === name ? 'all' : name)}
+              className={`py-1 px-3 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat truncate max-w-[150px] ${
+                pharmacyFilter === name ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Enrich All banner (linked meds missing FDA data) ── */}
+      {(() => {
+        const unenrichedCount = data.meds.filter(m => m.rxcui && !m.fda_data).length;
+        if (unenrichedCount === 0 && !enrichResult) return null;
+        return (
+          <div className="mb-3.5 p-3 rounded-xl bg-salve-sage/5 border border-salve-sage/20">
+            {enrichResult ? (
+              <div className="text-xs text-salve-textMid">
+                <span className="font-medium text-salve-sage">✓ Enriched {enrichResult.enriched}/{enrichResult.total}</span>
+                {enrichResult.enriched < enrichResult.total && <span className="text-salve-textFaint"> · {enrichResult.total - enrichResult.enriched} had no FDA data available</span>}
+                <button onClick={() => setEnrichResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
+              </div>
+            ) : enrichProgress ? (
+              <div className="flex items-center gap-2 text-xs text-salve-textMid">
+                <Loader size={12} className="animate-spin text-salve-sage" />
+                Enriching {enrichProgress.current} of {enrichProgress.total}… <span className="text-salve-textFaint truncate">{enrichProgress.name}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-salve-sage">
+                  <Download size={12} />
+                  <span>{unenrichedCount} linked med{unenrichedCount !== 1 ? 's' : ''} missing drug info</span>
+                </div>
+                <button
+                  onClick={bulkEnrichMeds}
+                  disabled={enriching}
+                  className="flex-shrink-0 py-1.5 px-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-[11px] font-medium cursor-pointer font-montserrat flex items-center gap-1 hover:bg-salve-sage/20 transition-colors"
+                >
+                  <Download size={11} /> Enrich All
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {(() => {
         const unlinkedCount = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim()).length;
@@ -315,6 +474,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 </div>
                 {m.display_name && m.display_name !== m.name && <div className="text-[11px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+                {m.fda_data?.pharm_class?.length > 0 && (
+                  <span className="inline-block mt-1 mr-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
+                    {m.fda_data.pharm_class[0].replace(/ \[.*\]$/, '')}
+                  </span>
+                )}
+                {m.fda_data?.boxed_warning?.length > 0 && (
+                  <span className="inline-block mt-1 py-0.5 px-2 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[10px] text-salve-rose font-medium">
+                    ⚠ Boxed Warning
+                  </span>
+                )}
                 {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
               </div>
               <div className="flex items-center gap-1 ml-2">
@@ -336,6 +505,44 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
                 {m.rxcui && <div className="text-[10px] text-salve-textFaint mt-1" title="RxNorm Concept Unique Identifier — enables drug interaction checking and FDA drug info lookup">RxCUI: {m.rxcui}</div>}
                 {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
+                {/* ── Inline FDA summary ── */}
+                {m.fda_data && (
+                  <div className="mt-2 p-2.5 rounded-lg bg-salve-sage/5 border border-salve-sage/15">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+                      {m.fda_data.generic_name && m.fda_data.generic_name.toLowerCase() !== m.name.toLowerCase() && (
+                        <span className="text-salve-textMid"><span className="font-medium">Generic:</span> {m.fda_data.generic_name}</span>
+                      )}
+                      {m.fda_data.brand_name && m.fda_data.brand_name.toLowerCase() !== m.name.toLowerCase() && (
+                        <span className="text-salve-textMid"><span className="font-medium">Brand:</span> {m.fda_data.brand_name}</span>
+                      )}
+                      {m.fda_data.pharm_class?.length > 0 && (
+                        <span className="text-salve-textMid"><span className="font-medium">Class:</span> {m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
+                      )}
+                      {m.fda_data.manufacturer && (
+                        <span className="text-salve-textFaint"><span className="font-medium">Mfg:</span> {m.fda_data.manufacturer}</span>
+                      )}
+                    </div>
+                    {m.fda_data.boxed_warning?.length > 0 && (
+                      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-salve-rose font-medium">
+                        <AlertTriangle size={10} /> Has FDA Black Box Warning — see full details below
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!m.fda_data && m.rxcui && (
+                  <button
+                    onClick={async () => {
+                      setDrugInfoLoading(m.id);
+                      await enrichFdaData(m);
+                      setDrugInfoLoading(null);
+                    }}
+                    className="mt-2 bg-transparent border-none cursor-pointer text-salve-sage/60 text-[11px] font-montserrat p-0 flex items-center gap-1 hover:text-salve-sage transition-colors"
+                    aria-label="Fetch FDA drug data"
+                  >
+                    {drugInfoLoading === m.id ? <Loader size={10} className="animate-spin" /> : <Download size={10} />}
+                    {drugInfoLoading === m.id ? 'Fetching drug info…' : 'Fetch drug info'}
+                  </button>
+                )}
                 <div className="flex gap-2.5 mt-2.5 flex-wrap">
                   <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>

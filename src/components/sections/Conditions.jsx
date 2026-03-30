@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -28,6 +28,32 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
+  /* ── Cross-reference: count active meds related to each condition ── */
+  const medsByCondition = useMemo(() => {
+    const map = {};
+    (data.conditions || []).forEach(c => {
+      const name = c.name.trim().toLowerCase();
+      map[c.id] = (data.meds || []).filter(m => {
+        if (m.active === false) return false;
+        const purpose = (m.purpose || '').toLowerCase();
+        const linkedMeds = (c.linked_meds || '').toLowerCase();
+        const medName = (m.display_name || m.name || '').toLowerCase();
+        return purpose.includes(name) || linkedMeds.includes(medName);
+      });
+    });
+    return map;
+  }, [data.conditions, data.meds]);
+
+  /* ── Provider picker options ── */
+  const providerOptions = useMemo(() => [
+    { value: '', label: 'Select provider...' },
+    ...(data.providers || []).map(p => ({
+      value: p.name,
+      label: `${p.name}${p.specialty ? ` — ${p.specialty}` : ''}`,
+    })),
+    { value: '__custom', label: '— Type custom —' },
+  ], [data.providers]);
+
   const saveC = async () => {
     if (!form.name.trim()) return;
     if (editId) {
@@ -51,7 +77,10 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
           { value: 'remission', label: 'In Remission' },
           { value: 'resolved', label: 'Resolved' },
         ]} />
-        <Field label="Treating Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
+        <Field label="Treating Provider" value={form.provider} onChange={v => sf('provider', v)} options={providerOptions} />
+        {form.provider === '__custom' && (
+          <Field label="Custom Provider" value="" onChange={v => sf('provider', v)} placeholder="Dr. Name" />
+        )}
         <Field label="Related Medications" value={form.linked_meds} onChange={v => sf('linked_meds', v)} placeholder="Meds for this condition" />
         <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="History, triggers..." />
         <div className="flex gap-2">
@@ -88,6 +117,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
         fl.map(c => {
           const st = STATUS_COLORS[c.status] || STATUS_COLORS.active;
           const isExpanded = expandedId === c.id;
+          const relatedMeds = medsByCondition[c.id] || [];
           return (
             <Card key={c.id} onClick={() => setExpandedId(isExpanded ? null : c.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
@@ -96,7 +126,17 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                     <span className="text-[15px] font-semibold text-salve-text">{c.name}</span>
                     <Badge label={st.label} color={st.c} bg={st.bg} />
                   </div>
-                  {!isExpanded && c.provider && <div className="text-xs text-salve-textMid truncate">{c.provider}</div>}
+                  {!isExpanded && c.provider && (
+                    <div className="text-xs text-salve-textMid truncate flex items-center gap-1">
+                      <User size={10} className="text-salve-textFaint flex-shrink-0" />
+                      {c.provider}
+                    </div>
+                  )}
+                  {!isExpanded && relatedMeds.length > 0 && (
+                    <span className="inline-flex items-center gap-1 mt-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
+                      <Pill size={10} /> {relatedMeds.length} med{relatedMeds.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
@@ -105,6 +145,20 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                   {c.diagnosed_date && <div className="text-xs text-salve-textMid">Diagnosed: {fmtDate(c.diagnosed_date)}</div>}
                   {c.provider && <div className="text-xs text-salve-textMid">Provider: {c.provider}</div>}
                   {c.linked_meds && <div className="text-xs text-salve-sage mt-0.5">Meds: {c.linked_meds}</div>}
+                  {relatedMeds.length > 0 && (
+                    <div className="mt-1.5 pt-1.5 border-t border-salve-border/30">
+                      <div className="text-[11px] font-semibold text-salve-sage mb-1 flex items-center gap-1">
+                        <Pill size={11} /> Active Medications ({relatedMeds.length})
+                      </div>
+                      {relatedMeds.map(m => (
+                        <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
+                          <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
+                          <span className="font-medium text-salve-text">{m.display_name || m.name}</span>
+                          {m.dose && <span className="text-salve-textFaint">{m.dose}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
                   <div className="flex gap-2.5 mt-2.5">
                     <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} aria-label="Edit condition" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>

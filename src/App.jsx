@@ -48,6 +48,7 @@ const AnesthesiaFlags = lazyWithRetry(() => import('./components/sections/Anesth
 const Appeals = lazyWithRetry(() => import('./components/sections/Appeals'));
 const SurgicalPlanning = lazyWithRetry(() => import('./components/sections/SurgicalPlanning'));
 const Insurance = lazyWithRetry(() => import('./components/sections/Insurance'));
+const Pharmacies = lazyWithRetry(() => import('./components/sections/Pharmacies'));
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -182,6 +183,7 @@ export default function App() {
       case 'appeals':     return <Appeals {...shared} />;
       case 'surgical':    return <SurgicalPlanning {...shared} />;
       case 'insurance':   return <Insurance {...shared} />;
+      case 'pharmacies': return <Pharmacies {...shared} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
     }
   };

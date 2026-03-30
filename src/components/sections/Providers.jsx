@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown, Search, Loader, MapPin } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown, Search, Loader, MapPin, Pill, Stethoscope } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -24,6 +24,29 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   const npiTimerRef = useRef(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  /* ── Cross-reference: meds prescribed by + conditions treated by each provider ── */
+  const medsPerProvider = useMemo(() => {
+    const map = {};
+    (data.providers || []).forEach(p => {
+      const name = p.name.trim().toLowerCase();
+      map[p.id] = (data.meds || []).filter(m =>
+        m.active !== false && m.prescriber && m.prescriber.trim().toLowerCase() === name
+      );
+    });
+    return map;
+  }, [data.providers, data.meds]);
+
+  const conditionsPerProvider = useMemo(() => {
+    const map = {};
+    (data.providers || []).forEach(p => {
+      const name = p.name.trim().toLowerCase();
+      map[p.id] = (data.conditions || []).filter(c =>
+        c.provider && c.provider.trim().toLowerCase() === name
+      );
+    });
+    return map;
+  }, [data.providers, data.conditions]);
 
   /* ── NPI search (debounced) ── */
   const handleNameSearch = useCallback(() => {
@@ -131,6 +154,8 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
       {data.providers.length === 0 ? <EmptyState icon={User} text="No providers added" motif="leaf" /> :
         data.providers.map(p => {
           const isExpanded = expandedId === p.id;
+          const prescribedMeds = medsPerProvider[p.id] || [];
+          const treatedConditions = conditionsPerProvider[p.id] || [];
           return (
           <Card key={p.id} onClick={() => setExpandedId(isExpanded ? null : p.id)} className="cursor-pointer transition-all">
             <div className="flex justify-between items-start">
@@ -138,6 +163,20 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
                 <div className="text-[15px] font-semibold text-salve-text">{p.name}</div>
                 {p.specialty && <div className="text-[13px] text-salve-lav font-medium">{p.specialty}</div>}
                 {p.clinic && !isExpanded && <div className="text-xs text-salve-textMid mt-0.5 truncate">{p.clinic}</div>}
+                {!isExpanded && (prescribedMeds.length > 0 || treatedConditions.length > 0) && (
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {prescribedMeds.length > 0 && (
+                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
+                        <Pill size={10} /> {prescribedMeds.length} med{prescribedMeds.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {treatedConditions.length > 0 && (
+                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-lav/10 border border-salve-lav/20 text-[10px] text-salve-lav font-medium">
+                        <Stethoscope size={10} /> {treatedConditions.length} condition{treatedConditions.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
               <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
@@ -175,6 +214,32 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
                   </div>
                 )}
                 {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
+                {/* ── Prescribed medications ── */}
+                {prescribedMeds.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-salve-border/30">
+                    <div className="text-[11px] font-semibold text-salve-sage mb-1 flex items-center gap-1"><Pill size={11} /> Prescribed Medications ({prescribedMeds.length})</div>
+                    {prescribedMeds.map(m => (
+                      <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
+                        <span className="font-medium text-salve-text">{m.display_name || m.name}</span>
+                        {m.dose && <span className="text-salve-textFaint">{m.dose}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {/* ── Treated conditions ── */}
+                {treatedConditions.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-salve-border/30">
+                    <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Stethoscope size={11} /> Conditions ({treatedConditions.length})</div>
+                    {treatedConditions.map(c => (
+                      <div key={c.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
+                        <span className="w-1 h-1 rounded-full bg-salve-lav flex-shrink-0" />
+                        <span className="font-medium text-salve-text">{c.name}</span>
+                        <span className="text-[10px] text-salve-textFaint capitalize">{c.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-2.5 mt-2.5">
                   <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit provider" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>

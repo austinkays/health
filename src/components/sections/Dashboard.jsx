@@ -3,7 +3,7 @@ import {
   Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
-  Grid, Sun, Moon, Sunrise, Sunset,
+  Grid, Sun, Moon, Sunrise, Sunset, Building2,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -67,6 +67,7 @@ const MORE_LINKS = [
   { id: 'appeals',       label: 'Appeals',       icon: Scale,         color: C.amber },
   { id: 'surgical',      label: 'Surgery Plan',  icon: PlaneTakeoff,  color: C.lav },
   { id: 'interactions',  label: 'Interactions',  icon: AlertTriangle, color: C.amber },
+  { id: 'pharmacies',    label: 'Pharmacies',    icon: Building2,     color: C.sage },
   { id: 'settings',      label: 'Settings',      icon: SettingsIcon,  color: C.textMid },
 ];
 

@@ -66,6 +66,8 @@ export const db = {
   journal: crud('journal_entries', { orderBy: 'date', ascending: false }),
   conversations: crud('ai_conversations', { orderBy: 'updated_at', ascending: false }),
 
+  pharmacies: crud('pharmacies'),
+
   // New comprehensive sections
   labs: crud('labs', { orderBy: 'date', ascending: false }),
   procedures: crud('procedures', { orderBy: 'date', ascending: false }),
@@ -110,6 +112,7 @@ export const db = {
       db.conditions.list(),
       db.allergies.list(),
       db.providers.list(),
+      db.pharmacies.list(),
       db.vitals.list(),
       db.appointments.list(),
       db.journal.list(),
@@ -128,9 +131,9 @@ export const db = {
     return {
       settings: v(0, {}),
       meds: v(1, []), conditions: v(2, []), allergies: v(3, []), providers: v(4, []),
-      vitals: v(5, []), appts: v(6, []), journal: v(7, []),
-      labs: v(8, []), procedures: v(9, []), immunizations: v(10, []), care_gaps: v(11, []),
-      anesthesia_flags: v(12, []), appeals_and_disputes: v(13, []), surgical_planning: v(14, []), insurance: v(15, []),
+      pharmacies: v(5, []), vitals: v(6, []), appts: v(7, []), journal: v(8, []),
+      labs: v(9, []), procedures: v(10, []), immunizations: v(11, []), care_gaps: v(12, []),
+      anesthesia_flags: v(13, []), appeals_and_disputes: v(14, []), surgical_planning: v(15, []), insurance: v(16, []),
     };
   },
 
@@ -141,7 +144,7 @@ export const db = {
 
     // Auto-backup record counts for partial-erase detection
     const tables = [
-      'medications', 'conditions', 'allergies', 'providers',
+      'medications', 'conditions', 'allergies', 'providers', 'pharmacies',
       'vitals', 'appointments', 'journal_entries', 'ai_conversations',
       'labs', 'procedures', 'immunizations', 'care_gaps',
       'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',

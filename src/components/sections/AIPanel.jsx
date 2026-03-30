@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2 } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink } from 'lucide-react';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -17,6 +17,153 @@ const FEATURES = [
   { id: 'news', label: 'Health News', desc: 'Recent news for your conditions', icon: Newspaper, color: C.amber },
   { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose },
 ];
+
+// Split markdown text into sections by ## headings or --- separators
+function splitSections(text) {
+  if (!text) return [];
+  // Remove the disclaimer at the end before splitting
+  const cleaned = text.replace(/\n---\n\*AI suggestions are not medical advice\.[^*]*\*\s*$/, '').trim();
+  // Split by ## headings — keep the heading with its content
+  const parts = cleaned.split(/(?=^## )/m).filter(s => s.trim());
+  if (parts.length > 1) return parts;
+  // Fallback: split by horizontal rules
+  const hrParts = cleaned.split(/\n---\n/).filter(s => s.trim());
+  return hrParts.length > 1 ? hrParts : [cleaned];
+}
+
+function SourcesBadges({ sources }) {
+  if (!sources?.length) return null;
+  return (
+    <div className="mt-4 pt-3 border-t border-salve-border/50">
+      <div className="text-[10px] text-salve-textFaint uppercase tracking-wider mb-2 font-montserrat">Sources</div>
+      <div className="flex flex-wrap gap-1.5">
+        {sources.map((s, i) => (
+          <a
+            key={i}
+            href={s.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[11px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat"
+            title={s.url}
+          >
+            <ExternalLink size={10} />
+            <span className="max-w-[140px] truncate">{s.title}</span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NewsResult({ result }) {
+  const text = typeof result === 'string' ? result : result?.text;
+  const sources = typeof result === 'object' ? result?.sources : [];
+  const sections = splitSections(text);
+
+  // Fallback: single card if we can't parse sections
+  if (sections.length <= 1) {
+    return (
+      <div>
+        <Card><AIMarkdown>{text}</AIMarkdown></Card>
+        <SourcesBadges sources={sources} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {sections.map((section, i) => (
+        <div
+          key={i}
+          className="card-hover bg-salve-card border border-salve-border rounded-xl p-4 dash-stagger"
+          style={{ animationDelay: `${i * 0.08}s` }}
+        >
+          <div className="flex items-start gap-2.5 mb-1">
+            <Newspaper size={15} className="text-salve-amber mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+            <div className="flex-1 min-w-0">
+              <AIMarkdown>{section.trim()}</AIMarkdown>
+            </div>
+          </div>
+        </div>
+      ))}
+      <SourcesBadges sources={sources} />
+      <p className="text-[10px] text-salve-textFaint italic text-center mt-1">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
+    </div>
+  );
+}
+
+function AccordionSection({ title, content, defaultOpen = false, index }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div
+      className="card-hover bg-salve-card border border-salve-border rounded-xl overflow-hidden dash-stagger"
+      style={{ animationDelay: `${index * 0.08}s` }}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 text-left bg-transparent border-none cursor-pointer"
+        aria-expanded={open}
+      >
+        <div className="flex items-center gap-2.5">
+          <HelpCircle size={15} className="text-salve-rose flex-shrink-0" strokeWidth={1.5} />
+          <span className="text-[13px] font-semibold text-salve-text font-montserrat">{title}</span>
+        </div>
+        <ChevronDown
+          size={16}
+          className={`text-salve-textFaint transition-transform duration-300 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      <div
+        className={`accordion-content ${open ? 'accordion-open' : 'accordion-closed'}`}
+      >
+        <div className="px-4 pb-4 pt-0">
+          <AIMarkdown>{content.trim()}</AIMarkdown>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResourcesResult({ result }) {
+  const text = typeof result === 'string' ? result : result?.text;
+  const sources = typeof result === 'object' ? result?.sources : [];
+  const sections = splitSections(text);
+
+  // Fallback: single card if we can't parse sections
+  if (sections.length <= 1) {
+    return (
+      <div>
+        <Card><AIMarkdown>{text}</AIMarkdown></Card>
+        <SourcesBadges sources={sources} />
+      </div>
+    );
+  }
+
+  // Parse heading from each section
+  const parsed = sections.map(s => {
+    const match = s.match(/^##\s+(.+?)[\n\r]/);
+    const title = match ? match[1].trim() : 'Resources';
+    const content = match ? s.replace(/^##\s+.+?[\n\r]/, '') : s;
+    return { title, content };
+  });
+
+  return (
+    <div className="flex flex-col gap-2.5">
+      {parsed.map((section, i) => (
+        <AccordionSection
+          key={i}
+          index={i}
+          title={section.title}
+          content={section.content}
+          defaultOpen={i === 0}
+        />
+      ))}
+      <SourcesBadges sources={sources} />
+      <p className="text-[10px] text-salve-textFaint italic text-center mt-1">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
+    </div>
+  );
+}
 
 export default function AIPanel({ data }) {
   const [mode, setMode] = useState(null);
@@ -36,7 +183,7 @@ export default function AIPanel({ data }) {
       const r = await fn(profile);
       setResult(r);
     } catch (e) {
-      setResult('Error: ' + e.message);
+      setResult({ text: 'Error: ' + e.message, sources: [] });
     } finally {
       setLoading(false);
     }
@@ -114,8 +261,10 @@ export default function AIPanel({ data }) {
           <div className="text-[13px] text-salve-textMid">Analyzing your health profile...</div>
         </Card>
       ) : result ? (
+        mode === 'news' ? <NewsResult result={result} /> :
+        mode === 'resources' ? <ResourcesResult result={result} /> :
         <Card>
-          <AIMarkdown>{result}</AIMarkdown>
+          <AIMarkdown>{typeof result === 'string' ? result : result?.text}</AIMarkdown>
         </Card>
       ) : null}
     </div>
