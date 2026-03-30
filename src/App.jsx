@@ -11,26 +11,43 @@ import { checkInteractions } from './utils/interactions';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 
+// Retry wrapper: if a code-split chunk fails to load (stale deploy),
+// do a one-time page reload so the browser fetches the new chunks.
+const RETRY_KEY = 'salve:chunk-retry';
+function lazyWithRetry(importFn) {
+  return lazy(() =>
+    importFn().catch(() => {
+      if (!sessionStorage.getItem(RETRY_KEY)) {
+        sessionStorage.setItem(RETRY_KEY, '1');
+        window.location.reload();
+        return new Promise(() => {}); // never resolves — page is reloading
+      }
+      sessionStorage.removeItem(RETRY_KEY);
+      throw new Error('Failed to load section after retry');
+    })
+  );
+}
+
 // Code-split section components — loaded only when first visited
-const Dashboard = lazy(() => import('./components/sections/Dashboard'));
-const Medications = lazy(() => import('./components/sections/Medications'));
-const Vitals = lazy(() => import('./components/sections/Vitals'));
-const Appointments = lazy(() => import('./components/sections/Appointments'));
-const Conditions = lazy(() => import('./components/sections/Conditions'));
-const Providers = lazy(() => import('./components/sections/Providers'));
-const Allergies = lazy(() => import('./components/sections/Allergies'));
-const Journal = lazy(() => import('./components/sections/Journal'));
-const AIPanel = lazy(() => import('./components/sections/AIPanel'));
-const Interactions = lazy(() => import('./components/sections/Interactions'));
-const Settings = lazy(() => import('./components/sections/Settings'));
-const Labs = lazy(() => import('./components/sections/Labs'));
-const Procedures = lazy(() => import('./components/sections/Procedures'));
-const Immunizations = lazy(() => import('./components/sections/Immunizations'));
-const CareGaps = lazy(() => import('./components/sections/CareGaps'));
-const AnesthesiaFlags = lazy(() => import('./components/sections/AnesthesiaFlags'));
-const Appeals = lazy(() => import('./components/sections/Appeals'));
-const SurgicalPlanning = lazy(() => import('./components/sections/SurgicalPlanning'));
-const Insurance = lazy(() => import('./components/sections/Insurance'));
+const Dashboard = lazyWithRetry(() => import('./components/sections/Dashboard'));
+const Medications = lazyWithRetry(() => import('./components/sections/Medications'));
+const Vitals = lazyWithRetry(() => import('./components/sections/Vitals'));
+const Appointments = lazyWithRetry(() => import('./components/sections/Appointments'));
+const Conditions = lazyWithRetry(() => import('./components/sections/Conditions'));
+const Providers = lazyWithRetry(() => import('./components/sections/Providers'));
+const Allergies = lazyWithRetry(() => import('./components/sections/Allergies'));
+const Journal = lazyWithRetry(() => import('./components/sections/Journal'));
+const AIPanel = lazyWithRetry(() => import('./components/sections/AIPanel'));
+const Interactions = lazyWithRetry(() => import('./components/sections/Interactions'));
+const Settings = lazyWithRetry(() => import('./components/sections/Settings'));
+const Labs = lazyWithRetry(() => import('./components/sections/Labs'));
+const Procedures = lazyWithRetry(() => import('./components/sections/Procedures'));
+const Immunizations = lazyWithRetry(() => import('./components/sections/Immunizations'));
+const CareGaps = lazyWithRetry(() => import('./components/sections/CareGaps'));
+const AnesthesiaFlags = lazyWithRetry(() => import('./components/sections/AnesthesiaFlags'));
+const Appeals = lazyWithRetry(() => import('./components/sections/Appeals'));
+const SurgicalPlanning = lazyWithRetry(() => import('./components/sections/SurgicalPlanning'));
+const Insurance = lazyWithRetry(() => import('./components/sections/Insurance'));
 
 export default function App() {
   const [session, setSession] = useState(null);
@@ -74,6 +91,11 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Clear chunk-retry flag on successful mount (proves new chunks loaded fine)
+  useEffect(() => {
+    sessionStorage.removeItem(RETRY_KEY);
   }, []);
 
   // Global unhandled promise rejection handler
