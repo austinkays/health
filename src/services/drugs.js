@@ -35,9 +35,9 @@ export async function drugAutocomplete(query) {
  * @param {string} query - rxcui number or drug name
  * @returns {Promise<object|null>} drug label info
  */
-export async function drugDetails(query) {
+export async function drugDetails(query, name) {
   if (!query) return null;
-  const result = await drugAPI('details', { q: query });
+  const result = await drugAPI('details', { q: query, ...(name && { name }) });
   if (result?.error) return null;
   return result;
 }

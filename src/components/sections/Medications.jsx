@@ -84,7 +84,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     setShowAc(false);
     // Background-fetch FDA data for auto-enrichment
     if (item.rxcui) {
-      drugDetails(item.rxcui).then(info => {
+      drugDetails(item.rxcui, item.name).then(info => {
         if (!info) return;
         setForm(p => {
           const updates = { ...p, fda_data: info };
@@ -122,7 +122,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     setDrugInfoLoading(med.id);
     setDrugInfoExpanded(med.id);
     try {
-      const info = await drugDetails(key);
+      const info = await drugDetails(key, med.name);
       setDrugInfo(prev => ({ ...prev, [med.id]: info }));
     } catch {
       setDrugInfo(prev => ({ ...prev, [med.id]: null }));
@@ -144,7 +144,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     const key = med.rxcui || med.name;
     if (!key) return null;
     try {
-      const info = await drugDetails(key);
+      const info = await drugDetails(key, med.name);
       if (info) {
         await updateItem('medications', med.id, { fda_data: info });
         return info;
@@ -188,7 +188,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           // Also fetch FDA data during bulk link
           let fda_data = null;
           try {
-            fda_data = await drugDetails(match.rxcui);
+            fda_data = await drugDetails(match.rxcui, match.name);
           } catch { /* non-blocking */ }
           const updates = { rxcui: match.rxcui, name: match.name };
           if (fda_data) updates.fda_data = fda_data;

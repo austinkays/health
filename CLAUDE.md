@@ -206,10 +206,10 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`. Both use `fetchWithTimeout()` (15-second AbortController) for external API calls.
 
 **`api/drug.js`** — RxNorm + OpenFDA proxy:
-- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup), `interactions` (RxNorm interaction list for multiple RxCUIs)
+- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to brand/generic name search if RxCUI not indexed), `interactions` (RxNorm interaction list for multiple RxCUIs)
 - **Rate limited:** 40 requests/minute per user (in-memory sliding window)
 - **Cached:** In-memory 30-minute TTL, max 500 entries
-- **Client service:** `src/services/drugs.js` — `drugAutocomplete(query)`, `drugDetails(query)`, `drugInteractions(rxcuis[])`
+- **Client service:** `src/services/drugs.js` — `drugAutocomplete(query)`, `drugDetails(query, name?)`, `drugInteractions(rxcuis[])`
 
 **`api/provider.js`** — NPPES NPI Registry proxy:
 - **Actions:** `search` (by name, optional state filter), `lookup` (by 10-digit NPI number)

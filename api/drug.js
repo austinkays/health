@@ -125,7 +125,7 @@ async function rxInteractions(rxcuis) {
 }
 
 // ── OpenFDA helper ──
-async function fdaDrugLabel(query) {
+async function fdaDrugLabel(query, fallbackName) {
   // Try by rxcui first, fall back to brand/generic name search
   let url;
   if (/^\d+$/.test(query)) {
@@ -135,10 +135,22 @@ async function fdaDrugLabel(query) {
     url = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:"${encoded}"+openfda.generic_name:"${encoded}")&limit=1`;
   }
   const res = await fetchWithTimeout(url);
-  if (!res.ok) return null;
+  if (!res.ok) {
+    // If rxcui lookup got an HTTP error, try fallback by name
+    if (/^\d+$/.test(query) && fallbackName) {
+      return fdaDrugLabel(fallbackName);
+    }
+    return null;
+  }
   const data = await res.json();
   const label = data?.results?.[0];
-  if (!label) return null;
+  if (!label) {
+    // If rxcui lookup returned no results, try fallback by name
+    if (/^\d+$/.test(query) && fallbackName) {
+      return fdaDrugLabel(fallbackName);
+    }
+    return null;
+  }
 
   return {
     brand_name: label.openfda?.brand_name?.[0] || '',
@@ -185,7 +197,7 @@ export default async function handler(req, res) {
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
   if (!checkRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
 
-  const { action, q, rxcuis } = req.query;
+  const { action, q, rxcuis, name } = req.query;
 
   try {
     switch (action) {
@@ -196,7 +208,8 @@ export default async function handler(req, res) {
       }
       case 'details': {
         if (!q) return res.status(400).json({ error: 'q parameter required' });
-        const label = await cached(`det:${q.toLowerCase()}`, () => fdaDrugLabel(q));
+        const cacheKey = `det:${q.toLowerCase()}:${(name || '').toLowerCase()}`;
+        const label = await cached(cacheKey, () => fdaDrugLabel(q, name));
         return res.json(label || { error: 'No label data found' });
       }
       case 'interactions': {
