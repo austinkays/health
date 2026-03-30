@@ -126,54 +126,75 @@ async function rxInteractions(rxcuis) {
 
 // ── OpenFDA helper ──
 
-// Extract the active ingredient from RxNorm-style clinical drug names.
+// Extract brand name from RxNorm bracket notation: "famotidine Oral Tablet [Pepcid]" → "Pepcid"
+function extractBrandName(name) {
+  const match = name?.match(/\[([^\]]+)\]/);
+  return match ? match[1].trim() : null;
+}
+
+// Extract the active ingredient(s) from RxNorm-style clinical drug names.
+// "amphetamine / dextroamphetamine Extended Release Oral Capsule [Adderall]" → "amphetamine / dextroamphetamine"
 // "Sertraline 50 MG Oral Tablet" → "Sertraline"
-// "Metformin Hydrochloride 500 MG Extended Release" → "Metformin Hydrochloride"
-// "Vitamin D3" → "Vitamin D3" (unchanged — no dosage pattern)
+// "fluticasone propionate Metered Dose Nasal Spray [Flonase]" → "fluticasone propionate"
+// "Vitamin D3" → "Vitamin D3" (unchanged)
+const DOSAGE_FORMS = /\s+(?:Extended Release |Delayed Release |Metered Dose )?(?:Oral (?:Tablet|Capsule|Solution|Suspension)|Nasal (?:Spray|Solution)|Topical (?:Cream|Ointment|Gel|Solution|Lotion)|Injectable Solution|Injection|Intravenous Solution|Ophthalmic (?:Solution|Drops)|Otic Solution|Rectal Suppository|Transdermal (?:Patch|System)|Inhalation (?:Powder|Solution|Aerosol)|Sublingual Tablet|Chewable Tablet|Disintegrating Tablet|Vaginal (?:Cream|Tablet|Ring)).*$/i;
+
 function extractIngredient(name) {
   if (!name) return name;
+  // Strip [BrandName] brackets
+  let cleaned = name.replace(/\s*\[[^\]]*\]\s*/g, '').trim();
   // Strip trailing dosage + form info (e.g. "50 MG Oral Tablet", "0.5 MG/ML Injectable Solution")
-  const cleaned = name.replace(/\s+\d+(\.\d+)?\s*(mg|ml|mcg|%|units?|grams?|meq|mmol|mg\/ml|mcg\/ml)\b.*$/i, '').trim();
+  cleaned = cleaned.replace(/\s+\d+(\.\d+)?\s*(mg|ml|mcg|%|units?|grams?|meq|mmol|mg\/ml|mcg\/ml)\b.*$/i, '').trim();
+  // Strip dosage form words even without numeric dosage (e.g. "Oral Tablet", "Nasal Spray")
+  cleaned = cleaned.replace(DOSAGE_FORMS, '').trim();
   return cleaned || name;
 }
 
-async function fdaSearchByName(name) {
-  const ingredient = extractIngredient(name);
-
-  // Tier 1: Exact-quoted search on brand_name + generic_name with cleaned ingredient
-  const exact = encodeURIComponent(`(openfda.brand_name:"${ingredient}"+openfda.generic_name:"${ingredient}")`);
-  const url1 = `https://api.fda.gov/drug/label.json?search=${exact}&limit=1`;
+// Run a single OpenFDA search and return the first result label, or null
+async function fdaQuery(searchExpr) {
+  const url = `https://api.fda.gov/drug/label.json?search=${encodeURIComponent(searchExpr)}&limit=1`;
   try {
-    const res1 = await fetchWithTimeout(url1);
-    if (res1.ok) {
-      const data1 = await res1.json();
-      if (data1?.results?.[0]) return data1.results[0];
-    }
-  } catch { /* continue to next tier */ }
-
-  // Tier 2: Unquoted search (more flexible — handles partial matches, salt forms, etc.)
-  const loose = encodeURIComponent(`(openfda.brand_name:${ingredient}+openfda.generic_name:${ingredient})`);
-  const url2 = `https://api.fda.gov/drug/label.json?search=${loose}&limit=1`;
-  try {
-    const res2 = await fetchWithTimeout(url2);
-    if (res2.ok) {
-      const data2 = await res2.json();
-      if (data2?.results?.[0]) return data2.results[0];
-    }
-  } catch { /* continue to next tier */ }
-
-  // Tier 3: General substance name search (catches active ingredients listed differently)
-  const substance = encodeURIComponent(`openfda.substance_name:${ingredient}`);
-  const url3 = `https://api.fda.gov/drug/label.json?search=${substance}&limit=1`;
-  try {
-    const res3 = await fetchWithTimeout(url3);
-    if (res3.ok) {
-      const data3 = await res3.json();
-      if (data3?.results?.[0]) return data3.results[0];
+    const res = await fetchWithTimeout(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.results?.[0]) return data.results[0];
     }
   } catch { /* fall through */ }
+  return null;
+}
 
-  console.log(`[FDA] No results for name="${name}" (ingredient="${ingredient}")`);
+async function fdaSearchByName(name) {
+  const brand = extractBrandName(name);
+  const ingredient = extractIngredient(name);
+
+  // Tier 0: If we have a brand name from brackets, search by brand name first (most precise)
+  if (brand) {
+    const label = await fdaQuery(`openfda.brand_name:"${brand}"`);
+    if (label) return label;
+  }
+
+  // Tier 1: Exact-quoted search on brand_name + generic_name with cleaned ingredient
+  const label1 = await fdaQuery(`(openfda.brand_name:"${ingredient}"+openfda.generic_name:"${ingredient}")`);
+  if (label1) return label1;
+
+  // Tier 2: Unquoted search (more flexible — handles partial matches, salt forms, etc.)
+  const label2 = await fdaQuery(`(openfda.brand_name:${ingredient}+openfda.generic_name:${ingredient})`);
+  if (label2) return label2;
+
+  // Tier 3: General substance name search (catches active ingredients listed differently)
+  const label3 = await fdaQuery(`openfda.substance_name:${ingredient}`);
+  if (label3) return label3;
+
+  // Tier 4: For combo drugs (ingredient contains " / "), try the first ingredient alone
+  if (ingredient.includes(' / ')) {
+    const first = ingredient.split(' / ')[0].trim();
+    if (first) {
+      const label4 = await fdaQuery(`(openfda.brand_name:${first}+openfda.generic_name:${first}+openfda.substance_name:${first})`);
+      if (label4) return label4;
+    }
+  }
+
+  console.log(`[FDA] No results for name="${name}" (brand="${brand || '(none)'}", ingredient="${ingredient}")`);
   return null;
 }
 
