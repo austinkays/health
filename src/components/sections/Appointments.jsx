@@ -89,7 +89,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                 <div className="flex-1">
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
                   <div className="text-xs text-salve-textMid mt-0.5">{a.provider}{a.location ? ` · ${a.location}` : ''}</div>
-                  {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">📝 {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
+                  {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">✧ {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
                   <div className="text-[13px] font-semibold text-salve-sage">{daysUntil(a.date)}</div>

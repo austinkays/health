@@ -24,35 +24,35 @@ const TAB_LABELS = {
 };
 
 const TAB_DECOR = {
-  ai:       ['🔮', '✦', '·'],
-  meds:     ['🌿', '✦', '·'],
-  vitals:   ['🕯️', '✧', '·'],
-  journal:  ['📜', '✦', '☽'],
-  conditions: ['✧', '·', '✧'],
-  allergies:  ['⚗️', '✦', '·'],
-  settings: ['⚙️', '·', '✧'],
-  labs:     ['🧪', '✦', '·'],
-  procedures: ['🩺', '·', '✧'],
-  immunizations: ['💉', '✦', '·'],
-  care_gaps: ['🛡️', '·', '✧'],
-  anesthesia: ['☽', '✦', '·'],
-  appeals:  ['📋', '·', '✧'],
-  surgical: ['🔪', '✦', '·'],
-  insurance: ['🏥', '·', '✧'],
-  interactions: ['⚠️', '✦', '·'],
-  providers: ['✚', '·', '✧'],
-  appts:    ['📅', '✦', '·'],
-  dash:     ['☽', '✦', '·'],
+  dash:          ['☽', '✧', '·'],
+  ai:            ['✦', '☽', '·'],
+  meds:          ['✿', '✧', '·'],
+  vitals:        ['✧', '·', '☽'],
+  journal:       ['☽', '✦', '✿'],
+  conditions:    ['✿', '·', '✧'],
+  allergies:     ['✦', '✧', '·'],
+  settings:      ['✧', '·', '☽'],
+  labs:          ['✿', '✦', '·'],
+  procedures:    ['☽', '·', '✧'],
+  immunizations: ['✦', '✧', '·'],
+  care_gaps:     ['✿', '·', '✧'],
+  anesthesia:    ['☽', '✦', '·'],
+  appeals:       ['✧', '·', '✿'],
+  surgical:      ['✦', '☽', '·'],
+  insurance:     ['✿', '·', '☽'],
+  interactions:  ['✧', '✦', '·'],
+  providers:     ['☽', '·', '✧'],
+  appts:         ['✿', '✦', '·'],
 };
 
 export default function Header({ tab, name, onBack }) {
   const isDash = tab === 'dash';
-  const decor = TAB_DECOR[tab] || ['☽', '✦', '·'];
+  const decor = TAB_DECOR[tab] || ['☽', '✧', '·'];
 
   return (
     <header className="px-6 pt-7 pb-5 relative overflow-hidden">
       {/* Decorative constellation — per-section glyphs */}
-      <div className="absolute top-2 right-6 opacity-[0.12] text-[52px] select-none pointer-events-none leading-none grayscale">{decor[0]}</div>
+      <div className="absolute top-2 right-6 opacity-[0.10] text-[52px] select-none pointer-events-none leading-none text-salve-lav">{decor[0]}</div>
       <div className="absolute top-14 right-16 opacity-[0.08] text-base text-salve-lav select-none pointer-events-none">{decor[1]}</div>
       <div className="absolute top-6 right-10 opacity-[0.06] text-[10px] text-salve-sage select-none pointer-events-none">{decor[2]}</div>
 

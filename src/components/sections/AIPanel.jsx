@@ -126,7 +126,7 @@ export default function AIPanel({ data }) {
     <AIConsentGate>
     <div className="mt-2">
       <div className="text-center mb-5">
-        <div className="text-3xl mb-2 opacity-80">🔮</div>
+        <div className="text-3xl mb-2 opacity-60 text-salve-lav">✦</div>
         <p className="text-[13px] text-salve-textFaint italic">Your familiar whispers wisdom from the data you've gathered.</p>
       </div>
 
