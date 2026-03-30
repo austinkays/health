@@ -201,9 +201,6 @@ export default function App() {
             </Suspense>
           </ErrorBoundary>
         </main>
-        <p className="text-center text-salve-textFaint text-[11px] tracking-wide py-4 font-montserrat">
-          built with <span className="text-salve-rose">♥</span> for my best friend & soulmate
-        </p>
         <BottomNav tab={tab} onNav={onNav} />
       </div>
     </div>

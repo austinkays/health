@@ -87,10 +87,12 @@ health/
 │   │   │   ├── FormWrap.jsx      # Back-arrow + title wrapper; also exports SectionTitle
 │   │   │   ├── LoadingSpinner.jsx # role=status, aria-live=polite
 │   │   │   ├── AIConsentGate.jsx  # AI data-sharing consent gate + hasAIConsent/revokeAIConsent
+│   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown)
+│   │   │   ├── AIProfilePreview.jsx # "What AI Sees" pill button + full-screen slide-up panel
 │   │   │   └── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button
-│   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab
+│   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, fixed "built with ♥" tagline
 │   │   └── sections/             # One file per app section (19 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
 │   │       ├── Medications.jsx   # Med list + add/edit form + allergy cross-check warnings
@@ -101,7 +103,7 @@ health/
 │   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (standalone view)
-│   │       ├── AIPanel.jsx       # AI chat panel with health context
+│   │       ├── AIPanel.jsx       # AI Insight panel: health insight, connections, news, resources, chat; "What AI Sees" preview button opens full-screen slide-up panel
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -288,6 +290,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 - Max width 480px, centered (mobile-first, phone-optimized)
 - Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
+- "built with ♥ for my best friend & soulmate" tagline fixed above bottom nav (inside BottomNav component, always visible)
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
 - Dashboard sections: contextual greeting → consolidated alerts → AI insight → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
 - Quick Access primary 6: Conditions, Providers, Allergies, Appointments, Labs, Insurance; "More" expander reveals 8 additional sections

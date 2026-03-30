@@ -128,11 +128,12 @@ export default function AIPanel({ data }) {
       <div className="text-center mb-5">
         <div className="text-3xl mb-2 opacity-60 text-salve-lav">✦</div>
         <p className="text-[13px] text-salve-textFaint italic">AI-powered insights from the health data you've gathered.</p>
+        <div className="mt-3 flex justify-center">
+          <AIProfilePreview data={data} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
-        <AIProfilePreview data={data} />
-
       {FEATURES.map(f => (
           <button
             key={f.id}

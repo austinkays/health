@@ -11,7 +11,11 @@ const NAV_ITEMS = [
 
 export default function BottomNav({ tab, onNav }) {
   return (
-    <nav aria-label="Main navigation" className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-salve-card border-t border-salve-border flex justify-around py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-50">
+    <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-50">
+      <p className="text-center text-salve-textFaint text-[9px] tracking-wider py-1 font-montserrat bg-salve-card border-t border-salve-border/50">
+        built with <span className="text-salve-rose">♥</span> for my best friend & soulmate
+      </p>
+    <nav aria-label="Main navigation" className="w-full bg-salve-card border-t border-salve-border flex justify-around py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       {NAV_ITEMS.map(t => {
         const Icon = t.icon;
         const active = tab === t.id;
@@ -30,5 +34,6 @@ export default function BottomNav({ tab, onNav }) {
         );
       })}
     </nav>
+    </div>
   );
 }

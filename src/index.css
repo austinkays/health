@@ -65,6 +65,11 @@
   50% { transform: translateY(-3px); }
 }
 
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 .dash-stagger {
   opacity: 0;
   animation: fadeSlideUp 0.45s ease-out forwards;
