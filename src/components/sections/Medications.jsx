@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink, Link2, Unlink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -36,6 +36,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [drugInfo, setDrugInfo] = useState({});
   const [drugInfoLoading, setDrugInfoLoading] = useState(null);
   const [drugInfoExpanded, setDrugInfoExpanded] = useState(null);
+  const [bulkLinking, setBulkLinking] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState(null);
+  const [bulkResult, setBulkResult] = useState(null);
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
@@ -97,6 +100,31 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     });
   }, [form.name, data.allergies]);
 
+  /* ── Bulk link unlinked meds to RxNorm ── */
+  const bulkLinkMeds = async () => {
+    const unlinked = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim());
+    if (unlinked.length === 0) return;
+    setBulkLinking(true);
+    setBulkResult(null);
+    let linked = 0;
+    for (let i = 0; i < unlinked.length; i++) {
+      setBulkProgress({ current: i + 1, total: unlinked.length, name: unlinked[i].display_name || unlinked[i].name });
+      try {
+        const results = await drugAutocomplete(unlinked[i].name);
+        if (results.length > 0) {
+          const nameLC = unlinked[i].name.trim().toLowerCase();
+          const exact = results.find(r => r.name.toLowerCase() === nameLC);
+          const match = exact || results[0];
+          await updateItem('medications', unlinked[i].id, { rxcui: match.rxcui, name: match.name });
+          linked++;
+        }
+      } catch { /* skip this med */ }
+    }
+    setBulkProgress(null);
+    setBulkResult({ linked, total: unlinked.length });
+    setBulkLinking(false);
+  };
+
   const saveMed = async () => {
     if (!form.name.trim()) return;
     if (editId) {
@@ -133,6 +161,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           )}
           {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier — links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
         </div>
+        <Field label="Display Name (optional)" value={form.display_name} onChange={v => sf('display_name', v)} placeholder="e.g. my morning pill" />
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
@@ -235,6 +264,40 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         ))}
       </div>
 
+      {(() => {
+        const unlinkedCount = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim()).length;
+        if (unlinkedCount === 0 && !bulkResult) return null;
+        return (
+          <div className="mb-3.5 p-3 rounded-xl bg-salve-amber/5 border border-salve-amber/20">
+            {bulkResult ? (
+              <div className="text-xs text-salve-textMid">
+                <span className="font-medium text-salve-sage">✓ Linked {bulkResult.linked}/{bulkResult.total}</span>
+                {bulkResult.linked < bulkResult.total && <span className="text-salve-textFaint"> · {bulkResult.total - bulkResult.linked} couldn't be matched — try editing them and using the search</span>}
+                <button onClick={() => setBulkResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
+              </div>
+            ) : bulkProgress ? (
+              <div className="flex items-center gap-2 text-xs text-salve-textMid">
+                <Loader size={12} className="animate-spin text-salve-amber" />
+                Linking {bulkProgress.current} of {bulkProgress.total}… <span className="text-salve-textFaint truncate">{bulkProgress.name}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-salve-amber">
+                  <Unlink size={12} />
+                  <span>{unlinkedCount} medication{unlinkedCount !== 1 ? 's' : ''} not linked to NLM</span>
+                </div>
+                <button
+                  onClick={bulkLinkMeds}
+                  disabled={bulkLinking}
+                  className="flex-shrink-0 py-1.5 px-3 rounded-lg bg-salve-amber/10 border border-salve-amber/30 text-salve-amber text-[11px] font-medium cursor-pointer font-montserrat flex items-center gap-1 hover:bg-salve-amber/20 transition-colors"
+                >
+                  <Link2 size={11} /> Link All
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
         fl.map(m => {
@@ -243,7 +306,14 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           <Card key={m.id} onClick={() => setExpandedId(isExpanded ? null : m.id)} className="cursor-pointer transition-all">
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold text-salve-text mb-0.5">{m.name}</div>
+                <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
+                  {m.display_name || m.name}
+                  {m.rxcui
+                    ? <span title="Linked to NLM drug database" className="text-salve-sage"><Link2 size={11} /></span>
+                    : <span title="Not linked to NLM database" className="text-salve-amber"><Unlink size={11} /></span>
+                  }
+                </div>
+                {m.display_name && m.display_name !== m.name && <div className="text-[11px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
                 {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
               </div>

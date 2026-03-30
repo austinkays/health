@@ -59,7 +59,8 @@ health/
 │       ├── 002_sync_id.sql
 │       ├── 003_comprehensive_schema.sql  # Labs, procedures, immunizations, etc.
 │       ├── 004_remove_fabricated_conditions.sql
-│       └── 005_api_enrichment_columns.sql  # Add rxcui to meds, npi+address to providers
+│       ├── 005_api_enrichment_columns.sql  # Add rxcui to meds, npi+address to providers
+│       └── 006_display_name.sql              # Add display_name to medications
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects
@@ -105,7 +106,7 @@ health/
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
 │   │   └── sections/             # One file per app section (19 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
-│   │       ├── Medications.jsx   # Med list + add/edit + RxNorm autocomplete + OpenFDA drug info + maps links
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + maps links
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links
@@ -139,7 +140,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | Table | Key Fields | Notes |
 |-------|-----------|-------|
 | `profiles` | id (= auth.users.id), name, location, pharmacy, insurance_*, health_background, ai_mode | 1:1 with user, auto-created on signup via trigger |
-| `medications` | name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui | rxcui links to RxNorm drug database |
+| `medications` | name, display_name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui | rxcui links to RxNorm drug database; display_name is optional user-friendly casual name |
 | `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
 | `allergies` | substance, reaction, severity (mild/moderate/severe), notes | |
 | `providers` | name, specialty, clinic, phone, fax, portal_url, notes, npi, address | npi links to NPPES registry; address enables maps |
@@ -405,6 +406,10 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 ### Medical API Integration Tests
 - [ ] Medications: typing in name field triggers RxNorm autocomplete dropdown after 300ms debounce
 - [ ] Medications: selecting autocomplete result stores name + rxcui
+- [ ] Medications: display_name field is optional; when set, shows as primary title in card with official name as subtitle
+- [ ] Medications: unlinked meds (no rxcui) show amber unlink indicator; linked meds show sage link indicator
+- [ ] Medications: bulk "Link All" button appears when ≥1 active med has no rxcui; iterates drugAutocomplete per med
+- [ ] Medications: bulk link shows progress ("Linking 2 of 5...") and result summary
 - [ ] Medications: "Drug Info" button fetches and displays FDA label data (generic, brand, class, warnings, side effects)
 - [ ] Medications: pharmacy name links to Google Maps
 - [ ] Providers: NPI Lookup button triggers NPPES search and shows dropdown

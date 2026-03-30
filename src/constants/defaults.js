@@ -1,7 +1,7 @@
 // Default data shapes for new entries
 
 export const EMPTY_MED = {
-  name: '', dose: '', frequency: '', route: 'Oral',
+  name: '', display_name: '', dose: '', frequency: '', route: 'Oral',
   prescriber: '', pharmacy: '', start_date: '', purpose: '',
   refill_date: '', active: true, notes: '', rxcui: '',
 };

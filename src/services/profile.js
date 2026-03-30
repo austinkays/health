@@ -20,6 +20,7 @@ export function buildProfile(data) {
   if (active.length === 0) p += '(none)\n';
   active.forEach(m => {
     p += '- ' + m.name;
+    if (m.display_name && m.display_name !== m.name) p += ' (patient calls it: "' + san(m.display_name) + '")';
     if (m.dose) p += ' ' + m.dose;
     if (m.frequency) p += ', ' + m.frequency;
     if (m.route) p += ' (' + m.route + ')';

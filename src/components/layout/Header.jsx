@@ -3,7 +3,7 @@ import Motif from '../ui/Motif';
 
 const TAB_LABELS = {
   dash: 'Home',
-  meds: 'Remedies',
+  meds: 'Medications',
   vitals: 'Vitals',
   appts: 'Visits',
   ai: 'Insight',
