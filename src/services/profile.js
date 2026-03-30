@@ -110,7 +110,7 @@ export function buildProfile(data) {
         p += '- ' + l.test_name + ': ' + l.result;
         if (l.unit) p += ' ' + l.unit;
         p += ' [' + l.flag + ']';
-        if (l.reference_range) p += ' (ref: ' + l.reference_range + ')';
+        if (l.range) p += ' (ref: ' + l.range + ')';
         if (l.date) p += ' on ' + l.date;
         p += '\n';
       });
@@ -146,11 +146,11 @@ export function buildProfile(data) {
   if (immunizations.length) {
     p += '\n— IMMUNIZATIONS —\n';
     immunizations.forEach(i => {
-      p += '- ' + i.vaccine_name;
+      p += '- ' + i.name;
       if (i.date) p += ' on ' + i.date;
-      if (i.dose_number) p += ' (dose ' + i.dose_number + ')';
+      if (i.dose) p += ' (dose ' + i.dose + ')';
       if (i.provider) p += ' at ' + i.provider;
-      if (i.notes) p += ' — ' + i.notes;
+      if (i.site) p += ' [site: ' + i.site + ']';
       p += '\n';
     });
   }
@@ -160,9 +160,10 @@ export function buildProfile(data) {
   if (careGaps.length) {
     p += '\n— CARE GAPS (overdue screenings/preventive care) —\n';
     careGaps.forEach(g => {
-      p += '- ' + g.name;
+      p += '- ' + g.item;
       if (g.urgency) p += ' [' + g.urgency + ']';
-      if (g.due_date) p += ' due ' + g.due_date;
+      if (g.category) p += ' (' + g.category + ')';
+      if (g.last_done) p += ' last done ' + g.last_done;
       if (g.notes) p += ' — ' + g.notes;
       p += '\n';
     });
@@ -173,9 +174,9 @@ export function buildProfile(data) {
   if (anesthesiaFlags.length) {
     p += '\n— ANESTHESIA FLAGS (safety-critical) —\n';
     anesthesiaFlags.forEach(f => {
-      p += '- ' + f.flag_type;
-      if (f.description) p += ': ' + f.description;
-      if (f.severity) p += ' [' + f.severity + ']';
+      p += '- ' + f.condition;
+      if (f.implication) p += ': ' + f.implication;
+      if (f.action_required) p += ' → ' + f.action_required;
       p += '\n';
     });
   }
@@ -185,12 +186,13 @@ export function buildProfile(data) {
   if (surgical.length) {
     p += '\n— SURGICAL PLANNING —\n';
     surgical.forEach(sp => {
-      p += '- ' + sp.procedure_name;
-      if (sp.date) p += ' scheduled ' + sp.date;
+      const procs = Array.isArray(sp.procedures) ? sp.procedures.join(', ') : '';
+      p += '- ' + (procs || 'Surgical plan');
+      if (sp.target_date) p += ' scheduled ' + sp.target_date;
       if (sp.surgeon) p += ' with ' + sp.surgeon;
+      if (sp.facility) p += ' at ' + sp.facility;
       if (sp.status) p += ' (' + sp.status + ')';
-      if (sp.pre_op_notes) p += ' | pre-op: ' + sp.pre_op_notes;
-      if (sp.post_op_notes) p += ' | post-op: ' + sp.post_op_notes;
+      if (sp.accommodation) p += ' | accommodations: ' + sp.accommodation;
       p += '\n';
     });
   }

@@ -4,7 +4,7 @@ const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home },
   { id: 'meds', label: 'Meds', icon: Pill },
   { id: 'vitals', label: 'Vitals', icon: Heart },
-  { id: 'ai', label: 'Familiar', icon: Sparkles },
+  { id: 'ai', label: 'Insight', icon: Sparkles },
   { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];

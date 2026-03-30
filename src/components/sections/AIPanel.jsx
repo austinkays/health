@@ -67,7 +67,7 @@ export default function AIPanel({ data }) {
     <AIConsentGate>
     <div className="mt-2">
       <SectionTitle action={<button onClick={() => { setMode(null); setChatMessages([]); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
-        Ask the Familiar
+        Ask Insight
       </SectionTitle>
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
@@ -127,7 +127,7 @@ export default function AIPanel({ data }) {
     <div className="mt-2">
       <div className="text-center mb-5">
         <div className="text-3xl mb-2 opacity-60 text-salve-lav">✦</div>
-        <p className="text-[13px] text-salve-textFaint italic">Your familiar whispers wisdom from the data you've gathered.</p>
+        <p className="text-[13px] text-salve-textFaint italic">AI-powered insights from the health data you've gathered.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
