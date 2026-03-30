@@ -2,6 +2,12 @@
   "functions": {
     "api/chat.js": {
       "maxDuration": 120
+    },
+    "api/drug.js": {
+      "maxDuration": 30
+    },
+    "api/provider.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [

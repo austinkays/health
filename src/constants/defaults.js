@@ -3,7 +3,7 @@
 export const EMPTY_MED = {
   name: '', dose: '', frequency: '', route: 'Oral',
   prescriber: '', pharmacy: '', start_date: '', purpose: '',
-  refill_date: '', active: true, notes: '',
+  refill_date: '', active: true, notes: '', rxcui: '',
 };
 
 export const EMPTY_CONDITION = {
@@ -18,6 +18,7 @@ export const EMPTY_ALLERGY = {
 export const EMPTY_PROVIDER = {
   name: '', specialty: '', clinic: '',
   phone: '', fax: '', portal_url: '', notes: '',
+  npi: '', address: '',
 };
 
 export const EMPTY_VITAL = {

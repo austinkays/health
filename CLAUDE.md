@@ -20,6 +20,8 @@ Personal health management app. Originally a Claude.ai React artifact (~2000+ li
 - **Auth:** Supabase Auth (magic link / OTP email; session expiry detection; OTP 10-min countdown)
 - **Offline cache:** localStorage (AES-GCM encrypted via `cache.js` + `crypto.js`)
 - **AI Backend:** Vercel serverless function proxying Anthropic API (auth-gated)
+- **Medical APIs:** RxNorm (NLM drug data), OpenFDA (drug labels), NPPES (NPI provider registry) — all via Vercel serverless proxies
+- **Maps:** Google Maps URL links (no API key, URL construction only)
 - **Deployment:** Vercel
 
 ## Architecture
@@ -41,7 +43,9 @@ health/
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
 ├── api/
-│   └── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA proxy (autocomplete, details, interactions)
+│   └── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
 ├── public/
 │   ├── manifest.json             # PWA manifest
 │   └── favicon.svg
@@ -53,7 +57,8 @@ health/
 │       ├── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
 │       ├── 002_sync_id.sql
 │       ├── 003_comprehensive_schema.sql  # Labs, procedures, immunizations, etc.
-│       └── 004_remove_fabricated_conditions.sql
+│       ├── 004_remove_fabricated_conditions.sql
+│       └── 005_api_enrichment_columns.sql  # Add rxcui to meds, npi+address to providers
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities
@@ -61,6 +66,7 @@ health/
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
+│   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
 │   │   └── defaults.js           # Default data shapes, empty states, vital types, moods
 │   ├── services/
 │   │   ├── supabase.js           # Supabase client init (from VITE_SUPABASE_URL/ANON_KEY)
@@ -69,6 +75,8 @@ health/
 │   │   ├── cache.js              # Encrypted offline localStorage cache + pending write queue + sync
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
 │   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent)
+│   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions (via /api/drug)
+│   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   └── profile.js            # buildProfile() - assembles health context for AI prompts
 │   ├── hooks/
@@ -95,16 +103,16 @@ health/
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, fixed "built with ♥" tagline
 │   │   └── sections/             # One file per app section (19 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
-│   │       ├── Medications.jsx   # Med list + add/edit form + allergy cross-check warnings
+│   │       ├── Medications.jsx   # Med list + add/edit + RxNorm autocomplete + OpenFDA drug info + maps links
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs
-│   │       ├── Providers.jsx     # Provider directory + add/edit + clickable phone/portal links
+│   │       ├── Providers.jsx     # Provider directory + NPI registry search + maps links + phone/portal links
 │   │       ├── Allergies.jsx     # Allergy list + add/edit
-│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit
+│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
-│   │       ├── Interactions.jsx  # Drug interaction checker (standalone view)
+│   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── AIPanel.jsx       # AI Insight panel: health insight, connections, news, resources, chat; "What AI Sees" preview button opens full-screen slide-up panel
-│   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation
+│   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
 │   │       ├── CareGaps.jsx      # Preventive care gaps + urgency sorting
@@ -116,7 +124,8 @@ health/
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
-│       └── interactions.js       # checkInteractions() logic
+│       ├── interactions.js       # checkInteractions() logic
+│       └── maps.js               # mapsUrl(address) → Google Maps search URL
 ```
 
 ### Database (Supabase)
@@ -128,10 +137,10 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | Table | Key Fields | Notes |
 |-------|-----------|-------|
 | `profiles` | id (= auth.users.id), name, location, pharmacy, insurance_*, health_background, ai_mode | 1:1 with user, auto-created on signup via trigger |
-| `medications` | name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes | |
+| `medications` | name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui | rxcui links to RxNorm drug database |
 | `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
 | `allergies` | substance, reaction, severity (mild/moderate/severe), notes | |
-| `providers` | name, specialty, clinic, phone, fax, portal_url, notes | |
+| `providers` | name, specialty, clinic, phone, fax, portal_url, notes, npi, address | npi links to NPPES registry; address enables maps |
 | `vitals` | date, type (pain/mood/energy/sleep/bp/hr/weight/temp/glucose), value, value2, unit, notes | |
 | `appointments` | date, time, provider, location, reason, questions, post_notes | |
 | `journal_entries` | date, title, mood, severity, content, tags | |
@@ -184,6 +193,32 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - 120-second timeout configured in vercel.json
 - Client-side (`ai.js`) **fails early** if no auth token — never sends unauthenticated requests
 
+### Medical API Proxies
+
+Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`.
+
+**`api/drug.js`** — RxNorm + OpenFDA proxy:
+- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup), `interactions` (RxNorm interaction list for multiple RxCUIs)
+- **Rate limited:** 40 requests/minute per user (in-memory sliding window)
+- **Cached:** In-memory 30-minute TTL, max 500 entries
+- **Client service:** `src/services/drugs.js` — `drugAutocomplete(query)`, `drugDetails(query)`, `drugInteractions(rxcuis[])`
+
+**`api/provider.js`** — NPPES NPI Registry proxy:
+- **Actions:** `search` (by name, optional state filter), `lookup` (by 10-digit NPI number)
+- **Rate limited:** 30 requests/minute per user
+- **Cached:** In-memory 1-hour TTL, max 500 entries
+- **Client service:** `src/services/npi.js` — `searchProviders(name, state?)`, `lookupNPI(npi)`
+- Parses NPI results into `{npi, name, credential, specialty, address, phone, fax, organization}` format
+
+**`src/utils/maps.js`** — Google Maps URL helper:
+- `mapsUrl(address)` returns `https://www.google.com/maps/search/?api=1&query=<encoded>` — no API key needed
+- Used in Providers (address + clinic), Appointments (location), Medications (pharmacy)
+
+**`src/constants/labRanges.js`** — Reference range lookup:
+- Static table of ~80 common lab tests with low/high/unit reference ranges
+- `findLabRange(testName)` fuzzy-matches lab names and returns range object
+- Used in Labs.jsx to auto-show reference ranges when user hasn't entered one
+
 **AI features using this proxy:**
 1. **Dashboard insight** - one-shot health tip based on full profile
 2. **Health connections** - cross-analysis of meds, conditions, vitals patterns
@@ -204,9 +239,9 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 ```json
 {
   "functions": {
-    "api/chat.js": {
-      "maxDuration": 120
-    }
+    "api/chat.js": { "maxDuration": 120 },
+    "api/drug.js": { "maxDuration": 30 },
+    "api/provider.js": { "maxDuration": 30 }
   },
   "headers": [
     {
@@ -303,7 +338,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 1. **Preserve the visual design precisely.** The warm dark theme with lavender/sage/amber accents is intentional and personal. When converting inline styles to Tailwind, match colors and spacing exactly.
 2. **Every inline style `style={{...}}` becomes Tailwind classes.** Use arbitrary values `[#1a1a2e]` for custom colors only if the color isn't mapped in the config. All palette colors should be mapped.
-3. **The drug interaction database is static and ships client-side.** Don't try to make it dynamic or API-fetched. It covers common medication combinations relevant to the user.
+3. **The drug interaction database is static and ships client-side** as a baseline. Additionally, the Interactions view can fetch **live interactions from NLM RxNorm** when medications have linked RxCUI values.
 4. **AI features must include medical disclaimers.** Every AI response surface shows "AI suggestions are not medical advice. Always consult your healthcare providers." This is non-negotiable. The disclaimer is appended in `ai.js`.
 8. **AI features require explicit data-sharing consent.** `AIConsentGate` wraps all AI surfaces (AIPanel, Dashboard insight). Users must acknowledge that health data is sent to Anthropic before any AI call is made. Consent is stored in `localStorage` under `salve:ai-consent` and can be revoked in Settings.
 5. **Delete operations require confirmation.** The `useConfirmDelete` hook and `ConfirmBar` component provide inline confirm/cancel UI. No `window.confirm()` calls.
@@ -355,6 +390,22 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] localStorage cache (`hc:cache`) is encrypted (not readable plaintext JSON)
 - [ ] ErrorBoundary catches section crashes and shows fallback with Go Home button
 - [ ] No console errors in production build
+
+### Medical API Integration Tests
+- [ ] Medications: typing in name field triggers RxNorm autocomplete dropdown after 300ms debounce
+- [ ] Medications: selecting autocomplete result stores name + rxcui
+- [ ] Medications: "Drug Info" button fetches and displays FDA label data (generic, brand, class, warnings, side effects)
+- [ ] Medications: pharmacy name links to Google Maps
+- [ ] Providers: NPI Lookup button triggers NPPES search and shows dropdown
+- [ ] Providers: selecting NPI result auto-populates name, specialty, clinic, phone, fax, NPI, address
+- [ ] Providers: address in expanded card links to Google Maps; fallback uses clinic name
+- [ ] Providers: NPI number displayed in expanded card
+- [ ] Appointments: location field in upcoming/past cards links to Google Maps
+- [ ] Interactions: meds with rxcui show ✓ indicator in active meds list
+- [ ] Interactions: "Check NLM Interactions" button appears when 2+ meds have rxcui
+- [ ] Interactions: live NLM results display with source attribution above local results
+- [ ] Labs: reference range auto-displays from labRanges.js when no manual range entered
+- [ ] Labs: "(standard)" label distinguishes auto-ranges from user-entered ranges
 
 ## Environment Variables
 

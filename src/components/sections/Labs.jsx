@@ -10,6 +10,7 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { findLabRange } from '../../constants/labRanges';
 import { fetchLabInterpretation } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
@@ -111,6 +112,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
         fl.map(l => {
           const fc = flagColor(l.flag);
           const isExpanded = expandedId === l.id;
+          const refRange = findLabRange(l.test_name);
           return (
             <Card key={l.id} onClick={() => setExpandedId(isExpanded ? null : l.id)} className="cursor-pointer transition-all">
               <div className="flex justify-between items-start">
@@ -131,6 +133,12 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? ` · ${l.provider}` : ''}</div>}
                   {l.range && <div className="text-xs text-salve-textFaint">Reference: {l.range}</div>}
+                  {!l.range && refRange && (
+                    <div className="text-xs text-salve-textFaint">
+                      Reference: {refRange.low !== undefined && refRange.high !== undefined ? `${refRange.low}–${refRange.high}` : refRange.low !== undefined ? `≥ ${refRange.low}` : refRange.high !== undefined ? `≤ ${refRange.high}` : ''}{refRange.unit ? ` ${refRange.unit}` : ''}
+                      <span className="text-salve-lav/60 ml-1">(standard)</span>
+                    </div>
+                  )}
                   {l.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{l.notes}</div>}
                   {hasAIConsent() && l.flag && l.flag !== 'normal' && l.flag !== 'completed' && (
                     <button

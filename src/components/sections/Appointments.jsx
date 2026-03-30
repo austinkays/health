@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader, MapPin } from 'lucide-react';
+import { mapsUrl } from '../../utils/maps';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -88,7 +89,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               <div className="flex justify-between">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
-                  <div className="text-xs text-salve-textMid mt-0.5">{a.provider}{a.location ? ` · ${a.location}` : ''}</div>
+                  <div className="text-xs text-salve-textMid mt-0.5">{a.provider}{a.location ? <>{' · '}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
                   {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">✧ {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
@@ -126,7 +127,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               <div className="flex justify-between">
                 <div>
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
-                  <div className="text-xs text-salve-textMid">{a.provider} · {fmtDate(a.date)}</div>
+                  <div className="text-xs text-salve-textMid">{a.provider} · {fmtDate(a.date)}{a.location ? <>{' · '}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appointment" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Edit size={14} /></button>

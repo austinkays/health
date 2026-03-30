@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown } from 'lucide-react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -15,6 +15,8 @@ import { fetchCrossReactivity } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
+import { drugAutocomplete, drugDetails } from '../../services/drugs';
+import { mapsUrl } from '../../utils/maps';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -27,8 +29,61 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [crossReactAI, setCrossReactAI] = useState(null);
   const [crossReactLoading, setCrossReactLoading] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [acResults, setAcResults] = useState([]);
+  const [acLoading, setAcLoading] = useState(false);
+  const [showAc, setShowAc] = useState(false);
+  const [drugInfo, setDrugInfo] = useState({});
+  const [drugInfoLoading, setDrugInfoLoading] = useState(null);
+  const [drugInfoExpanded, setDrugInfoExpanded] = useState(null);
+  const acRef = useRef(null);
+  const acTimerRef = useRef(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  /* ── Drug name autocomplete (debounced) ── */
+  const handleNameChange = useCallback((v) => {
+    sf('name', v);
+    setShowAc(true);
+    if (acTimerRef.current) clearTimeout(acTimerRef.current);
+    if (v.length < 2) { setAcResults([]); return; }
+    acTimerRef.current = setTimeout(async () => {
+      setAcLoading(true);
+      try {
+        const results = await drugAutocomplete(v);
+        setAcResults(results);
+      } catch { setAcResults([]); }
+      finally { setAcLoading(false); }
+    }, 300);
+  }, []);
+
+  const selectAcResult = useCallback((item) => {
+    setForm(p => ({ ...p, name: item.name, rxcui: item.rxcui }));
+    setAcResults([]);
+    setShowAc(false);
+  }, []);
+
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (acRef.current && !acRef.current.contains(e.target)) setShowAc(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  /* ── Fetch drug info for expanded card ── */
+  const loadDrugInfo = async (med) => {
+    const key = med.rxcui || med.name;
+    if (drugInfo[med.id]) { setDrugInfoExpanded(drugInfoExpanded === med.id ? null : med.id); return; }
+    setDrugInfoLoading(med.id);
+    setDrugInfoExpanded(med.id);
+    try {
+      const info = await drugDetails(key);
+      setDrugInfo(prev => ({ ...prev, [med.id]: info }));
+    } catch {
+      setDrugInfo(prev => ({ ...prev, [med.id]: null }));
+    } finally { setDrugInfoLoading(null); }
+  };
 
   /* ── Allergy cross-check ── */
   const allergyWarnings = useMemo(() => {
@@ -55,7 +110,25 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Medication`} onBack={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>
       <Card>
-        <Field label="Medication Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Sertraline" required />
+        <div className="relative" ref={acRef}>
+          <Field label="Medication Name" value={form.name} onChange={handleNameChange} placeholder="e.g. Sertraline" required />
+          {showAc && (acResults.length > 0 || acLoading) && (
+            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              {acLoading && <div className="px-3 py-2 text-xs text-salve-textFaint flex items-center gap-1.5"><Loader size={11} className="animate-spin" /> Searching...</div>}
+              {acResults.map((item, i) => (
+                <button
+                  key={`${item.rxcui}-${i}`}
+                  onClick={() => selectAcResult(item)}
+                  className="w-full text-left px-3 py-2 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat flex items-center gap-2 transition-colors"
+                >
+                  <Search size={11} className="text-salve-textFaint flex-shrink-0" />
+                  <span className="truncate">{item.name}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
+        </div>
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
@@ -180,14 +253,51 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 {m.route && <div className="text-xs text-salve-textMid mb-0.5">Route: {m.route}</div>}
                 {m.purpose && <div className="text-xs text-salve-textFaint">For: {m.purpose}</div>}
                 {m.prescriber && <div className="text-xs text-salve-textFaint">Rx: {m.prescriber}</div>}
-                {m.pharmacy && <div className="text-xs text-salve-textFaint">Pharmacy: {m.pharmacy}</div>}
+                {m.pharmacy && (
+                  <div className="text-xs text-salve-textFaint flex items-center gap-1">
+                    Pharmacy: <a href={mapsUrl(m.pharmacy)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5">{m.pharmacy} <MapPin size={10} /></a>
+                  </div>
+                )}
                 {m.start_date && <div className="text-xs text-salve-textFaint">Started: {fmtDate(m.start_date)}</div>}
                 {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+                {m.rxcui && <div className="text-[10px] text-salve-textFaint mt-1">RxCUI: {m.rxcui}</div>}
                 {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
-                <div className="flex gap-2.5 mt-2.5">
+                <div className="flex gap-2.5 mt-2.5 flex-wrap">
                   <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  <button onClick={() => loadDrugInfo(m)} className="bg-transparent border-none cursor-pointer text-salve-sage text-xs font-montserrat p-0 flex items-center gap-1">
+                    {drugInfoLoading === m.id ? <Loader size={11} className="animate-spin" /> : <Info size={12} />}
+                    {drugInfoLoading === m.id ? 'Loading...' : drugInfo[m.id] ? (drugInfoExpanded === m.id ? 'Hide' : 'Show') + ' Drug Info' : 'Drug Info'}
+                  </button>
                 </div>
+                {drugInfoExpanded === m.id && drugInfo[m.id] && (
+                  <div className="mt-2.5 p-3 rounded-lg bg-salve-sage/5 border border-salve-sage/20">
+                    <div className="text-[11px] font-semibold text-salve-sage mb-2 flex items-center gap-1"><Info size={11} /> FDA Drug Label</div>
+                    {drugInfo[m.id].generic_name && <div className="text-xs text-salve-textMid mb-1"><span className="font-medium">Generic:</span> {drugInfo[m.id].generic_name}</div>}
+                    {drugInfo[m.id].brand_name && <div className="text-xs text-salve-textMid mb-1"><span className="font-medium">Brand:</span> {drugInfo[m.id].brand_name}</div>}
+                    {drugInfo[m.id].pharm_class?.length > 0 && <div className="text-xs text-salve-textMid mb-1"><span className="font-medium">Class:</span> {drugInfo[m.id].pharm_class.join(', ')}</div>}
+                    {drugInfo[m.id].manufacturer && <div className="text-xs text-salve-textFaint mb-1"><span className="font-medium">Mfg:</span> {drugInfo[m.id].manufacturer}</div>}
+                    {drugInfo[m.id].boxed_warning?.length > 0 && (
+                      <div className="mt-2 p-2 rounded-lg bg-salve-rose/10 border border-salve-rose/30">
+                        <div className="text-[11px] font-semibold text-salve-rose mb-1 flex items-center gap-1"><AlertTriangle size={11} /> Black Box Warning</div>
+                        <div className="text-[11px] text-salve-textMid leading-relaxed">{drugInfo[m.id].boxed_warning[0].slice(0, 300)}{drugInfo[m.id].boxed_warning[0].length > 300 ? '…' : ''}</div>
+                      </div>
+                    )}
+                    {drugInfo[m.id].indications?.length > 0 && (
+                      <div className="mt-2"><div className="text-[11px] font-medium text-salve-textMid mb-0.5">Indications</div><div className="text-[11px] text-salve-textFaint leading-relaxed">{drugInfo[m.id].indications[0].slice(0, 200)}…</div></div>
+                    )}
+                    {drugInfo[m.id].adverse_reactions?.length > 0 && (
+                      <div className="mt-2"><div className="text-[11px] font-medium text-salve-textMid mb-0.5">Side Effects</div><div className="text-[11px] text-salve-textFaint leading-relaxed">{drugInfo[m.id].adverse_reactions[0].slice(0, 250)}…</div></div>
+                    )}
+                    {drugInfo[m.id].drug_interactions?.length > 0 && (
+                      <div className="mt-2"><div className="text-[11px] font-medium text-salve-textMid mb-0.5">Drug Interactions</div><div className="text-[11px] text-salve-textFaint leading-relaxed">{drugInfo[m.id].drug_interactions[0].slice(0, 250)}…</div></div>
+                    )}
+                    <div className="text-[9px] text-salve-textFaint italic mt-2">Source: FDA/OpenFDA drug labeling database</div>
+                  </div>
+                )}
+                {drugInfoExpanded === m.id && drugInfo[m.id] === null && (
+                  <div className="mt-2 text-[11px] text-salve-textFaint italic">No FDA label data found for this medication.</div>
+                )}
               </div>
             )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />

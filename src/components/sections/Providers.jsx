@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown } from 'lucide-react';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown, Search, Loader, MapPin } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -8,14 +8,56 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_PROVIDER } from '../../constants/defaults';
+import { searchProviders } from '../../services/npi';
+import { mapsUrl } from '../../utils/maps';
 
 export default function Providers({ data, addItem, updateItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_PROVIDER);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [npiResults, setNpiResults] = useState([]);
+  const [npiLoading, setNpiLoading] = useState(false);
+  const [showNpi, setShowNpi] = useState(false);
+  const npiRef = useRef(null);
+  const npiTimerRef = useRef(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  /* ── NPI search (debounced) ── */
+  const handleNameSearch = useCallback(() => {
+    const name = form.name?.trim();
+    if (!name || name.length < 3) return;
+    setNpiLoading(true);
+    setShowNpi(true);
+    searchProviders(name)
+      .then(results => setNpiResults(results))
+      .catch(() => setNpiResults([]))
+      .finally(() => setNpiLoading(false));
+  }, [form.name]);
+
+  const selectNpiResult = useCallback((result) => {
+    setForm(p => ({
+      ...p,
+      name: result.name,
+      specialty: result.specialty || p.specialty,
+      clinic: result.organization || p.clinic,
+      phone: result.phone || p.phone,
+      fax: result.fax || p.fax,
+      npi: result.npi,
+      address: result.address || p.address,
+    }));
+    setNpiResults([]);
+    setShowNpi(false);
+  }, []);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (npiRef.current && !npiRef.current.contains(e.target)) setShowNpi(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const saveP = async () => {
     if (!form.name.trim()) return;
@@ -32,9 +74,39 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>
       <Card>
-        <Field label="Name" value={form.name} onChange={v => sf('name', v)} placeholder="Dr. Name" required />
+        <div className="relative" ref={npiRef}>
+          <Field label="Name" value={form.name} onChange={v => sf('name', v)} placeholder="Dr. Name" required />
+          <button
+            onClick={handleNameSearch}
+            disabled={npiLoading || !form.name?.trim() || form.name.trim().length < 3}
+            className="absolute right-3 top-7 bg-transparent border border-salve-sage/40 rounded-lg px-2 py-1 cursor-pointer text-salve-sage text-[10px] font-montserrat flex items-center gap-1 hover:bg-salve-sage/10 disabled:opacity-40 disabled:cursor-default transition-colors"
+          >
+            {npiLoading ? <Loader size={10} className="animate-spin" /> : <Search size={10} />}
+            NPI Lookup
+          </button>
+          {showNpi && (npiResults.length > 0 || npiLoading) && (
+            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-56 overflow-y-auto">
+              {npiLoading && <div className="px-3 py-2 text-xs text-salve-textFaint flex items-center gap-1.5"><Loader size={11} className="animate-spin" /> Searching NPI Registry...</div>}
+              {npiResults.map((r, i) => (
+                <button
+                  key={`${r.npi}-${i}`}
+                  onClick={() => selectNpiResult(r)}
+                  className="w-full text-left px-3 py-2.5 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat border-b border-salve-border/30 last:border-b-0 transition-colors"
+                >
+                  <div className="font-medium text-[13px]">{r.name}</div>
+                  {r.specialty && <div className="text-[11px] text-salve-lav">{r.specialty}</div>}
+                  {r.address && <div className="text-[11px] text-salve-textFaint truncate">{r.address}</div>}
+                  <div className="text-[10px] text-salve-textFaint mt-0.5">NPI: {r.npi}{r.phone ? ` · ${r.phone}` : ''}</div>
+                </button>
+              ))}
+              {!npiLoading && npiResults.length === 0 && showNpi && <div className="px-3 py-2 text-xs text-salve-textFaint">No results found</div>}
+            </div>
+          )}
+          {form.npi && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3">NPI: {form.npi} · Verified in CMS registry</div>}
+        </div>
         <Field label="Specialty" value={form.specialty} onChange={v => sf('specialty', v)} placeholder="e.g. Rheumatology" />
         <Field label="Clinic / Office" value={form.clinic} onChange={v => sf('clinic', v)} placeholder="Clinic name" />
+        <Field label="Address" value={form.address} onChange={v => sf('address', v)} placeholder="123 Medical Dr, City, ST 12345" />
         <Field label="Phone" value={form.phone} onChange={v => sf('phone', v)} type="tel" placeholder="(555) 555-5555" />
         <Field label="Fax" value={form.fax} onChange={v => sf('fax', v)} type="tel" />
         <Field label="Patient Portal" value={form.portal_url} onChange={v => sf('portal_url', v)} placeholder="https://..." />
@@ -68,9 +140,22 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
             {isExpanded && (
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                 {p.clinic && <div className="text-xs text-salve-textMid mb-0.5">{p.clinic}</div>}
+                {p.address && (
+                  <div className="text-xs text-salve-textMid mt-0.5 flex items-center gap-1">
+                    <MapPin size={12} strokeWidth={1.4} className="flex-shrink-0" />
+                    <a href={mapsUrl(p.address)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline">{p.address}</a>
+                  </div>
+                )}
+                {!p.address && p.clinic && (
+                  <div className="text-xs text-salve-textFaint mt-0.5 flex items-center gap-1">
+                    <MapPin size={11} strokeWidth={1.4} />
+                    <a href={mapsUrl(p.clinic)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline text-[11px]">View on Maps</a>
+                  </div>
+                )}
                 {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
                 {p.fax && <div className="text-xs text-salve-textFaint mt-0.5">Fax: {p.fax}</div>}
                 {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
+                {p.npi && <div className="text-[10px] text-salve-textFaint mt-1">NPI: {p.npi}</div>}
                 {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
                 <div className="flex gap-2.5 mt-2.5">
                   <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
