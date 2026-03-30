@@ -125,33 +125,86 @@ async function rxInteractions(rxcuis) {
 }
 
 // ── OpenFDA helper ──
+
+// Extract the active ingredient from RxNorm-style clinical drug names.
+// "Sertraline 50 MG Oral Tablet" → "Sertraline"
+// "Metformin Hydrochloride 500 MG Extended Release" → "Metformin Hydrochloride"
+// "Vitamin D3" → "Vitamin D3" (unchanged — no dosage pattern)
+function extractIngredient(name) {
+  if (!name) return name;
+  // Strip trailing dosage + form info (e.g. "50 MG Oral Tablet", "0.5 MG/ML Injectable Solution")
+  const cleaned = name.replace(/\s+\d+(\.\d+)?\s*(mg|ml|mcg|%|units?|grams?|meq|mmol|mg\/ml|mcg\/ml)\b.*$/i, '').trim();
+  return cleaned || name;
+}
+
+async function fdaSearchByName(name) {
+  const ingredient = extractIngredient(name);
+
+  // Tier 1: Exact-quoted search on brand_name + generic_name with cleaned ingredient
+  const exact = encodeURIComponent(`(openfda.brand_name:"${ingredient}"+openfda.generic_name:"${ingredient}")`);
+  const url1 = `https://api.fda.gov/drug/label.json?search=${exact}&limit=1`;
+  try {
+    const res1 = await fetchWithTimeout(url1);
+    if (res1.ok) {
+      const data1 = await res1.json();
+      if (data1?.results?.[0]) return data1.results[0];
+    }
+  } catch { /* continue to next tier */ }
+
+  // Tier 2: Unquoted search (more flexible — handles partial matches, salt forms, etc.)
+  const loose = encodeURIComponent(`(openfda.brand_name:${ingredient}+openfda.generic_name:${ingredient})`);
+  const url2 = `https://api.fda.gov/drug/label.json?search=${loose}&limit=1`;
+  try {
+    const res2 = await fetchWithTimeout(url2);
+    if (res2.ok) {
+      const data2 = await res2.json();
+      if (data2?.results?.[0]) return data2.results[0];
+    }
+  } catch { /* continue to next tier */ }
+
+  // Tier 3: General substance name search (catches active ingredients listed differently)
+  const substance = encodeURIComponent(`openfda.substance_name:${ingredient}`);
+  const url3 = `https://api.fda.gov/drug/label.json?search=${substance}&limit=1`;
+  try {
+    const res3 = await fetchWithTimeout(url3);
+    if (res3.ok) {
+      const data3 = await res3.json();
+      if (data3?.results?.[0]) return data3.results[0];
+    }
+  } catch { /* fall through */ }
+
+  console.log(`[FDA] No results for name="${name}" (ingredient="${ingredient}")`);
+  return null;
+}
+
 async function fdaDrugLabel(query, fallbackName) {
-  // Try by rxcui first, fall back to brand/generic name search
-  let url;
+  // If query is an rxcui (numeric), try RxCUI lookup first
   if (/^\d+$/.test(query)) {
-    url = `https://api.fda.gov/drug/label.json?search=openfda.rxcui:"${query}"&limit=1`;
-  } else {
-    const encoded = encodeURIComponent(query);
-    url = `https://api.fda.gov/drug/label.json?search=(openfda.brand_name:"${encoded}"+openfda.generic_name:"${encoded}")&limit=1`;
-  }
-  const res = await fetchWithTimeout(url);
-  if (!res.ok) {
-    // If rxcui lookup got an HTTP error, try fallback by name
-    if (/^\d+$/.test(query) && fallbackName) {
-      return fdaDrugLabel(fallbackName);
+    const url = `https://api.fda.gov/drug/label.json?search=openfda.rxcui:"${query}"&limit=1`;
+    try {
+      const res = await fetchWithTimeout(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.results?.[0]) return formatLabel(data.results[0]);
+      }
+    } catch { /* continue to name fallback */ }
+
+    // RxCUI not in OpenFDA — fall back to name-based search
+    if (fallbackName) {
+      const label = await fdaSearchByName(fallbackName);
+      if (label) return formatLabel(label);
     }
-    return null;
-  }
-  const data = await res.json();
-  const label = data?.results?.[0];
-  if (!label) {
-    // If rxcui lookup returned no results, try fallback by name
-    if (/^\d+$/.test(query) && fallbackName) {
-      return fdaDrugLabel(fallbackName);
-    }
+    console.log(`[FDA] No results for rxcui="${query}" fallbackName="${fallbackName || '(none)'}"`);
     return null;
   }
 
+  // Query is a name string — use multi-tier name search
+  const label = await fdaSearchByName(query);
+  if (label) return formatLabel(label);
+  return null;
+}
+
+function formatLabel(label) {
   return {
     brand_name: label.openfda?.brand_name?.[0] || '',
     generic_name: label.openfda?.generic_name?.[0] || '',

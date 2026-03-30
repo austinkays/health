@@ -160,13 +160,15 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     setEnriching(true);
     setEnrichResult(null);
     let enriched = 0;
+    const failed = [];
     for (let i = 0; i < unenriched.length; i++) {
       setEnrichProgress({ current: i + 1, total: unenriched.length, name: unenriched[i].display_name || unenriched[i].name });
       const info = await enrichFdaData(unenriched[i]);
       if (info) enriched++;
+      else failed.push(unenriched[i].display_name || unenriched[i].name);
     }
     setEnrichProgress(null);
-    setEnrichResult({ enriched, total: unenriched.length });
+    setEnrichResult({ enriched, total: unenriched.length, failed });
     setEnriching(false);
   };
 
@@ -396,7 +398,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             {enrichResult ? (
               <div className="text-xs text-salve-textMid">
                 <span className="font-medium text-salve-sage">✓ Enriched {enrichResult.enriched}/{enrichResult.total}</span>
-                {enrichResult.enriched < enrichResult.total && <span className="text-salve-textFaint"> · {enrichResult.total - enrichResult.enriched} had no FDA data available</span>}
+                {enrichResult.failed?.length > 0 && (
+                  <span className="text-salve-textFaint"> · Not in FDA database: {enrichResult.failed.join(', ')}</span>
+                )}
                 <button onClick={() => setEnrichResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
               </div>
             ) : enrichProgress ? (

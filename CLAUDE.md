@@ -108,7 +108,7 @@ health/
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
 │   │   └── sections/             # One file per app section (20 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
-│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment + auto-enrich on link + maps links + pharmacy picker + pharmacy filter
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
@@ -206,7 +206,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`. Both use `fetchWithTimeout()` (15-second AbortController) for external API calls.
 
 **`api/drug.js`** — RxNorm + OpenFDA proxy:
-- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to brand/generic name search if RxCUI not indexed), `interactions` (RxNorm interaction list for multiple RxCUIs)
+- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs), `interactions` (RxNorm interaction list for multiple RxCUIs)
 - **Rate limited:** 40 requests/minute per user (in-memory sliding window)
 - **Cached:** In-memory 30-minute TTL, max 500 entries
 - **Client service:** `src/services/drugs.js` — `drugAutocomplete(query)`, `drugDetails(query, name?)`, `drugInteractions(rxcuis[])`
