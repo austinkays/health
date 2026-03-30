@@ -25,9 +25,9 @@ create policy "Users manage own pharmacies"
   with check (auth.uid() = user_id);
 
 -- Auto-update updated_at
-create trigger set_pharmacies_updated_at
+create trigger set_updated_at
   before update on public.pharmacies
-  for each row execute function public.update_updated_at();
+  for each row execute function public.set_updated_at();
 
 -- Index for user lookups
 create index if not exists idx_pharmacies_user_id on public.pharmacies(user_id);
