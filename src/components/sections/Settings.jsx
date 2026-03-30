@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -413,6 +413,25 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
             Download Encrypted Backup
           </button>
         </div>
+      </Card>
+
+      <SectionTitle>Claude Health Sync</SectionTitle>
+      <Card>
+        <p className="text-[13px] text-salve-textMid mb-2 leading-relaxed">
+          Use this artifact in Claude to pull health records from connected providers (via MCP) or import existing health data files.
+        </p>
+        <p className="text-[11px] text-salve-textFaint mb-3.5 leading-relaxed italic">
+          Open Claude → share this file → it becomes an interactive artifact for syncing health data into Salve.
+        </p>
+        <a
+          href="/salve-sync.jsx"
+          download="salve-sync.jsx"
+          className="w-full py-3 rounded-xl bg-salve-lav/10 border border-salve-lav/20 text-salve-lav font-medium text-sm
+            hover:bg-salve-lav/20 transition-colors flex items-center justify-center gap-2 no-underline"
+        >
+          <Sparkles size={16} />
+          Download Claude Sync Artifact
+        </a>
       </Card>
 
       <div className="text-center py-8">
