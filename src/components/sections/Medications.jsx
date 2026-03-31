@@ -83,6 +83,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [priceProgress, setPriceProgress] = useState(null);
   const [priceResult, setPriceResult] = useState(null);
   const [priceHistoryExpanded, setPriceHistoryExpanded] = useState(null);
+  const [maintOpen, setMaintOpen] = useState(false);
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
@@ -542,108 +543,110 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </div>
       )}
 
-      {/* ── Enrich All banner (linked meds missing FDA data) ── */}
+      {/* ── Consolidated maintenance banner ── */}
       {(() => {
         const unenrichedCount = data.meds.filter(m => m.rxcui && !m.fda_data).length;
-        if (unenrichedCount === 0 && !enrichResult) return null;
-        return (
-          <div className="mb-3.5 p-3 rounded-xl bg-salve-sage/5 border border-salve-sage/20">
-            {enrichResult ? (
-              <div className="text-xs text-salve-textMid">
-                <span className="font-medium text-salve-sage">✓ Enriched {enrichResult.enriched}/{enrichResult.total}</span>
-                {enrichResult.failed?.length > 0 && (
-                  <span className="text-salve-textFaint"> · Not in FDA database: {enrichResult.failed.join(', ')}</span>
-                )}
-                <button onClick={() => setEnrichResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
-              </div>
-            ) : enrichProgress ? (
-              <div className="flex items-center gap-2 text-xs text-salve-textMid">
-                <Loader size={12} className="animate-spin text-salve-sage" />
-                Enriching {enrichProgress.current} of {enrichProgress.total}… <span className="text-salve-textFaint truncate">{enrichProgress.name}</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-xs text-salve-sage">
-                  <Download size={12} />
-                  <span>{unenrichedCount} linked med{unenrichedCount !== 1 ? 's' : ''} missing drug info</span>
-                </div>
-                <button
-                  onClick={bulkEnrichMeds}
-                  disabled={enriching}
-                  className="flex-shrink-0 py-1.5 px-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-[11px] font-medium cursor-pointer font-montserrat flex items-center gap-1 hover:bg-salve-sage/20 transition-colors"
-                >
-                  <Download size={11} /> Enrich All
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {(() => {
         const unlinkedCount = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim()).length;
-        if (unlinkedCount === 0 && !bulkResult) return null;
-        return (
-          <div className="mb-3.5 p-3 rounded-xl bg-salve-amber/5 border border-salve-amber/20">
-            {bulkResult ? (
-              <div className="text-xs text-salve-textMid">
-                <span className="font-medium text-salve-sage">✓ Linked {bulkResult.linked}/{bulkResult.total}</span>
-                {bulkResult.linked < bulkResult.total && <span className="text-salve-textFaint"> · {bulkResult.total - bulkResult.linked} couldn't be matched — try editing them and using the search</span>}
-                <button onClick={() => setBulkResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
-              </div>
-            ) : bulkProgress ? (
-              <div className="flex items-center gap-2 text-xs text-salve-textMid">
-                <Loader size={12} className="animate-spin text-salve-amber" />
-                Linking {bulkProgress.current} of {bulkProgress.total}… <span className="text-salve-textFaint truncate">{bulkProgress.name}</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-xs text-salve-amber">
-                  <Unlink size={12} />
-                  <span>{unlinkedCount} medication{unlinkedCount !== 1 ? 's' : ''} not linked to NLM</span>
-                </div>
-                <button
-                  onClick={bulkLinkMeds}
-                  disabled={bulkLinking}
-                  className="flex-shrink-0 py-1.5 px-3 rounded-lg bg-salve-amber/10 border border-salve-amber/30 text-salve-amber text-[11px] font-medium cursor-pointer font-montserrat flex items-center gap-1 hover:bg-salve-amber/20 transition-colors"
-                >
-                  <Link2 size={11} /> Link All
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+        const priceCount = medsNeedingPrice.length;
+        const hasAnyResult = enrichResult || bulkResult || priceResult;
+        const hasAnyProgress = enrichProgress || bulkProgress || priceProgress;
+        const tasks = [
+          unenrichedCount > 0 && 'enrich',
+          unlinkedCount > 0 && 'link',
+          priceCount >= 2 && 'price',
+        ].filter(Boolean);
+        if (tasks.length === 0 && !hasAnyResult && !hasAnyProgress) return null;
 
-      {/* ── Bulk Price Check banner ── */}
-      {(() => {
-        if (medsNeedingPrice.length < 2 && !priceResult) return null;
+        const isOpen = hasAnyProgress || hasAnyResult || maintOpen;
+
         return (
-          <div className="mb-3.5 p-3 rounded-xl bg-salve-lav/5 border border-salve-lav/20">
-            {priceResult ? (
-              <div className="text-xs text-salve-textMid">
-                <span className="font-medium text-salve-sage">✓ Checked {priceResult.checked}/{priceResult.total}</span>
-                {priceResult.monthlyEstimate && <span className="text-salve-lav"> · Monthly estimate: ~${priceResult.monthlyEstimate}</span>}
-                <button onClick={() => setPriceResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
+          <div className="mb-3.5 rounded-xl bg-salve-card2/50 border border-salve-border/30 overflow-hidden">
+            <button
+              onClick={() => setMaintOpen(o => !o)}
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-transparent border-none cursor-pointer font-montserrat"
+            >
+              <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+                <RefreshCw size={11} className="text-salve-textFaint" />
+                <span>
+                  {hasAnyProgress ? 'Working…' :
+                   hasAnyResult ? 'Done — tap to review' :
+                   `${tasks.length} maintenance task${tasks.length !== 1 ? 's' : ''}`}
+                </span>
+                {!isOpen && (
+                  <span className="flex gap-1">
+                    {unenrichedCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-salve-sage/60" />}
+                    {unlinkedCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-salve-amber/60" />}
+                    {priceCount >= 2 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-salve-lav/60" />}
+                  </span>
+                )}
               </div>
-            ) : priceProgress ? (
-              <div className="flex items-center gap-2 text-xs text-salve-textMid">
-                <Loader size={12} className="animate-spin text-salve-lav" />
-                Checking {priceProgress.current} of {priceProgress.total}… <span className="text-salve-textFaint truncate">{priceProgress.name}</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5 text-xs text-salve-lav">
-                  <DollarSign size={12} />
-                  <span>{medsNeedingPrice.length} med{medsNeedingPrice.length !== 1 ? 's' : ''} need price check</span>
-                </div>
-                <button
-                  onClick={bulkPriceCheck}
-                  disabled={bulkPricing}
-                  className="flex-shrink-0 py-1.5 px-3 rounded-lg bg-salve-lav/10 border border-salve-lav/30 text-salve-lav text-[11px] font-medium cursor-pointer font-montserrat flex items-center gap-1 hover:bg-salve-lav/20 transition-colors"
-                >
-                  <DollarSign size={11} /> Price Check All
-                </button>
+              <ChevronDown size={12} className={`text-salve-textFaint transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {isOpen && (
+              <div className="px-3 pb-2.5 space-y-2 border-t border-salve-border/20 pt-2">
+                {/* Enrich row */}
+                {(unenrichedCount > 0 || enrichResult || enrichProgress) && (
+                  enrichResult ? (
+                    <div className="text-[11px] text-salve-textMid">
+                      <span className="font-medium text-salve-sage">✓ Enriched {enrichResult.enriched}/{enrichResult.total}</span>
+                      {enrichResult.failed?.length > 0 && <span className="text-salve-textFaint"> · Not in FDA: {enrichResult.failed.join(', ')}</span>}
+                      <button onClick={() => setEnrichResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
+                    </div>
+                  ) : enrichProgress ? (
+                    <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+                      <Loader size={11} className="animate-spin text-salve-sage" />
+                      Enriching {enrichProgress.current}/{enrichProgress.total} <span className="text-salve-textFaint truncate">{enrichProgress.name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-salve-sage flex items-center gap-1"><Download size={10} /> {unenrichedCount} missing drug info</span>
+                      <button onClick={bulkEnrichMeds} disabled={enriching} className="text-[10px] px-2 py-0.5 rounded-md bg-salve-sage/10 border border-salve-sage/25 text-salve-sage cursor-pointer font-montserrat hover:bg-salve-sage/20 transition-colors">Enrich</button>
+                    </div>
+                  )
+                )}
+
+                {/* Link row */}
+                {(unlinkedCount > 0 || bulkResult || bulkProgress) && (
+                  bulkResult ? (
+                    <div className="text-[11px] text-salve-textMid">
+                      <span className="font-medium text-salve-sage">✓ Linked {bulkResult.linked}/{bulkResult.total}</span>
+                      {bulkResult.linked < bulkResult.total && <span className="text-salve-textFaint"> · {bulkResult.total - bulkResult.linked} unmatched</span>}
+                      <button onClick={() => setBulkResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
+                    </div>
+                  ) : bulkProgress ? (
+                    <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+                      <Loader size={11} className="animate-spin text-salve-amber" />
+                      Linking {bulkProgress.current}/{bulkProgress.total} <span className="text-salve-textFaint truncate">{bulkProgress.name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-salve-amber flex items-center gap-1"><Unlink size={10} /> {unlinkedCount} not linked to NLM</span>
+                      <button onClick={bulkLinkMeds} disabled={bulkLinking} className="text-[10px] px-2 py-0.5 rounded-md bg-salve-amber/10 border border-salve-amber/25 text-salve-amber cursor-pointer font-montserrat hover:bg-salve-amber/20 transition-colors">Link</button>
+                    </div>
+                  )
+                )}
+
+                {/* Price row */}
+                {(priceCount >= 2 || priceResult || priceProgress) && (
+                  priceResult ? (
+                    <div className="text-[11px] text-salve-textMid">
+                      <span className="font-medium text-salve-sage">✓ Priced {priceResult.checked}/{priceResult.total}</span>
+                      {priceResult.monthlyEstimate && <span className="text-salve-lav"> · ~${priceResult.monthlyEstimate}/mo</span>}
+                      <button onClick={() => setPriceResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
+                    </div>
+                  ) : priceProgress ? (
+                    <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+                      <Loader size={11} className="animate-spin text-salve-lav" />
+                      Pricing {priceProgress.current}/{priceProgress.total} <span className="text-salve-textFaint truncate">{priceProgress.name}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-salve-lav flex items-center gap-1"><DollarSign size={10} /> {priceCount} need price check</span>
+                      <button onClick={bulkPriceCheck} disabled={bulkPricing} className="text-[10px] px-2 py-0.5 rounded-md bg-salve-lav/10 border border-salve-lav/25 text-salve-lav cursor-pointer font-montserrat hover:bg-salve-lav/20 transition-colors">Check</button>
+                    </div>
+                  )
+                )}
               </div>
             )}
           </div>
