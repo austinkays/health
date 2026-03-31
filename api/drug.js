@@ -251,10 +251,15 @@ async function lookupPrice(rxcui) {
   const ndcs = await rxcuiToNDCs(rxcui);
   if (!ndcs.length) return { error: 'No NDCs found for this medication' };
 
-  // Query up to 5 NDCs in parallel
-  const subset = ndcs.slice(0, 5);
-  const results = await Promise.all(subset.map(ndc => nadacLookup(ndc).catch(() => null)));
-  const prices = results.filter(Boolean);
+  // NADAC only covers a subset of manufacturers — try batches of 15 NDCs
+  // until we find a match (most drugs match within the first 20-30 NDCs)
+  const BATCH = 15;
+  let prices = [];
+  for (let i = 0; i < ndcs.length && !prices.length && i < 45; i += BATCH) {
+    const batch = ndcs.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(ndc => nadacLookup(ndc).catch(() => null)));
+    prices = results.filter(Boolean);
+  }
   if (!prices.length) return { error: 'No NADAC pricing available for this medication' };
 
   // Sort by price ascending — cheapest first
