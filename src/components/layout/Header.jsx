@@ -1,4 +1,4 @@
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Search } from 'lucide-react';
 import Motif from '../ui/Motif';
 
 const TAB_LABELS = {
@@ -21,6 +21,7 @@ const TAB_LABELS = {
   surgical: 'Surgery Plan',
   insurance: 'Insurance',
   interactions: 'Interactions',
+  search: 'Search',
 };
 
 const TAB_DECOR = {
@@ -43,10 +44,12 @@ const TAB_DECOR = {
   interactions:  ['✧', '✦', '·'],
   providers:     ['☽', '·', '✧'],
   appts:         ['✿', '✦', '·'],
+  search:        ['✦', '·', '✧'],
 };
 
-export default function Header({ tab, name, onBack }) {
+export default function Header({ tab, name, onBack, onSearch }) {
   const isDash = tab === 'dash';
+  const isSearch = tab === 'search';
   const decor = TAB_DECOR[tab] || ['☽', '✧', '·'];
 
   return (
@@ -62,7 +65,7 @@ export default function Header({ tab, name, onBack }) {
             <ChevronLeft size={20} />
           </button>
         )}
-        <div>
+        <div className="flex-1">
           <h1 className={`font-playfair font-semibold m-0 text-salve-text ${isDash ? 'text-2xl' : 'text-xl'}`}>
             {isDash ? (
               <>Hello, {name || 'there'} <Motif type="sparkle" size={16} color="#8fbfa0" style={{ marginLeft: 4 }} /></>
@@ -76,6 +79,11 @@ export default function Header({ tab, name, onBack }) {
             </p>
           )}
         </div>
+        {!isSearch && (
+          <button onClick={onSearch} aria-label="Search" className="bg-transparent border-none text-salve-textMid hover:text-salve-lav cursor-pointer p-1.5 flex transition-colors">
+            <Search size={18} />
+          </button>
+        )}
       </div>
     </header>
   );

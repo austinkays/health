@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader, MapPin, Phone } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Plus, Check, Edit, Trash2, Calendar, Sparkles, Loader, MapPin, Phone, CalendarPlus, Video } from 'lucide-react';
 import { mapsUrl } from '../../utils/maps';
-import { providerLookupUrl } from '../../utils/links';
+import { providerLookupUrl, googleCalendarUrl } from '../../utils/links';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -18,7 +18,7 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 
-export default function Appointments({ data, addItem, updateItem, removeItem }) {
+export default function Appointments({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_APPOINTMENT);
   const [editId, setEditId] = useState(null);
@@ -26,6 +26,12 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
   const [prepResult, setPrepResult] = useState({});
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId) {
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]);
 
   /* ── Provider options from saved providers ── */
   const providerOptions = useMemo(() => [
@@ -112,6 +118,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
           <Field label="Location" value={form.location} onChange={v => sf('location', v)} placeholder="Clinic, hospital..." />
         )}
         <Field label="Reason" value={form.reason} onChange={v => sf('reason', v)} placeholder="Follow-up, labs..." />
+        <Field label="Video Call Link" value={form.video_call_url} onChange={v => sf('video_call_url', v)} placeholder="https://zoom.us/j/... or Teams link" />
         <Field label="Questions to Ask" value={form.questions} onChange={v => sf('questions', v)} textarea placeholder="Things to bring up..." />
         <Field label="Post-Visit Notes" value={form.post_notes} onChange={v => sf('post_notes', v)} textarea placeholder="What happened..." />
         <div className="flex gap-2">
@@ -139,7 +146,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
             </div>
           )}
           {up.map(a => (
-            <Card key={a.id} style={{ borderLeft: `3px solid ${C.sage}` }}>
+            <Card key={a.id} id={`record-${a.id}`} style={{ borderLeft: `3px solid ${C.sage}` }} className={highlightId === a.id ? 'highlight-ring' : ''}>
               <div className="flex justify-between">
                 <div className="flex-1">
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
@@ -153,6 +160,12 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
                       </a>
                     </div>
                   )}
+                  {a.video_call_url && (
+                    <div className="text-[11px] text-salve-textFaint mt-0.5 flex items-center gap-1">
+                      <Video size={10} strokeWidth={1.4} />
+                      <a href={a.video_call_url.startsWith('http') ? a.video_call_url : `https://${a.video_call_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">Join Video Call</a>
+                    </div>
+                  )}
                   {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">✧ {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
@@ -164,6 +177,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
               <div className="flex gap-2.5 mt-2">
                 <button onClick={() => { setForm(a); setEditId(a.id); setSubView('form'); }} aria-label="Edit appointment" className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Edit</button>
                 <button onClick={() => del.ask(a.id, a.reason || 'appointment')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0">Delete</button>
+                {(() => { const calUrl = googleCalendarUrl({ title: a.reason || 'Appointment', date: a.date, time: a.time, location: a.location, details: a.questions ? `Questions: ${a.questions}` : '' }); return calUrl ? <a href={calUrl} target="_blank" rel="noopener noreferrer" className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline"><CalendarPlus size={11} /> Add to Calendar</a> : null; })()}
                 {hasAIConsent() && (
                   <button
                     onClick={() => prepareVisit(a)}
@@ -190,7 +204,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem }) 
           ))}
           {past.length > 0 && <><Divider /><div className="text-[11px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}
           {past.slice(0, 10).map(a => (
-            <Card key={a.id} className="opacity-75">
+            <Card key={a.id} id={`record-${a.id}`} className={`opacity-75${highlightId === a.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between">
                 <div>
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>

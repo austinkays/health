@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -16,7 +16,7 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 
-export default function Journal({ data, addItem, updateItem, removeItem }) {
+export default function Journal({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_JOURNAL });
   const [editId, setEditId] = useState(null);
@@ -25,6 +25,13 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && data.journal.some(e => e.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const analyzePatterns = async () => {
     setPatternsLoading(true);
@@ -103,7 +110,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
           const sevBg = sev >= 7 ? 'rgba(232,138,154,0.15)' : sev >= 4 ? 'rgba(232,200,138,0.15)' : 'rgba(143,191,160,0.15)';
           const isExpanded = expandedId === e.id;
           return (
-            <Card key={e.id} className="!bg-salve-lav/10 !border-salve-lav/20 cursor-pointer transition-all" onClick={() => setExpandedId(isExpanded ? null : e.id)}>
+            <Card key={e.id} id={`record-${e.id}`} className={`!bg-salve-lav/10 !border-salve-lav/20 cursor-pointer transition-all${highlightId === e.id ? ' highlight-ring' : ''}`} onClick={() => setExpandedId(isExpanded ? null : e.id)}>
               <div className="flex justify-between items-start mb-0.5">
                 <div className="flex-1 min-w-0">
                   <span className="font-playfair text-sm font-medium text-salve-text">{e.title || fmtDate(e.date)}</span>
@@ -118,7 +125,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
               {!isExpanded && e.content && (
                 <div className="text-[13px] text-salve-textMid leading-relaxed line-clamp-2">{e.content}</div>
               )}
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-1.5 pt-1.5 border-t border-salve-lav/15" onClick={ev => ev.stopPropagation()}>
                   <div className="text-[13px] text-salve-textMid leading-relaxed">{e.content}</div>
                   {e.tags && (
@@ -133,7 +140,7 @@ export default function Journal({ data, addItem, updateItem, removeItem }) {
                     <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1">Delete</button>
                   </div>
                 </div>
-              )}
+              </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} itemId={e.id} />
           </Card>
           );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, Scale, FileText, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -25,7 +25,7 @@ const statusStyle = (s) => {
   return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)' };
 };
 
-export default function Appeals({ data, addItem, updateItem, removeItem }) {
+export default function Appeals({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -36,6 +36,13 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && (data.appeals_and_disputes || []).some(a => a.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const draftLetter = async (appeal) => {
     setDraftLoading(appeal.id);
@@ -99,7 +106,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
           const ss = statusStyle(a.status);
           const isExpanded = expandedId === a.id;
           return (
-            <Card key={a.id} onClick={() => setExpandedId(isExpanded ? null : a.id)} className="cursor-pointer transition-all">
+            <Card key={a.id} id={`record-${a.id}`} onClick={() => setExpandedId(isExpanded ? null : a.id)} className={`cursor-pointer transition-all${highlightId === a.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -111,7 +118,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   <div className="text-xs text-salve-textFaint">
                     {a.date_filed ? `Filed: ${fmtDate(a.date_filed)}` : ''}
@@ -147,7 +154,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem }) {
                     <button onClick={() => del.ask(a.id, a.subject)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>
-              )}
+              </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appeals_and_disputes', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
           );

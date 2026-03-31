@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, AlertTriangle, Sparkles, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -32,7 +32,7 @@ const urgencyStyle = (u) => {
 
 const URGENCY_ORDER = ['urgent', 'needs prompt attention', 'worth raising at next appointment', 'routine', 'completed', ''];
 
-export default function CareGaps({ data, addItem, updateItem, removeItem }) {
+export default function CareGaps({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -42,6 +42,13 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && (data.care_gaps || []).some(g => g.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const suggestGaps = async () => {
     setAiLoading(true);
@@ -139,7 +146,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
           const us = urgencyStyle(g.urgency);
           const isExpanded = expandedId === g.id;
           return (
-            <Card key={g.id} style={{ borderLeft: `3px solid ${us.border}` }} onClick={() => setExpandedId(isExpanded ? null : g.id)} className="cursor-pointer transition-all">
+            <Card key={g.id} id={`record-${g.id}`} style={{ borderLeft: `3px solid ${us.border}` }} onClick={() => setExpandedId(isExpanded ? null : g.id)} className={`cursor-pointer transition-all${highlightId === g.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -150,7 +157,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {g.category && <div className="text-xs text-salve-textFaint">{g.category}</div>}
                   {g.last_done && <div className="text-xs text-salve-textFaint">Last done: {g.last_done}</div>}
@@ -160,7 +167,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem }) {
                     <button onClick={() => del.ask(g.id, g.item)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>
-              )}
+              </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('care_gaps', id))} onCancel={del.cancel} itemId={g.id} />
           </Card>
           );

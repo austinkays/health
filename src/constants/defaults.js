@@ -12,7 +12,7 @@ export const EMPTY_CONDITION = {
 };
 
 export const EMPTY_ALLERGY = {
-  substance: '', reaction: '', severity: 'moderate', notes: '',
+  substance: '', reaction: '', severity: 'moderate', type: '', notes: '',
 };
 
 export const EMPTY_PROVIDER = {
@@ -33,7 +33,7 @@ export const EMPTY_PHARMACY = {
 
 export const EMPTY_APPOINTMENT = {
   date: '', time: '', provider: '', location: '',
-  reason: '', questions: '', post_notes: '',
+  reason: '', questions: '', post_notes: '', video_call_url: '',
 };
 
 export const EMPTY_JOURNAL = {

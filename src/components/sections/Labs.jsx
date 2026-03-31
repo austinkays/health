@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -27,7 +27,7 @@ const flagColor = (flag) => {
   return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)', label: flag };
 };
 
-export default function Labs({ data, addItem, updateItem, removeItem }) {
+export default function Labs({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -38,6 +38,13 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && data.labs.some(l => l.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const explainLab = async (lab) => {
     if (interpretLoading) return;
@@ -115,7 +122,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
           const isExpanded = expandedId === l.id;
           const refRange = findLabRange(l.test_name);
           return (
-            <Card key={l.id} onClick={() => setExpandedId(isExpanded ? null : l.id)} className="cursor-pointer transition-all">
+            <Card key={l.id} id={`record-${l.id}`} onClick={() => setExpandedId(isExpanded ? null : l.id)} className={`cursor-pointer transition-all${highlightId === l.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -130,7 +137,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? <>{' · '}<a href={providerLookupUrl(l.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{l.provider}</a></> : ''}</div>}
                   {l.range && <div className="text-xs text-salve-textFaint">Reference: {l.range}</div>}
@@ -167,7 +174,7 @@ export default function Labs({ data, addItem, updateItem, removeItem }) {
                     <button onClick={() => del.ask(l.id, l.test_name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>
-              )}
+              </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />
           </Card>
           );

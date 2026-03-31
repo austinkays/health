@@ -3,7 +3,7 @@ import {
   Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
-  Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList,
+  Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -112,6 +112,16 @@ export default function Dashboard({ data, interactions, onNav }) {
     () => (data.labs || []).filter(l => ['abnormal', 'high', 'low'].includes(l.flag)),
     [data.labs]
   );
+
+  /* Appointments within 48 hours for prep nudge */
+  const prepAppts = useMemo(() => {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+    return data.appts.filter(a => {
+      const d = new Date(a.date + (a.time ? `T${a.time}` : ''));
+      return d >= now && d <= cutoff;
+    });
+  }, [data.appts]);
 
   /* ── AI Insight ─────────────────────────────── */
   const loadInsight = async () => {
@@ -226,6 +236,28 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
+      {/* ── Appointment Prep Nudge (within 48 hrs) ──── */}
+      {prepAppts.length > 0 && (
+        <section aria-label="Upcoming appointment prep" className="dash-stagger dash-stagger-3 mb-2">
+          {prepAppts.map(a => (
+            <Card key={a.id} className="!bg-salve-rose/5 !border-salve-rose/20 cursor-pointer" onClick={() => onNav('appts', { highlightId: a.id })}>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 w-8 h-8 rounded-full bg-salve-rose/15 flex items-center justify-center flex-shrink-0">
+                  <Calendar size={14} color={C.rose} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[11px] font-semibold text-salve-rose tracking-wide mb-0.5">PREPARE FOR YOUR VISIT</div>
+                  <div className="text-[13px] font-medium text-salve-text truncate">{a.reason || 'Appointment'}{a.provider ? ` with ${a.provider}` : ''}</div>
+                  <div className="text-[11px] text-salve-textFaint mt-0.5">{daysUntil(a.date)}{a.time ? ` at ${a.time}` : ''}{a.location ? ` · ${a.location}` : ''}</div>
+                  {!a.questions && <div className="text-[11px] text-salve-rose/80 mt-1 italic">Tap to add questions for your provider</div>}
+                </div>
+                <ChevronRight size={14} className="text-salve-rose/50 mt-2 flex-shrink-0" />
+              </div>
+            </Card>
+          ))}
+        </section>
+      )}
+
       {/* ── Coming Up (unified timeline) ──────────── */}
       {timeline.length > 0 && (
         <section aria-label="Coming up" className="dash-stagger dash-stagger-3 mb-2">
@@ -277,6 +309,17 @@ export default function Dashboard({ data, interactions, onNav }) {
       )}
 
       <Divider />
+
+      {/* ── Search Bar ───────────────────────────── */}
+      <section aria-label="Search" className="dash-stagger dash-stagger-5 mb-3">
+        <button
+          onClick={() => onNav('search')}
+          className="w-full flex items-center gap-3 bg-salve-card2 border border-salve-border rounded-xl py-3 px-4 cursor-pointer tile-magic text-left"
+        >
+          <Search size={15} className="text-salve-textFaint flex-shrink-0" />
+          <span className="text-[13px] text-salve-textFaint font-montserrat font-light">Search medications, providers, labs…</span>
+        </button>
+      </section>
 
       {/* ── Quick Access (6 primary + expandable) ── */}
       <section aria-label="Quick access" className="dash-stagger dash-stagger-5">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, BadgeDollarSign, ChevronDown, Phone } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -20,13 +20,20 @@ const typeStyle = (t) => {
   return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)' };
 };
 
-export default function Insurance({ data, addItem, updateItem, removeItem }) {
+export default function Insurance({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && data.insurance.some(i => i.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async () => {
     if (!form.name.trim()) return;
@@ -64,7 +71,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
           const ts = ins.type ? typeStyle(ins.type) : null;
           const isExpanded = expandedId === ins.id;
           return (
-            <Card key={ins.id} onClick={() => setExpandedId(isExpanded ? null : ins.id)} className="cursor-pointer transition-all">
+            <Card key={ins.id} id={`record-${ins.id}`} onClick={() => setExpandedId(isExpanded ? null : ins.id)} className={`cursor-pointer transition-all${highlightId === ins.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -75,7 +82,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {ins.member_id && <div className="text-xs text-salve-textMid">Member ID: {ins.member_id}</div>}
                   {ins.group && <div className="text-xs text-salve-textFaint">Group: {ins.group}</div>}
@@ -91,6 +98,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem }) {
                     <button onClick={() => del.ask(ins.id, ins.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>
+              </div></div>
               )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('insurance', id))} onCancel={del.cancel} itemId={ins.id} />
           </Card>

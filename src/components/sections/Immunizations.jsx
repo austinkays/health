@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, ShieldCheck, Sparkles, Loader, ChevronDown, MapPin, User, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -17,7 +17,7 @@ import { mapsUrl } from '../../utils/maps';
 
 const EMPTY = { date: '', name: '', dose: '', site: '', lot_number: '', provider: '', location: '' };
 
-export default function Immunizations({ data, addItem, updateItem, removeItem }) {
+export default function Immunizations({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
@@ -26,6 +26,13 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && data.immunizations.some(i => i.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const reviewSchedule = async () => {
     setScheduleLoading(true);
@@ -97,7 +104,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
         data.immunizations.map(imm => {
           const isExpanded = expandedId === imm.id;
           return (
-          <Card key={imm.id} onClick={() => setExpandedId(isExpanded ? null : imm.id)} className="cursor-pointer transition-all">
+          <Card key={imm.id} id={`record-${imm.id}`} onClick={() => setExpandedId(isExpanded ? null : imm.id)} className={`cursor-pointer transition-all${highlightId === imm.id ? ' highlight-ring' : ''}`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <a href={cdcVaccineUrl(imm.name)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{imm.name}</a>
@@ -107,7 +114,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
               </div>
               <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
-            {isExpanded && (
+            <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                 {imm.location && (
                   <div className="text-xs text-salve-textFaint flex items-center gap-1">
@@ -128,7 +135,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem })
                   <button onClick={() => del.ask(imm.id, imm.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                 </div>
               </div>
-            )}
+            </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('immunizations', id))} onCancel={del.cancel} itemId={imm.id} />
           </Card>
           );

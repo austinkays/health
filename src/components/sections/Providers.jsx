@@ -12,11 +12,19 @@ import { searchProviders } from '../../services/npi';
 import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl } from '../../utils/links';
 
-export default function Providers({ data, addItem, updateItem, removeItem }) {
+export default function Providers({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_PROVIDER);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+
+  useEffect(() => {
+    if (highlightId && data.providers.some(p => p.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const [npiResults, setNpiResults] = useState([]);
   const [npiLoading, setNpiLoading] = useState(false);
   const [npiError, setNpiError] = useState(null);
@@ -158,7 +166,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
           const prescribedMeds = medsPerProvider[p.id] || [];
           const treatedConditions = conditionsPerProvider[p.id] || [];
           return (
-          <Card key={p.id} onClick={() => setExpandedId(isExpanded ? null : p.id)} className="cursor-pointer transition-all">
+          <Card key={p.id} id={`record-${p.id}`} onClick={() => setExpandedId(isExpanded ? null : p.id)} className={`cursor-pointer transition-all${highlightId === p.id ? ' highlight-ring' : ''}`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text">{p.name}</div>
@@ -181,7 +189,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
               </div>
               <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
-            {isExpanded && (
+            <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                 {p.clinic && <div className="text-xs text-salve-textMid mb-0.5">{p.clinic}</div>}
                 {p.address && (
@@ -246,7 +254,7 @@ export default function Providers({ data, addItem, updateItem, removeItem }) {
                   <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                 </div>
               </div>
-            )}
+            </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('providers', id))} onCancel={del.cancel} itemId={p.id} />
           </Card>
           );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, Syringe, ChevronDown, MapPin, User } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -22,13 +22,20 @@ const typeColor = (t) => {
   return { color: C.sage, bg: 'rgba(143,191,160,0.15)' };
 };
 
-export default function Procedures({ data, addItem, updateItem, removeItem }) {
+export default function Procedures({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && data.procedures.some(p => p.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const save = async () => {
     if (!form.name.trim()) return;
@@ -68,7 +75,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
           const tc = p.type ? typeColor(p.type) : null;
           const isExpanded = expandedId === p.id;
           return (
-            <Card key={p.id} onClick={() => setExpandedId(isExpanded ? null : p.id)} className="cursor-pointer transition-all">
+            <Card key={p.id} id={`record-${p.id}`} onClick={() => setExpandedId(isExpanded ? null : p.id)} className={`cursor-pointer transition-all${highlightId === p.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="text-[15px] font-semibold text-salve-text mb-0.5">{p.name}</div>
@@ -77,7 +84,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {p.location && (
                     <div className="text-xs text-salve-textFaint flex items-center gap-1">
@@ -99,7 +106,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem }) {
                     <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   </div>
                 </div>
-              )}
+              </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('procedures', id))} onCancel={del.cancel} itemId={p.id} />
           </Card>
           );

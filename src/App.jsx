@@ -10,6 +10,7 @@ import useHealthData from './hooks/useHealthData';
 import { checkInteractions } from './utils/interactions';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import { ToastProvider, useToast } from './components/ui/Toast';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -50,18 +51,46 @@ const SurgicalPlanning = lazyWithRetry(() => import('./components/sections/Surgi
 const Insurance = lazyWithRetry(() => import('./components/sections/Insurance'));
 const Pharmacies = lazyWithRetry(() => import('./components/sections/Pharmacies'));
 const HealthSummary = lazyWithRetry(() => import('./components/sections/HealthSummary'));
+const Search = lazyWithRetry(() => import('./components/sections/Search'));
 
 export default function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
+}
+
+function AppContent() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
   const [tab, setTab] = useState('dash');
+  const [highlightId, setHighlightId] = useState(null);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
+  const showToast = useToast();
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
-  const onNav = (t) => {
+  // CRUD wrappers that show toast confirmations
+  const addItemT = async (table, item) => {
+    const result = await addItem(table, item);
+    showToast('Saved ✓');
+    return result;
+  };
+  const updateItemT = async (table, id, changes) => {
+    const result = await updateItem(table, id, changes);
+    showToast('Updated ✓');
+    return result;
+  };
+  const removeItemT = async (table, id) => {
+    await removeItem(table, id);
+    showToast('Deleted');
+  };
+
+  const onNav = (t, opts) => {
     setTab(t);
+    setHighlightId(opts?.highlightId || null);
     window.scrollTo(0, 0);
   };
 
@@ -162,7 +191,7 @@ export default function App() {
   }
 
   const renderSection = () => {
-    const shared = { data, addItem, updateItem, removeItem };
+    const shared = { data, addItem: addItemT, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
       case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
@@ -174,7 +203,7 @@ export default function App() {
       case 'journal':     return <Journal {...shared} />;
       case 'ai':          return <AIPanel data={data} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
-      case 'settings':    return <Settings data={data} updateSettings={updateSettings} eraseAll={eraseAll} reloadData={reloadData} />;
+      case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} eraseAll={eraseAll} reloadData={reloadData} />;
       // Comprehensive sections
       case 'labs':        return <Labs {...shared} />;
       case 'procedures':  return <Procedures {...shared} />;
@@ -186,6 +215,7 @@ export default function App() {
       case 'insurance':   return <Insurance {...shared} />;
       case 'pharmacies': return <Pharmacies {...shared} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
+      case 'search':     return <Search data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
     }
   };
@@ -193,7 +223,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-salve-bg">
       <div className="max-w-[480px] mx-auto pb-24 relative">
-        <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} />
+        <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} onSearch={() => onNav('search')} />
         <main className="px-4">
           <ErrorBoundary onReset={() => onNav('dash')}>
             <Suspense fallback={

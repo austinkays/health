@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink, FlaskConical } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,7 +11,7 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { EMPTY_CONDITION } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { medlinePlusUrl, providerLookupUrl } from '../../utils/links';
+import { medlinePlusUrl, providerLookupUrl, clinicalTrialsUrl } from '../../utils/links';
 
 const STATUS_COLORS = {
   active: { c: C.rose, bg: 'rgba(232,138,154,0.15)', label: '⚠ Active' },
@@ -20,7 +20,7 @@ const STATUS_COLORS = {
   resolved: { c: C.textFaint, bg: 'rgba(110,106,128,0.15)', label: '✓ Resolved' },
 };
 
-export default function Conditions({ data, addItem, updateItem, removeItem }) {
+export default function Conditions({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_CONDITION);
   const [editId, setEditId] = useState(null);
@@ -28,6 +28,13 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId && data.conditions.some(c => c.id === highlightId)) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── Cross-reference: count active meds related to each condition ── */
   const medsByCondition = useMemo(() => {
@@ -120,7 +127,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
           const isExpanded = expandedId === c.id;
           const relatedMeds = medsByCondition[c.id] || [];
           return (
-            <Card key={c.id} onClick={() => setExpandedId(isExpanded ? null : c.id)} className="cursor-pointer transition-all">
+            <Card key={c.id} id={`record-${c.id}`} onClick={() => setExpandedId(isExpanded ? null : c.id)} className={`cursor-pointer transition-all${highlightId === c.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -141,7 +148,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              {isExpanded && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                   {c.diagnosed_date && <div className="text-xs text-salve-textMid">Diagnosed: {fmtDate(c.diagnosed_date)}</div>}
                   {c.provider && <div className="text-xs text-salve-textMid flex items-center gap-1">Provider: <a href={providerLookupUrl(c.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{c.provider}</a></div>}
@@ -161,12 +168,17 @@ export default function Conditions({ data, addItem, updateItem, removeItem }) {
                     </div>
                   )}
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
-                  <div className="flex gap-2.5 mt-2.5">
+                  <div className="flex gap-2.5 mt-2.5 flex-wrap">
                     <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} aria-label="Edit condition" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(c.id, c.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                    {clinicalTrialsUrl(c.name, data.settings?.location) && (
+                      <a href={clinicalTrialsUrl(c.name, data.settings?.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
+                        <FlaskConical size={12} /> Find Trials
+                      </a>
+                    )}
                   </div>
                 </div>
-              )}
+              </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('conditions', id))} onCancel={del.cancel} itemId={c.id} />
           </Card>
           );

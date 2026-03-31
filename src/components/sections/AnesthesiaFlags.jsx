@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, AlertOctagon } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -11,12 +11,18 @@ import { C } from '../../constants/colors';
 
 const EMPTY = { condition: '', implication: '', action_required: '' };
 
-export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem }) {
+export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId) {
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]);
 
   const save = async () => {
     if (!form.condition.trim()) return;
@@ -64,7 +70,7 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem 
         <EmptyState icon={AlertOctagon} text="No anesthesia flags recorded" motif="leaf" />
       ) : (
         flags.map(flag => (
-          <Card key={flag.id} style={{ borderLeft: `3px solid ${C.rose}` }}>
+          <Card key={flag.id} id={`record-${flag.id}`} style={{ borderLeft: `3px solid ${C.rose}` }} className={highlightId === flag.id ? 'highlight-ring' : ''}>
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <div className="text-[15px] font-bold mb-1" style={{ color: C.rose }}>

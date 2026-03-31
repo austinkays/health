@@ -140,6 +140,20 @@
   transform: translateY(0);
 }
 
+/* Search result deep-link highlight pulse */
+.highlight-ring {
+  animation: highlight-pulse 1.5s ease-out;
+}
+@keyframes highlight-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(184, 169, 232, 0.4); }
+  40%  { box-shadow: 0 0 0 4px rgba(184, 169, 232, 0.2); }
+  100% { box-shadow: none; }
+}
+
+/* Hide scrollbar for filter pill rows */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Button hover shimmer overlay */
 .btn-magic {
   position: relative;
@@ -296,21 +310,31 @@
   box-shadow: 0 0 20px rgba(184, 169, 232, 0.06), inset 0 1px 0 rgba(184, 169, 232, 0.08);
 }
 
+/* Toast enter animation */
+@keyframes toastSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.toast-enter {
+  animation: toastSlideUp 0.3s ease-out;
+}
+
 /* Section enter animation (for non-dashboard pages) */
 .section-enter {
   animation: fadeSlideUp 0.35s ease-out;
 }
 
-/* Accordion expand/collapse */
-.accordion-content {
-  overflow: hidden;
-  transition: max-height 0.35s ease, opacity 0.25s ease;
+/* Accordion expand/collapse — uses grid for smooth auto-height */
+.expand-section {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.2s ease;
 }
-.accordion-open {
-  max-height: 2000px;
+.expand-section.open {
+  grid-template-rows: 1fr;
   opacity: 1;
 }
-.accordion-closed {
-  max-height: 0;
-  opacity: 0;
+.expand-section > div {
+  overflow: hidden;
 }

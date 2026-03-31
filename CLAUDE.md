@@ -1,4 +1,4 @@
-# Salve - Health Companion App
+W# Salve - Health Companion App
 
 ## Project Overview
 
@@ -62,11 +62,13 @@ health/
 │       ├── 005_api_enrichment_columns.sql  # Add rxcui to meds, npi+address to providers
 │       ├── 006_display_name.sql              # Add display_name to medications
 │       ├── 007_fda_enrichment.sql            # Add fda_data JSONB to medications for OpenFDA label cache
-│       └── 008_pharmacies_table.sql          # Pharmacies table with preferred flag, hours, website
+│       ├── 008_pharmacies_table.sql          # Pharmacies table with preferred flag, hours, website
+│       ├── 009_allergy_type.sql               # Add type column to allergies (medication/food/environmental/etc)
+│       └── 010_appointment_video_url.sql      # Add video_call_url to appointments for telehealth
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
-│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter animations
+│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter animations, highlightId deep-link state, onNav(tab, opts) extended navigation, ToastProvider wrapper, toast-wrapped CRUD
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
@@ -102,18 +104,20 @@ health/
 │   │   │   ├── AIConsentGate.jsx  # AI data-sharing consent gate + hasAIConsent/revokeAIConsent
 │   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown, auto-linkifies bare URLs)
 │   │   │   ├── AIProfilePreview.jsx # "What AI Sees" pill button + full-screen slide-up panel
-│   │   │   └── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
+│   │   │   ├── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
+│   │   │   └── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook)
 │   │   ├── layout/
-│   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button
+│   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
-│   │   └── sections/             # One file per app section (20 total)
-│   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, unified timeline, 6+More quick access
-│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter
+│   │   └── sections/             # One file per app section (21 total)
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, appointment prep nudge (48hr), unified timeline, tappable search bar, 6+More quick access
+│   │       ├── Search.jsx        # Global search: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter + GoodRx price links
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
-│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications
+│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
-│   │       ├── Allergies.jsx     # Allergy list + add/edit
-│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links + provider picker + auto-fill location + provider phone quick-link
+│   │       ├── Allergies.jsx     # Allergy list + add/edit + type categorization (medication/food/environmental/etc)
+│   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links + provider picker + auto-fill location + provider phone quick-link + video call links + Google Calendar links
 │   │       ├── Journal.jsx       # Health journal entries + add/edit
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
@@ -126,11 +130,13 @@ health/
 │   │       ├── Appeals.jsx       # Insurance appeals & disputes
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits
+│   │       ├── HealthSummary.jsx  # Full health profile summary view
 │   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
 │       ├── interactions.js       # checkInteractions() logic
+│       ├── links.js              # URL generators: dailyMedUrl, medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl, googleCalendarUrl, goodRxUrl, clinicalTrialsUrl
 │       └── maps.js               # mapsUrl(address) → Google Maps search URL
 ```
 
@@ -146,10 +152,10 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 │ `pharmacies` | name, address, phone, fax, hours, website, is_preferred, notes | Preferred pharmacy badge; cross-linked with medications |
 | `medications` | name, display_name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui, fda_data | rxcui links to RxNorm drug database; display_name is optional user-friendly casual name; fda_data (JSONB) stores OpenFDA label info (auto-populated on RxCUI link); pharmacy links to pharmacies table by name |
 | `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
-| `allergies` | substance, reaction, severity (mild/moderate/severe), notes | |
+| `allergies` | substance, reaction, severity (mild/moderate/severe), type (medication/food/environmental/latex/dye/insect/other), notes | |
 | `providers` | name, specialty, clinic, phone, fax, portal_url, notes, npi, address | npi links to NPPES registry; address enables maps |
 | `vitals` | date, type (pain/mood/energy/sleep/bp/hr/weight/temp/glucose), value, value2, unit, notes | |
-| `appointments` | date, time, provider, location, reason, questions, post_notes | |
+| `appointments` | date, time, provider, location, reason, questions, post_notes, video_call_url | |
 | `journal_entries` | date, title, mood, severity, content, tags | |
 | `ai_conversations` | title, messages (JSONB) | |
 
@@ -174,7 +180,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 20 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 21 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -342,10 +348,13 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - "made with love for my best friend & soulmate" tagline above bottom nav — scroll-reveal (hidden until user scrolls to bottom, transparent background, 500ms fade-in transition)
 - Magical UI effects: card hover lift + lavender glow, button shimmer sweep, quick-access tile rotating conic gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade-slide-up animations
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
-- Dashboard sections: contextual greeting → consolidated alerts → AI insight → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
+- Dashboard sections: contextual greeting → consolidated alerts → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
 - Quick Access primary 6: Conditions, Providers, Allergies, Appointments, Labs, Insurance; "More" expander reveals 8 additional sections
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
-- All section views (19 total) have a back arrow in the header that returns to Dashboard
+- All section views have a back arrow in the header that returns to Dashboard
+- **Global Search:** Header magnifying glass icon (visible on all pages) + tappable faux-input bar on Dashboard open the Search view
+- **Deep-link navigation:** `onNav(tab, { highlightId })` navigates to a section AND auto-expands + scrolls to a specific record; used by Search results. All 15 expandable sections support `highlightId` prop (expand + scrollIntoView + lavender pulse animation). Appointments and AnesthesiaFlags support scroll-only deep-link (no expandable cards).
+- **highlight-ring animation:** `highlight-pulse` keyframes in `index.css` — 1.5s lavender box-shadow pulse applied to deep-linked cards
 - Staggered entrance animations on Dashboard cards (`dash-stagger` CSS classes)
 - `ErrorBoundary` wraps all section renders — crashes show friendly fallback, not white screen
 
@@ -413,6 +422,20 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] localStorage cache (`hc:cache`) is encrypted (not readable plaintext JSON)
 - [ ] ErrorBoundary catches section crashes and shows fallback with Go Home button
 - [ ] No console errors in production build
+
+### Global Search & Deep-Link Tests
+- [ ] Search: Header magnifying glass icon opens Search view from any page
+- [ ] Search: Dashboard tappable search bar opens Search view
+- [ ] Search: Input auto-focuses on open
+- [ ] Search: Results appear after typing 2+ characters with 150ms debounce
+- [ ] Search: All 16 entity types are searchable
+- [ ] Search: Filter pills narrow results to selected entity type
+- [ ] Search: Match text is highlighted in results
+- [ ] Search: Tapping a result navigates to the section AND expands + scrolls to the specific record
+- [ ] Search: Deep-linked card shows lavender pulse animation (highlight-ring)
+- [ ] Search: Back button from deep-linked section returns to previous view
+- [ ] Search: Empty query shows placeholder with searchable categories
+- [ ] Search: No results shows empty state message
 
 ### Pharmacy & QoL Cross-Reference Tests
 - [ ] Pharmacies: CRUD works (add, edit, delete with confirmation)

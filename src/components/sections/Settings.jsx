@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -8,11 +8,13 @@ import { exportAll, validateImport, importRestore, importMerge, encryptExport, d
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import AIProfilePreview from '../ui/AIProfilePreview';
 
-export default function Settings({ data, updateSettings, eraseAll, reloadData }) {
+export default function Settings({ data, updateSettings, updateItem, eraseAll, reloadData }) {
   const s = data.settings;
+  const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
+  const [dataExpanded, setDataExpanded] = useState(false);
 
   // Import state
   const [importFile, setImportFile] = useState(null);
@@ -25,6 +27,25 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
   const [exportError, setExportError] = useState(null);
   const [importPassphrase, setImportPassphrase] = useState('');
   const fileInputRef = useRef(null);
+
+  const preferredPharmacy = pharmacies.find(p => p.is_preferred);
+
+  async function handlePreferredChange(pharmacyId) {
+    // Unset the current preferred
+    if (preferredPharmacy) {
+      await updateItem('pharmacies', preferredPharmacy.id, { is_preferred: false });
+    }
+    // Set new preferred (if not "none")
+    if (pharmacyId) {
+      const selected = pharmacies.find(p => p.id === pharmacyId);
+      if (selected) {
+        await updateItem('pharmacies', selected.id, { is_preferred: true });
+        set('pharmacy', selected.name + (selected.address ? ` — ${selected.address}` : ''));
+      }
+    } else {
+      set('pharmacy', '');
+    }
+  }
 
   function handleFileSelect(e) {
     const file = e.target.files?.[0];
@@ -205,7 +226,36 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
 
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>
-        <Field label="Preferred Pharmacy" value={s.pharmacy || ''} onChange={v => set('pharmacy', v)} placeholder="Name & location" />
+        {pharmacies.length > 0 ? (
+          <>
+            <label className="block text-xs font-medium text-salve-textMid mb-1.5 font-montserrat">Preferred Pharmacy</label>
+            <div className="relative">
+              <select
+                value={preferredPharmacy?.id || ''}
+                onChange={e => handlePreferredChange(e.target.value || null)}
+                className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2.5 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav appearance-none cursor-pointer pr-8"
+              >
+                <option value="">No preferred pharmacy</option>
+                {pharmacies.sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.is_preferred ? '★ ' : ''}{p.name}{p.address ? ` — ${p.address}` : ''}
+                  </option>
+                ))}
+              </select>
+              <Star size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${preferredPharmacy ? 'text-salve-amber' : 'text-salve-textFaint'}`} />
+            </div>
+            {preferredPharmacy && (
+              <p className="text-xs text-salve-sage mt-2 flex items-center gap-1">
+                <Star size={10} className="fill-salve-amber text-salve-amber" />
+                {preferredPharmacy.name} is your preferred pharmacy
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-[13px] text-salve-textFaint italic leading-relaxed">
+            No pharmacies added yet. Add pharmacies in the Pharmacies section to pick a preferred one here.
+          </p>
+        )}
       </Card>
 
       <SectionTitle>Insurance</SectionTitle>
@@ -230,209 +280,256 @@ export default function Settings({ data, updateSettings, eraseAll, reloadData })
         />
       </Card>
 
-      <SectionTitle>Data</SectionTitle>
-      <Card>
-        <p className="text-[13px] text-salve-textMid mb-3.5 leading-relaxed">
-          All data is synced to your account and available across devices.
-        </p>
-        {showEraseConfirm ? (
-          <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
-            <p className="text-[13px] text-salve-rose font-medium mb-2.5">
-              Permanently erase ALL health data? This cannot be undone.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="danger" onClick={eraseAll} className="text-xs">
-                <Trash2 size={14} /> Yes, Erase Everything
-              </Button>
-              <Button variant="ghost" onClick={() => setShowEraseConfirm(false)} className="text-xs">
-                Cancel
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <Button variant="danger" onClick={() => setShowEraseConfirm(true)} className="text-xs">
-            <Trash2 size={14} /> Erase All Data
-          </Button>
-        )}
-      </Card>
-
-      <SectionTitle>Import Data</SectionTitle>
-      <Card>
-        <p className="text-[13px] text-salve-textMid mb-3.5 leading-relaxed">
-          Upload a backup file or a health sync file.
-        </p>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleFileSelect}
-          className="block w-full text-sm text-salve-textMid
-            file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
-            file:text-sm file:font-medium file:bg-salve-card2 file:text-salve-lav
-            file:cursor-pointer hover:file:bg-salve-border cursor-pointer"
-        />
-
-        {importError && (
-          <div className="mt-3 p-3 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-sm">
-            {importError}
-          </div>
-        )}
-
-        {importValidation && importValidation.encrypted && (
-          <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
-            <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-2 block">Encrypted Backup</span>
-            <p className="text-[13px] text-salve-textMid mb-3">Enter the passphrase to decrypt this backup file.</p>
-            <input
-              type="password"
-              value={importPassphrase}
-              onChange={e => setImportPassphrase(e.target.value)}
-              placeholder="Passphrase"
-              className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-3"
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={async () => {
-                  if (!importPassphrase) { setImportError('Passphrase is required.'); return; }
-                  setImportError(null);
-                  try {
-                    const decrypted = await decryptExport(importData, importPassphrase);
-                    const validation = validateImport(decrypted);
-                    if (!validation.valid) { setImportError(validation.error); return; }
-                    setImportData(decrypted);
-                    setImportValidation(validation);
-                    setImportPassphrase('');
-                  } catch {
-                    setImportError('Incorrect passphrase or corrupted file.');
-                  }
-                }}
-                className="flex-1 py-2.5 rounded-lg font-medium text-sm bg-salve-lav/20 text-salve-lav hover:bg-salve-lav/30 transition-colors"
-              >
-                Decrypt
-              </button>
-              <button onClick={cancelImport} className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors">
-                Cancel
-              </button>
-            </div>
-          </div>
-        )}
-
-        {importValidation && !importValidation.encrypted && (
-          <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint">
-                {importValidation.mode === 'merge' ? 'Sync Preview' : 'Restore Preview'}
-              </span>
-              <span className={`text-xs px-2 py-0.5 rounded-md ${
-                importValidation.mode === 'merge'
-                  ? 'bg-salve-sage/20 text-salve-sage'
-                  : 'bg-salve-amber/20 text-salve-amber'
-              }`}>
-                {importValidation.mode === 'merge' ? 'Add new only' : 'Full overwrite'}
-              </span>
-            </div>
-
-            <div className="space-y-1.5">
-              {Object.entries(importValidation.preview).map(([key, count]) => (
-                <div key={key} className="flex justify-between text-sm">
-                  <span className="text-salve-textMid capitalize">{key}</span>
-                  <span className="text-salve-text">{count}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 flex gap-3">
-              <button
-                onClick={executeImport}
-                disabled={importing}
-                className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
-                  importValidation.mode === 'merge'
-                    ? 'bg-salve-sage/20 text-salve-sage hover:bg-salve-sage/30'
-                    : 'bg-salve-amber/20 text-salve-amber hover:bg-salve-amber/30'
-                } disabled:opacity-50`}
-              >
-                <Upload size={14} />
-                {importing ? 'Importing...' : importValidation.mode === 'merge' ? 'Merge New Records' : 'Restore All Data'}
-              </button>
-              <button
-                onClick={cancelImport}
-                className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {importValidation.mode === 'restore' && (
-              <p className="mt-3 text-xs text-salve-rose/80 leading-relaxed">
-                This will replace all current data. Any records not in this file will be lost.
-              </p>
-            )}
-          </div>
-        )}
-
-        {importResult && (
-          <div className="mt-3 p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm">
-            {importResult}
-          </div>
-        )}
-      </Card>
-
-      <SectionTitle>Download Backup</SectionTitle>
-      <Card>
-        <p className="text-[13px] text-salve-textMid mb-3.5 leading-relaxed">
-          Save all your health data as a JSON file. Use this to restore later or transfer to another device.
-        </p>
-        <button
-          onClick={handleExport}
-          className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm
-            hover:bg-salve-border transition-colors flex items-center justify-center gap-2"
-        >
-          <Download size={16} />
-          Download Backup
-        </button>
-
-        <div className="mt-4 pt-4 border-t border-salve-border">
-          <p className="text-[13px] text-salve-textMid mb-2.5 leading-relaxed">
-            Or download an encrypted backup protected with a passphrase.
-          </p>
-          <input
-            type="password"
-            value={exportPassphrase}
-            onChange={e => { setExportPassphrase(e.target.value); setExportError(null); }}
-            placeholder="Set a passphrase (min 6 chars)"
-            className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-2.5"
-          />
-          {exportError && <p className="text-xs text-salve-rose mb-2">{exportError}</p>}
-          <button
-            onClick={handleEncryptedExport}
-            disabled={!exportPassphrase}
-            className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-sage font-medium text-sm
-              hover:bg-salve-border transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
-          >
-            <Shield size={16} />
-            Download Encrypted Backup
-          </button>
-        </div>
-      </Card>
-
       <SectionTitle>Claude Health Sync</SectionTitle>
       <Card>
-        <p className="text-[13px] text-salve-textMid mb-2 leading-relaxed">
-          Use this artifact in Claude to pull health records from connected providers (via MCP) or import existing health data files.
-        </p>
-        <p className="text-[11px] text-salve-textFaint mb-3.5 leading-relaxed italic">
-          Open Claude → share this file → it becomes an interactive artifact for syncing health data into Salve.
-        </p>
+        <div className="space-y-3 mb-4">
+          <p className="text-[13px] text-salve-text font-medium leading-relaxed">
+            Sync health records from your connected providers directly into Salve using Claude.
+          </p>
+          <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal list-inside">
+            <li>Download the sync artifact below</li>
+            <li>Open <strong className="text-salve-text">Claude.ai</strong> and start a new conversation</li>
+            <li>Attach the downloaded file — it becomes an interactive sync tool</li>
+            <li>Click <strong className="text-salve-text">"Pull Health Records"</strong> to sync from connected providers, or import an existing file</li>
+            <li>Download the sync file, then import it below in <strong className="text-salve-text">Data Management</strong></li>
+          </ol>
+        </div>
         <a
           href="/salve-sync.jsx"
           download="salve-sync.jsx"
-          className="w-full py-3 rounded-xl bg-salve-lav/10 border border-salve-lav/20 text-salve-lav font-medium text-sm
-            hover:bg-salve-lav/20 transition-colors flex items-center justify-center gap-2 no-underline"
+          className="btn-magic btn-magic-lav w-full py-3.5 rounded-xl font-semibold text-sm no-underline
+            bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
+            border border-salve-lav/30 text-salve-lav
+            flex items-center justify-center gap-2.5
+            hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
         >
-          <Sparkles size={16} />
+          <Sparkles size={18} className="animate-pulse" />
           Download Claude Sync Artifact
+          <Sparkles size={14} className="opacity-50" />
         </a>
       </Card>
+
+      <SectionTitle
+        action={
+          <button
+            onClick={() => setDataExpanded(v => !v)}
+            className="flex items-center gap-1 text-xs text-salve-textMid hover:text-salve-lav transition-colors bg-transparent border-none cursor-pointer font-montserrat"
+            aria-expanded={dataExpanded}
+            aria-label={dataExpanded ? 'Collapse data management' : 'Expand data management'}
+          >
+            {dataExpanded ? 'Collapse' : 'Expand'}
+            {dataExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        }
+      >
+        Data Management
+      </SectionTitle>
+
+      {!dataExpanded && (
+        <Card>
+          <button
+            onClick={() => setDataExpanded(true)}
+            className="w-full text-left bg-transparent border-none cursor-pointer p-0 font-montserrat"
+          >
+            <p className="text-[13px] text-salve-textMid leading-relaxed">
+              Backup, restore, import, and erase your data.
+            </p>
+            <p className="text-[11px] text-salve-textFaint mt-1 flex items-center gap-1">
+              Tap to expand <ChevronDown size={12} />
+            </p>
+          </button>
+        </Card>
+      )}
+
+      {dataExpanded && (
+        <Card>
+          {/* ── Download Backup ── */}
+          <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Download Backup</span>
+          <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+            Save all your health data as a JSON file. Use this to restore later or transfer to another device.
+          </p>
+          <button
+            onClick={handleExport}
+            className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm
+              hover:bg-salve-border transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={16} />
+            Download Backup
+          </button>
+
+          <div className="mt-3.5 pt-3.5 border-t border-salve-border/50">
+            <p className="text-[13px] text-salve-textMid mb-2.5 leading-relaxed">
+              Or download an encrypted backup protected with a passphrase.
+            </p>
+            <input
+              type="password"
+              value={exportPassphrase}
+              onChange={e => { setExportPassphrase(e.target.value); setExportError(null); }}
+              placeholder="Set a passphrase (min 6 chars)"
+              className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-2.5"
+            />
+            {exportError && <p className="text-xs text-salve-rose mb-2">{exportError}</p>}
+            <button
+              onClick={handleEncryptedExport}
+              disabled={!exportPassphrase}
+              className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-sage font-medium text-sm
+                hover:bg-salve-border transition-colors flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <Shield size={16} />
+              Download Encrypted Backup
+            </button>
+          </div>
+
+          {/* ── Import Data ── */}
+          <div className="mt-5 pt-5 border-t border-salve-border">
+            <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Import Data</span>
+            <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+              Upload a backup file or a health sync file.
+            </p>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileSelect}
+              className="block w-full text-sm text-salve-textMid
+                file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
+                file:text-sm file:font-medium file:bg-salve-card2 file:text-salve-lav
+                file:cursor-pointer hover:file:bg-salve-border cursor-pointer"
+            />
+
+            {importError && (
+              <div className="mt-3 p-3 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-sm">
+                {importError}
+              </div>
+            )}
+
+            {importValidation && importValidation.encrypted && (
+              <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
+                <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-2 block">Encrypted Backup</span>
+                <p className="text-[13px] text-salve-textMid mb-3">Enter the passphrase to decrypt this backup file.</p>
+                <input
+                  type="password"
+                  value={importPassphrase}
+                  onChange={e => setImportPassphrase(e.target.value)}
+                  placeholder="Passphrase"
+                  className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-3"
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={async () => {
+                      if (!importPassphrase) { setImportError('Passphrase is required.'); return; }
+                      setImportError(null);
+                      try {
+                        const decrypted = await decryptExport(importData, importPassphrase);
+                        const validation = validateImport(decrypted);
+                        if (!validation.valid) { setImportError(validation.error); return; }
+                        setImportData(decrypted);
+                        setImportValidation(validation);
+                        setImportPassphrase('');
+                      } catch {
+                        setImportError('Incorrect passphrase or corrupted file.');
+                      }
+                    }}
+                    className="flex-1 py-2.5 rounded-lg font-medium text-sm bg-salve-lav/20 text-salve-lav hover:bg-salve-lav/30 transition-colors"
+                  >
+                    Decrypt
+                  </button>
+                  <button onClick={cancelImport} className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {importValidation && !importValidation.encrypted && (
+              <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint">
+                    {importValidation.mode === 'merge' ? 'Sync Preview' : 'Restore Preview'}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-md ${
+                    importValidation.mode === 'merge'
+                      ? 'bg-salve-sage/20 text-salve-sage'
+                      : 'bg-salve-amber/20 text-salve-amber'
+                  }`}>
+                    {importValidation.mode === 'merge' ? 'Add new only' : 'Full overwrite'}
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {Object.entries(importValidation.preview).map(([key, count]) => (
+                    <div key={key} className="flex justify-between text-sm">
+                      <span className="text-salve-textMid capitalize">{key}</span>
+                      <span className="text-salve-text">{count}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex gap-3">
+                  <button
+                    onClick={executeImport}
+                    disabled={importing}
+                    className={`flex-1 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2 ${
+                      importValidation.mode === 'merge'
+                        ? 'bg-salve-sage/20 text-salve-sage hover:bg-salve-sage/30'
+                        : 'bg-salve-amber/20 text-salve-amber hover:bg-salve-amber/30'
+                    } disabled:opacity-50`}
+                  >
+                    <Upload size={14} />
+                    {importing ? 'Importing...' : importValidation.mode === 'merge' ? 'Merge New Records' : 'Restore All Data'}
+                  </button>
+                  <button
+                    onClick={cancelImport}
+                    className="px-4 py-2.5 rounded-lg border border-salve-border text-salve-textMid text-sm hover:bg-salve-card2 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                {importValidation.mode === 'restore' && (
+                  <p className="mt-3 text-xs text-salve-rose/80 leading-relaxed">
+                    This will replace all current data. Any records not in this file will be lost.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {importResult && (
+              <div className="mt-3 p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm">
+                {importResult}
+              </div>
+            )}
+          </div>
+
+          {/* ── Erase All Data ── */}
+          <div className="mt-5 pt-5 border-t border-salve-border">
+            <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Danger Zone</span>
+            <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+              All data is synced to your account and available across devices.
+            </p>
+            {showEraseConfirm ? (
+              <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
+                <p className="text-[13px] text-salve-rose font-medium mb-2.5">
+                  Permanently erase ALL health data? This cannot be undone.
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="danger" onClick={eraseAll} className="text-xs">
+                    <Trash2 size={14} /> Yes, Erase Everything
+                  </Button>
+                  <Button variant="ghost" onClick={() => setShowEraseConfirm(false)} className="text-xs">
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button variant="danger" onClick={() => setShowEraseConfirm(true)} className="text-xs">
+                <Trash2 size={14} /> Erase All Data
+              </Button>
+            )}
+          </div>
+        </Card>
+      )}
 
       <div className="text-center py-8">
         <div className="flex items-center justify-center gap-1.5 mb-1.5">

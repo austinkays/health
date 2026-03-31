@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, Building2, Phone, ExternalLink, ChevronDown, MapPin, Star, Pill, Clock, ArrowUpRight } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -12,7 +12,7 @@ import { EMPTY_PHARMACY } from '../../constants/defaults';
 import { mapsUrl } from '../../utils/maps';
 import { C } from '../../constants/colors';
 
-export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
+export default function Pharmacies({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_PHARMACY);
   const [editId, setEditId] = useState(null);
@@ -20,6 +20,13 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
   const [filter, setFilter] = useState('all');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  useEffect(() => {
+    if (highlightId) {
+      setExpandedId(highlightId);
+      setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+    }
+  }, [highlightId]);
 
   /* ── Unified pharmacy list: saved records + discovered from meds ── */
   const { allPharmacies, medsByKey, refillsByKey } = useMemo(() => {
@@ -154,7 +161,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
         const meds = medsByKey[p._key] || [];
         const refills = refillsByKey[p._key] || [];
         return (
-          <Card key={p._key} onClick={() => setExpandedId(isExpanded ? null : p._key)} className="cursor-pointer transition-all">
+          <Card key={p._key} id={`record-${p._key}`} onClick={() => setExpandedId(isExpanded ? null : p._key)} className={`cursor-pointer transition-all${highlightId === p._key ? ' highlight-ring' : ''}`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text flex items-center gap-1.5">
@@ -182,7 +189,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
               </div>
               <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
-            {isExpanded && (
+            <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
               <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
                 {p._saved && p.address && (
                   <div className="text-xs text-salve-textMid flex items-center gap-1 mb-1">
@@ -271,7 +278,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem }) {
                   )}
                 </div>
               </div>
-            )}
+            </div></div>
             {p._saved && <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('pharmacies', id))} onCancel={del.cancel} itemId={p.id} />}
           </Card>
         );
