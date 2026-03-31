@@ -1,10 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert,
+  TrendingUp, ShieldAlert, ArrowRight,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -16,6 +16,15 @@ import { fetchInsight } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
+import { searchEntities, highlightMatch } from '../../utils/search.jsx';
+
+/* ── Rotating placeholder phrases ────────────────────────── */
+const SEARCH_PLACEHOLDERS = [
+  'Search medications, providers, labs\u2026',
+  'Find a doctor or specialist\u2026',
+  'Look up lab results\u2026',
+  'Check conditions & allergies\u2026',
+];
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
@@ -102,6 +111,50 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
   const alertsDismissed = alertDismissal !== null;
+
+  /* ── Search state ───────────────────────────── */
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [searchFocused, setSearchFocused] = useState(false);
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const searchRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  // Debounce search input
+  useEffect(() => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedSearch(searchQuery), 150);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchQuery]);
+
+  // Rotate placeholder text
+  useEffect(() => {
+    if (searchFocused || searchQuery) return;
+    const id = setInterval(() => {
+      setPlaceholderIdx(i => (i + 1) % SEARCH_PLACEHOLDERS.length);
+    }, 3500);
+    return () => clearInterval(id);
+  }, [searchFocused, searchQuery]);
+
+  // Live search results (max 5 on dashboard)
+  const searchResults = useMemo(
+    () => searchEntities(data, debouncedSearch).slice(0, 5),
+    [data, debouncedSearch]
+  );
+  const totalResults = useMemo(
+    () => searchEntities(data, debouncedSearch).length,
+    [data, debouncedSearch]
+  );
+
+  const handleSearchKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') {
+      if (searchQuery) {
+        setSearchQuery('');
+      } else {
+        searchRef.current?.blur();
+      }
+    }
+  }, [searchQuery]);
 
   /* ── Memoized computations ──────────────────── */
   const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
@@ -245,7 +298,7 @@ export default function Dashboard({ data, interactions, onNav }) {
     <div className="mt-1">
 
       {/* ── Contextual Greeting ────────────────── */}
-      <section aria-label="Greeting" className="dash-stagger dash-stagger-1 mb-5">
+      <section aria-label="Greeting" className="dash-stagger dash-stagger-1 mb-4">
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
@@ -259,9 +312,111 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </section>
 
+      {/* ── Centerpiece Search ─────────────────── */}
+      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5">
+        <div className={`search-hero ${searchFocused ? 'search-hero-focused' : ''}`}>
+          <div className="search-hero-inner">
+            <div className="relative flex items-center">
+              {/* Sparkle accent — visible when idle */}
+              {!searchQuery && (
+                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 search-sparkle pointer-events-none z-10">
+                  <Sparkles size={15} color={C.lav} strokeWidth={1.5} />
+                </div>
+              )}
+              {/* Search icon — visible when typing */}
+              {searchQuery && (
+                <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-salve-lav pointer-events-none z-10" />
+              )}
+              <input
+                ref={searchRef}
+                type="text"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={SEARCH_PLACEHOLDERS[placeholderIdx]}
+                aria-label="Search your health data"
+                className="w-full bg-transparent py-3.5 pl-10 pr-10 text-sm text-salve-text placeholder:text-salve-textFaint/70 font-montserrat outline-none relative z-[1]"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { setSearchQuery(''); searchRef.current?.focus(); }}
+                  aria-label="Clear search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 z-10 text-salve-textFaint hover:text-salve-text bg-salve-card2 rounded-full w-5 h-5 flex items-center justify-center border-none cursor-pointer transition-colors"
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+
+            {/* ── Inline Results ──────────────────── */}
+            {debouncedSearch.length >= 2 && searchResults.length > 0 && (
+              <div className="border-t border-salve-border/40 px-2 pt-1.5 pb-2">
+                {searchResults.map((r, i) => {
+                  const Icon = r.config.icon;
+                  return (
+                    <button
+                      key={`${r.entityKey}-${r.id}-${i}`}
+                      onClick={() => onNav(r.config.tab, { highlightId: r.id })}
+                      className="search-result-enter w-full flex items-center gap-2.5 py-2 px-2 rounded-xl bg-transparent border-0 cursor-pointer transition-colors hover:bg-salve-card2/60 text-left"
+                      style={{ animationDelay: `${i * 0.04}s` }}
+                    >
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: `${r.config.color}15` }}
+                      >
+                        <Icon size={13} color={r.config.color} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[12.5px] text-salve-text font-medium truncate">
+                          {highlightMatch(r.config.primary(r.item), debouncedSearch)}
+                        </div>
+                        {r.config.secondary(r.item) && (
+                          <div className="text-[10.5px] text-salve-textFaint truncate">
+                            {highlightMatch(r.config.secondary(r.item), debouncedSearch)}
+                          </div>
+                        )}
+                      </div>
+                      <span
+                        className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full tracking-wide flex-shrink-0"
+                        style={{ background: `${r.config.color}12`, color: r.config.color }}
+                      >
+                        {r.config.label}
+                      </span>
+                      <ChevronRight size={12} className="text-salve-textFaint/50 flex-shrink-0" />
+                    </button>
+                  );
+                })}
+
+                {/* "See all" link */}
+                {totalResults > 5 && (
+                  <button
+                    onClick={() => onNav('search')}
+                    className="search-see-all w-full flex items-center justify-center gap-1.5 pt-2 pb-1 mt-1 border-t border-salve-border/30 bg-transparent border-x-0 border-b-0 cursor-pointer"
+                  >
+                    <span className="text-[11.5px] font-medium text-gradient-magic">
+                      See all {totalResults} results
+                    </span>
+                    <ArrowRight size={12} className="text-salve-lav" />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* No results message */}
+            {debouncedSearch.length >= 2 && searchResults.length === 0 && (
+              <div className="border-t border-salve-border/40 px-4 py-3 text-center">
+                <span className="text-[12px] text-salve-textFaint font-light">No matches for &ldquo;{debouncedSearch}&rdquo;</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* ── Needs Attention (consolidated alerts) ── */}
       {alerts.length > 0 && !alertsDismissed && (
-        <section aria-label="Needs attention" className="dash-stagger dash-stagger-2 mb-4">
+        <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4">
           <Card className="!p-0 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 border-b border-salve-border/50">
               <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
@@ -299,7 +454,7 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       {/* ── Dismissed alerts indicator ── */}
       {alerts.length > 0 && alertsDismissed && (
-        <section aria-label="Dismissed alerts" className="dash-stagger dash-stagger-2 mb-3">
+        <section aria-label="Dismissed alerts" className="dash-stagger dash-stagger-3 mb-3">
           <button
             onClick={restoreAlerts}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-salve-card/50 border border-salve-border/30 cursor-pointer transition-colors hover:bg-salve-card hover:border-salve-border/50"
@@ -340,7 +495,7 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       {/* ── Appointment Prep Nudge (within 48 hrs) ──── */}
       {prepAppts.length > 0 && (
-        <section aria-label="Upcoming appointment prep" className="dash-stagger dash-stagger-3 mb-2">
+        <section aria-label="Upcoming appointment prep" className="dash-stagger dash-stagger-4 mb-2">
           {prepAppts.map(a => (
             <Card key={a.id} className="!bg-salve-rose/5 !border-salve-rose/20 cursor-pointer" onClick={() => onNav('appts', { highlightId: a.id })}>
               <div className="flex items-start gap-3">
@@ -362,7 +517,7 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       {/* ── Coming Up (unified timeline) ──────────── */}
       {timeline.length > 0 && (
-        <section aria-label="Coming up" className="dash-stagger dash-stagger-3 mb-2">
+        <section aria-label="Coming up" className="dash-stagger dash-stagger-4 mb-2">
           <SectionTitle>Coming Up</SectionTitle>
           {timeline.map((item, i) => {
             const isAppt = item._type === 'appt';
@@ -411,17 +566,6 @@ export default function Dashboard({ data, interactions, onNav }) {
       )}
 
       <Divider />
-
-      {/* ── Search Bar ───────────────────────────── */}
-      <section aria-label="Search" className="dash-stagger dash-stagger-5 mb-3">
-        <button
-          onClick={() => onNav('search')}
-          className="w-full flex items-center gap-3 bg-salve-card2 border border-salve-border rounded-xl py-3 px-4 cursor-pointer tile-magic text-left"
-        >
-          <Search size={15} className="text-salve-textFaint flex-shrink-0" />
-          <span className="text-[13px] text-salve-textFaint font-montserrat font-light">Search medications, providers, labs…</span>
-        </button>
-      </section>
 
       {/* ── Quick Access (6 primary + expandable) ── */}
       <section aria-label="Quick access" className="dash-stagger dash-stagger-5">

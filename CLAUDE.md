@@ -112,8 +112,8 @@ health/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
 │   │   └── sections/             # One file per app section (21 total)
-│   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, tappable search bar, 6+More quick access
-│   │       ├── Search.jsx        # Global search: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, 6+More quick access
+│   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links
@@ -139,7 +139,8 @@ health/
 │       ├── dates.js              # Date formatting helpers
 │       ├── interactions.js       # checkInteractions() logic
 │       ├── links.js              # URL generators: dailyMedUrl, medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl, googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
-│       └── maps.js               # mapsUrl(address) → Google Maps search URL
+│       ├── maps.js               # mapsUrl(address) → Google Maps search URL
+│       └── search.jsx            # Shared search logic: ENTITY_CONFIG, searchEntities(), highlightMatch(), FILTER_TABS, MORE_CATEGORIES
 ```
 
 ### Database (Supabase)
