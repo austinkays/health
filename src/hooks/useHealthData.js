@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { db } from '../services/db';
+import { cache } from '../services/cache';
 
 export default function useHealthData(session) {
   const [data, setData] = useState({
@@ -13,17 +14,44 @@ export default function useHealthData(session) {
   });
   const [loading, setLoading] = useState(true);
 
-  // Load from Supabase only when authenticated
+  // Cache-first loading: show cached data instantly, then refresh from Supabase
   useEffect(() => {
     if (!session) {
       setLoading(false);
       return;
     }
-    setLoading(true);
-    db.loadAll()
-      .then(d => setData(d))
-      .catch(err => console.error('Failed to load data:', err))
-      .finally(() => setLoading(false));
+
+    let cancelled = false;
+
+    async function load() {
+      // Ensure cache has the token for decryption
+      cache.setToken(session.access_token);
+
+      // 1. Try reading from encrypted localStorage cache for instant display
+      try {
+        const cached = await cache.read();
+        if (cached && !cancelled) {
+          setData(cached);
+          setLoading(false);
+        }
+      } catch { /* cache miss is fine */ }
+
+      // 2. Always refresh from Supabase in background
+      try {
+        const fresh = await db.loadAll();
+        if (!cancelled) {
+          setData(fresh);
+          cache.write(fresh).catch(() => {});
+        }
+      } catch (err) {
+        console.error('Failed to load data:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    load();
+    return () => { cancelled = true; };
   }, [session]);
 
   // Generic updater
@@ -68,6 +96,7 @@ export default function useHealthData(session) {
     try {
       const d = await db.loadAll();
       setData(d);
+      cache.write(d).catch(() => {});
     } catch (err) {
       console.error('Failed to reload data:', err);
     } finally {

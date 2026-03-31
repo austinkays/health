@@ -374,6 +374,11 @@ export default function Dashboard({ data, interactions, onNav }) {
                             {highlightMatch(r.config.secondary(r.item), debouncedSearch)}
                           </div>
                         )}
+                        {r.matchContext && (
+                          <div className="text-[10px] text-salve-textFaint/70 truncate italic">
+                            {r.matchContext.label}: {highlightMatch(r.matchContext.value, debouncedSearch)}
+                          </div>
+                        )}
                       </div>
                       <span
                         className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full tracking-wide flex-shrink-0"

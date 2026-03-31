@@ -205,6 +205,18 @@ export function highlightMatch(text, query) {
   );
 }
 
+const FIELD_LABELS = {
+  prescriber: 'prescriber', pharmacy: 'pharmacy', purpose: 'purpose',
+  notes: 'notes', provider: 'provider', clinic: 'clinic', address: 'address',
+  phone: 'phone', fax: 'fax', portal_url: 'portal', reaction: 'reaction',
+  location: 'location', post_notes: 'notes', questions: 'questions',
+  content: 'content', tags: 'tags', outcome: 'outcome', implication: 'implication',
+  precaution: 'precaution', recommendation: 'rec.', reason: 'reason',
+  against: 'against', subject: 'subject', facility: 'facility', surgeon: 'surgeon',
+  website: 'website', plan_name: 'plan', provider_name: 'provider',
+  policy_number: 'policy #', category: 'category', status: 'status',
+};
+
 export function searchEntities(data, query) {
   if (!query || query.length < 2) return [];
 
@@ -216,18 +228,34 @@ export function searchEntities(data, query) {
     if (!Array.isArray(items)) continue;
 
     for (const item of items) {
-      const matched = config.fields.some(field => {
-        const val = item[field];
-        if (!val) return false;
-        return String(val).toLowerCase().includes(q);
-      });
+      let matchedField = null;
+      let matchedValue = null;
 
-      if (matched) {
+      for (const field of config.fields) {
+        const val = item[field];
+        if (!val) continue;
+        if (String(val).toLowerCase().includes(q)) {
+          matchedField = field;
+          matchedValue = String(val);
+          break;
+        }
+      }
+
+      if (matchedField) {
+        // Check if the match is already visible in primary/secondary text
+        const pri = String(config.primary(item) || '').toLowerCase();
+        const sec = String(config.secondary(item) || '').toLowerCase();
+        const visibleInDisplay = pri.includes(q) || sec.includes(q);
+
         results.push({
           entityKey,
           item,
           config,
           id: item[config.idField] || item._key,
+          matchContext: visibleInDisplay ? null : {
+            label: FIELD_LABELS[matchedField] || matchedField,
+            value: matchedValue,
+          },
         });
       }
     }

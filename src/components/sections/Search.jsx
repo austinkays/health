@@ -147,6 +147,11 @@ export default function Search({ data, onNav }) {
                           {highlightMatch(r.config.secondary(r.item), debouncedQuery)}
                         </div>
                       )}
+                      {r.matchContext && (
+                        <div className="text-[10px] text-salve-textFaint/70 truncate mt-0.5 italic">
+                          {r.matchContext.label}: {highlightMatch(r.matchContext.value, debouncedQuery)}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span
