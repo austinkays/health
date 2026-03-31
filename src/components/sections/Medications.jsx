@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink, Link2, Unlink, Download, BadgeDollarSign, DollarSign, RefreshCw } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -16,38 +16,13 @@ import { fetchCrossReactivity } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
-import { drugAutocomplete, drugDetails, drugPrice } from '../../services/drugs';
+import { drugAutocomplete, drugDetails } from '../../services/drugs';
 import { mapsUrl } from '../../utils/maps';
-import { dailyMedUrl, providerLookupUrl, goodRxUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl } from '../../utils/links';
+import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
 import { checkInteractions } from '../../utils/interactions';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
-
-/** Tiny SVG sparkline for price trends — no Recharts needed */
-function PriceSparkline({ prices }) {
-  if (!prices || prices.length < 2) return null;
-  const w = 120, h = 36, pad = 2;
-  const vals = prices.map(p => Number(p.nadac_per_unit));
-  const min = Math.min(...vals), max = Math.max(...vals);
-  const range = max - min || 1;
-  const pts = vals.map((v, i) => {
-    const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
-    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
-    return `${x},${y}`;
-  });
-  const trend = vals[vals.length - 1] > vals[0] * 1.01 ? '#e8c88a' : '#8fbfa0'; // amber up, sage flat/down
-  return (
-    <svg width={w} height={h} className="inline-block" aria-hidden="true">
-      <polyline points={pts.join(' ')} fill="none" stroke={trend} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      {vals.map((v, i) => {
-        const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
-        const y = pad + (1 - (v - min) / range) * (h - pad * 2);
-        return <circle key={i} cx={x} cy={y} r="2" fill={trend} />;
-      })}
-    </svg>
-  );
-}
 
 export default function Medications({ data, addItem, updateItem, removeItem, interactions, highlightId }) {
   const [subView, setSubView] = useState(null);
@@ -69,20 +44,12 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [acLoading, setAcLoading] = useState(false);
   const [acError, setAcError] = useState(null);
   const [showAc, setShowAc] = useState(false);
-  const [drugInfo, setDrugInfo] = useState({});
-  const [drugInfoLoading, setDrugInfoLoading] = useState(null);
-  const [drugInfoExpanded, setDrugInfoExpanded] = useState(null);
   const [bulkLinking, setBulkLinking] = useState(false);
   const [bulkProgress, setBulkProgress] = useState(null);
   const [bulkResult, setBulkResult] = useState(null);
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState(null);
   const [enrichResult, setEnrichResult] = useState(null);
-  const [priceLoading, setPriceLoading] = useState(null);
-  const [bulkPricing, setBulkPricing] = useState(false);
-  const [priceProgress, setPriceProgress] = useState(null);
-  const [priceResult, setPriceResult] = useState(null);
-  const [priceHistoryExpanded, setPriceHistoryExpanded] = useState(null);
   const [maintOpen, setMaintOpen] = useState(false);
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
@@ -155,20 +122,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
-
-  /* ── Fetch drug info for expanded card ── */
-  const loadDrugInfo = async (med) => {
-    const key = med.rxcui || med.name;
-    if (drugInfo[med.id]) { setDrugInfoExpanded(drugInfoExpanded === med.id ? null : med.id); return; }
-    setDrugInfoLoading(med.id);
-    setDrugInfoExpanded(med.id);
-    try {
-      const info = await drugDetails(key, med.name);
-      setDrugInfo(prev => ({ ...prev, [med.id]: info }));
-    } catch {
-      setDrugInfo(prev => ({ ...prev, [med.id]: null }));
-    } finally { setDrugInfoLoading(null); }
-  };
 
   /* ── Allergy cross-check ── */
   const allergyWarnings = useMemo(() => {
@@ -254,98 +207,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     setBulkProgress(null);
     setBulkResult({ linked, total: unlinked.length });
     setBulkLinking(false);
-  };
-
-  /* ── Price helpers ── */
-  const getLatestPrice = useCallback((medId) => {
-    return (data.drug_prices || [])
-      .filter(p => p.medication_id === medId)
-      .sort((a, b) => new Date(b.fetched_at) - new Date(a.fetched_at))[0] || null;
-  }, [data.drug_prices]);
-
-  const parseFreqMultiplier = (freq) => {
-    if (!freq) return null;
-    const f = freq.toLowerCase();
-    if (f.includes('qid') || f.includes('four times')) return 4;
-    if (f.includes('tid') || f.includes('three times')) return 3;
-    if (f.includes('bid') || f.includes('twice')) return 2;
-    if (f.includes('once daily') || f.includes('every morning') || f.includes('every evening') || f.includes('qhs') || f.includes('daily')) return 1;
-    if (f.includes('weekly')) return 1 / 7;
-    if (f.includes('biweekly')) return 1 / 14;
-    if (f.includes('monthly')) return 1 / 30;
-    return null;
-  };
-
-  const checkPrice = async (med) => {
-    if (!med.rxcui) return;
-    setPriceLoading(med.id);
-    try {
-      const result = await drugPrice(med.rxcui);
-      if (result && !result.error) {
-        await addItem('drug_prices', {
-          medication_id: med.id,
-          rxcui: med.rxcui,
-          ndc: result.ndc,
-          nadac_per_unit: result.nadac_per_unit,
-          pricing_unit: result.pricing_unit,
-          drug_name: result.drug_name,
-          effective_date: result.effective_date,
-          as_of_date: result.as_of_date,
-          classification: result.classification,
-        });
-      }
-    } catch { /* non-blocking */ }
-    finally { setPriceLoading(null); }
-  };
-
-  const priceColor = (price) => {
-    if (price <= 1) return 'text-salve-sage';
-    if (price <= 10) return 'text-salve-amber';
-    return 'text-salve-rose';
-  };
-
-  /* ── Bulk price check for all linked meds ── */
-  const medsNeedingPrice = useMemo(() => {
-    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return data.meds.filter(m => {
-      if (!m.rxcui || m.active === false) return false;
-      const latest = (data.drug_prices || []).find(p => p.medication_id === m.id);
-      return !latest || new Date(latest.fetched_at).getTime() < sevenDaysAgo;
-    });
-  }, [data.meds, data.drug_prices]);
-
-  const bulkPriceCheck = async () => {
-    if (medsNeedingPrice.length === 0) return;
-    setBulkPricing(true);
-    setPriceResult(null);
-    let checked = 0;
-    let totalMonthly = 0;
-    for (let i = 0; i < medsNeedingPrice.length; i++) {
-      const med = medsNeedingPrice[i];
-      setPriceProgress({ current: i + 1, total: medsNeedingPrice.length, name: med.display_name || med.name });
-      try {
-        const result = await drugPrice(med.rxcui);
-        if (result && !result.error) {
-          await addItem('drug_prices', {
-            medication_id: med.id,
-            rxcui: med.rxcui,
-            ndc: result.ndc,
-            nadac_per_unit: result.nadac_per_unit,
-            pricing_unit: result.pricing_unit,
-            drug_name: result.drug_name,
-            effective_date: result.effective_date,
-            as_of_date: result.as_of_date,
-            classification: result.classification,
-          });
-          checked++;
-          const mult = parseFreqMultiplier(med.frequency);
-          if (mult) totalMonthly += result.nadac_per_unit * mult * 30;
-        }
-      } catch { /* skip */ }
-    }
-    setPriceProgress(null);
-    setPriceResult({ checked, total: medsNeedingPrice.length, monthlyEstimate: totalMonthly > 0 ? totalMonthly.toFixed(2) : null });
-    setBulkPricing(false);
   };
 
   const saveMed = async () => {
@@ -547,13 +408,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       {(() => {
         const unenrichedCount = data.meds.filter(m => m.rxcui && !m.fda_data).length;
         const unlinkedCount = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim()).length;
-        const priceCount = medsNeedingPrice.length;
-        const hasAnyResult = enrichResult || bulkResult || priceResult;
-        const hasAnyProgress = enrichProgress || bulkProgress || priceProgress;
+        const hasAnyResult = enrichResult || bulkResult;
+        const hasAnyProgress = enrichProgress || bulkProgress;
         const tasks = [
           unenrichedCount > 0 && 'enrich',
           unlinkedCount > 0 && 'link',
-          priceCount >= 2 && 'price',
         ].filter(Boolean);
         if (tasks.length === 0 && !hasAnyResult && !hasAnyProgress) return null;
 
@@ -576,7 +435,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                   <span className="flex gap-1">
                     {unenrichedCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-salve-sage/60" />}
                     {unlinkedCount > 0 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-salve-amber/60" />}
-                    {priceCount >= 2 && <span className="inline-block w-1.5 h-1.5 rounded-full bg-salve-lav/60" />}
                   </span>
                 )}
               </div>
@@ -626,27 +484,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                     </div>
                   )
                 )}
-
-                {/* Price row */}
-                {(priceCount >= 2 || priceResult || priceProgress) && (
-                  priceResult ? (
-                    <div className="text-[11px] text-salve-textMid">
-                      <span className="font-medium text-salve-sage">✓ Priced {priceResult.checked}/{priceResult.total}</span>
-                      {priceResult.monthlyEstimate && <span className="text-salve-lav"> · ~${priceResult.monthlyEstimate}/mo</span>}
-                      <button onClick={() => setPriceResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
-                    </div>
-                  ) : priceProgress ? (
-                    <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
-                      <Loader size={11} className="animate-spin text-salve-lav" />
-                      Pricing {priceProgress.current}/{priceProgress.total} <span className="text-salve-textFaint truncate">{priceProgress.name}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-salve-lav flex items-center gap-1"><DollarSign size={10} /> {priceCount} need price check</span>
-                      <button onClick={bulkPriceCheck} disabled={bulkPricing} className="text-[10px] px-2 py-0.5 rounded-md bg-salve-lav/10 border border-salve-lav/25 text-salve-lav cursor-pointer font-montserrat hover:bg-salve-lav/20 transition-colors">Check</button>
-                    </div>
-                  )
-                )}
               </div>
             )}
           </div>
@@ -664,23 +501,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                   <a href={dailyMedUrl(m.name, m.rxcui)} target="_blank" rel="noopener noreferrer" className="text-salve-text hover:text-salve-sage transition-colors hover:underline">
                     {m.display_name || m.name}
                   </a>
-                  {m.rxcui
-                    ? <span title="Linked to NLM drug database" className="text-salve-sage"><Link2 size={11} /></span>
-                    : <span title="Not linked to NLM database" className="text-salve-amber"><Unlink size={11} /></span>
-                  }
                 </div>
                 {m.display_name && m.display_name !== m.name && <div className="text-[11px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
-                {m.fda_data?.pharm_class?.length > 0 && (
-                  <span className="inline-block mt-1 mr-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
-                    {m.fda_data.pharm_class[0].replace(/ \[.*\]$/, '')}
-                  </span>
-                )}
-                {m.fda_data?.boxed_warning?.length > 0 && (
-                  <span className="inline-block mt-1 py-0.5 px-2 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[10px] text-salve-rose font-medium">
-                    ⚠ Boxed Warning
-                  </span>
-                )}
                 {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
               </div>
               <div className="flex items-center gap-1 ml-2">
@@ -700,7 +523,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 )}
                 {m.start_date && <div className="text-xs text-salve-textFaint">Started: {fmtDate(m.start_date)}</div>}
                 {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
-                {m.rxcui && <div className="text-[10px] text-salve-textFaint mt-1" title="RxNorm Concept Unique Identifier — enables drug interaction checking and FDA drug info lookup">RxCUI: {m.rxcui}</div>}
                 {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
                 {/* ── Inline FDA summary ── */}
                 {m.fda_data && (
@@ -715,164 +537,24 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                       {m.fda_data.pharm_class?.length > 0 && (
                         <span className="text-salve-textMid"><span className="font-medium">Class:</span> {m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
                       )}
-                      {m.fda_data.manufacturer && (
-                        <span className="text-salve-textFaint"><span className="font-medium">Mfg:</span> {m.fda_data.manufacturer}</span>
-                      )}
                     </div>
                     {m.fda_data.boxed_warning?.length > 0 && (
                       <div className="mt-1.5 flex items-center gap-1 text-[10px] text-salve-rose font-medium">
-                        <AlertTriangle size={10} /> Has FDA Black Box Warning — see full details below
+                        <AlertTriangle size={10} /> FDA Black Box Warning
                       </div>
                     )}
                   </div>
                 )}
-                {!m.fda_data && m.rxcui && (
-                  <button
-                    onClick={async () => {
-                      setDrugInfoLoading(m.id);
-                      await enrichFdaData(m);
-                      setDrugInfoLoading(null);
-                    }}
-                    className="mt-2 bg-transparent border-none cursor-pointer text-salve-sage/60 text-[11px] font-montserrat p-0 flex items-center gap-1 hover:text-salve-sage transition-colors"
-                    aria-label="Fetch FDA drug data"
-                  >
-                    {drugInfoLoading === m.id ? <Loader size={10} className="animate-spin" /> : <Download size={10} />}
-                    {drugInfoLoading === m.id ? 'Fetching drug info…' : 'Fetch drug info'}
-                  </button>
-                )}
-                {/* ── NADAC Price Display ── */}
-                {m.rxcui && (() => {
-                  const price = getLatestPrice(m.id);
-                  const priceHistory = (data.drug_prices || [])
-                    .filter(p => p.medication_id === m.id)
-                    .sort((a, b) => new Date(a.fetched_at) - new Date(b.fetched_at));
-                  if (price) {
-                    const mult = parseFreqMultiplier(m.frequency);
-                    const monthly = mult ? (price.nadac_per_unit * mult * 30).toFixed(2) : null;
-                    const dateStr = price.as_of_date ? fmtDate(price.as_of_date) : fmtDate(price.fetched_at);
-                    return (
-                      <div className="mt-2 p-2 rounded-lg bg-salve-card2/50 border border-salve-border/30">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
-                            <DollarSign size={12} className={priceColor(price.nadac_per_unit)} />
-                            <span className={`text-xs font-medium ${priceColor(price.nadac_per_unit)}`}>
-                              ${Number(price.nadac_per_unit).toFixed(4)}/{price.pricing_unit || 'unit'}
-                            </span>
-                            <span className="text-[10px] text-salve-textFaint">(NADAC)</span>
-                          </div>
-                          <button
-                            onClick={() => checkPrice(m)}
-                            disabled={priceLoading === m.id}
-                            className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav transition-colors p-0"
-                            aria-label="Refresh price"
-                          >
-                            {priceLoading === m.id ? <Loader size={11} className="animate-spin" /> : <RefreshCw size={11} />}
-                          </button>
-                        </div>
-                        {monthly && (
-                          <div className="text-[11px] text-salve-textMid mt-0.5">
-                            ~${monthly}/mo estimated
-                          </div>
-                        )}
-                        {priceHistory.length >= 4 && (
-                          <div className="mt-1.5"><PriceSparkline prices={priceHistory} /></div>
-                        )}
-                        <div className="text-[10px] text-salve-textFaint mt-0.5">
-                          {price.classification === 'G' ? 'Generic' : price.classification === 'B' ? 'Brand' : ''}
-                          {price.classification ? ' · ' : ''}Updated {dateStr}
-                          {priceHistory.length >= 2 && (
-                            <button
-                              onClick={() => setPriceHistoryExpanded(priceHistoryExpanded === m.id ? null : m.id)}
-                              className="ml-1.5 text-salve-lav/70 hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat text-[10px] p-0 underline"
-                            >
-                              {priceHistoryExpanded === m.id ? 'Hide' : `${priceHistory.length} snapshots`}
-                            </button>
-                          )}
-                        </div>
-                        {priceHistoryExpanded === m.id && priceHistory.length >= 2 && (
-                          <div className="mt-2 space-y-0.5">
-                            {priceHistory.slice().reverse().map((ph, i, arr) => {
-                              const prev = arr[i + 1];
-                              const pctChange = prev ? ((Number(ph.nadac_per_unit) - Number(prev.nadac_per_unit)) / Number(prev.nadac_per_unit) * 100) : null;
-                              const changeColor = pctChange === null ? 'text-salve-textFaint' : pctChange > 0 ? 'text-salve-amber' : pctChange < 0 ? 'text-salve-sage' : 'text-salve-textFaint';
-                              return (
-                                <div key={ph.id || i} className="flex items-center justify-between text-[10px] py-0.5 border-b border-salve-border/20 last:border-0">
-                                  <span className="text-salve-textFaint">{fmtDate(ph.as_of_date || ph.fetched_at)}</span>
-                                  <span className="text-salve-textMid font-medium">${Number(ph.nadac_per_unit).toFixed(4)}</span>
-                                  {pctChange !== null && (
-                                    <span className={`${changeColor} font-medium`}>
-                                      {pctChange > 0 ? '↑' : pctChange < 0 ? '↓' : '·'}{Math.abs(pctChange).toFixed(1)}%
-                                    </span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-                  return (
-                    <button
-                      onClick={() => checkPrice(m)}
-                      disabled={priceLoading === m.id}
-                      className="mt-2 bg-transparent border-none cursor-pointer text-salve-sage/60 text-[11px] font-montserrat p-0 flex items-center gap-1 hover:text-salve-sage transition-colors"
-                      aria-label="Check NADAC price"
-                    >
-                      {priceLoading === m.id ? <Loader size={10} className="animate-spin" /> : <DollarSign size={10} />}
-                      {priceLoading === m.id ? 'Checking price…' : 'Check Price'}
-                    </button>
-                  );
-                })()}
+
                 <div className="flex gap-2.5 mt-2.5 flex-wrap">
                   <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
-                  <button onClick={() => loadDrugInfo(m)} className="bg-transparent border-none cursor-pointer text-salve-sage text-xs font-montserrat p-0 flex items-center gap-1">
-                    {drugInfoLoading === m.id ? <Loader size={11} className="animate-spin" /> : <Info size={12} />}
-                    {drugInfoLoading === m.id ? 'Loading...' : drugInfo[m.id] ? (drugInfoExpanded === m.id ? 'Hide' : 'Show') + ' Drug Info' : 'Drug Info'}
-                  </button>
                   {goodRxUrl(m.name) && (
-                    <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
-                      <BadgeDollarSign size={12} /> Compare Prices
+                    <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
+                      <ExternalLink size={11} /> Compare Prices
                     </a>
                   )}
                 </div>
-                {/* ── Compare Prices links ── */}
-                {goodRxUrl(m.name) && (
-                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px]">
-                    {costPlusDrugsUrl(m.name) && <a href={costPlusDrugsUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber/70 hover:text-salve-amber no-underline hover:underline flex items-center gap-0.5"><ExternalLink size={9} /> Cost Plus</a>}
-                    {amazonPharmacyUrl(m.name) && <a href={amazonPharmacyUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber/70 hover:text-salve-amber no-underline hover:underline flex items-center gap-0.5"><ExternalLink size={9} /> Amazon Pharmacy</a>}
-                    {blinkHealthUrl(m.name) && <a href={blinkHealthUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber/70 hover:text-salve-amber no-underline hover:underline flex items-center gap-0.5"><ExternalLink size={9} /> Blink Health</a>}
-                  </div>
-                )}
-                {drugInfoExpanded === m.id && drugInfo[m.id] && (
-                  <div className="mt-2.5 p-3 rounded-lg bg-salve-sage/5 border border-salve-sage/20">
-                    <div className="text-[11px] font-semibold text-salve-sage mb-2 flex items-center gap-1"><Info size={11} /> FDA Drug Label</div>
-                    {drugInfo[m.id].generic_name && <div className="text-xs text-salve-textMid mb-1"><span className="font-medium">Generic:</span> {drugInfo[m.id].generic_name}</div>}
-                    {drugInfo[m.id].brand_name && <div className="text-xs text-salve-textMid mb-1"><span className="font-medium">Brand:</span> {drugInfo[m.id].brand_name}</div>}
-                    {drugInfo[m.id].pharm_class?.length > 0 && <div className="text-xs text-salve-textMid mb-1"><span className="font-medium">Class:</span> {drugInfo[m.id].pharm_class.join(', ')}</div>}
-                    {drugInfo[m.id].manufacturer && <div className="text-xs text-salve-textFaint mb-1"><span className="font-medium">Mfg:</span> {drugInfo[m.id].manufacturer}</div>}
-                    {drugInfo[m.id].boxed_warning?.length > 0 && (
-                      <div className="mt-2 p-2 rounded-lg bg-salve-rose/10 border border-salve-rose/30">
-                        <div className="text-[11px] font-semibold text-salve-rose mb-1 flex items-center gap-1"><AlertTriangle size={11} /> Black Box Warning</div>
-                        <div className="text-[11px] text-salve-textMid leading-relaxed">{drugInfo[m.id].boxed_warning[0].slice(0, 300)}{drugInfo[m.id].boxed_warning[0].length > 300 ? '…' : ''}</div>
-                      </div>
-                    )}
-                    {drugInfo[m.id].indications?.length > 0 && (
-                      <div className="mt-2"><div className="text-[11px] font-medium text-salve-textMid mb-0.5">Indications</div><div className="text-[11px] text-salve-textFaint leading-relaxed">{drugInfo[m.id].indications[0].slice(0, 200)}…</div></div>
-                    )}
-                    {drugInfo[m.id].adverse_reactions?.length > 0 && (
-                      <div className="mt-2"><div className="text-[11px] font-medium text-salve-textMid mb-0.5">Side Effects</div><div className="text-[11px] text-salve-textFaint leading-relaxed">{drugInfo[m.id].adverse_reactions[0].slice(0, 250)}…</div></div>
-                    )}
-                    {drugInfo[m.id].drug_interactions?.length > 0 && (
-                      <div className="mt-2"><div className="text-[11px] font-medium text-salve-textMid mb-0.5">Drug Interactions</div><div className="text-[11px] text-salve-textFaint leading-relaxed">{drugInfo[m.id].drug_interactions[0].slice(0, 250)}…</div></div>
-                    )}
-                    <div className="text-[9px] text-salve-textFaint italic mt-2">Source: FDA/OpenFDA drug labeling database</div>
-                  </div>
-                )}
-                {drugInfoExpanded === m.id && drugInfo[m.id] === null && (
-                  <div className="mt-2 text-[11px] text-salve-textFaint italic">No FDA label data found for this medication.</div>
-                )}
               </div>
             </div></div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
