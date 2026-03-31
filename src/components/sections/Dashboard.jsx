@@ -288,10 +288,7 @@ export default function Dashboard({ data, interactions, onNav }) {
     setShowDismissMenu(false);
   };
 
-  const restoreAlerts = () => {
-    localStorage.removeItem(ALERT_DISMISS_KEY);
-    setAlertDismissal(null);
-  };
+
 
   /* ── Render ─────────────────────────────────── */
   return (
@@ -449,20 +446,6 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             ))}
           </Card>
-        </section>
-      )}
-
-      {/* ── Dismissed alerts indicator ── */}
-      {alerts.length > 0 && alertsDismissed && (
-        <section aria-label="Dismissed alerts" className="dash-stagger dash-stagger-3 mb-3">
-          <button
-            onClick={restoreAlerts}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-salve-card/50 border border-salve-border/30 cursor-pointer transition-colors hover:bg-salve-card hover:border-salve-border/50"
-            aria-label={`${alerts.length} dismissed alert${alerts.length !== 1 ? 's' : ''}, tap to review`}
-          >
-            <AlertTriangle size={11} className="text-salve-amber/60" />
-            <span className="text-[10.5px] text-salve-textFaint">{alerts.length}</span>
-          </button>
         </section>
       )}
 

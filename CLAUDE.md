@@ -356,11 +356,11 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - "made with love for my best friend & soulmate" tagline above bottom nav — scroll-reveal (hidden until user scrolls to bottom, transparent background, 500ms fade-in transition)
 - Magical UI effects: card hover lift + lavender glow, button shimmer sweep, quick-access tile rotating conic gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade-slide-up animations
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
-- Dashboard sections: contextual greeting → consolidated alerts → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
+- Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
 - Quick Access primary 6: Conditions, Providers, Allergies, Appointments, Labs, Insurance; "More" expander reveals 8 additional sections
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
 - All section views have a back arrow in the header that returns to Dashboard
-- **Global Search:** Header magnifying glass icon (visible on all pages) + tappable faux-input bar on Dashboard open the Search view
+- **Global Search:** Header magnifying glass icon (visible on all pages) opens the Search view; Dashboard has a live search centerpiece with inline results (up to 5) and "See all" deep-link to full Search view
 - **Deep-link navigation:** `onNav(tab, { highlightId })` navigates to a section AND auto-expands + scrolls to a specific record; used by Search results. All 15 expandable sections support `highlightId` prop (expand + scrollIntoView + lavender pulse animation). Appointments and AnesthesiaFlags support scroll-only deep-link (no expandable cards).
 - **highlight-ring animation:** `highlight-pulse` keyframes in `index.css` — 1.5s lavender box-shadow pulse applied to deep-linked cards
 - Staggered entrance animations on Dashboard cards (`dash-stagger` CSS classes)
@@ -433,7 +433,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 ### Global Search & Deep-Link Tests
 - [ ] Search: Header magnifying glass icon opens Search view from any page
-- [ ] Search: Dashboard tappable search bar opens Search view
+- [ ] Search: Dashboard live search centerpiece shows inline results after typing 2+ chars
 - [ ] Search: Input auto-focuses on open
 - [ ] Search: Results appear after typing 2+ characters with 150ms debounce
 - [ ] Search: All 16 entity types are searchable
