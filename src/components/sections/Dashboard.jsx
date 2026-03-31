@@ -4,6 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
+  TrendingUp, ShieldAlert,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -166,6 +167,33 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
   }, [data.settings.ai_mode, activeMeds.length, data.conditions.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* ── Price increase detection ─────────────────── */
+  const priceAlertMeds = useMemo(() => {
+    const prices = data.drug_prices || [];
+    if (prices.length < 2) return [];
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 86400000;
+    const increased = [];
+    for (const med of activeMeds) {
+      const medPrices = prices
+        .filter(p => p.medication_id === med.id && p.nadac_per_unit)
+        .sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at));
+      if (medPrices.length < 2) continue;
+      const latest = medPrices[0];
+      const older = medPrices.find(p => new Date(p.fetched_at || p.created_at).getTime() < thirtyDaysAgo);
+      if (!older) continue;
+      const pct = ((latest.nadac_per_unit - older.nadac_per_unit) / older.nadac_per_unit) * 100;
+      if (pct > 15) increased.push(med.display_name || med.name);
+    }
+    return increased;
+  }, [activeMeds, data.drug_prices]);
+
+  /* ── Severe allergy count ───────────────────── */
+  const severeAllergyCount = useMemo(
+    () => (data.allergies || []).filter(a => a.severity === 'severe').length,
+    [data.allergies]
+  );
+
   /* ── Alerts aggregation ─────────────────────── */
   const alerts = useMemo(() => {
     const items = [];
@@ -175,14 +203,21 @@ export default function Dashboard({ data, interactions, onNav }) {
     if (interactions.length > 0) {
       items.push({ id: 'interactions', icon: AlertTriangle, color: C.rose, text: `${interactions.length} Drug Interaction${interactions.length > 1 ? 's' : ''} detected`, nav: 'interactions' });
     }
+    if (severeAllergyCount > 0) {
+      items.push({ id: 'allergies', icon: ShieldAlert, color: C.rose, text: `${severeAllergyCount} Severe Allergy Alert${severeAllergyCount > 1 ? 's' : ''}`, nav: 'allergies' });
+    }
     if (abnormalLabs.length > 0) {
       items.push({ id: 'labs', icon: FlaskConical, color: C.rose, text: `${abnormalLabs.length} Abnormal Lab Result${abnormalLabs.length > 1 ? 's' : ''}`, nav: 'labs' });
+    }
+    if (priceAlertMeds.length > 0) {
+      const names = priceAlertMeds.length <= 2 ? priceAlertMeds.join(' & ') : `${priceAlertMeds.length} medications`;
+      items.push({ id: 'prices', icon: TrendingUp, color: C.amber, text: `Price increase detected for ${names}`, nav: 'meds' });
     }
     if (urgentGaps > 0) {
       items.push({ id: 'care_gaps', icon: AlertTriangle, color: C.amber, text: `${urgentGaps} Urgent Care Gap${urgentGaps > 1 ? 's' : ''}`, nav: 'care_gaps' });
     }
     return items;
-  }, [anesthesiaCount, interactions, abnormalLabs, urgentGaps]);
+  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps]);
 
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);

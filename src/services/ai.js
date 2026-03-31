@@ -40,6 +40,9 @@ export const PROMPTS = {
 
   crossReactivity:
     'You are a pharmacology specialist. A patient is adding a new medication and has known allergies. Analyze whether there is cross-reactivity risk between the medication and their allergies. Consider: drug class relationships (e.g., penicillin–cephalosporin), chemical structure similarities, known cross-sensitivity rates, and severity of the documented allergy. Be specific: state the cross-reactivity risk percentage if known, and clearly recommend whether to proceed with caution, avoid, or if the risk is negligible. Be concise (3-4 sentences). Do not be alarmist but prioritize safety.',
+
+  costOptimization:
+    'You are a medication cost specialist. Given this patient\'s health profile with NADAC wholesale drug prices, analyze their medication costs and provide actionable suggestions. Consider: generic alternatives for brand-name drugs, therapeutic substitutes that may be cheaper, patient assistance programs (PAPs) from manufacturers, pharmacy discount cards (GoodRx, RxSaver, Cost Plus Drugs), 90-day supply savings, mail-order pharmacy options, state prescription assistance programs, and manufacturer savings cards/coupons. For each suggestion, be specific: name the program, estimate potential savings, and note any eligibility requirements. Organize by medication. Be warm and practical. End with total potential monthly savings estimate.',
 };
 
 const DISCLAIMER = '\n\n---\n*AI suggestions are not medical advice. Always consult your healthcare providers.*';
@@ -225,6 +228,15 @@ export async function fetchAppealDraft(appeal, profileText) {
     [{ role: 'user', content: `Draft an appeal letter for: ${desc}` }],
     PROMPTS.appealDraft + '\n\n' + profileText,
     2000
+  );
+}
+
+export async function fetchCostOptimization(profileText) {
+  return callAPI(
+    [{ role: 'user', content: 'Analyze my medication costs and suggest ways to save money. Include generic alternatives, patient assistance programs, and discount options.' }],
+    PROMPTS.costOptimization + '\n\n' + profileText,
+    2000,
+    true
   );
 }
 

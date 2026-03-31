@@ -25,6 +25,18 @@ const statusStyle = (s) => {
   return { color: C.textFaint, bg: 'rgba(110,106,128,0.1)' };
 };
 
+const deadlineBadge = (deadline) => {
+  if (!deadline) return null;
+  const now = new Date(); now.setHours(0,0,0,0);
+  const dl = new Date(deadline + 'T00:00:00'); 
+  const days = Math.ceil((dl - now) / 86400000);
+  if (days < 0) return { label: `${Math.abs(days)}d overdue`, color: C.rose, bg: 'rgba(232,138,154,0.15)' };
+  if (days === 0) return { label: 'Due today', color: C.rose, bg: 'rgba(232,138,154,0.15)' };
+  if (days <= 3) return { label: `${days}d left`, color: C.rose, bg: 'rgba(232,138,154,0.15)' };
+  if (days <= 7) return { label: `${days}d left`, color: C.amber, bg: 'rgba(196,166,115,0.15)' };
+  return { label: `${days}d left`, color: C.textFaint, bg: 'rgba(110,106,128,0.1)' };
+};
+
 export default function Appeals({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -105,6 +117,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
         fl.map(a => {
           const ss = statusStyle(a.status);
           const isExpanded = expandedId === a.id;
+          const dlBadge = a.status !== 'Resolved' ? deadlineBadge(a.deadline) : null;
           return (
             <Card key={a.id} id={`record-${a.id}`} onClick={() => setExpandedId(isExpanded ? null : a.id)} className={`cursor-pointer transition-all${highlightId === a.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
@@ -112,9 +125,9 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="text-[15px] font-semibold text-salve-text">{a.subject}</span>
                     {a.status && <Badge label={a.status} color={ss.color} bg={ss.bg} />}
+                    {dlBadge && <Badge label={dlBadge.label} color={dlBadge.color} bg={dlBadge.bg} />}
                   </div>
                   {a.against && <div className="text-xs text-salve-textFaint">vs. {a.against}</div>}
-                  {!isExpanded && a.deadline && <div className="text-xs mt-0.5" style={{ color: C.amber }}>Deadline: {fmtDate(a.deadline)}</div>}
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>

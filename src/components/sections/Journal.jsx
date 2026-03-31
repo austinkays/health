@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -23,6 +23,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [patternsAI, setPatternsAI] = useState(null);
   const [patternsLoading, setPatternsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
+  const [tagFilter, setTagFilter] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -103,8 +104,29 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         </div>
       )}
 
+      {/* Tag filter pills */}
+      {(() => {
+        const allTags = [...new Set(data.journal.flatMap(e => e.tags ? e.tags.split(',').map(t => t.trim()).filter(Boolean) : []))].sort();
+        if (allTags.length === 0) return null;
+        return (
+          <div className="flex gap-1.5 flex-wrap mb-3">
+            <button
+              onClick={() => setTagFilter(null)}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+            >All</button>
+            {allTags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${tagFilter === tag ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+              >{tag}</button>
+            ))}
+          </div>
+        );
+      })()}
+
       {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
-        data.journal.map(e => {
+        data.journal.filter(e => !tagFilter || (e.tags && e.tags.split(',').map(t => t.trim()).includes(tagFilter))).map(e => {
           const sev = Number(e.severity);
           const sevColor = sev >= 7 ? C.rose : sev >= 4 ? C.amber : C.sage;
           const sevBg = sev >= 7 ? 'rgba(232,138,154,0.15)' : sev >= 4 ? 'rgba(232,200,138,0.15)' : 'rgba(143,191,160,0.15)';

@@ -29,8 +29,40 @@ export function buildProfile(data) {
     if (m.prescriber) p += ' [prescribed by ' + m.prescriber + ']';
     if (m.fda_data?.contraindications?.length) p += ' {contraindications: ' + san(m.fda_data.contraindications[0].slice(0, 200)) + '}';
     if (m.fda_data?.boxed_warning?.length) p += ' {⚠ BOXED WARNING}';
+    // Append price data if available
+    const medPrices = (data.drug_prices || []).filter(dp => dp.medication_id === m.id && dp.nadac_per_unit);
+    if (medPrices.length) {
+      const latest = medPrices.sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at))[0];
+      p += ' [NADAC: $' + Number(latest.nadac_per_unit).toFixed(4) + '/' + (latest.pricing_unit || 'unit') + ']';
+    }
     p += '\n';
   });
+
+  // Monthly medication cost summary
+  const priceEntries = data.drug_prices || [];
+  if (priceEntries.length && active.length) {
+    let monthlyTotal = 0;
+    let counted = 0;
+    active.forEach(m => {
+      const mp = priceEntries.filter(dp => dp.medication_id === m.id && dp.nadac_per_unit)
+        .sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at));
+      if (!mp.length) return;
+      const perUnit = Number(mp[0].nadac_per_unit);
+      let daily = 1;
+      const f = (m.frequency || '').toLowerCase();
+      if (/qid|4.*day|q6h/i.test(f)) daily = 4;
+      else if (/tid|3.*day|q8h/i.test(f)) daily = 3;
+      else if (/bid|2.*day|twice|q12h/i.test(f)) daily = 2;
+      else if (/week/i.test(f)) daily = 1 / 7;
+      else if (/biweek|every.*2.*week/i.test(f)) daily = 1 / 14;
+      else if (/month/i.test(f)) daily = 1 / 30;
+      monthlyTotal += perUnit * daily * 30;
+      counted++;
+    });
+    if (counted > 0) {
+      p += 'Monthly medication costs (wholesale NADAC): ~$' + monthlyTotal.toFixed(2) + ' (' + counted + ' of ' + active.length + ' medications priced)\n';
+    }
+  }
 
   // Discontinued medications
   const disc = (data.meds || []).filter(m => m.active === false);

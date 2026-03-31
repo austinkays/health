@@ -44,7 +44,7 @@ health/
 ├── .gitignore
 ├── api/
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
-│   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA proxy (autocomplete, details, interactions)
+│   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
 │   └── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
 ├── public/
 │   ├── manifest.json             # PWA manifest
@@ -64,7 +64,9 @@ health/
 │       ├── 007_fda_enrichment.sql            # Add fda_data JSONB to medications for OpenFDA label cache
 │       ├── 008_pharmacies_table.sql          # Pharmacies table with preferred flag, hours, website
 │       ├── 009_allergy_type.sql               # Add type column to allergies (medication/food/environmental/etc)
-│       └── 010_appointment_video_url.sql      # Add video_call_url to appointments for telehealth
+│       ├── 010_appointment_video_url.sql      # Add video_call_url to appointments for telehealth
+│       ├── 011_drug_prices.sql                # Drug prices table for NADAC price snapshots
+│       └── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation
@@ -82,10 +84,10 @@ health/
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
 │   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent, 120s timeout, empty response validation)
 │   │   ├── token.js              # Shared auth token cache (5s TTL, concurrent-call dedup, clearTokenCache on sign-out)
-│   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions (via /api/drug, 429-aware)
+│   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts (sanitized against prompt injection)
+│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts (sanitized against prompt injection; includes NADAC pricing + monthly cost summary)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
@@ -110,33 +112,33 @@ health/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline, nav item hover glow
 │   │   └── sections/             # One file per app section (21 total)
-│   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts, AI insight, appointment prep nudge (48hr), unified timeline, tappable search bar, 6+More quick access
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, tappable search bar, 6+More quick access
 │   │       ├── Search.jsx        # Global search: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records
-│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter + GoodRx price links
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
 │   │       ├── Allergies.jsx     # Allergy list + add/edit + type categorization (medication/food/environmental/etc)
 │   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links + provider picker + auto-fill location + provider phone quick-link + video call links + Google Calendar links
-│   │       ├── Journal.jsx       # Health journal entries + add/edit
+│   │       ├── Journal.jsx       # Health journal entries + add/edit + tag filter pills
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose); ResultHeader with icon badge + copy-to-clipboard; InsightResult (single accent card), ConnectionsResult (section-split cards with stagger animation), NewsResult (per-story accent cards), ResourcesResult (accordion with accent bars); chat with per-message copy buttons; SourcesBadges for web search; styled Disclaimer component; "What AI Sees" preview button opens full-screen slide-up panel
+│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult, ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges for web search; styled Disclaimer component; "What AI Sees" preview button opens full-screen slide-up panel
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
 │   │       ├── CareGaps.jsx      # Preventive care gaps + urgency sorting
 │   │       ├── AnesthesiaFlags.jsx # Anesthesia safety alerts
-│   │       ├── Appeals.jsx       # Insurance appeals & disputes
+│   │       ├── Appeals.jsx       # Insurance appeals & disputes + deadline countdown badges
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
-│   │       ├── Insurance.jsx     # Insurance details + benefits
+│   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
 │   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
 │       ├── interactions.js       # checkInteractions() logic
-│       ├── links.js              # URL generators: dailyMedUrl, medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl, googleCalendarUrl, goodRxUrl, clinicalTrialsUrl
+│       ├── links.js              # URL generators: dailyMedUrl, medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl, googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
 │       └── maps.js               # mapsUrl(address) → Google Maps search URL
 ```
 
@@ -158,6 +160,8 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `appointments` | date, time, provider, location, reason, questions, post_notes, video_call_url | |
 | `journal_entries` | date, title, mood, severity, content, tags | |
 | `ai_conversations` | title, messages (JSONB) | |
+| `drug_prices` | medication_id, rxcui, ndc, nadac_per_unit, pricing_unit, drug_name, effective_date, as_of_date, classification, fetched_at | NADAC price snapshots for medications |
+| `insurance_claims` | date, provider, description, billed_amount, allowed_amount, paid_amount, patient_responsibility, status (submitted/processing/paid/denied/appealed), claim_number, insurance_plan, notes | Tracks individual insurance claims with amounts |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -211,11 +215,13 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 
 Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`. Both use `fetchWithTimeout()` (15-second AbortController) for external API calls.
 
-**`api/drug.js`** — RxNorm + OpenFDA proxy:
-- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs), `interactions` (RxNorm interaction list for multiple RxCUIs)
+**`api/drug.js`** — RxNorm + OpenFDA + NADAC proxy:
+- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs), `interactions` (RxNorm interaction list for multiple RxCUIs), `price` (RxCUI → NDCs via RxNorm → NADAC DKAN API lookup for cheapest per-unit price)
+- **NADAC pipeline:** `rxcuiToNDCs(rxcui)` → normalize to 11-digit → parallel `nadacLookup(ndc)` queries (up to 5 NDCs) → return cheapest `nadac_per_unit` with all prices
+- **NADAC API:** CMS Medicaid DKAN endpoint at `data.medicaid.gov/api/1/datastore/query/{dataset-id}/0` (dataset ID stored as constant for annual rotation)
 - **Rate limited:** 40 requests/minute per user (in-memory sliding window)
 - **Cached:** In-memory 30-minute TTL, max 500 entries
-- **Client service:** `src/services/drugs.js` — `drugAutocomplete(query)`, `drugDetails(query, name?)`, `drugInteractions(rxcuis[])`
+- **Client service:** `src/services/drugs.js` — `drugAutocomplete(query)`, `drugDetails(query, name?)`, `drugInteractions(rxcuis[])`, `drugPrice(rxcui)`
 
 **`api/provider.js`** — NPPES NPI Registry proxy:
 - **Actions:** `search` (by name, optional state filter), `lookup` (by 10-digit NPI number)
@@ -247,6 +253,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 11. **Immunization schedule review** - checks immunization records against CDC/ACIP schedules, flags overdue boosters and contraindications
 12. **Appeal letter drafting** - generates professional appeal letters using patient health profile and appeal details
 13. **Medication cross-reactivity** - AI analysis of drug-class relationships when adding meds with known allergies (e.g., penicillin→cephalosporin)
+14. **Cost optimization** - web-search-powered analysis of medication costs with generic alternatives, PAPs, discount programs, and savings strategies
 
 ### Vercel Configuration
 

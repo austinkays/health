@@ -1,10 +1,11 @@
-// ── Drug information API — proxies RxNorm (NLM) + OpenFDA ──
-// No API keys required — both are free US government APIs.
+// ── Drug information API — proxies RxNorm (NLM) + OpenFDA + NADAC (CMS) ──
+// No API keys required — all are free US government APIs.
 //
 // Actions via ?action= query param:
 //   autocomplete — drug name typeahead via RxNorm
 //   details      — drug label info via OpenFDA (by rxcui or name)
 //   interactions — multi-drug interaction check via RxNorm
+//   price        — NADAC wholesale price via RxCUI → NDC → CMS DKAN
 
 // ── In-memory rate limiter (shared pattern with chat.js) ──
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -198,6 +199,81 @@ async function fdaSearchByName(name) {
   return null;
 }
 
+// ── NADAC price lookup (CMS DKAN API) ──
+// Dataset ID changes yearly — update this constant when CMS publishes new dataset
+const NADAC_DATASET_ID = 'fbb83258-11c7-47f5-8b18-5f8e79f7e704';
+const NADAC_BASE = `https://data.medicaid.gov/api/1/datastore/query/${NADAC_DATASET_ID}/0`;
+
+/** Normalize NDC to 11-digit format (strip hyphens, zero-pad) */
+function normalizeNDC(ndc) {
+  const digits = ndc.replace(/[^0-9]/g, '');
+  return digits.padStart(11, '0');
+}
+
+/** Fetch NDCs for an RxCUI from RxNorm */
+async function rxcuiToNDCs(rxcui) {
+  const url = `${RXNORM_BASE}/rxcui/${encodeURIComponent(rxcui)}/ndcs.json`;
+  const res = await fetchWithTimeout(url);
+  if (!res.ok) return [];
+  const data = await res.json();
+  return (data?.ndcGroup?.ndcList?.ndc || []).map(normalizeNDC);
+}
+
+/** Query NADAC for a single NDC — returns price record or null */
+async function nadacLookup(ndc) {
+  const params = new URLSearchParams({
+    'conditions[0][property]': 'ndc',
+    'conditions[0][value]': ndc,
+    'conditions[0][operator]': '=',
+    limit: '1',
+    'sort[0][property]': 'as_of_date',
+    'sort[0][order]': 'desc',
+  });
+  const url = `${NADAC_BASE}?${params}`;
+  const res = await fetchWithTimeout(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  const row = data?.results?.[0];
+  if (!row) return null;
+  return {
+    ndc,
+    ndc_description: row.ndc_description || '',
+    nadac_per_unit: parseFloat(row.nadac_per_unit) || 0,
+    pricing_unit: row.pricing_unit || 'EA',
+    effective_date: row.effective_date || '',
+    as_of_date: row.as_of_date || '',
+    classification: row.classification_for_rate_setting || '',
+  };
+}
+
+/** Full price pipeline: RxCUI → NDCs → NADAC prices for cheapest option */
+async function lookupPrice(rxcui) {
+  const ndcs = await rxcuiToNDCs(rxcui);
+  if (!ndcs.length) return { error: 'No NDCs found for this medication' };
+
+  // Query up to 5 NDCs in parallel
+  const subset = ndcs.slice(0, 5);
+  const results = await Promise.all(subset.map(ndc => nadacLookup(ndc).catch(() => null)));
+  const prices = results.filter(Boolean);
+  if (!prices.length) return { error: 'No NADAC pricing available for this medication' };
+
+  // Sort by price ascending — cheapest first
+  prices.sort((a, b) => a.nadac_per_unit - b.nadac_per_unit);
+  const best = prices[0];
+
+  return {
+    rxcui,
+    ndc: best.ndc,
+    nadac_per_unit: best.nadac_per_unit,
+    pricing_unit: best.pricing_unit,
+    effective_date: best.effective_date,
+    as_of_date: best.as_of_date,
+    drug_name: best.ndc_description,
+    classification: best.classification,
+    all_prices: prices,
+  };
+}
+
 async function fdaDrugLabel(query, fallbackName) {
   // If query is an rxcui (numeric), try RxCUI lookup first
   if (/^\d+$/.test(query)) {
@@ -293,8 +369,14 @@ export default async function handler(req, res) {
         const results = await cached(`ix:${ids.sort().join(',')}`, () => rxInteractions(ids));
         return res.json(results);
       }
+      case 'price': {
+        const rxcui = req.query.rxcui;
+        if (!rxcui) return res.status(400).json({ error: 'rxcui parameter required' });
+        const priceData = await cached(`price:${rxcui}`, () => lookupPrice(rxcui));
+        return res.json(priceData);
+      }
       default:
-        return res.status(400).json({ error: 'Invalid action. Use: autocomplete, details, interactions' });
+        return res.status(400).json({ error: 'Invalid action. Use: autocomplete, details, interactions, price' });
     }
   } catch (err) {
     console.error('Drug API error:', err);

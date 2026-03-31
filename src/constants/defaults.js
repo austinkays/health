@@ -65,3 +65,15 @@ export const MOODS = [
   '😀 Great', '😊 Good', '😐 Okay', '😔 Low',
   '😢 Sad', '😠 Frustrated', '😰 Anxious', '😴 Exhausted',
 ];
+
+export const EMPTY_CLAIM = {
+  date: '', provider: '', description: '', billed_amount: '',
+  allowed_amount: '', paid_amount: '', patient_responsibility: '',
+  status: 'submitted', claim_number: '', insurance_plan: '', notes: '',
+};
+
+export const EMPTY_DRUG_PRICE = {
+  medication_id: '', rxcui: '', ndc: '', nadac_per_unit: null,
+  pricing_unit: 'EA', drug_name: '', effective_date: '',
+  as_of_date: '', classification: '',
+};

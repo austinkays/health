@@ -83,3 +83,26 @@ export function clinicalTrialsUrl(condition, city) {
   }
   return `https://clinicaltrials.gov/search?${params.toString()}`;
 }
+
+/** Cost Plus Drugs price search (Mark Cuban venture — generics only) */
+export function costPlusDrugsUrl(drugName) {
+  if (!drugName?.trim()) return null;
+  // Slug: lowercase, strip dosage forms/strengths, spaces→hyphens
+  const slug = drugName.trim().toLowerCase()
+    .replace(/\s+\d+(\.\d+)?\s*(mg|ml|mcg|%|units?)\b.*$/i, '')
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+  return `https://costplusdrugs.com/medications/${slug}/`;
+}
+
+/** Amazon Pharmacy search */
+export function amazonPharmacyUrl(drugName) {
+  if (!drugName?.trim()) return null;
+  return `https://pharmacy.amazon.com/search?query=${encodeURIComponent(drugName.trim())}`;
+}
+
+/** Blink Health price search */
+export function blinkHealthUrl(drugName) {
+  if (!drugName?.trim()) return null;
+  return `https://www.blinkhealth.com/search?query=${encodeURIComponent(drugName.trim())}`;
+}

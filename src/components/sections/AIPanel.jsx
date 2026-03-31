@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus } from 'lucide-react';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -7,15 +7,17 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, sendChat } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, sendChat } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
+import { db } from '../../services/db';
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
   { id: 'connections', label: 'Health Connections', desc: 'Patterns across your health data', icon: Link, color: C.sage },
   { id: 'news', label: 'Health News', desc: 'Recent news for your conditions', icon: Newspaper, color: C.amber },
   { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose },
+  { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage },
 ];
 
 // Strip the AI disclaimer from markdown text for separate rendering
@@ -320,21 +322,110 @@ function ResourcesResult({ result }) {
   );
 }
 
+/* ── Cost Savings Result ─────────────────────────────────── */
+
+function CostResult({ result }) {
+  const text = typeof result === 'string' ? result : result?.text;
+  const sources = typeof result === 'object' ? result?.sources : [];
+  const sections = splitSections(text);
+
+  if (sections.length <= 1) {
+    return (
+      <div>
+        <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} />
+        <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
+          <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
+            <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
+          </div>
+        </div>
+        <SourcesBadges sources={sources} />
+        <Disclaimer />
+      </div>
+    );
+  }
+
+  const parsed = sections.map(s => {
+    const match = s.match(/^##\s+(.+?)[\n\r]/);
+    const title = match ? match[1].trim() : 'Savings';
+    const content = match ? s.replace(/^##\s+.+?[\n\r]/, '') : s;
+    return { title, content };
+  });
+
+  return (
+    <div>
+      <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} />
+      <div className="flex flex-col gap-2.5">
+        {parsed.map((section, i) => (
+          <div
+            key={i}
+            className="card-hover rounded-xl border border-salve-sage/15 bg-salve-card overflow-hidden dash-stagger"
+            style={{ animationDelay: `${i * 0.08}s` }}
+          >
+            <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
+              <div className="flex items-center gap-2 mb-2">
+                <BadgeDollarSign size={13} className="text-salve-sage shrink-0" strokeWidth={1.8} />
+                <span className="text-[13px] font-semibold text-salve-text font-montserrat">{section.title}</span>
+              </div>
+              <AIMarkdown>{section.content.trim()}</AIMarkdown>
+            </div>
+          </div>
+        ))}
+      </div>
+      <SourcesBadges sources={sources} />
+      <Disclaimer />
+    </div>
+  );
+}
+
 export default function AIPanel({ data }) {
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
+  const [conversationId, setConversationId] = useState(null);
 
   const profile = buildProfile(data);
+
+  // Load most recent conversation on entering chat mode
+  useEffect(() => {
+    if (mode !== 'ask') return;
+    let cancelled = false;
+    db.conversations.list().then(convos => {
+      if (cancelled || !convos?.length) return;
+      const latest = convos[0];
+      if (latest.messages?.length) {
+        setChatMessages(latest.messages);
+        setConversationId(latest.id);
+      }
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [mode]);
+
+  const saveConversation = async (msgs) => {
+    try {
+      const title = msgs.find(m => m.role === 'user')?.content?.slice(0, 80) || 'Chat';
+      if (conversationId) {
+        await db.conversations.update(conversationId, { title, messages: msgs });
+      } else {
+        const saved = await db.conversations.add({ title, messages: msgs });
+        if (saved?.id) setConversationId(saved.id);
+      }
+    } catch {}
+  };
+
+  const startNewChat = () => {
+    setChatMessages([]);
+    setConversationId(null);
+    setChatInput('');
+  };
 
   const runFeature = async (id) => {
     setMode(id);
     setResult(null);
     setLoading(true);
     try {
-      const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources }[id];
+      const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
       const r = await fn(profile);
       setResult(r);
     } catch (e) {
@@ -352,9 +443,12 @@ export default function AIPanel({ data }) {
     setLoading(true);
     try {
       const r = await sendChat(msgs, profile);
-      setChatMessages([...msgs, { role: 'assistant', content: r }]);
+      const updated = [...msgs, { role: 'assistant', content: r }];
+      setChatMessages(updated);
+      saveConversation(updated);
     } catch (e) {
-      setChatMessages([...msgs, { role: 'assistant', content: 'Error: ' + e.message }]);
+      const updated = [...msgs, { role: 'assistant', content: 'Error: ' + e.message }];
+      setChatMessages(updated);
     } finally {
       setLoading(false);
     }
@@ -368,9 +462,16 @@ export default function AIPanel({ data }) {
   if (mode === 'ask') return (
     <AIConsentGate>
     <div className="mt-2">
-      <SectionTitle action={<button onClick={() => { setMode(null); setChatMessages([]); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
+      <SectionTitle action={<button onClick={() => { setMode(null); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
         Ask Insight
       </SectionTitle>
+      {chatMessages.length > 0 && (
+        <div className="flex justify-end mb-2">
+          <button onClick={startNewChat} className="inline-flex items-center gap-1 text-[11px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat border-none cursor-pointer">
+            <Plus size={11} /> New Chat
+          </button>
+        </div>
+      )}
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
           <article key={i} className={`max-w-[85%] rounded-xl ${
@@ -430,6 +531,7 @@ export default function AIPanel({ data }) {
         mode === 'connections' ? <ConnectionsResult result={result} /> :
         mode === 'news' ? <NewsResult result={result} /> :
         mode === 'resources' ? <ResourcesResult result={result} /> :
+        mode === 'costs' ? <CostResult result={result} /> :
         null
       ) : null}
     </div>

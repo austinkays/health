@@ -51,3 +51,13 @@ export async function drugInteractions(rxcuis) {
   if (!rxcuis || rxcuis.length < 2) return [];
   return drugAPI('interactions', { rxcuis: rxcuis.join(',') });
 }
+
+/**
+ * Look up NADAC wholesale price for a drug via RxCUI → NDC → CMS DKAN
+ * @param {string} rxcui - RxCUI identifier
+ * @returns {Promise<{rxcui, ndc, nadac_per_unit, pricing_unit, effective_date, as_of_date, drug_name, classification, all_prices[]}>}
+ */
+export async function drugPrice(rxcui) {
+  if (!rxcui) return null;
+  return drugAPI('price', { rxcui });
+}

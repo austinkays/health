@@ -77,6 +77,8 @@ export const db = {
   appeals_and_disputes: crud('appeals_and_disputes', { orderBy: 'date_filed', ascending: false }),
   surgical_planning: crud('surgical_planning'),
   insurance: crud('insurance'),
+  insurance_claims: crud('insurance_claims', { orderBy: 'date', ascending: false }),
+  drug_prices: crud('drug_prices', { orderBy: 'fetched_at', ascending: false }),
 
   // Profile is 1:1 with user — different pattern
   profile: {
@@ -124,6 +126,8 @@ export const db = {
       db.appeals_and_disputes.list(),
       db.surgical_planning.list(),
       db.insurance.list(),
+      db.insurance_claims.list(),
+      db.drug_prices.list(),
     ]);
 
     const v = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
@@ -134,6 +138,8 @@ export const db = {
       pharmacies: v(5, []), vitals: v(6, []), appts: v(7, []), journal: v(8, []),
       labs: v(9, []), procedures: v(10, []), immunizations: v(11, []), care_gaps: v(12, []),
       anesthesia_flags: v(13, []), appeals_and_disputes: v(14, []), surgical_planning: v(15, []), insurance: v(16, []),
+      insurance_claims: v(17, []),
+      drug_prices: v(18, []),
     };
   },
 
@@ -148,6 +154,7 @@ export const db = {
       'vitals', 'appointments', 'journal_entries', 'ai_conversations',
       'labs', 'procedures', 'immunizations', 'care_gaps',
       'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',
+      'insurance_claims', 'drug_prices',
     ];
 
     const errors = [];

@@ -22,6 +22,8 @@ const TABLE_MAP = {
   appeals_and_disputes: 'appeals_and_disputes',
   surgical_planning:    'surgical_planning',
   insurance:            'insurance',
+  insurance_claims:     'insurance_claims',
+  drug_prices:          'drug_prices',
 };
 
 // Strip server-generated fields before inserting

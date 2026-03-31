@@ -7,6 +7,8 @@ export default function useHealthData(session) {
     pharmacies: [], vitals: [], appts: [], journal: [],
     labs: [], procedures: [], immunizations: [], care_gaps: [],
     anesthesia_flags: [], appeals_and_disputes: [], surgical_planning: [], insurance: [],
+    insurance_claims: [],
+    drug_prices: [],
     settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
   });
   const [loading, setLoading] = useState(true);
@@ -99,6 +101,8 @@ function tableToKey(table) {
     appeals_and_disputes: 'appeals_and_disputes',
     surgical_planning: 'surgical_planning',
     insurance: 'insurance',
+    insurance_claims: 'insurance_claims',
+    drug_prices: 'drug_prices',
   };
   return map[table] || table;
 }

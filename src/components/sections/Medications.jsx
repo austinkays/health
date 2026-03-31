@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink, Link2, Unlink, Download, BadgeDollarSign } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, Info, MapPin, ExternalLink, Link2, Unlink, Download, BadgeDollarSign, DollarSign, RefreshCw } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -16,12 +16,38 @@ import { fetchCrossReactivity } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
-import { drugAutocomplete, drugDetails } from '../../services/drugs';
+import { drugAutocomplete, drugDetails, drugPrice } from '../../services/drugs';
 import { mapsUrl } from '../../utils/maps';
-import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
+import { dailyMedUrl, providerLookupUrl, goodRxUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl } from '../../utils/links';
+import { checkInteractions } from '../../utils/interactions';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
+
+/** Tiny SVG sparkline for price trends — no Recharts needed */
+function PriceSparkline({ prices }) {
+  if (!prices || prices.length < 2) return null;
+  const w = 120, h = 36, pad = 2;
+  const vals = prices.map(p => Number(p.nadac_per_unit));
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const range = max - min || 1;
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+    const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+    return `${x},${y}`;
+  });
+  const trend = vals[vals.length - 1] > vals[0] * 1.01 ? '#e8c88a' : '#8fbfa0'; // amber up, sage flat/down
+  return (
+    <svg width={w} height={h} className="inline-block" aria-hidden="true">
+      <polyline points={pts.join(' ')} fill="none" stroke={trend} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      {vals.map((v, i) => {
+        const x = pad + (i / (vals.length - 1)) * (w - pad * 2);
+        const y = pad + (1 - (v - min) / range) * (h - pad * 2);
+        return <circle key={i} cx={x} cy={y} r="2" fill={trend} />;
+      })}
+    </svg>
+  );
+}
 
 export default function Medications({ data, addItem, updateItem, removeItem, interactions, highlightId }) {
   const [subView, setSubView] = useState(null);
@@ -52,6 +78,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [enriching, setEnriching] = useState(false);
   const [enrichProgress, setEnrichProgress] = useState(null);
   const [enrichResult, setEnrichResult] = useState(null);
+  const [priceLoading, setPriceLoading] = useState(null);
+  const [bulkPricing, setBulkPricing] = useState(false);
+  const [priceProgress, setPriceProgress] = useState(null);
+  const [priceResult, setPriceResult] = useState(null);
+  const [priceHistoryExpanded, setPriceHistoryExpanded] = useState(null);
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
@@ -148,6 +179,17 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     });
   }, [form.name, data.allergies]);
 
+  /* ── Drug interaction check for form entry ── */
+  const formInteractionWarnings = useMemo(() => {
+    const name = form.name.trim();
+    if (!name) return [];
+    const otherMeds = data.meds.filter(m => m.active !== false && m.id !== editId);
+    if (!otherMeds.length) return [];
+    const fakeMed = { name, active: true };
+    const all = checkInteractions([...otherMeds, fakeMed]);
+    return all.filter(w => w.medA.toLowerCase() === name.toLowerCase() || w.medB.toLowerCase() === name.toLowerCase());
+  }, [form.name, data.meds, editId]);
+
   /* ── Fetch FDA data for a single med and persist ── */
   const enrichFdaData = async (med) => {
     const key = med.rxcui || med.name;
@@ -211,6 +253,98 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     setBulkProgress(null);
     setBulkResult({ linked, total: unlinked.length });
     setBulkLinking(false);
+  };
+
+  /* ── Price helpers ── */
+  const getLatestPrice = useCallback((medId) => {
+    return (data.drug_prices || [])
+      .filter(p => p.medication_id === medId)
+      .sort((a, b) => new Date(b.fetched_at) - new Date(a.fetched_at))[0] || null;
+  }, [data.drug_prices]);
+
+  const parseFreqMultiplier = (freq) => {
+    if (!freq) return null;
+    const f = freq.toLowerCase();
+    if (f.includes('qid') || f.includes('four times')) return 4;
+    if (f.includes('tid') || f.includes('three times')) return 3;
+    if (f.includes('bid') || f.includes('twice')) return 2;
+    if (f.includes('once daily') || f.includes('every morning') || f.includes('every evening') || f.includes('qhs') || f.includes('daily')) return 1;
+    if (f.includes('weekly')) return 1 / 7;
+    if (f.includes('biweekly')) return 1 / 14;
+    if (f.includes('monthly')) return 1 / 30;
+    return null;
+  };
+
+  const checkPrice = async (med) => {
+    if (!med.rxcui) return;
+    setPriceLoading(med.id);
+    try {
+      const result = await drugPrice(med.rxcui);
+      if (result && !result.error) {
+        await addItem('drug_prices', {
+          medication_id: med.id,
+          rxcui: med.rxcui,
+          ndc: result.ndc,
+          nadac_per_unit: result.nadac_per_unit,
+          pricing_unit: result.pricing_unit,
+          drug_name: result.drug_name,
+          effective_date: result.effective_date,
+          as_of_date: result.as_of_date,
+          classification: result.classification,
+        });
+      }
+    } catch { /* non-blocking */ }
+    finally { setPriceLoading(null); }
+  };
+
+  const priceColor = (price) => {
+    if (price <= 1) return 'text-salve-sage';
+    if (price <= 10) return 'text-salve-amber';
+    return 'text-salve-rose';
+  };
+
+  /* ── Bulk price check for all linked meds ── */
+  const medsNeedingPrice = useMemo(() => {
+    const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    return data.meds.filter(m => {
+      if (!m.rxcui || m.active === false) return false;
+      const latest = (data.drug_prices || []).find(p => p.medication_id === m.id);
+      return !latest || new Date(latest.fetched_at).getTime() < sevenDaysAgo;
+    });
+  }, [data.meds, data.drug_prices]);
+
+  const bulkPriceCheck = async () => {
+    if (medsNeedingPrice.length === 0) return;
+    setBulkPricing(true);
+    setPriceResult(null);
+    let checked = 0;
+    let totalMonthly = 0;
+    for (let i = 0; i < medsNeedingPrice.length; i++) {
+      const med = medsNeedingPrice[i];
+      setPriceProgress({ current: i + 1, total: medsNeedingPrice.length, name: med.display_name || med.name });
+      try {
+        const result = await drugPrice(med.rxcui);
+        if (result && !result.error) {
+          await addItem('drug_prices', {
+            medication_id: med.id,
+            rxcui: med.rxcui,
+            ndc: result.ndc,
+            nadac_per_unit: result.nadac_per_unit,
+            pricing_unit: result.pricing_unit,
+            drug_name: result.drug_name,
+            effective_date: result.effective_date,
+            as_of_date: result.as_of_date,
+            classification: result.classification,
+          });
+          checked++;
+          const mult = parseFreqMultiplier(med.frequency);
+          if (mult) totalMonthly += result.nadac_per_unit * mult * 30;
+        }
+      } catch { /* skip */ }
+    }
+    setPriceProgress(null);
+    setPriceResult({ checked, total: medsNeedingPrice.length, monthlyEstimate: totalMonthly > 0 ? totalMonthly.toFixed(2) : null });
+    setBulkPricing(false);
   };
 
   const saveMed = async () => {
@@ -282,6 +416,23 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               <div key={i} className="text-xs text-salve-textMid leading-relaxed">
                 Known allergy to <span className="font-semibold text-salve-rose">{a.substance}</span>
                 {a.reaction ? ` — ${a.reaction}` : ''}{a.severity ? ` (${a.severity})` : ''}
+              </div>
+            ))}
+          </div>
+        )}
+        {formInteractionWarnings.length > 0 && (
+          <div className="mb-4 p-3 rounded-xl border border-salve-amber/40 bg-salve-amber/10">
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertTriangle size={14} color={C.amber} />
+              <span className="text-xs font-semibold text-salve-amber">Drug Interaction Warning</span>
+            </div>
+            {formInteractionWarnings.map((w, i) => (
+              <div key={i} className="text-xs text-salve-textMid leading-relaxed mt-0.5">
+                <span className="font-semibold" style={{ color: w.severity === 'major' ? C.rose : C.amber }}>{w.medA}</span>
+                {' + '}
+                <span className="font-semibold" style={{ color: w.severity === 'major' ? C.rose : C.amber }}>{w.medB}</span>
+                {': '}{w.msg}
+                {w.severity === 'major' && <span className="text-salve-rose font-semibold"> (Major)</span>}
               </div>
             ))}
           </div>
@@ -464,6 +615,41 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         );
       })()}
 
+      {/* ── Bulk Price Check banner ── */}
+      {(() => {
+        if (medsNeedingPrice.length < 2 && !priceResult) return null;
+        return (
+          <div className="mb-3.5 p-3 rounded-xl bg-salve-lav/5 border border-salve-lav/20">
+            {priceResult ? (
+              <div className="text-xs text-salve-textMid">
+                <span className="font-medium text-salve-sage">✓ Checked {priceResult.checked}/{priceResult.total}</span>
+                {priceResult.monthlyEstimate && <span className="text-salve-lav"> · Monthly estimate: ~${priceResult.monthlyEstimate}</span>}
+                <button onClick={() => setPriceResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">dismiss</button>
+              </div>
+            ) : priceProgress ? (
+              <div className="flex items-center gap-2 text-xs text-salve-textMid">
+                <Loader size={12} className="animate-spin text-salve-lav" />
+                Checking {priceProgress.current} of {priceProgress.total}… <span className="text-salve-textFaint truncate">{priceProgress.name}</span>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-xs text-salve-lav">
+                  <DollarSign size={12} />
+                  <span>{medsNeedingPrice.length} med{medsNeedingPrice.length !== 1 ? 's' : ''} need price check</span>
+                </div>
+                <button
+                  onClick={bulkPriceCheck}
+                  disabled={bulkPricing}
+                  className="flex-shrink-0 py-1.5 px-3 rounded-lg bg-salve-lav/10 border border-salve-lav/30 text-salve-lav text-[11px] font-medium cursor-pointer font-montserrat flex items-center gap-1 hover:bg-salve-lav/20 transition-colors"
+                >
+                  <DollarSign size={11} /> Price Check All
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
         fl.map(m => {
           const isExpanded = expandedId === m.id;
@@ -551,6 +737,90 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                     {drugInfoLoading === m.id ? 'Fetching drug info…' : 'Fetch drug info'}
                   </button>
                 )}
+                {/* ── NADAC Price Display ── */}
+                {m.rxcui && (() => {
+                  const price = getLatestPrice(m.id);
+                  const priceHistory = (data.drug_prices || [])
+                    .filter(p => p.medication_id === m.id)
+                    .sort((a, b) => new Date(a.fetched_at) - new Date(b.fetched_at));
+                  if (price) {
+                    const mult = parseFreqMultiplier(m.frequency);
+                    const monthly = mult ? (price.nadac_per_unit * mult * 30).toFixed(2) : null;
+                    const dateStr = price.as_of_date ? fmtDate(price.as_of_date) : fmtDate(price.fetched_at);
+                    return (
+                      <div className="mt-2 p-2 rounded-lg bg-salve-card2/50 border border-salve-border/30">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <DollarSign size={12} className={priceColor(price.nadac_per_unit)} />
+                            <span className={`text-xs font-medium ${priceColor(price.nadac_per_unit)}`}>
+                              ${Number(price.nadac_per_unit).toFixed(4)}/{price.pricing_unit || 'unit'}
+                            </span>
+                            <span className="text-[10px] text-salve-textFaint">(NADAC)</span>
+                          </div>
+                          <button
+                            onClick={() => checkPrice(m)}
+                            disabled={priceLoading === m.id}
+                            className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav transition-colors p-0"
+                            aria-label="Refresh price"
+                          >
+                            {priceLoading === m.id ? <Loader size={11} className="animate-spin" /> : <RefreshCw size={11} />}
+                          </button>
+                        </div>
+                        {monthly && (
+                          <div className="text-[11px] text-salve-textMid mt-0.5">
+                            ~${monthly}/mo estimated
+                          </div>
+                        )}
+                        {priceHistory.length >= 4 && (
+                          <div className="mt-1.5"><PriceSparkline prices={priceHistory} /></div>
+                        )}
+                        <div className="text-[10px] text-salve-textFaint mt-0.5">
+                          {price.classification === 'G' ? 'Generic' : price.classification === 'B' ? 'Brand' : ''}
+                          {price.classification ? ' · ' : ''}Updated {dateStr}
+                          {priceHistory.length >= 2 && (
+                            <button
+                              onClick={() => setPriceHistoryExpanded(priceHistoryExpanded === m.id ? null : m.id)}
+                              className="ml-1.5 text-salve-lav/70 hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat text-[10px] p-0 underline"
+                            >
+                              {priceHistoryExpanded === m.id ? 'Hide' : `${priceHistory.length} snapshots`}
+                            </button>
+                          )}
+                        </div>
+                        {priceHistoryExpanded === m.id && priceHistory.length >= 2 && (
+                          <div className="mt-2 space-y-0.5">
+                            {priceHistory.slice().reverse().map((ph, i, arr) => {
+                              const prev = arr[i + 1];
+                              const pctChange = prev ? ((Number(ph.nadac_per_unit) - Number(prev.nadac_per_unit)) / Number(prev.nadac_per_unit) * 100) : null;
+                              const changeColor = pctChange === null ? 'text-salve-textFaint' : pctChange > 0 ? 'text-salve-amber' : pctChange < 0 ? 'text-salve-sage' : 'text-salve-textFaint';
+                              return (
+                                <div key={ph.id || i} className="flex items-center justify-between text-[10px] py-0.5 border-b border-salve-border/20 last:border-0">
+                                  <span className="text-salve-textFaint">{fmtDate(ph.as_of_date || ph.fetched_at)}</span>
+                                  <span className="text-salve-textMid font-medium">${Number(ph.nadac_per_unit).toFixed(4)}</span>
+                                  {pctChange !== null && (
+                                    <span className={`${changeColor} font-medium`}>
+                                      {pctChange > 0 ? '↑' : pctChange < 0 ? '↓' : '·'}{Math.abs(pctChange).toFixed(1)}%
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <button
+                      onClick={() => checkPrice(m)}
+                      disabled={priceLoading === m.id}
+                      className="mt-2 bg-transparent border-none cursor-pointer text-salve-sage/60 text-[11px] font-montserrat p-0 flex items-center gap-1 hover:text-salve-sage transition-colors"
+                      aria-label="Check NADAC price"
+                    >
+                      {priceLoading === m.id ? <Loader size={10} className="animate-spin" /> : <DollarSign size={10} />}
+                      {priceLoading === m.id ? 'Checking price…' : 'Check Price'}
+                    </button>
+                  );
+                })()}
                 <div className="flex gap-2.5 mt-2.5 flex-wrap">
                   <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
@@ -560,10 +830,18 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                   </button>
                   {goodRxUrl(m.name) && (
                     <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
-                      <BadgeDollarSign size={12} /> Prices
+                      <BadgeDollarSign size={12} /> Compare Prices
                     </a>
                   )}
                 </div>
+                {/* ── Compare Prices links ── */}
+                {goodRxUrl(m.name) && (
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px]">
+                    {costPlusDrugsUrl(m.name) && <a href={costPlusDrugsUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber/70 hover:text-salve-amber no-underline hover:underline flex items-center gap-0.5"><ExternalLink size={9} /> Cost Plus</a>}
+                    {amazonPharmacyUrl(m.name) && <a href={amazonPharmacyUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber/70 hover:text-salve-amber no-underline hover:underline flex items-center gap-0.5"><ExternalLink size={9} /> Amazon Pharmacy</a>}
+                    {blinkHealthUrl(m.name) && <a href={blinkHealthUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-amber/70 hover:text-salve-amber no-underline hover:underline flex items-center gap-0.5"><ExternalLink size={9} /> Blink Health</a>}
+                  </div>
+                )}
                 {drugInfoExpanded === m.id && drugInfo[m.id] && (
                   <div className="mt-2.5 p-3 rounded-lg bg-salve-sage/5 border border-salve-sage/20">
                     <div className="text-[11px] font-semibold text-salve-sage mb-2 flex items-center gap-1"><Info size={11} /> FDA Drug Label</div>
