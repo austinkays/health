@@ -375,26 +375,19 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
       {/* ── Pharmacy filter ── */}
       {pharmacyNames.length > 1 && (
-        <div className="flex gap-1.5 mb-3.5 flex-wrap">
-          <button
-            onClick={() => setPharmacyFilter('all')}
-            className={`py-1 px-3 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat flex items-center gap-1 ${
-              pharmacyFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
-            }`}
+        <div className="flex items-center gap-2 mb-3.5">
+          <Building2 size={12} className="text-salve-textFaint flex-shrink-0" />
+          <select
+            value={pharmacyFilter}
+            onChange={e => setPharmacyFilter(e.target.value)}
+            className="bg-salve-card2 border border-salve-border rounded-lg text-xs text-salve-text font-montserrat py-1.5 px-2.5 cursor-pointer appearance-none pr-7 truncate max-w-[220px]"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6a80' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
           >
-            <Building2 size={10} /> All pharmacies
-          </button>
-          {pharmacyNames.map(name => (
-            <button
-              key={name}
-              onClick={() => setPharmacyFilter(pharmacyFilter === name ? 'all' : name)}
-              className={`py-1 px-3 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat truncate max-w-[150px] ${
-                pharmacyFilter === name ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
-              }`}
-            >
-              {name}
-            </button>
-          ))}
+            <option value="all">All pharmacies</option>
+            {pharmacyNames.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
         </div>
       )}
 

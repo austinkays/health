@@ -73,10 +73,12 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
 
   const saveP = async () => {
     if (!form.name.trim()) return;
+    // Strip computed/non-DB fields before saving
+    const { _saved, _key, id, created_at, updated_at, user_id, ...clean } = form;
     if (editId) {
-      await updateItem('pharmacies', editId, form);
+      await updateItem('pharmacies', editId, clean);
     } else {
-      await addItem('pharmacies', form);
+      await addItem('pharmacies', clean);
     }
     setForm(EMPTY_PHARMACY);
     setEditId(null);

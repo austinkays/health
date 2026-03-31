@@ -3,7 +3,7 @@ import {
   Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
-  Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search,
+  Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -27,10 +27,12 @@ function getTimeGreeting() {
   return { text: 'Good evening', icon: Moon, motif: 'moon' };
 }
 
-function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount) {
+function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount, alertsHidden) {
   // Priority: critical alerts → upcoming events → encouragement
-  const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0) + abnormalLabCount;
-  if (totalAlerts > 0) return `${totalAlerts} item${totalAlerts > 1 ? 's' : ''} need${totalAlerts === 1 ? 's' : ''} your attention`;
+  if (!alertsHidden) {
+    const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0) + abnormalLabCount;
+    if (totalAlerts > 0) return `${totalAlerts} item${totalAlerts > 1 ? 's' : ''} need${totalAlerts === 1 ? 's' : ''} your attention`;
+  }
 
   const soon = data.appts.filter(a => {
     const d = Math.ceil((new Date(a.date) - new Date(new Date().toDateString())) / 86400000);
@@ -46,6 +48,24 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
 
   if (data.journal.length > 0) return 'Your health journal is up to date';
   return 'All caught up — take care of yourself today';
+}
+
+/* ── Alert dismissal ──────────────────────────────────── */
+
+const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
+
+function getAlertDismissal() {
+  try {
+    const raw = localStorage.getItem(ALERT_DISMISS_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data.until === 'forever') return data;
+    if (typeof data.until === 'number' && Date.now() < data.until) return data;
+    localStorage.removeItem(ALERT_DISMISS_KEY);
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /* ── Quick Access config (static — outside component) ──── */
@@ -78,6 +98,9 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const [showMore, setShowMore] = useState(() => localStorage.getItem('salve:dash-more') === '1');
+  const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
+  const [showDismissMenu, setShowDismissMenu] = useState(false);
+  const alertsDismissed = alertDismissal !== null;
 
   /* ── Memoized computations ──────────────────── */
   const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
@@ -162,12 +185,24 @@ export default function Dashboard({ data, interactions, onNav }) {
   }, [anesthesiaCount, interactions, abnormalLabs, urgentGaps]);
 
   const greeting = getTimeGreeting();
-  const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length);
+  const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
   const toggleMore = () => {
     const next = !showMore;
     setShowMore(next);
     localStorage.setItem('salve:dash-more', next ? '1' : '0');
+  };
+
+  const dismissAlerts = (duration) => {
+    const val = { until: duration === 'forever' ? 'forever' : Date.now() + duration };
+    localStorage.setItem(ALERT_DISMISS_KEY, JSON.stringify(val));
+    setAlertDismissal(val);
+    setShowDismissMenu(false);
+  };
+
+  const restoreAlerts = () => {
+    localStorage.removeItem(ALERT_DISMISS_KEY);
+    setAlertDismissal(null);
   };
 
   /* ── Render ─────────────────────────────────── */
@@ -190,9 +225,27 @@ export default function Dashboard({ data, interactions, onNav }) {
       </section>
 
       {/* ── Needs Attention (consolidated alerts) ── */}
-      {alerts.length > 0 && (
+      {alerts.length > 0 && !alertsDismissed && (
         <section aria-label="Needs attention" className="dash-stagger dash-stagger-2 mb-4">
           <Card className="!p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-salve-border/50">
+              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
+              <button
+                onClick={() => setShowDismissMenu(!showDismissMenu)}
+                className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors"
+                aria-label="Dismiss alerts"
+              >
+                <X size={13} />
+              </button>
+            </div>
+            {showDismissMenu && (
+              <div className="flex items-center gap-1.5 px-4 py-2 bg-salve-card2/50 border-b border-salve-border/50">
+                <span className="text-[10.5px] text-salve-textFaint mr-auto">Hide for:</span>
+                <button onClick={() => dismissAlerts(86400000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 day</button>
+                <button onClick={() => dismissAlerts(604800000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 week</button>
+                <button onClick={() => dismissAlerts('forever')} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">Always</button>
+              </div>
+            )}
             {alerts.map((a, i) => (
               <button
                 key={a.id}
@@ -206,6 +259,20 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             ))}
           </Card>
+        </section>
+      )}
+
+      {/* ── Dismissed alerts indicator ── */}
+      {alerts.length > 0 && alertsDismissed && (
+        <section aria-label="Dismissed alerts" className="dash-stagger dash-stagger-2 mb-3">
+          <button
+            onClick={restoreAlerts}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-salve-card/50 border border-salve-border/30 cursor-pointer transition-colors hover:bg-salve-card hover:border-salve-border/50"
+            aria-label={`${alerts.length} dismissed alert${alerts.length !== 1 ? 's' : ''}, tap to review`}
+          >
+            <AlertTriangle size={11} className="text-salve-amber/60" />
+            <span className="text-[10.5px] text-salve-textFaint">{alerts.length}</span>
+          </button>
         </section>
       )}
 
