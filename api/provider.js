@@ -96,6 +96,7 @@ function parseTaxonomy(taxonomies) {
 function formatProvider(result) {
   const basic = result.basic || {};
   const isOrg = result.enumeration_type === 'NPI-2';
+  const locAddr = result.addresses?.find(a => a.address_purpose === 'LOCATION') || result.addresses?.[0];
   return {
     npi: result.number,
     name: isOrg
@@ -105,9 +106,10 @@ function formatProvider(result) {
     last_name: basic.last_name || '',
     credential: basic.credential || '',
     specialty: parseTaxonomy(result.taxonomies),
-    address: parseAddress(result.addresses?.find(a => a.address_purpose === 'LOCATION') || result.addresses?.[0]),
-    phone: (result.addresses?.find(a => a.address_purpose === 'LOCATION') || result.addresses?.[0])?.telephone_number || '',
-    fax: (result.addresses?.find(a => a.address_purpose === 'LOCATION') || result.addresses?.[0])?.fax_number || '',
+    other_specialties: (result.taxonomies || []).filter(t => !t.primary && t.desc).map(t => t.desc),
+    address: parseAddress(locAddr),
+    phone: locAddr?.telephone_number || '',
+    fax: locAddr?.fax_number || '',
     organization: isOrg ? basic.organization_name : (basic.organization_name || ''),
     enumeration_type: result.enumeration_type,
   };

@@ -308,12 +308,16 @@ async function fdaDrugLabel(query, fallbackName) {
 
 function formatLabel(label) {
   return {
+    spl_set_id: label.openfda?.spl_set_id?.[0] || '',
     brand_name: label.openfda?.brand_name?.[0] || '',
     generic_name: label.openfda?.generic_name?.[0] || '',
     manufacturer: label.openfda?.manufacturer_name?.[0] || '',
     substance: label.openfda?.substance_name || [],
     route: label.openfda?.route || [],
     pharm_class: label.openfda?.pharm_class_epc || [],
+    pharm_class_moa: label.openfda?.pharm_class_moa || [],
+    pharm_class_pe: label.openfda?.pharm_class_pe || [],
+    dosage_form: label.openfda?.dosage_form || [],
     warnings: truncateArray(label.warnings, 500),
     boxed_warning: truncateArray(label.boxed_warning, 500),
     adverse_reactions: truncateArray(label.adverse_reactions, 800),
@@ -322,6 +326,10 @@ function formatLabel(label) {
     drug_interactions: truncateArray(label.drug_interactions, 500),
     contraindications: truncateArray(label.contraindications, 500),
     pregnancy: truncateArray(label.pregnancy, 300),
+    precautions: truncateArray(label.precautions, 500),
+    overdosage: truncateArray(label.overdosage, 300),
+    storage: truncateArray(label.storage_and_handling, 300),
+    effective_time: label.effective_time || '',
   };
 }
 

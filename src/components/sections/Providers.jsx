@@ -230,7 +230,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
                     {prescribedMeds.map(m => (
                       <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
                         <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
-                        <a href={dailyMedUrl(m.name, m.rxcui)} target="_blank" rel="noopener noreferrer" className="font-medium text-salve-text hover:text-salve-sage hover:underline transition-colors">{m.display_name || m.name}</a>
+                        <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" className="font-medium text-salve-text hover:text-salve-sage hover:underline transition-colors">{m.display_name || m.name}</a>
                         {m.dose && <span className="text-salve-textFaint">{m.dose}</span>}
                       </div>
                     ))}

@@ -25,6 +25,7 @@ export function buildProfile(data) {
     if (m.frequency) p += ', ' + m.frequency;
     if (m.route) p += ' (' + m.route + ')';
     if (m.fda_data?.pharm_class?.length) p += ' [class: ' + m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ') + ']';
+    if (m.fda_data?.pharm_class_moa?.length) p += ' [mechanism: ' + m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ') + ']';
     if (m.purpose) p += ' — for: ' + m.purpose;
     if (m.prescriber) p += ' [prescribed by ' + m.prescriber + ']';
     if (m.fda_data?.contraindications?.length) p += ' {contraindications: ' + san(m.fda_data.contraindications[0].slice(0, 200)) + '}';
