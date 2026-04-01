@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -120,7 +120,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       const raw = localStorage.getItem(DASH_PRIMARY_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length === 6 && parsed.every(id => ALL_LINKS.some(l => l.id === id)))
+        if (Array.isArray(parsed) && parsed.length >= 1 && parsed.length <= ALL_LINKS.length && parsed.every(id => ALL_LINKS.some(l => l.id === id)))
           return parsed;
       }
     } catch { /* ignore corrupt data */ }
@@ -128,6 +128,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   });
   const [editing, setEditing] = useState(false);
   const [replacingIndex, setReplacingIndex] = useState(null);
+  const [addingMode, setAddingMode] = useState(false);
 
   const primaryLinks = useMemo(() => primaryIds.map(id => ALL_LINKS.find(l => l.id === id)).filter(Boolean), [primaryIds]);
   const moreLinks = useMemo(() => ALL_LINKS.filter(l => !primaryIds.includes(l.id)), [primaryIds]);
@@ -310,9 +311,25 @@ export default function Dashboard({ data, interactions, onNav }) {
     setReplacingIndex(null);
   };
 
+  const handleAdd = (id) => {
+    const next = [...primaryIds, id];
+    setPrimaryIds(next);
+    localStorage.setItem(DASH_PRIMARY_KEY, JSON.stringify(next));
+    setAddingMode(false);
+  };
+
+  const handleRemove = (index) => {
+    if (primaryIds.length <= 1) return;
+    const next = primaryIds.filter((_, i) => i !== index);
+    setPrimaryIds(next);
+    localStorage.setItem(DASH_PRIMARY_KEY, JSON.stringify(next));
+    if (replacingIndex === index) setReplacingIndex(null);
+  };
+
   const finishEditing = () => {
     setEditing(false);
     setReplacingIndex(null);
+    setAddingMode(false);
   };
 
   const dismissAlerts = (duration) => {
@@ -590,7 +607,7 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       <Divider />
 
-      {/* ── Quick Access (6 primary + expandable) ── */}
+      {/* ── Quick Access (customizable primary + expandable) ── */}
       <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
         {/* Edit / Done header */}
         <div className="flex justify-end mb-1">
@@ -605,13 +622,13 @@ export default function Dashboard({ data, interactions, onNav }) {
           </button>
         </div>
 
-        {/* Primary 6 tiles */}
+        {/* Primary tiles */}
         <div className="grid grid-cols-3 gap-2 mb-2">
           {primaryLinks.map((l, i) => (
             <button
               key={l.id}
               onClick={() => editing ? setReplacingIndex(replacingIndex === i ? null : i) : onNav(l.id)}
-              className={`bg-salve-card border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all ${
+              className={`relative bg-salve-card border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all ${
                 editing
                   ? replacingIndex === i
                     ? 'border-salve-lav ring-1 ring-salve-lav'
@@ -619,14 +636,39 @@ export default function Dashboard({ data, interactions, onNav }) {
                   : 'border-salve-border'
               }`}
             >
+              {/* Remove button (edit mode, min 1 tile) */}
+              {editing && primaryIds.length > 1 && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => { e.stopPropagation(); handleRemove(i); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleRemove(i); } }}
+                  className="absolute -top-1.5 -right-1.5 z-10 w-4 h-4 rounded-full bg-salve-rose/90 flex items-center justify-center cursor-pointer hover:bg-salve-rose transition-colors"
+                  aria-label={`Remove ${l.label}`}
+                >
+                  <X size={10} className="text-salve-bg" />
+                </span>
+              )}
               <l.icon size={20} color={l.color} strokeWidth={1.5} />
               <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
               {editing && <ArrowLeftRight size={10} className="text-salve-textFaint" />}
             </button>
           ))}
+
+          {/* Add tile (edit mode, when more tiles are available) */}
+          {editing && moreLinks.length > 0 && (
+            <button
+              onClick={() => { setAddingMode(true); setReplacingIndex(null); }}
+              className="bg-salve-card border border-dashed border-salve-border2 rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all hover:border-salve-sage"
+              aria-label="Add a section"
+            >
+              <Plus size={20} color={C.sage} strokeWidth={1.5} />
+              <span className="text-[11px] text-salve-sage font-montserrat">Add</span>
+            </button>
+          )}
         </div>
 
-        {/* Swap popup */}
+        {/* Bottom sheet: Swap mode (replacing a tile) */}
         {editing && replacingIndex !== null && (
           <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setReplacingIndex(null)}>
             <div className="absolute inset-0 bg-black/50" />
@@ -653,8 +695,35 @@ export default function Dashboard({ data, interactions, onNav }) {
           </div>
         )}
 
-        {/* More sections toggle (hidden during edit) */}
-        {!editing && (
+        {/* Bottom sheet: Add mode (adding a new tile) */}
+        {editing && addingMode && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setAddingMode(false)}>
+            <div className="absolute inset-0 bg-black/50" />
+            <div
+              className="relative w-full max-w-[480px] bg-salve-card border-t border-salve-border rounded-t-2xl p-4 pb-8"
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-xs text-salve-textMid font-montserrat mb-3 text-center">
+                Add a section:
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {moreLinks.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => handleAdd(l.id)}
+                    className="bg-salve-card2 border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
+                  >
+                    <l.icon size={20} color={l.color} strokeWidth={1.5} />
+                    <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* More sections toggle (hidden during edit or when all tiles are promoted) */}
+        {!editing && moreLinks.length > 0 && (
           <>
             <button
               onClick={toggleMore}

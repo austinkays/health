@@ -113,7 +113,7 @@ health/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
 │   │   └── sections/             # One file per app section (21 total)
-│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, customizable 6+More quick access
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
@@ -357,10 +357,11 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - "made with love for my best friend & soulmate" tagline above bottom nav — Home page only, scroll-reveal (hidden until user scrolls past 50px to bottom, resets on tab change, transparent background, 500ms fade-in transition)
 - Magical UI effects: card hover lift + lavender glow, button shimmer sweep, quick-access tile rotating conic gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade-slide-up animations
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
-- Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
+- Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
 - Quick Access default 6: Summary, Conditions, Providers, Allergies, Appointments, Labs; "More" expander reveals remaining sections
-- Quick Access tiles are **user-customizable**: Edit button (pencil icon) enters edit mode → tap a tile to select it → bottom sheet shows available replacements → tap replacement to swap → Done button saves. Persisted in `localStorage` under `salve:dash-primary` (array of 6 IDs). Falls back to `DEFAULT_PRIMARY_IDS` if corrupt/missing.
+- Quick Access tiles are **user-customizable**: Edit button (pencil icon) enters edit mode → tap a tile to select it → bottom sheet shows available replacements → tap replacement to swap → Done button saves. "+" tile at end of grid adds new tiles from available sections. "×" badge on each tile removes it (minimum 1 tile enforced). Persisted in `localStorage` under `salve:dash-primary` (array of 1–16 IDs). Falls back to `DEFAULT_PRIMARY_IDS` if corrupt/missing.
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
+- "More sections" button auto-hides when all tiles are promoted to primary grid
 - All section views have a back arrow in the header that returns to Dashboard
 - **Global Search:** Header magnifying glass icon (visible on all pages) opens the Search view; Dashboard has a live search centerpiece with inline results (up to 5) and "See all" deep-link to full Search view
 - **Deep-link navigation:** `onNav(tab, { highlightId })` navigates to a section AND auto-expands + scrolls to a specific record; used by Search results. All 15 expandable sections support `highlightId` prop (expand + scrollIntoView + lavender pulse animation). Appointments and AnesthesiaFlags support scroll-only deep-link (no expandable cards).
@@ -397,12 +398,16 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - Dashboard: alerts consolidate into single card (anesthesia + interactions + care gaps + abnormal labs)
 - [ ] Dashboard: AI insight hidden when no consent; shimmer when loading; quote-style when loaded
 - [ ] Dashboard: unified timeline shows appointments and refills sorted by date
-- [ ] Dashboard: Quick Access shows 6 primary tiles; "More" expands to reveal all
-- [ ] Dashboard: Quick Access Edit button enters edit mode with dashed borders and swap icons
+- [ ] Dashboard: Quick Access shows 6 primary tiles by default; "More" expands to reveal remaining
+- [ ] Dashboard: Quick Access Edit button enters edit mode with dashed borders, swap icons, and × remove badges
 - [ ] Dashboard: Tapping a tile in edit mode selects it (lavender ring) and shows replacement bottom sheet
 - [ ] Dashboard: Selecting a replacement swaps the tile and persists to localStorage
+- [ ] Dashboard: "+" tile appears at end of grid in edit mode; tapping opens "Add a section" bottom sheet
+- [ ] Dashboard: Adding a tile promotes it to primary grid; added tiles persist across reload
+- [ ] Dashboard: "×" badge on tiles removes them from primary grid (minimum 1 tile enforced)
 - [ ] Dashboard: Done button exits edit mode; "More sections" hidden during editing
-- [ ] Dashboard: Quick Access customization survives page reload (localStorage `salve:dash-primary`)
+- [ ] Dashboard: "More sections" button auto-hides when all tiles are promoted
+- [ ] Dashboard: Quick Access customization (1–16 tiles) survives page reload (localStorage `salve:dash-primary`)
 - [ ] Dashboard: Corrupt/missing localStorage falls back to default 6 tiles
 - [ ] Dashboard: entrance animations stagger correctly without layout shift
 - [ ] Dashboard: "More" expanded state persists across page loads
@@ -433,7 +438,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 20 sections reachable via Quick Access (6 primary + 10 in More expander + 5 in bottom nav)
+- [ ] All 20 sections reachable via Quick Access (6+ primary tiles, expandable up to all 16, + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
