@@ -87,7 +87,7 @@ health/
 │   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts (sanitized against prompt injection; includes NADAC pricing + monthly cost summary)
+│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts (sanitized against prompt injection; includes NADAC pricing + monthly cost summary + mechanism of action)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
@@ -114,7 +114,7 @@ health/
 │   │   └── sections/             # One file per app section (21 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, 6+More quick access
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
-│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links + pharmacy picker + pharmacy filter + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + progressive disclosure FDA details (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
@@ -138,7 +138,7 @@ health/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
 │       ├── interactions.js       # checkInteractions() logic
-│       ├── links.js              # URL generators: dailyMedUrl, medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl, googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
+│       ├── links.js              # URL generators: dailyMedUrl (direct setid link or cleaned name search), medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl (NPI → registry, else Google with specialty+clinic), googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
 │       ├── maps.js               # mapsUrl(address) → Google Maps search URL
 │       └── search.jsx            # Shared search logic: ENTITY_CONFIG, searchEntities(), highlightMatch(), FILTER_TABS, MORE_CATEGORIES
 ```
@@ -217,7 +217,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`. Both use `fetchWithTimeout()` (15-second AbortController) for external API calls.
 
 **`api/drug.js`** — RxNorm + OpenFDA + NADAC proxy:
-- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs), `interactions` (RxNorm interaction list for multiple RxCUIs), `price` (RxCUI → NDCs via RxNorm → NADAC DKAN API lookup for cheapest per-unit price)
+- **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs; `formatLabel()` captures 22+ fields including spl_set_id, pharm_class_moa, pharm_class_pe, dosage_form, precautions, overdosage, storage, effective_time), `interactions` (RxNorm interaction list for multiple RxCUIs), `price` (RxCUI → NDCs via RxNorm → NADAC DKAN API lookup for cheapest per-unit price)
 - **NADAC pipeline:** `rxcuiToNDCs(rxcui)` → normalize to 11-digit → parallel `nadacLookup(ndc)` queries (up to 5 NDCs) → return cheapest `nadac_per_unit` with all prices
 - **NADAC API:** CMS Medicaid DKAN endpoint at `data.medicaid.gov/api/1/datastore/query/{dataset-id}/0` (dataset ID stored as constant for annual rotation)
 - **Rate limited:** 40 requests/minute per user (in-memory sliding window)
@@ -229,11 +229,11 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Rate limited:** 30 requests/minute per user
 - **Cached:** In-memory 1-hour TTL, max 500 entries
 - **Client service:** `src/services/npi.js` — `searchProviders(name, state?)`, `lookupNPI(npi)`
-- Parses NPI results into `{npi, name, credential, specialty, address, phone, fax, organization}` format
+- Parses NPI results into `{npi, name, first_name, last_name, credential, specialty, other_specialties, address, phone, fax, organization, enumeration_type}` format
 
 **`src/utils/maps.js`** — Google Maps URL helper:
 - `mapsUrl(address)` returns `https://www.google.com/maps/search/?api=1&query=<encoded>` — no API key needed
-- Used in Providers (address + clinic), Appointments (location), Medications (pharmacy)
+- Used in Providers (address + clinic), Appointments (location), Medications (pharmacy — skipped for non-physical values like OTC, N/A, none, self)
 
 **`src/constants/labRanges.js`** — Reference range lookup:
 - Static table of ~80 common lab tests with low/high/unit reference ranges
@@ -478,16 +478,25 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Medications: bulk link shows progress ("Linking 2 of 5...") and result summary
 - [ ] Medications: bulk link also fetches FDA data for each linked med (fda_data auto-populated)
 - [ ] Medications: selecting autocomplete result auto-fetches FDA data in background, auto-suggests route and purpose
+- [ ] Medications: DailyMed link uses direct `drugInfo.cfm?setid=` URL when spl_set_id available
+- [ ] Medications: DailyMed fallback search strips dosage, forms, and parentheticals from drug name
+- [ ] Medications: DailyMed never searches by numeric RxCUI
 - [ ] Medications: "Enrich All" button appears when ≥1 linked med has no fda_data; fetches FDA label for each
 - [ ] Medications: collapsed card shows drug class badge (sage) and boxed warning badge (rose) when fda_data present
-- [ ] Medications: expanded card shows inline FDA summary (generic/brand, class, manufacturer, boxed warning indicator)
+- [ ] Medications: DailyMed link uses brand/generic name from FDA data (not raw RxNorm name with dosage)
+- [ ] Medications: expanded card shows inline FDA summary (generic/brand, class, manufacturer, mechanism of action, boxed warning text, indications)
 - [ ] Medications: expanded card shows "Fetch drug info" link for linked meds missing fda_data
-- [ ] Medications: "Drug Info" button fetches and displays FDA label data (generic, brand, class, warnings, side effects)
-- [ ] Medications: pharmacy name links to Google Maps
+- [ ] Medications: "More drug details" toggle reveals side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage (all with line-clamp)
+- [ ] Medications: FDA detail text has redundant section headers stripped (e.g. "ADVERSE REACTIONS" not duplicated)
+- [ ] Medications: NADAC price shown with Generic/Brand badge on expanded cards
+- [ ] Medications: monthly wholesale cost estimate displayed above medication list
+- [ ] Medications: pharmacy name links to Google Maps (skipped for OTC, N/A, none, self, etc.)
+- [ ] Medications: pharmacy filter excludes non-physical pharmacy values
 - [ ] Providers: NPI Lookup button triggers NPPES search and shows dropdown
 - [ ] Providers: selecting NPI result auto-populates name, specialty, clinic, phone, fax, NPI, address
 - [ ] Providers: address in expanded card links to Google Maps; fallback uses clinic name
 - [ ] Providers: NPI number links to CMS NPPES registry (`npiregistry.cms.hhs.gov/provider-view/{NPI}`)
+- [ ] Providers: non-NPI provider links use Google search with specialty + clinic name for specificity
 - [ ] Appointments: location field in upcoming/past cards links to Google Maps
 - [ ] Interactions: meds with rxcui show ✓ indicator in active meds list
 - [ ] Interactions: "Check NLM Interactions" button appears when 2+ meds have rxcui
