@@ -19,7 +19,7 @@ export default function BottomNav({ tab, onNav }) {
     const check = () => {
       const scrollY = window.scrollY || window.pageYOffset;
       if (scrollY > 50) setHasScrolled(true);
-      const nearBottom = window.innerHeight + scrollY >= document.body.scrollHeight - 50;
+      const nearBottom = window.innerHeight + scrollY >= document.body.scrollHeight - 10;
       setAtBottom(nearBottom);
       ticking = false;
     };
