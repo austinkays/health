@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,7 @@ import Motif from '../ui/Motif';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
+import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -50,6 +51,7 @@ export default function Vitals({ data, addItem, removeItem }) {
   const [ct, setCt] = useState('pain');
   const [trendAI, setTrendAI] = useState(null);
   const [trendLoading, setTrendLoading] = useState(false);
+  const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -67,6 +69,32 @@ export default function Vitals({ data, addItem, removeItem }) {
     ...(v.value2 ? { value2: Number(v.value2) } : {}),
   }));
   const vi = VITAL_TYPES.find(t => t.id === ct);
+
+  const phaseBands = useMemo(() => {
+    if (!cycleOverlay || !data.cycles?.length || cd.length < 2) return [];
+    const bands = [];
+    const vitalsForType = data.vitals.filter(v => v.type === ct);
+
+    let currentPhase = null;
+
+    for (const point of cd) {
+      const origVital = vitalsForType.find(v => fmtDate(v.date) === point.date);
+      if (!origVital) continue;
+
+      const cp = getCyclePhaseForDate(origVital.date, data.cycles);
+      const phaseName = cp?.phase || null;
+
+      if (phaseName !== currentPhase) {
+        currentPhase = phaseName;
+        if (cp) {
+          bands.push({ phase: cp.phase, color: cp.color, x1: point.date, x2: point.date });
+        }
+      } else if (cp && bands.length > 0) {
+        bands[bands.length - 1].x2 = point.date;
+      }
+    }
+    return bands;
+  }, [cycleOverlay, data.cycles, cd, ct, data.vitals]);
 
   if (subView === 'form') return (
     <FormWrap title="Log Vital" onBack={() => setSubView(null)}>
@@ -107,6 +135,23 @@ export default function Vitals({ data, addItem, removeItem }) {
         ))}
       </div>
 
+      {data.cycles?.length > 0 && cd.length > 1 && (
+        <div className="flex justify-end mb-1.5">
+          <button
+            onClick={() => {
+              const next = !cycleOverlay;
+              setCycleOverlay(next);
+              localStorage.setItem('salve:vitals-cycle-overlay', String(next));
+            }}
+            className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+              cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-salve-border bg-transparent text-salve-textFaint'
+            }`}
+          >
+            Color by cycle phase
+          </button>
+        </div>
+      )}
+
       {cd.length > 1 ? (
         <Card className="!p-3.5">
           <div className="font-playfair text-sm font-medium mb-2.5 pl-1.5 text-salve-text">
@@ -127,6 +172,16 @@ export default function Vitals({ data, addItem, removeItem }) {
               {ct === 'bp' && <Area type="monotone" dataKey="value2" stroke={C.lav} fill="url(#lf)" strokeWidth={2} dot={{ r: 3, fill: C.lav }} />}
               {vi?.normalHigh && <ReferenceLine y={vi.normalHigh} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
               {vi?.normalLow && <ReferenceLine y={vi.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
+              {phaseBands.map((band, i) => (
+                <ReferenceArea
+                  key={`phase-${i}`}
+                  x1={band.x1}
+                  x2={band.x2}
+                  fill={band.color}
+                  fillOpacity={0.1}
+                  stroke="none"
+                />
+              ))}
             </AreaChart>
           </ResponsiveContainer>
           </div>
@@ -204,7 +259,17 @@ export default function Vitals({ data, addItem, removeItem }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-salve-textFaint">{fmtDate(v.date)}</span>
+                  <span className="text-[11px] text-salve-textFaint">
+                    {fmtDate(v.date)}
+                    {data.cycles?.length > 0 && (() => {
+                      const cp = getCyclePhaseForDate(v.date, data.cycles);
+                      return cp ? (
+                        <span className="text-[10px] font-montserrat ml-1" style={{ color: cp.color }}>
+                          · {cp.phase} day {cp.dayOfCycle}
+                        </span>
+                      ) : null;
+                    })()}
+                  </span>
                   <button onClick={() => del.ask(v.id, t?.label || 'entry')} aria-label="Delete vital entry" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
                 </div>
               </div>
