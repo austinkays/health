@@ -53,7 +53,7 @@ export default function BottomNav({ tab, onNav }) {
 
   return (
     <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-50">
-      <p className={`text-center text-salve-textFaint text-[9px] tracking-wider py-1 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+      <p className={`text-center text-salve-textFaint text-[9px] tracking-wider pb-0.5 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         made with love for my best friend & soulmate
       </p>
     <nav aria-label="Main navigation" className="w-full bg-salve-card border-t border-salve-border flex justify-around py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
