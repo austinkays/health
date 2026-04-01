@@ -69,8 +69,8 @@ health/
 │       └── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
-│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter animations, highlightId deep-link state, onNav(tab, opts) extended navigation, ToastProvider wrapper, toast-wrapped CRUD
+│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + time-aware ambiance CSS variables + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation, ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s)
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
@@ -93,7 +93,7 @@ health/
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
-│   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 4s interval, random no-repeat, fade animation)
+│   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 10s interval, random no-repeat, fade animation)
 │   ├── components/
 │   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit)
 │   │   ├── ui/                   # Shared primitives
@@ -107,10 +107,10 @@ health/
 │   │   │   ├── FormWrap.jsx      # Back-arrow + title wrapper; also exports SectionTitle
 │   │   │   ├── LoadingSpinner.jsx # role=status, aria-live=polite
 │   │   │   ├── AIConsentGate.jsx  # AI data-sharing consent gate + hasAIConsent/revokeAIConsent
-│   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown, auto-linkifies bare URLs)
+│   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown, auto-linkifies bare URLs); `reveal` prop wraps output in `.ai-prose-reveal` for paragraph-by-paragraph stagger animation
 │   │   │   ├── AIProfilePreview.jsx # "What AI Sees" pill button + full-screen slide-up panel
 │   │   │   ├── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
-│   │   │   └── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook)
+│   │   │   └── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook); celebration sparkle burst on success toasts (CelebrationBurst component with 6 radial Sparkles particles)
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
@@ -126,7 +126,7 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit + tag filter pills
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu (shows bookmarked stories with headlines, truncated body, source links, saved date, remove button with confirmation); FeatureLoading + ChatThinking components with cycling wellness messages via useWellnessMessage hook; **AI-powered data control**: chat uses Anthropic tool-use API to add/update/remove health records via natural language; ToolExecutionCard shows live status (pending/running/success/error/cancelled); destructive tools require inline Confirm/Cancel before execution; tool results persist in chat message history
+│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard + save/bookmark button; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; **universal save/bookmark** for all 5 result types via `useSavedInsights` hook (localStorage `salve:saved-insights`); SaveInsightButton in ResultHeader; SavedInsightsSection collapsible on main menu; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu; Saved Insights collapsible section on main menu; **FeatureLoading** breathe meditation loader (10s deep breathing cycle with star bloom 0.6→1.6x, expanding rings starting invisible, card glow pulse, "Breathe with me" + wellness messages); three-phase loading: loading→ready→revealed; "Your insight is ready" button with 2.5s fade-in + shimmer sweep; **AI prose reveal**: paragraphs fade in sequentially via `reveal` prop on AIMarkdown; ChatThinking with cycling wellness messages; **AI-powered data control**: chat uses Anthropic tool-use API to add/update/remove health records via natural language; ToolExecutionCard shows live status (pending/running/success/error/cancelled); destructive tools require inline Confirm/Cancel before execution; tool results persist in chat message history
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -316,7 +316,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Chart accessibility** | Vitals chart has `role="img"` with descriptive `aria-label` + visually-hidden (`sr-only`) data table alternative |
 | **Loading states** | `LoadingSpinner` uses `role="status"` + `aria-live="polite"` with `sr-only` fallback text |
 | **Decorative elements** | `Motif.jsx` SVGs have `aria-hidden="true"`; Divider uses gradient glow |
-| **Hover interactions** | Cards lift with lavender glow; buttons have shimmer sweep; quick-access tiles scale with conic gradient; nav items hover-lift with radial glow; timeline rows slide-right on hover |
+| **Hover interactions** | Cards lift with time-aware ambiance glow (sage morning, lavender afternoon, amber evening, dim night); buttons have shimmer sweep; quick-access tiles have contained radial gradient hover; nav items hover-lift with radial glow; timeline rows slide-right on hover |
 | **Autocomplete ARIA** | Drug and NPI autocomplete dropdowns use `role="listbox"` / `role="option"` with `aria-label` |
 | **Error announcements** | Autocomplete errors use `role="alert"` for screen reader announcement |
 
@@ -358,7 +358,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - Max width 480px, centered (mobile-first, phone-optimized)
 - Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
 - "made with love for my best friend & soulmate" tagline above bottom nav — Home page only, scroll-reveal (hidden until user scrolls past 50px to bottom, resets on tab change, transparent background, 500ms fade-in transition)
-- Magical UI effects: card hover lift + lavender glow, button shimmer sweep, quick-access tile rotating conic gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade-slide-up animations
+- Magical UI effects: time-aware ambiance (card hover glow shifts sage→lavender→amber→dim by time of day), button shimmer sweep, quick-access tile contained radial gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade+slide+deblur transitions, AI prose reveal (paragraph-by-paragraph stagger), celebration sparkle burst on success toasts, breathe meditation loader (10s deep breathing cycle with bloom/rings/glow)
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
 - Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
 - Quick Access default 6: Summary, Conditions, Providers, Allergies, Appointments, Labs; "More" expander reveals remaining sections
