@@ -24,6 +24,7 @@ export function Divider() {
       <Motif type="sparkle" size={10} color="#6e6a80" />
       <div className="h-px w-10 divider-glow" />
       <Motif type="moon" size={12} />
+      <Motif type="moon" size={12} style={{ display: 'inline-block', transform: 'scaleX(-1)' }} />
       <div className="h-px w-10 divider-glow" />
       <Motif type="sparkle" size={10} color="#6e6a80" />
     </div>

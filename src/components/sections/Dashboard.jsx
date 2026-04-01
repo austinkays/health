@@ -593,11 +593,11 @@ export default function Dashboard({ data, interactions, onNav }) {
         <div className="flex justify-end mb-1">
           <button
             onClick={() => editing ? finishEditing() : setEditing(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-montserrat"
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-montserrat opacity-60 hover:opacity-100 transition-opacity"
             style={{ color: editing ? C.sage : C.textFaint }}
             aria-label={editing ? 'Done editing' : 'Edit quick access'}
           >
-            {editing ? <Check size={13} /> : <Pencil size={13} />}
+            {editing ? <Check size={11} /> : <Pencil size={11} />}
             {editing ? 'Done' : 'Edit'}
           </button>
         </div>
