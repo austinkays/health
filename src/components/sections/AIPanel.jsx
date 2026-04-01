@@ -94,24 +94,32 @@ function Disclaimer() {
 
 function SourcesBadges({ sources }) {
   if (!sources?.length) return null;
+  const [expanded, setExpanded] = useState(false);
   return (
-    <div className="mt-4 pt-3 border-t border-salve-border/50">
-      <div className="text-[10px] text-salve-textFaint uppercase tracking-wider mb-2 font-montserrat">Sources</div>
-      <div className="flex flex-wrap gap-1.5">
-        {sources.map((s, i) => (
-          <a
-            key={i}
-            href={s.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-[11px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat"
-            title={s.url}
-          >
-            <ExternalLink size={10} />
-            <span className="max-w-[140px] truncate">{s.title}</span>
-          </a>
-        ))}
-      </div>
+    <div className="mt-4 pt-3 border-t border-salve-border/30">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1.5 text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-textMid transition-colors"
+      >
+        <ExternalLink size={9} />
+        <span>{sources.length} source{sources.length !== 1 ? 's' : ''} referenced</span>
+        <ChevronDown size={10} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
+      {expanded && (
+        <div className="mt-2 flex flex-col gap-1">
+          {sources.map((s, i) => (
+            <a
+              key={i}
+              href={s.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] text-salve-textFaint hover:text-salve-lav transition-colors font-montserrat truncate no-underline hover:underline"
+            >
+              {s.title}
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -221,14 +229,15 @@ function NewsResult({ result, onSaveChange }) {
     const headline = headMatch ? headMatch[1].trim() : null;
     let body = headMatch ? section.replace(/^##\s+.+?[\n\r]/, '') : section;
     // Extract inline source link: "Source: [Name](url)" or "*Source: [Name](url)*"
-    const srcMatch = body.match(/\*?Source:\s*\[([^\]]+)\]\(([^)]+)\)\*?/);
-    const srcPlain = !srcMatch ? body.match(/\*?Source:\s*([^*\n]+?)\*?\s*$/) : null;
-    if (srcMatch || srcPlain) {
-      body = body.replace(/\*?Source:\s*(?:\[[^\]]+\]\([^)]+\)|[^*\n]+?)\*?\s*$/, '').trim();
-    }
+    const srcMatch = body.match(/\*?\**Source:?\**\s*\[([^\]]+)\]\(([^)]+)\)\*?/);
+    const srcPlain = !srcMatch ? body.match(/\*?\**Source:?\**\s*([^*\n]+?)\*?\s*$/) : null;
+    // Strip the source line from body text
+    body = body.replace(/\n*\*?\**Source:?\**\s*(?:\[[^\]]+\]\([^)]+\)|[^*\n]+?)\*?\s*$/m, '').trim();
+    // Also strip any trailing --- separator
+    body = body.replace(/\n---\s*$/, '').trim();
     return {
       headline,
-      body: body.trim(),
+      body,
       sourceName: srcMatch ? srcMatch[1] : (srcPlain ? srcPlain[1].trim() : null),
       sourceUrl: srcMatch ? srcMatch[2] : null,
     };
