@@ -121,7 +121,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   };
 
   /* Quick-log: tap a calendar day to log period */
-  const quickLog = useCallback((dateStr) => {
+  const calendarQuickLog = useCallback((dateStr) => {
     setForm({ ...EMPTY_CYCLE, date: dateStr, type: 'period', value: 'Medium' });
     setSubView('form');
   }, []);
@@ -309,7 +309,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             else if (isFertile) bg = `${C.amber}15`;
 
             return (
-              <button key={day} onClick={() => quickLog(dk)}
+              <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
                 style={{ backgroundColor: bg, borderWidth: isPredicted || isToday ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
                 aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${hasSymptom ? ', symptom logged' : ''}${hasOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}`}
