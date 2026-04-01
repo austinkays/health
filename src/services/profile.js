@@ -1,9 +1,10 @@
 import { VITAL_TYPES } from '../constants/defaults';
 
 // Sanitize user-provided text to prevent prompt injection
-function san(text) {
+// Higher limit for FDA data which is system-sourced, not user-authored
+function san(text, limit = 500) {
   if (!text) return '';
-  return String(text).replace(/[<>{}]/g, '').slice(0, 500);
+  return String(text).replace(/[<>{}]/g, '').slice(0, limit);
 }
 
 export function buildProfile(data) {
@@ -28,8 +29,12 @@ export function buildProfile(data) {
     if (m.fda_data?.pharm_class_moa?.length) p += ' [mechanism: ' + m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ') + ']';
     if (m.purpose) p += ' — for: ' + m.purpose;
     if (m.prescriber) p += ' [prescribed by ' + m.prescriber + ']';
-    if (m.fda_data?.contraindications?.length) p += ' {contraindications: ' + san(m.fda_data.contraindications[0].slice(0, 200)) + '}';
-    if (m.fda_data?.boxed_warning?.length) p += ' {⚠ BOXED WARNING}';
+    if (m.fda_data?.contraindications?.length) p += ' {contraindications: ' + san(m.fda_data.contraindications[0], 1000) + '}';
+    if (m.fda_data?.boxed_warning?.length) p += ' {⚠ BOXED WARNING: ' + san(m.fda_data.boxed_warning[0], 800) + '}';
+    if (m.fda_data?.drug_interactions?.length) p += ' {drug interactions: ' + san(m.fda_data.drug_interactions[0], 800) + '}';
+    if (m.fda_data?.adverse_reactions?.length) p += ' {side effects: ' + san(m.fda_data.adverse_reactions[0], 600) + '}';
+    if (m.fda_data?.pregnancy?.length) p += ' {pregnancy: ' + san(m.fda_data.pregnancy[0], 400) + '}';
+    if (m.fda_data?.precautions?.length) p += ' {precautions: ' + san(m.fda_data.precautions[0], 600) + '}';
     // Append price data if available
     const medPrices = (data.drug_prices || []).filter(dp => dp.medication_id === m.id && dp.nadac_per_unit);
     if (medPrices.length) {
@@ -96,7 +101,9 @@ export function buildProfile(data) {
     p += '\n— ALLERGIES —\n';
     allergies.forEach(a => {
       p += '- ' + a.substance + ' (' + a.severity + ')';
+      if (a.type) p += ' [type: ' + a.type + ']';
       if (a.reaction) p += ' — reaction: ' + a.reaction;
+      if (a.notes) p += ' — ' + san(a.notes);
       p += '\n';
     });
   }
@@ -104,8 +111,8 @@ export function buildProfile(data) {
   // Recent vitals (last 10)
   const vitals = data.vitals || [];
   if (vitals.length) {
-    p += '\n— RECENT VITALS (last 10) —\n';
-    vitals.slice(-10).forEach(v => {
+    p += '\n— RECENT VITALS (last 20) —\n';
+    vitals.slice(-20).forEach(v => {
       const t = VITAL_TYPES.find(x => x.id === v.type);
       p += '- ' + (t ? t.label : v.type) + ': ';
       p += v.type === 'bp' ? v.value + '/' + v.value2 : v.value;
@@ -119,8 +126,8 @@ export function buildProfile(data) {
   // Recent journal entries (last 5)
   const journal = data.journal || [];
   if (journal.length) {
-    p += '\n— RECENT JOURNAL ENTRIES (last 5) —\n';
-    journal.slice(0, 5).forEach(e => {
+    p += '\n— RECENT JOURNAL ENTRIES (last 15) —\n';
+    journal.slice(0, 15).forEach(e => {
       p += '- ' + e.date;
       if (e.mood) p += ' [mood: ' + e.mood + ']';
       if (e.severity) p += ' [severity: ' + e.severity + '/10]';
@@ -161,8 +168,8 @@ export function buildProfile(data) {
     }
     const normal = recent.filter(l => !l.flag || l.flag === 'normal');
     if (normal.length) {
-      p += '\n— RECENT LAB RESULTS (normal, last 5) —\n';
-      normal.slice(0, 5).forEach(l => {
+      p += '\n— RECENT LAB RESULTS (normal) —\n';
+      normal.slice(0, 10).forEach(l => {
         p += '- ' + l.test_name + ': ' + l.result;
         if (l.unit) p += ' ' + l.unit;
         if (l.date) p += ' on ' + l.date;
@@ -174,8 +181,8 @@ export function buildProfile(data) {
   // Procedures (last 5)
   const procedures = data.procedures || [];
   if (procedures.length) {
-    p += '\n— RECENT PROCEDURES —\n';
-    procedures.slice(0, 5).forEach(pr => {
+    p += '\n— PROCEDURES —\n';
+    procedures.slice(0, 10).forEach(pr => {
       p += '- ' + pr.name;
       if (pr.date) p += ' on ' + pr.date;
       if (pr.provider) p += ' by ' + pr.provider;
@@ -249,7 +256,76 @@ export function buildProfile(data) {
       p += '- ' + a.subject;
       if (a.status) p += ' (' + a.status + ')';
       if (a.date_filed) p += ' filed ' + a.date_filed;
+      if (a.deadline) p += ' deadline ' + a.deadline;
       if (a.notes) p += ' — ' + a.notes;
+      p += '\n';
+    });
+  }
+
+  // Providers
+  const providers = data.providers || [];
+  if (providers.length) {
+    p += '\n— HEALTHCARE PROVIDERS —\n';
+    providers.forEach(pr => {
+      p += '- ' + pr.name;
+      if (pr.specialty) p += ' (' + pr.specialty + ')';
+      if (pr.clinic) p += ' at ' + pr.clinic;
+      if (pr.notes) p += ' — ' + san(pr.notes);
+      p += '\n';
+    });
+  }
+
+  // Upcoming appointments
+  const appts = data.appts || [];
+  const upcoming = appts.filter(a => new Date(a.date) >= new Date(new Date().toDateString())).sort((a, b) => new Date(a.date) - new Date(b.date));
+  if (upcoming.length) {
+    p += '\n— UPCOMING APPOINTMENTS —\n';
+    upcoming.slice(0, 10).forEach(a => {
+      p += '- ' + a.date;
+      if (a.time) p += ' ' + a.time;
+      if (a.provider) p += ' with ' + a.provider;
+      if (a.location) p += ' at ' + a.location;
+      if (a.reason) p += ' — ' + san(a.reason);
+      if (a.questions) p += ' [questions: ' + san(a.questions) + ']';
+      p += '\n';
+    });
+  }
+
+  // Past appointments (last 5 with notes)
+  const past = appts.filter(a => new Date(a.date) < new Date(new Date().toDateString()) && a.post_notes).sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (past.length) {
+    p += '\n— RECENT APPOINTMENT NOTES —\n';
+    past.slice(0, 5).forEach(a => {
+      p += '- ' + a.date;
+      if (a.provider) p += ' with ' + a.provider;
+      p += ': ' + san(a.post_notes);
+      p += '\n';
+    });
+  }
+
+  // Pharmacies
+  const pharmacies = data.pharmacies || [];
+  if (pharmacies.length) {
+    p += '\n— PHARMACIES —\n';
+    pharmacies.forEach(ph => {
+      p += '- ' + ph.name;
+      if (ph.is_preferred) p += ' (preferred)';
+      if (ph.address) p += ' — ' + ph.address;
+      if (ph.notes) p += ' — ' + san(ph.notes);
+      p += '\n';
+    });
+  }
+
+  // Insurance claims
+  const claims = data.insurance_claims || [];
+  if (claims.length) {
+    p += '\n— INSURANCE CLAIMS —\n';
+    claims.slice(0, 10).forEach(c => {
+      p += '- ' + c.date + ': ' + c.description;
+      if (c.provider) p += ' (' + c.provider + ')';
+      if (c.status) p += ' [' + c.status + ']';
+      if (c.billed_amount) p += ' billed $' + c.billed_amount;
+      if (c.patient_responsibility) p += ', owed $' + c.patient_responsibility;
       p += '\n';
     });
   }
