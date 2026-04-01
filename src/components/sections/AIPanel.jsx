@@ -477,10 +477,13 @@ function CostResult({ result }) {
 function FeatureLoading() {
   const { message, key } = useWellnessMessage();
   return (
-    <div className="rounded-xl border border-salve-border bg-salve-card text-center py-10">
-      <div className="w-10 h-10 rounded-full bg-salve-lav/10 flex items-center justify-center mx-auto mb-3">
-        <Loader2 size={20} className="animate-spin text-salve-lav" />
+    <div className="rounded-xl border border-salve-border bg-salve-card text-center py-10 px-6">
+      <div className="relative w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+        <div className="absolute inset-0 rounded-full border border-salve-lav/20 breathe-ring" />
+        <div className="absolute inset-2 rounded-full border border-salve-lav/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
+        <Sparkles size={22} className="breathe-icon text-salve-lav" />
       </div>
+      <p className="text-[11px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
       <div key={key} className="wellness-msg text-[13px] text-salve-textMid font-montserrat italic" role="status" aria-live="polite">{message}</div>
     </div>
   );

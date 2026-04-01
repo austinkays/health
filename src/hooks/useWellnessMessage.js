@@ -71,7 +71,7 @@ function pickRandom(exclude) {
   return next;
 }
 
-export default function useWellnessMessage(interval = 4000) {
+export default function useWellnessMessage(interval = 10000) {
   const [index, setIndex] = useState(() => pickRandom(-1));
 
   const cycle = useCallback(() => {

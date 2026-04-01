@@ -514,11 +514,12 @@ export default function Dashboard({ data, interactions, onNav }) {
                 <Sparkles size={14} color={C.lavDim} />
                 <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
               </div>
-              <div className="space-y-2 mb-3">
-                <div className="h-3 bg-salve-lav/10 rounded-full w-full" />
-                <div className="h-3 bg-salve-lav/10 rounded-full w-4/5" />
-                <div className="h-3 bg-salve-lav/10 rounded-full w-3/5" />
+              <div className="relative w-14 h-14 mx-auto mb-3 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border border-salve-lav/20 breathe-ring" />
+                <div className="absolute inset-2 rounded-full border border-salve-lav/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
+                <Sparkles size={18} className="breathe-icon text-salve-lavDim" />
               </div>
+              <p className="text-[10px] text-salve-textFaint/50 font-montserrat tracking-widest uppercase mb-3 text-center">Breathe with me</p>
               <div key={wellness.key} className="wellness-msg text-[12px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
             </Card>
           ) : insight && (
