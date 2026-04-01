@@ -95,6 +95,22 @@ function AppContent() {
     window.scrollTo(0, 0);
   };
 
+  // Time-aware ambiance — shift accent warmth throughout the day
+  useEffect(() => {
+    const applyAmbiance = () => {
+      const h = new Date().getHours();
+      const el = document.documentElement;
+      el.classList.remove('ambiance-morning', 'ambiance-day', 'ambiance-evening', 'ambiance-night');
+      if (h >= 5 && h < 12) el.classList.add('ambiance-morning');
+      else if (h >= 12 && h < 17) el.classList.add('ambiance-day');
+      else if (h >= 17 && h < 21) el.classList.add('ambiance-evening');
+      else el.classList.add('ambiance-night');
+    };
+    applyAmbiance();
+    const id = setInterval(applyAmbiance, 60000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');

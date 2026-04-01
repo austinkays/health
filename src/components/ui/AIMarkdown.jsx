@@ -45,10 +45,10 @@ const compactComponents = {
   li: ({ children }) => <li className="text-[12px] text-salve-textMid leading-relaxed list-disc marker:text-salve-lavDim">{children}</li>,
 };
 
-export default function AIMarkdown({ children, compact = false }) {
+export default function AIMarkdown({ children, compact = false, reveal = false }) {
   if (!children) return null;
   const processed = linkifyBareUrls(children);
-  return (
+  const md = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={compact ? compactComponents : components}
@@ -56,4 +56,5 @@ export default function AIMarkdown({ children, compact = false }) {
       {processed}
     </ReactMarkdown>
   );
+  return reveal ? <div className="ai-prose-reveal">{md}</div> : md;
 }

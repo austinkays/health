@@ -22,6 +22,39 @@
   }
 }
 
+/* ── Time-aware ambiance ─────────────────────── */
+/* Subtle accent glow shifts throughout the day   */
+:root {
+  --ambiance-glow: rgba(184, 169, 232, 0.06);
+  --ambiance-accent: rgba(184, 169, 232, 0.12);
+  --ambiance-border: rgba(184, 169, 232, 0.08);
+}
+.ambiance-morning {
+  --ambiance-glow: rgba(143, 191, 160, 0.06);
+  --ambiance-accent: rgba(143, 191, 160, 0.10);
+  --ambiance-border: rgba(143, 191, 160, 0.08);
+}
+.ambiance-day {
+  --ambiance-glow: rgba(184, 169, 232, 0.06);
+  --ambiance-accent: rgba(184, 169, 232, 0.12);
+  --ambiance-border: rgba(184, 169, 232, 0.08);
+}
+.ambiance-evening {
+  --ambiance-glow: rgba(232, 200, 138, 0.06);
+  --ambiance-accent: rgba(232, 200, 138, 0.10);
+  --ambiance-border: rgba(232, 200, 138, 0.08);
+}
+.ambiance-night {
+  --ambiance-glow: rgba(152, 136, 204, 0.04);
+  --ambiance-accent: rgba(152, 136, 204, 0.08);
+  --ambiance-border: rgba(152, 136, 204, 0.06);
+}
+/* Apply ambiance to card hover glow */
+.card-hover:hover {
+  box-shadow: 0 2px 8px var(--ambiance-glow), 0 0 0 1px var(--ambiance-accent);
+  border-color: var(--ambiance-border);
+}
+
 @layer utilities {
   /* Scrollbar styling */
   ::-webkit-scrollbar {
@@ -124,6 +157,31 @@
 .dash-stagger-4 { animation-delay: 0.26s; }
 .dash-stagger-5 { animation-delay: 0.33s; }
 
+/* AI prose reveal — paragraphs/headings fade in sequentially */
+@keyframes proseReveal {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ai-prose-reveal > p,
+.ai-prose-reveal > h1,
+.ai-prose-reveal > h2,
+.ai-prose-reveal > h3,
+.ai-prose-reveal > ul,
+.ai-prose-reveal > ol,
+.ai-prose-reveal > blockquote {
+  opacity: 0;
+  animation: proseReveal 0.6s ease-out forwards;
+}
+.ai-prose-reveal > :nth-child(1) { animation-delay: 0.05s; }
+.ai-prose-reveal > :nth-child(2) { animation-delay: 0.15s; }
+.ai-prose-reveal > :nth-child(3) { animation-delay: 0.28s; }
+.ai-prose-reveal > :nth-child(4) { animation-delay: 0.42s; }
+.ai-prose-reveal > :nth-child(5) { animation-delay: 0.58s; }
+.ai-prose-reveal > :nth-child(6) { animation-delay: 0.75s; }
+.ai-prose-reveal > :nth-child(7) { animation-delay: 0.93s; }
+.ai-prose-reveal > :nth-child(8) { animation-delay: 1.12s; }
+.ai-prose-reveal > :nth-child(n+9) { animation-delay: 1.3s; }
+
 .shimmer-bg {
   background: linear-gradient(90deg, transparent 25%, rgba(184, 169, 232, 0.08) 50%, transparent 75%);
   background-size: 200% 100%;
@@ -170,14 +228,12 @@
   50% { box-shadow: 0 0 0 3px rgba(184, 169, 232, 0.35); }
 }
 
-/* Card hover lift + glow */
+/* Card hover lift + glow (uses ambiance variables) */
 .card-hover {
   transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(184, 169, 232, 0.06), 0 0 0 1px rgba(184, 169, 232, 0.1);
-  border-color: rgba(184, 169, 232, 0.2);
 }
 .card-hover:active {
   transform: translateY(0);
@@ -358,9 +414,31 @@
   animation: toastSlideUp 0.3s ease-out;
 }
 
-/* Section enter animation (for non-dashboard pages) */
+/* Celebration sparkle burst on success toasts */
+@keyframes celebrationBurst {
+  0% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(0) scale(1); opacity: 0.9; }
+  60% { opacity: 0.6; }
+  100% { transform: translate(-50%, -50%) rotate(var(--angle)) translateX(28px) scale(0); opacity: 0; }
+}
+.celebration-particle {
+  animation: celebrationBurst 0.6s ease-out forwards;
+}
+
+/* Section enter animation — gentle arrival */
+@keyframes sectionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.995);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
 .section-enter {
-  animation: fadeSlideUp 0.35s ease-out;
+  animation: sectionEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Accordion expand/collapse — uses grid for smooth auto-height */

@@ -138,7 +138,7 @@ function InsightResult({ result }) {
       <ResultHeader icon={Sparkles} label="Health Insight" color={C.lav} text={text} />
       <div className="rounded-xl border border-salve-lav/20 bg-salve-lav/5 insight-glow overflow-hidden dash-stagger">
         <div className="border-l-[3px] border-salve-lav/40 p-4 pl-5">
-          <AIMarkdown>{cleaned}</AIMarkdown>
+          <AIMarkdown reveal>{cleaned}</AIMarkdown>
         </div>
       </div>
       <Disclaimer />
@@ -192,7 +192,7 @@ function ConnectionsResult({ result }) {
                   <span className="text-[13px] font-semibold text-salve-text font-montserrat">{section.title}</span>
                 </div>
               )}
-              <AIMarkdown>{section.content.trim()}</AIMarkdown>
+              <AIMarkdown reveal>{section.content.trim()}</AIMarkdown>
             </div>
           </div>
         ))}
@@ -319,7 +319,7 @@ function NewsResult({ result, onSaveChange }) {
                 </div>
               )}
               <div className="text-[13px] text-salve-textMid leading-relaxed font-montserrat">
-                <AIMarkdown>{story.body}</AIMarkdown>
+                <AIMarkdown reveal>{story.body}</AIMarkdown>
               </div>
               {story.sourceName && (
                 <div className="mt-2.5 pt-2 border-t border-salve-border/30">
@@ -371,7 +371,7 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
         className={`accordion-content ${open ? 'accordion-open' : 'accordion-closed'}`}
       >
         <div className="border-l-[3px] border-salve-rose/40 mx-4 mb-4 pl-4 pt-0">
-          <AIMarkdown>{content.trim()}</AIMarkdown>
+          <AIMarkdown reveal>{content.trim()}</AIMarkdown>
         </div>
       </div>
     </div>
@@ -473,7 +473,7 @@ function CostResult({ result }) {
                 <BadgeDollarSign size={13} className="text-salve-sage shrink-0" strokeWidth={1.8} />
                 <span className="text-[13px] font-semibold text-salve-text font-montserrat">{section.title}</span>
               </div>
-              <AIMarkdown>{section.content.trim()}</AIMarkdown>
+              <AIMarkdown reveal>{section.content.trim()}</AIMarkdown>
             </div>
           </div>
         ))}
