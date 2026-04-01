@@ -476,7 +476,7 @@ function CostResult({ result }) {
   );
 }
 
-function FeatureLoading() {
+function FeatureLoading({ ready, onReveal }) {
   const { message, key } = useWellnessMessage();
   return (
     <div className="rounded-xl border border-salve-border bg-salve-card text-center py-12 px-6 breathe-container">
@@ -487,10 +487,21 @@ function FeatureLoading() {
       </div>
       <p className="text-[11px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
       <div key={key} className="wellness-msg text-[13px] text-salve-textMid font-montserrat italic mb-5" role="status" aria-live="polite">{message}</div>
-      <div className="flex items-center justify-center gap-2 text-salve-textFaint/40">
-        <Loader2 size={12} className="animate-spin" />
-        <span className="text-[10px] font-montserrat tracking-wider uppercase">Loading your insights</span>
-      </div>
+      {ready ? (
+        <button
+          onClick={onReveal}
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-salve-lav/25 bg-salve-lav/8 text-salve-lav text-xs font-montserrat font-medium tracking-wide cursor-pointer transition-all duration-300 hover:bg-salve-lav/15 hover:border-salve-lav/40 ready-reveal"
+          aria-label="View your insight"
+        >
+          <Sparkles size={14} />
+          Your insight is ready
+        </button>
+      ) : (
+        <div className="flex items-center justify-center gap-2 text-salve-textFaint/40">
+          <Loader2 size={12} className="animate-spin" />
+          <span className="text-[10px] font-montserrat tracking-wider uppercase">Loading your insights</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -560,6 +571,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [revealed, setRevealed] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [conversationId, setConversationId] = useState(null);
@@ -673,6 +685,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const runFeature = async (id) => {
     setMode(id);
     setResult(null);
+    setRevealed(false);
     setLoading(true);
     try {
       const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
@@ -786,12 +799,12 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   if (mode && mode !== 'ask') return (
     <AIConsentGate>
     <div className="mt-2">
-      <SectionTitle action={<button onClick={() => { setMode(null); setResult(null); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
+      <SectionTitle action={<button onClick={() => { setMode(null); setResult(null); setRevealed(false); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
         {FEATURES.find(f => f.id === mode)?.label}
       </SectionTitle>
-      {loading ? (
-        <FeatureLoading />
-      ) : result ? (
+      {(loading || (result && !revealed)) ? (
+        <FeatureLoading ready={!loading && !!result} onReveal={() => setRevealed(true)} />
+      ) : result && revealed ? (
         mode === 'insight' ? <InsightResult result={result} /> :
         mode === 'connections' ? <ConnectionsResult result={result} /> :
         mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} /> :
