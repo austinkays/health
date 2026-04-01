@@ -219,10 +219,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
   const saveMed = async () => {
     if (!form.name.trim()) return;
+    const { id, ...payload } = form;
     if (editId) {
-      await updateItem('medications', editId, form);
+      await updateItem('medications', editId, payload);
     } else {
-      await addItem('medications', form);
+      await addItem('medications', payload);
     }
     setForm(EMPTY_MED);
     setEditId(null);

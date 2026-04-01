@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown, Search, Loader, MapPin, Pill, Stethoscope } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, User, Phone, ExternalLink, ChevronDown, Search, Loader, MapPin, Pill, Stethoscope, Star } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -95,15 +95,30 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
 
   const saveP = async () => {
     if (!form.name.trim()) return;
+    const { id, ...payload } = form;
     if (editId) {
-      await updateItem('providers', editId, form);
+      await updateItem('providers', editId, payload);
     } else {
-      await addItem('providers', form);
+      await addItem('providers', payload);
     }
     setForm(EMPTY_PROVIDER);
     setEditId(null);
     setSubView(null);
   };
+
+  const toggleFavorite = async (p) => {
+    await updateItem('providers', p.id, { is_favorite: !p.is_favorite });
+  };
+
+  /* ── Sort: favorites first, then alphabetical ── */
+  const sortedProviders = useMemo(() =>
+    [...data.providers].sort((a, b) => {
+      if (a.is_favorite && !b.is_favorite) return -1;
+      if (!a.is_favorite && b.is_favorite) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    }),
+    [data.providers]
+  );
 
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>
@@ -161,7 +176,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
         Providers
       </SectionTitle>
       {data.providers.length === 0 ? <EmptyState icon={User} text="No providers added" motif="leaf" /> :
-        data.providers.map(p => {
+        sortedProviders.map(p => {
           const isExpanded = expandedId === p.id;
           const prescribedMeds = medsPerProvider[p.id] || [];
           const treatedConditions = conditionsPerProvider[p.id] || [];
@@ -169,7 +184,10 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
           <Card key={p.id} id={`record-${p.id}`} onClick={() => setExpandedId(isExpanded ? null : p.id)} className={`cursor-pointer transition-all${highlightId === p.id ? ' highlight-ring' : ''}`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold text-salve-text">{p.name}</div>
+                <div className="text-[15px] font-semibold text-salve-text flex items-center gap-1.5">
+                  {p.name}
+                  {p.is_favorite && <Star size={12} className="text-salve-amber fill-salve-amber flex-shrink-0" />}
+                </div>
                 {p.specialty && <div className="text-[13px] text-salve-lav font-medium">{p.specialty}</div>}
                 {p.clinic && !isExpanded && <div className="text-xs text-salve-textMid mt-0.5 truncate">{p.clinic}</div>}
                 {!isExpanded && (prescribedMeds.length > 0 || treatedConditions.length > 0) && (
@@ -250,6 +268,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
                   </div>
                 )}
                 <div className="flex gap-2.5 mt-2.5">
+                  <button onClick={() => toggleFavorite(p)} aria-label={p.is_favorite ? 'Remove from favorites' : 'Add to favorites'} className="bg-transparent border-none cursor-pointer text-salve-amber text-xs font-montserrat p-0 flex items-center gap-1"><Star size={12} className={p.is_favorite ? 'fill-salve-amber' : ''} /> {p.is_favorite ? 'Unfavorite' : 'Favorite'}</button>
                   <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit provider" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                 </div>

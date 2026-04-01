@@ -18,7 +18,7 @@ export const EMPTY_ALLERGY = {
 export const EMPTY_PROVIDER = {
   name: '', specialty: '', clinic: '',
   phone: '', fax: '', portal_url: '', notes: '',
-  npi: '', address: '',
+  npi: '', address: '', is_favorite: false,
 };
 
 export const EMPTY_VITAL = {
