@@ -244,7 +244,6 @@
 /* Quick access tile magic hover */
 .tile-magic {
   position: relative;
-  overflow: hidden;
   transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .tile-magic::before {
@@ -257,13 +256,18 @@
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
+    rgba(184, 169, 232, 0.04) 30deg,
     rgba(184, 169, 232, 0.06) 60deg,
+    rgba(143, 191, 160, 0.05) 100deg,
     rgba(143, 191, 160, 0.06) 120deg,
-    transparent 180deg
+    rgba(184, 169, 232, 0.04) 150deg,
+    transparent 180deg,
+    transparent 360deg
   );
+  filter: blur(12px);
   opacity: 0;
   transition: opacity 0.4s ease;
-  animation: sparkleRotate 8s linear infinite;
+  animation: sparkleRotate 12s linear infinite;
 }
 .tile-magic:hover::before {
   opacity: 1;
