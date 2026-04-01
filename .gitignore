@@ -27,3 +27,6 @@ dist-ssr/
 # OS
 .DS_Store
 Thumbs.db
+
+# Source assets
+salve_icon.png
