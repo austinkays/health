@@ -7,6 +7,113 @@ function san(text, limit = 500) {
   return String(text).replace(/[<>{}]/g, '').slice(0, limit);
 }
 
+// Condense verbose FDA label text into key clinical points
+function condenseFDA(fda) {
+  if (!fda) return '';
+  let out = '';
+  if (fda.boxed_warning?.length) {
+    out += ' ⚠ BOXED WARNING: ' + san(fda.boxed_warning[0], 200);
+  }
+  if (fda.contraindications?.length) {
+    out += ' | contraindicated: ' + san(fda.contraindications[0], 150);
+  }
+  if (fda.drug_interactions?.length) {
+    out += ' | interactions: ' + san(fda.drug_interactions[0], 150);
+  }
+  if (fda.adverse_reactions?.length) {
+    // Extract just the first sentence or 120 chars of side effects
+    const raw = san(fda.adverse_reactions[0], 200);
+    const first = raw.split(/\.\s/)[0];
+    out += ' | side effects: ' + (first.length < raw.length ? first + '.' : raw);
+  }
+  if (fda.pregnancy?.length) {
+    const raw = san(fda.pregnancy[0], 100);
+    out += ' | pregnancy: ' + raw;
+  }
+  return out;
+}
+
+// Compute trend direction from an array of {date, value} entries
+function computeTrend(values) {
+  if (values.length < 3) return '';
+  const recent = values.slice(-5);
+  const older = values.slice(0, Math.max(1, values.length - 5));
+  const avgRecent = recent.reduce((s, v) => s + v, 0) / recent.length;
+  const avgOlder = older.reduce((s, v) => s + v, 0) / older.length;
+  const diff = ((avgRecent - avgOlder) / (avgOlder || 1)) * 100;
+  if (Math.abs(diff) < 3) return 'stable';
+  return diff > 0 ? 'trending up' : 'trending down';
+}
+
+// Summarize vitals by type: min/avg/max/trend + flag outliers
+function summarizeVitals(vitals) {
+  if (!vitals.length) return '';
+  const groups = {};
+  vitals.forEach(v => {
+    if (!groups[v.type]) groups[v.type] = [];
+    groups[v.type].push(v);
+  });
+
+  let out = '\n— VITALS SUMMARY —\n';
+  for (const [type, entries] of Object.entries(groups)) {
+    const t = VITAL_TYPES.find(x => x.id === type);
+    const label = t ? t.label : type;
+    const unit = t ? t.unit : '';
+
+    if (type === 'bp') {
+      const sys = entries.map(e => Number(e.value)).filter(n => !isNaN(n));
+      const dia = entries.map(e => Number(e.value2)).filter(n => !isNaN(n));
+      if (!sys.length) continue;
+      const avgSys = Math.round(sys.reduce((a, b) => a + b, 0) / sys.length);
+      const avgDia = Math.round(dia.reduce((a, b) => a + b, 0) / dia.length);
+      const trend = computeTrend(sys);
+      out += '- ' + label + ': avg ' + avgSys + '/' + avgDia + ' ' + unit;
+      out += ', range ' + Math.min(...sys) + '-' + Math.max(...sys) + '/' + Math.min(...dia) + '-' + Math.max(...dia);
+      out += ' (' + entries.length + ' readings';
+      if (trend) out += ', ' + trend;
+      out += ')\n';
+      continue;
+    }
+
+    const vals = entries.map(e => Number(e.value)).filter(n => !isNaN(n));
+    if (!vals.length) continue;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const trend = computeTrend(vals);
+
+    out += '- ' + label + ': avg ' + (Number.isInteger(avg) ? avg : avg.toFixed(1)) + ' ' + unit;
+    if (min !== max) out += ', range ' + min + '-' + max;
+    out += ' (' + entries.length + ' readings';
+    if (trend) out += ', ' + trend;
+    out += ')';
+
+    // Flag abnormal values
+    if (t) {
+      const abnormal = [];
+      if (t.warnHigh && max >= t.warnHigh) abnormal.push('high ' + max);
+      if (t.warnLow && min <= t.warnLow) abnormal.push('low ' + min);
+      if (t.normalHigh && max > t.normalHigh) abnormal.push('above normal ' + max);
+      if (t.normalLow && min < t.normalLow) abnormal.push('below normal ' + min);
+      if (abnormal.length) out += ' [flags: ' + abnormal.join(', ') + ']';
+    }
+    out += '\n';
+  }
+
+  // Append last 3 readings with notes (recent context)
+  const withNotes = vitals.filter(v => v.notes).slice(-5);
+  if (withNotes.length) {
+    out += 'Recent notes: ';
+    out += withNotes.map(v => {
+      const t = VITAL_TYPES.find(x => x.id === v.type);
+      return (t ? t.label : v.type) + ' ' + v.value + ' on ' + v.date + ' — ' + v.notes;
+    }).join('; ');
+    out += '\n';
+  }
+
+  return out;
+}
+
 export function buildProfile(data) {
   if (!data) return '(No health data available)';
   const s = data.settings || {};
@@ -15,7 +122,7 @@ export function buildProfile(data) {
   if (s.name) p += 'Patient name: ' + san(s.name) + '\n';
   if (s.location) p += 'Location: ' + san(s.location) + '\n';
 
-  // Active medications
+  // Active medications — condensed FDA data
   p += '\n— ACTIVE MEDICATIONS —\n';
   const active = (data.meds || []).filter(m => m.active !== false);
   if (active.length === 0) p += '(none)\n';
@@ -29,12 +136,7 @@ export function buildProfile(data) {
     if (m.fda_data?.pharm_class_moa?.length) p += ' [mechanism: ' + m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ') + ']';
     if (m.purpose) p += ' — for: ' + m.purpose;
     if (m.prescriber) p += ' [prescribed by ' + m.prescriber + ']';
-    if (m.fda_data?.contraindications?.length) p += ' {contraindications: ' + san(m.fda_data.contraindications[0], 1000) + '}';
-    if (m.fda_data?.boxed_warning?.length) p += ' {⚠ BOXED WARNING: ' + san(m.fda_data.boxed_warning[0], 800) + '}';
-    if (m.fda_data?.drug_interactions?.length) p += ' {drug interactions: ' + san(m.fda_data.drug_interactions[0], 800) + '}';
-    if (m.fda_data?.adverse_reactions?.length) p += ' {side effects: ' + san(m.fda_data.adverse_reactions[0], 600) + '}';
-    if (m.fda_data?.pregnancy?.length) p += ' {pregnancy: ' + san(m.fda_data.pregnancy[0], 400) + '}';
-    if (m.fda_data?.precautions?.length) p += ' {precautions: ' + san(m.fda_data.precautions[0], 600) + '}';
+    p += condenseFDA(m.fda_data);
     // Append price data if available
     const medPrices = (data.drug_prices || []).filter(dp => dp.medication_id === m.id && dp.nadac_per_unit);
     if (medPrices.length) {
@@ -108,19 +210,10 @@ export function buildProfile(data) {
     });
   }
 
-  // Recent vitals (last 10)
+  // Vitals — aggregated summary instead of individual readings
   const vitals = data.vitals || [];
   if (vitals.length) {
-    p += '\n— RECENT VITALS (last 20) —\n';
-    vitals.slice(-20).forEach(v => {
-      const t = VITAL_TYPES.find(x => x.id === v.type);
-      p += '- ' + (t ? t.label : v.type) + ': ';
-      p += v.type === 'bp' ? v.value + '/' + v.value2 : v.value;
-      if (t) p += ' ' + t.unit;
-      p += ' on ' + v.date;
-      if (v.notes) p += ' — ' + v.notes;
-      p += '\n';
-    });
+    p += summarizeVitals(vitals.slice(-30));
   }
 
   // Recent journal entries (last 5)
