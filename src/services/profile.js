@@ -1,4 +1,4 @@
-import { VITAL_TYPES } from '../constants/defaults';
+import { VITAL_TYPES, getCycleRelatedLabel } from '../constants/defaults';
 
 // Sanitize user-provided text to prevent prompt injection
 // Higher limit for FDA data which is system-sourced, not user-authored
@@ -456,6 +456,15 @@ export function buildProfile(data) {
       symptoms.forEach(s => { freq[s.symptom] = (freq[s.symptom] || 0) + 1; });
       const common = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s]) => s);
       p += 'Common cycle symptoms: ' + common.join(', ') + '\n';
+    }
+    // Cycle-related medications
+    const activeMeds = (data.meds || []).filter(m => m.active !== false);
+    const cycleMeds = activeMeds.map(m => {
+      const label = getCycleRelatedLabel(m);
+      return label ? `${san(m.name)} (${label})` : null;
+    }).filter(Boolean);
+    if (cycleMeds.length) {
+      p += 'Cycle-related medications: ' + cycleMeds.join(', ') + '\n';
     }
   }
 

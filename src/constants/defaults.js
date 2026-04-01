@@ -99,3 +99,35 @@ export const EMPTY_TODO = {
   recurring: 'none', related_id: null,
   related_table: '', source: 'manual', dismissed: false,
 };
+
+export const CYCLE_RELATED_KEYWORDS = [
+  'birth control', 'contraceptive', 'oral contraceptive',
+  'estrogen', 'progestin', 'progesterone', 'levonorgestrel',
+  'ethinyl estradiol', 'norethindrone', 'desogestrel',
+  'drospirenone', 'etonogestrel', 'medroxyprogesterone',
+  'hormonal', 'hrt', 'hormone replacement',
+  'iron supplement', 'ferrous', 'iron',
+  'spironolactone', 'clomiphene', 'letrozole',
+  'gonadotropin', 'lupron', 'leuprolide',
+];
+
+export function getCycleRelatedLabel(med) {
+  const check = (text) => {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    return CYCLE_RELATED_KEYWORDS.some(kw => lower.includes(kw));
+  };
+
+  const moa = med.fda_data?.pharm_class_moa?.join(' ') || '';
+  const pe = med.fda_data?.pharm_class_pe?.join(' ') || '';
+  const pharmMatch = check(moa) || check(pe);
+  const nameMatch = check(med.name);
+
+  if (!pharmMatch && !nameMatch) return null;
+
+  const allText = `${moa} ${pe} ${(med.name || '').toLowerCase()}`;
+  if (/contraceptive|birth control/.test(allText)) return 'Birth control';
+  if (/estrogen|progestin|progesterone|hrt|hormone replacement/.test(allText)) return 'Hormonal';
+  if (/iron|ferrous/.test(allText)) return 'Iron supplement';
+  return 'Cycle-related';
+}

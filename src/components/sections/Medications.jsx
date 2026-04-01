@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -8,7 +8,7 @@ import Badge, { SevBadge } from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
-import { EMPTY_MED } from '../../constants/defaults';
+import { EMPTY_MED, getCycleRelatedLabel } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { Building2 } from 'lucide-react';
@@ -565,6 +565,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                     )}
                   </div>
                 )}
+                {!isExpanded && (() => {
+                  const cycleLabel = getCycleRelatedLabel(m);
+                  return cycleLabel ? (
+                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                      <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
+                        <Heart size={8} /> {cycleLabel}
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
               </div>
               <div className="flex items-center gap-1 ml-2">
                 {m.refill_date && !isExpanded && <span className="text-[11px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
