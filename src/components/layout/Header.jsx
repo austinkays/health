@@ -22,6 +22,7 @@ const TAB_LABELS = {
   insurance: 'Insurance',
   interactions: 'Interactions',
   search: 'Search',
+  cycles: 'Cycles',
 };
 
 const TAB_DECOR = {
@@ -43,6 +44,7 @@ const TAB_DECOR = {
   insurance:     ['✿', '·', '☽'],
   interactions:  ['✧', '✦', '·'],
   providers:     ['☽', '·', '✧'],
+  cycles:        ['♀', '☽', '·'],
   appts:         ['✿', '✦', '·'],
   search:        ['✦', '·', '✧'],
 };

@@ -423,5 +423,41 @@ export function buildProfile(data) {
     });
   }
 
+  // Cycle & fertility data
+  const cycles = data.cycles || [];
+  if (cycles.length) {
+    p += '\n— CYCLE & FERTILITY —\n';
+    const periods = cycles.filter(c => c.type === 'period').map(c => c.date).sort();
+    if (periods.length) {
+      const starts = [];
+      let prev = null;
+      for (const d of periods) {
+        const dt = new Date(d + 'T00:00:00');
+        if (!prev || (dt - prev) > 2 * 86400000) starts.push(d);
+        prev = dt;
+      }
+      const lengths = [];
+      for (let i = 1; i < starts.length; i++) {
+        const diff = Math.round((new Date(starts[i] + 'T00:00:00') - new Date(starts[i - 1] + 'T00:00:00')) / 86400000);
+        if (diff >= 18 && diff <= 45) lengths.push(diff);
+      }
+      const avg = lengths.length > 0 ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : null;
+      if (avg) p += 'Average cycle length: ' + avg + ' days\n';
+      if (starts.length) {
+        p += 'Last period start: ' + starts[starts.length - 1] + '\n';
+        const now = new Date(); now.setHours(0, 0, 0, 0);
+        const dayOfCycle = Math.floor((now - new Date(starts[starts.length - 1] + 'T00:00:00')) / 86400000) + 1;
+        if (dayOfCycle > 0) p += 'Current cycle day: ' + dayOfCycle + '\n';
+      }
+    }
+    const symptoms = cycles.filter(c => c.type === 'symptom' && c.symptom);
+    if (symptoms.length) {
+      const freq = {};
+      symptoms.forEach(s => { freq[s.symptom] = (freq[s.symptom] || 0) + 1; });
+      const common = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([s]) => s);
+      p += 'Common cycle symptoms: ' + common.join(', ') + '\n';
+    }
+  }
+
   return p;
 }

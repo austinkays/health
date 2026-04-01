@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -97,6 +97,7 @@ const ALL_LINKS = [
   { id: 'surgical',     label: 'Surgery Plan', icon: PlaneTakeoff,    color: C.lav },
   { id: 'interactions', label: 'Interactions', icon: AlertTriangle,   color: C.amber },
   { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       color: C.sage },
+  { id: 'cycles',       label: 'Cycles',       icon: Heart,           color: C.rose },
   { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];
 
@@ -188,10 +189,38 @@ export default function Dashboard({ data, interactions, onNav }) {
     const refills = activeMeds
       .filter(m => m.refill_date && new Date(m.refill_date) >= now)
       .map(m => ({ ...m, _type: 'refill', _sortDate: m.refill_date }));
-    return [...appts, ...refills]
+
+    // Predicted period from cycle data
+    const cyclePeriods = (data.cycles || []).filter(c => c.type === 'period').map(c => c.date).sort();
+    let periodEntry = [];
+    if (cyclePeriods.length >= 2) {
+      const starts = [];
+      let prev = null;
+      for (const d of cyclePeriods) {
+        const dt = new Date(d + 'T00:00:00');
+        if (!prev || (dt - prev) > 2 * 86400000) starts.push(d);
+        prev = dt;
+      }
+      if (starts.length >= 2) {
+        const lengths = [];
+        for (let i = 1; i < starts.length; i++) {
+          const diff = Math.round((new Date(starts[i] + 'T00:00:00') - new Date(starts[i - 1] + 'T00:00:00')) / 86400000);
+          if (diff >= 18 && diff <= 45) lengths.push(diff);
+        }
+        const avg = lengths.length > 0 ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : 28;
+        const lastStart = starts[starts.length - 1];
+        const nextDate = new Date(lastStart + 'T00:00:00');
+        nextDate.setDate(nextDate.getDate() + avg);
+        if (nextDate >= now) {
+          periodEntry = [{ _type: 'period', _sortDate: nextDate.toISOString().slice(0, 10), _label: 'Predicted period' }];
+        }
+      }
+    }
+
+    return [...appts, ...refills, ...periodEntry]
       .sort((a, b) => new Date(a._sortDate) - new Date(b._sortDate))
-      .slice(0, 3);
-  }, [data.appts, activeMeds]);
+      .slice(0, 4);
+  }, [data.appts, activeMeds, data.cycles]);
 
   const latestJournal = useMemo(
     () => data.journal.length > 0 ? data.journal[0] : null,
@@ -290,8 +319,35 @@ export default function Dashboard({ data, interactions, onNav }) {
     if (urgentGaps > 0) {
       items.push({ id: 'care_gaps', icon: AlertTriangle, color: C.amber, text: `${urgentGaps} Urgent Care Gap${urgentGaps > 1 ? 's' : ''}`, nav: 'care_gaps' });
     }
+    // Late period alert from cycle data
+    const cyclePeriods = (data.cycles || []).filter(c => c.type === 'period').map(c => c.date).sort();
+    if (cyclePeriods.length >= 2) {
+      const starts = [];
+      let prev = null;
+      for (const d of cyclePeriods) {
+        const dt = new Date(d + 'T00:00:00');
+        if (!prev || (dt - prev) > 2 * 86400000) starts.push(d);
+        prev = dt;
+      }
+      if (starts.length >= 2) {
+        const lengths = [];
+        for (let i = 1; i < starts.length; i++) {
+          const diff = Math.round((new Date(starts[i] + 'T00:00:00') - new Date(starts[i - 1] + 'T00:00:00')) / 86400000);
+          if (diff >= 18 && diff <= 45) lengths.push(diff);
+        }
+        const avg = lengths.length > 0 ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : 28;
+        const lastStart = starts[starts.length - 1];
+        const expected = new Date(lastStart + 'T00:00:00');
+        expected.setDate(expected.getDate() + avg);
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const daysLate = Math.floor((today - expected) / 86400000);
+        if (daysLate >= 3) {
+          items.push({ id: 'late_period', icon: Heart, color: C.rose, text: `Period is ${daysLate} day${daysLate > 1 ? 's' : ''} late`, nav: 'cycles' });
+        }
+      }
+    }
     return items;
-  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps]);
+  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles]);
 
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
@@ -562,13 +618,14 @@ export default function Dashboard({ data, interactions, onNav }) {
           <SectionTitle>Coming Up</SectionTitle>
           {timeline.map((item, i) => {
             const isAppt = item._type === 'appt';
-            const dotColor = isAppt ? C.sage : C.amber;
-            const label = isAppt ? (item.reason || 'Appointment') : `${item.name} ${item.dose || ''}`.trim();
-            const sub = isAppt ? item.provider : 'Refill';
+            const isPeriod = item._type === 'period';
+            const dotColor = isAppt ? C.sage : isPeriod ? C.rose : C.amber;
+            const label = isAppt ? (item.reason || 'Appointment') : isPeriod ? item._label : `${item.name} ${item.dose || ''}`.trim();
+            const sub = isAppt ? item.provider : isPeriod ? 'Predicted' : 'Refill';
             return (
               <button
                 key={item.id || i}
-                onClick={() => onNav(isAppt ? 'appts' : 'meds')}
+                onClick={() => onNav(isAppt ? 'appts' : isPeriod ? 'cycles' : 'meds')}
                 className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />

@@ -1,7 +1,7 @@
 import {
   Pill, Stethoscope, User, Shield, Calendar,
   BookOpen, FlaskConical, Building2, Syringe, ShieldCheck, AlertTriangle,
-  AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign, Activity,
+  AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign, Activity, Heart,
 } from 'lucide-react';
 import { C } from '../constants/colors';
 
@@ -168,6 +168,16 @@ export const ENTITY_CONFIG = {
     secondary: v => v.date || '',
     idField: 'id',
   },
+  cycles: {
+    label: 'Cycles',
+    icon: Heart,
+    color: C.rose,
+    tab: 'cycles',
+    fields: ['type', 'value', 'symptom', 'notes'],
+    primary: c => c.type === 'period' ? `Period: ${c.value || ''}` : c.type === 'symptom' ? (c.symptom || 'Symptom') : c.type,
+    secondary: c => c.date || '',
+    idField: 'id',
+  },
 };
 
 /* ── Filter pill categories ──────────────────────────────── */
@@ -187,7 +197,7 @@ export const FILTER_TABS = [
 export const MORE_CATEGORIES = [
   'allergies', 'procedures', 'immunizations', 'care_gaps',
   'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning',
-  'insurance', 'vitals',
+  'insurance', 'vitals', 'cycles',
 ];
 
 /* ── Helpers ─────────────────────────────────────────────── */

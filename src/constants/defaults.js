@@ -78,6 +78,20 @@ export const EMPTY_DRUG_PRICE = {
   as_of_date: '', classification: '',
 };
 
+export const EMPTY_CYCLE = {
+  date: new Date().toISOString().slice(0, 10),
+  type: 'period', value: '', symptom: '', notes: '',
+};
+
+export const FLOW_LEVELS = ['Spotting', 'Light', 'Medium', 'Heavy'];
+
+export const CYCLE_SYMPTOMS = [
+  'Cramps', 'Bloating', 'Breast tenderness', 'Headache', 'Fatigue',
+  'Acne', 'Mood swing', 'Nausea', 'Backache', 'Insomnia',
+];
+
+export const FERTILITY_MARKERS = ['BBT', 'Cervical mucus', 'OPK positive', 'OPK negative'];
+
 export const EMPTY_TODO = {
   title: '', notes: '', due_date: '',
   priority: 'medium', category: 'custom',

@@ -52,6 +52,7 @@ const Insurance = lazyWithRetry(() => import('./components/sections/Insurance'))
 const Pharmacies = lazyWithRetry(() => import('./components/sections/Pharmacies'));
 const HealthSummary = lazyWithRetry(() => import('./components/sections/HealthSummary'));
 const Search = lazyWithRetry(() => import('./components/sections/Search'));
+const CycleTracker = lazyWithRetry(() => import('./components/sections/CycleTracker'));
 
 export default function App() {
   return (
@@ -214,6 +215,7 @@ function AppContent() {
       case 'surgical':    return <SurgicalPlanning {...shared} />;
       case 'insurance':   return <Insurance {...shared} />;
       case 'pharmacies': return <Pharmacies {...shared} />;
+      case 'cycles':     return <CycleTracker {...shared} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;

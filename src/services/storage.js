@@ -25,6 +25,7 @@ const TABLE_MAP = {
   insurance_claims:     'insurance_claims',
   drug_prices:          'drug_prices',
   todos:                'todos',
+  cycles:               'cycles',
   conversations:        'ai_conversations',
 };
 
@@ -205,6 +206,7 @@ function normalizeImportData(fileData) {
       appeals_and_disputes: fileData.appeals_and_disputes || [],
       surgical_planning:    fileData.surgical_planning    || [],
       insurance:            fileData.insurance            || [],
+      cycles:               fileData.cycles               || [],
     };
   }
 
@@ -228,6 +230,7 @@ function normalizeImportData(fileData) {
       appeals_and_disputes: fileData.appeals_and_disputes || [],
       surgical_planning:    fileData.surgical_planning    || [],
       insurance:            fileData.insurance            || [],
+      cycles:               fileData.cycles               || [],
     };
   }
 

@@ -33,6 +33,7 @@ const STATE_KEY_TO_TABLE = {
   anesthesia_flags: 'anesthesia_flags', appeals_and_disputes: 'appeals_and_disputes',
   surgical_planning: 'surgical_planning', insurance: 'insurance',
   insurance_claims: 'insurance_claims', drug_prices: 'drug_prices',
+  cycles: 'cycles',
 };
 
 // DB table name → state key
@@ -44,6 +45,7 @@ const TABLE_TO_STATE_KEY = {
   anesthesia_flags: 'anesthesia_flags', appeals_and_disputes: 'appeals_and_disputes',
   surgical_planning: 'surgical_planning', insurance: 'insurance',
   insurance_claims: 'insurance_claims', drug_prices: 'drug_prices',
+  cycles: 'cycles',
 };
 
 // Summarize a list of records for the AI (key fields + IDs, trimmed)

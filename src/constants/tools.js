@@ -256,8 +256,32 @@ export const HEALTH_TOOLS = [
       },
       required: ['content'],
     },
+  },  {
+    name: 'add_cycle_entry',
+    description: 'Log a cycle/period tracking entry. Types: period (with flow level), symptom (with symptom name), ovulation, fertility_marker.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'Entry date (YYYY-MM-DD). Defaults to today.' },
+        type: { type: 'string', enum: ['period', 'symptom', 'ovulation', 'fertility_marker'], description: 'Type of cycle entry' },
+        value: { type: 'string', description: 'For period: flow level (Light/Medium/Heavy/Spotting). For symptom: severity (Mild/Moderate/Severe). For fertility_marker: marker type (BBT, OPK positive, etc.)' },
+        symptom: { type: 'string', description: 'For symptom type: symptom name (Cramps, Bloating, Headache, Fatigue, Breast tenderness, Acne, Mood swing, Nausea, Backache, Insomnia)' },
+        notes: { type: 'string', description: 'Optional notes' },
+      },
+      required: ['type'],
+    },
   },
   {
+    name: 'remove_cycle_entry',
+    description: 'Remove a cycle tracking entry by ID. Requires confirmation.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'The record ID to remove' },
+      },
+      required: ['id'],
+    },
+  },  {
     name: 'update_settings',
     description: 'Update the patient\'s profile settings.',
     input_schema: {
@@ -282,7 +306,7 @@ export const HEALTH_TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search text to match against record fields' },
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'vitals'], description: 'Optional: limit search to a specific table' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'vitals', 'cycles'], description: 'Optional: limit search to a specific table' },
       },
       required: ['query'],
     },
@@ -293,7 +317,7 @@ export const HEALTH_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'vitals'], description: 'Table to list records from' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'vitals', 'cycles'], description: 'Table to list records from' },
       },
       required: ['table'],
     },
@@ -307,6 +331,7 @@ export const DESTRUCTIVE_TOOLS = new Set([
   'remove_allergy',
   'remove_appointment',
   'remove_provider',
+  'remove_cycle_entry',
 ]);
 
 // Map tool name → { table (db service name), operation }
@@ -327,6 +352,8 @@ export const TOOL_TABLE_MAP = {
   remove_provider:     { table: 'providers', operation: 'remove' },
   add_vital:           { table: 'vitals', operation: 'add' },
   add_journal_entry:   { table: 'journal', operation: 'add' },
+  add_cycle_entry:     { table: 'cycles', operation: 'add' },
+  remove_cycle_entry:  { table: 'cycles', operation: 'remove' },
   update_settings:     { table: 'profile', operation: 'update' },
   search_records:      { table: null, operation: 'search' },
   list_records:        { table: null, operation: 'list' },
@@ -341,4 +368,5 @@ export const RECORD_SUMMARIES = {
   providers:     r => r.name || 'provider',
   vitals:        r => `${r.type}: ${r.value}${r.unit ? ' ' + r.unit : ''}`,
   journal:       r => r.title || 'journal entry',
+  cycles:        r => `${r.type}: ${r.value || r.symptom || ''}`.trim() + (r.date ? ` (${r.date})` : ''),
 };
