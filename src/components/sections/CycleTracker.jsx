@@ -12,59 +12,7 @@ import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS } from '../../constants/defaults';
 import { detectFloFormat, parseFloExport } from '../../services/flo';
-
-/* ── Cycle helpers ───────────────────────────────────────── */
-
-function getCyclePhase(dayOfCycle, avgLen) {
-  if (dayOfCycle <= 0) return null;
-  if (dayOfCycle <= 5) return { name: 'Menstrual', color: C.rose };
-  const ovDay = Math.round(avgLen - 14);
-  if (dayOfCycle < ovDay - 4) return { name: 'Follicular', color: C.sage };
-  if (dayOfCycle <= ovDay + 1) return { name: 'Ovulatory', color: C.amber };
-  return { name: 'Luteal', color: C.lav };
-}
-
-function computeCycleStats(cycles) {
-  const periods = cycles
-    .filter(c => c.type === 'period')
-    .map(c => c.date)
-    .sort();
-
-  if (periods.length < 2) return { avgLength: 28, lastPeriod: periods[0] || null, periodStarts: [] };
-
-  // Group consecutive days into period starts
-  const starts = [];
-  let prev = null;
-  for (const d of periods) {
-    const dt = new Date(d + 'T00:00:00');
-    if (!prev || (dt - prev) > 2 * 86400000) starts.push(d);
-    prev = dt;
-  }
-
-  // Calculate cycle lengths between starts
-  const lengths = [];
-  for (let i = 1; i < starts.length; i++) {
-    const diff = Math.round((new Date(starts[i] + 'T00:00:00') - new Date(starts[i - 1] + 'T00:00:00')) / 86400000);
-    if (diff >= 18 && diff <= 45) lengths.push(diff);
-  }
-
-  const avgLength = lengths.length > 0 ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : 28;
-  return { avgLength, lastPeriod: starts[starts.length - 1] || null, periodStarts: starts };
-}
-
-function predictNextPeriod(stats) {
-  if (!stats.lastPeriod) return null;
-  const next = new Date(stats.lastPeriod + 'T00:00:00');
-  next.setDate(next.getDate() + stats.avgLength);
-  return next.toISOString().slice(0, 10);
-}
-
-function getDayOfCycle(stats) {
-  if (!stats.lastPeriod) return 0;
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  const last = new Date(stats.lastPeriod + 'T00:00:00');
-  return Math.floor((now - last) / 86400000) + 1;
-}
+import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle } from '../../utils/cycles';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
