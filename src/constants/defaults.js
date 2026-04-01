@@ -77,3 +77,11 @@ export const EMPTY_DRUG_PRICE = {
   pricing_unit: 'EA', drug_name: '', effective_date: '',
   as_of_date: '', classification: '',
 };
+
+export const EMPTY_TODO = {
+  title: '', notes: '', due_date: '',
+  priority: 'medium', category: 'custom',
+  completed: false, completed_at: null,
+  recurring: 'none', related_id: null,
+  related_table: '', source: 'manual', dismissed: false,
+};

@@ -1,4 +1,5 @@
 import { getAuthToken } from './token';
+import { HEALTH_TOOLS } from '../constants/tools';
 
 // AI system prompts
 export const PROMPTS = {
@@ -103,7 +104,8 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false)
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || `API error ${res.status}`);
+      const msg = typeof err.error === 'string' ? err.error : err.error?.message || `API error ${res.status}`;
+      throw new Error(msg);
     }
 
     const data = await res.json();
@@ -246,5 +248,124 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
     [{ role: 'user', content: `I'm adding the medication "${medName}". My allergies: ${allergyDesc}. Is there a cross-reactivity risk?` }],
     PROMPTS.crossReactivity + '\n\n' + profileText,
     800
+  );
+}
+
+/* ── Tool-use agentic loop ──────────────────────────────── */
+
+const TOOLS_ADDENDUM = `
+
+You also have tools to modify the user's health data directly. When they ask to add, update, or remove records, use the appropriate tool.
+
+RULES FOR TOOL USE:
+- For REMOVE (delete) operations: ALWAYS describe what will be deleted and ask "Should I proceed?" BEFORE calling the remove tool. Only call the tool AFTER the user says yes.
+- For ADD operations: You may call the tool directly if the user's intent is clear. Summarize what you added.
+- For UPDATE operations: Describe the change, then call the tool.
+- Use search_records or list_records to find record IDs when needed. NEVER fabricate IDs — always look them up first.
+- When the user references a record by description (e.g. "my blood pressure medication"), use search_records to find the exact record before modifying it.
+- Before adding a record, check the profile to avoid creating duplicates.
+- You can chain multiple tool calls in one response if the user requests multiple changes.`;
+
+async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens = 2000, maxLoops = 10) {
+  const token = await getAuthToken();
+  if (!token) throw new Error('You must be signed in to use AI features.');
+
+  let currentMessages = [...messages];
+  let loopCount = 0;
+  let finalText = '';
+
+  while (loopCount < maxLoops) {
+    loopCount++;
+
+    const body = {
+      messages: currentMessages,
+      system,
+      max_tokens: maxTokens,
+      tools,
+    };
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120000);
+
+    let data;
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (res.status === 429) throw new Error('Too many requests. Please wait a moment and try again.');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = typeof err.error === 'string' ? err.error : err.error?.message || `API error ${res.status}`;
+        throw new Error(msg);
+      }
+      data = await res.json();
+    } catch (e) {
+      if (e.name === 'AbortError') throw new Error('Request timed out. Try again.');
+      throw e;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (data.error) throw new Error(data.error.message || 'AI service error');
+    if (!data.content) throw new Error('Unexpected API response');
+
+    // Extract text and tool_use blocks
+    const textBlocks = data.content.filter(b => b.type === 'text');
+    const toolUseBlocks = data.content.filter(b => b.type === 'tool_use');
+    const textPart = textBlocks.map(b => b.text).join('\n\n');
+
+    if (textPart) finalText += (finalText ? '\n\n' : '') + textPart;
+
+    // If no tool calls or stop_reason is end_turn, we're done
+    if (data.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
+      break;
+    }
+
+    // Execute tool calls via callback
+    const toolResults = await onToolCall(toolUseBlocks);
+
+    // Build the conversation continuation
+    // Append the full assistant message (with tool_use blocks)
+    currentMessages = [
+      ...currentMessages,
+      { role: 'assistant', content: data.content },
+      {
+        role: 'user',
+        content: toolResults.map(r => ({
+          type: 'tool_result',
+          tool_use_id: r.tool_use_id,
+          content: typeof r.content === 'string' ? r.content : JSON.stringify(r.content),
+          ...(r.is_error && { is_error: true }),
+        })),
+      },
+    ];
+  }
+
+  if (loopCount >= maxLoops && !finalText) {
+    finalText = 'I reached the maximum number of actions for this turn. Please continue with a follow-up message.';
+  }
+
+  if (!finalText.trim()) throw new Error('AI returned an empty response. Please try again.');
+
+  return {
+    text: finalText + DISCLAIMER,
+    messages: currentMessages,
+  };
+}
+
+export async function sendChatWithTools(messages, profileText, onToolCall) {
+  return callAPIWithTools(
+    messages,
+    PROMPTS.ask + TOOLS_ADDENDUM + '\n\n' + profileText,
+    HEALTH_TOOLS,
+    onToolCall,
+    2000,
   );
 }

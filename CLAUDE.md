@@ -75,19 +75,21 @@ health/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
 │   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
-│   │   └── defaults.js           # Default data shapes, empty states, vital types, moods
+│   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods
+│   │   └── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (20 tools), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
 │   ├── services/
 │   │   ├── supabase.js           # Supabase client init (from VITE_SUPABASE_URL/ANON_KEY)
 │   │   ├── auth.js               # signIn (magic link), signOut, getSession, onAuthChange
 │   │   ├── db.js                 # Generic CRUD factory + table-specific services + loadAll (allSettled) + eraseAll
 │   │   ├── cache.js              # Encrypted offline localStorage cache + pending write queue + sync
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
-│   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent, 120s timeout, empty response validation)
+│   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent, 120s timeout, empty response validation); sendChatWithTools() agentic loop for tool-use data control (10 iteration cap)
 │   │   ├── token.js              # Shared auth token cache (5s TTL, concurrent-call dedup, clearTokenCache on sign-out)
 │   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action)
+│   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action)
+│   │   └── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
@@ -124,7 +126,7 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit + tag filter pills
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu (shows bookmarked stories with headlines, truncated body, source links, saved date, remove button with confirmation); FeatureLoading + ChatThinking components with cycling wellness messages via useWellnessMessage hook
+│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu (shows bookmarked stories with headlines, truncated body, source links, saved date, remove button with confirmation); FeatureLoading + ChatThinking components with cycling wellness messages via useWellnessMessage hook; **AI-powered data control**: chat uses Anthropic tool-use API to add/update/remove health records via natural language; ToolExecutionCard shows live status (pending/running/success/error/cancelled); destructive tools require inline Confirm/Cancel before execution; tool results persist in chat message history
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -256,6 +258,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 12. **Appeal letter drafting** - generates professional appeal letters using patient health profile and appeal details
 13. **Medication cross-reactivity** - AI analysis of drug-class relationships when adding meds with known allergies (e.g., penicillin→cephalosporin)
 14. **Cost optimization** - web-search-powered analysis of medication costs with generic alternatives, PAPs, discount programs, and savings strategies
+15. **AI-powered data control** - natural language CRUD via Anthropic tool-use API in chat; 20 tools (add/update/remove medications, conditions, allergies, appointments, providers; add vitals/journal; update profile; search/list records); destructive actions require inline confirmation; tool execution cards show live status; 10-iteration agentic loop cap
 
 ### Vercel Configuration
 
@@ -414,6 +417,12 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] AI insight loads on dashboard (with /api/chat proxy + auth token)
 - [ ] AI chat panel sends/receives messages
 - [ ] AI chat: copy button appears on assistant responses (copies text to clipboard)
+- [ ] AI chat: "Add Lexapro 10mg" creates medication via tool-use (ToolExecutionCard shows success)
+- [ ] AI chat: "Remove [medication]" shows pending confirmation card with Confirm/Cancel buttons
+- [ ] AI chat: Cancelling destructive action returns "User cancelled" to AI
+- [ ] AI chat: Tool execution cards persist in saved conversation history
+- [ ] AI chat: search_records and list_records tools return record IDs for follow-up operations
+- [ ] AI chat: 10-iteration loop cap prevents runaway tool-use chains
 - [ ] AI news and resources features work (web search)
 - [ ] AI results: ResultHeader shows feature icon + label + copy button for each feature
 - [ ] AI results: Insight shows lavender accent card with left border
@@ -552,104 +561,9 @@ npm run preview      # Preview production build locally
 vercel --prod        # Deploy to production
 ```
 
-## Roadmap — Amber's Top 3 Feature Requests
+## Roadmap — Amber's Top 5 Feature Requests (Easiest → Hardest)
 
-### 1. DNA / Promethease / Genomind Integration
-
-**Goal:** Import pharmacogenomic (PGx) and genetic health data so the AI can factor gene variants into medication analysis, flag drug-gene interactions, and surface genetic predispositions alongside conditions.
-
-**Data Sources:**
-- **Promethease** — SNP analysis reports from raw genetic data (23andMe, AncestryDNA, etc.). Users download reports as JSON or HTML.
-- **Genomind PGx** — Pharmacogenomic test results showing how the patient metabolizes specific drug classes (CYP2D6, CYP2C19, CYP3A4, etc.). PDF reports with gene-drug tables.
-- **Genomind MentalHealthMap** — Genetic determinants for mood, stress, sleep, focus, substance use. PDF reports.
-
-**Implementation Plan:**
-
-| Phase | Work | Details |
-|-------|------|---------|
-| **Schema** | New `genetic_results` table | `user_id`, `source` (promethease/genomind/23andme/other), `test_date`, `gene`, `variant` (rsID or star allele), `result` (e.g. *1/*2, AG), `phenotype` (poor/intermediate/normal/rapid/ultrarapid metabolizer), `affected_drugs` (JSONB array), `category` (pharmacogenomic/health/wellness), `raw_data` (JSONB), `notes` | RLS scoped to user |
-| **Import: Promethease** | Parse Promethease JSON export | Extract SNP entries (`rsid`, `genotype`, `magnitude`, `summary`). Map high-magnitude SNPs to pharmacogenomic categories. Flag clinically relevant variants (CYP450 enzymes, MTHFR, COMT, VKORC1, HLA-B, etc.) |
-| **Import: Genomind** | Parse Genomind PDF or manual entry | OCR/manual entry of gene-drug table. Each row = gene + result + affected medications + metabolizer status. Genomind PGx covers ~24 genes across psychiatric, cardiology, pain meds |
-| **Import: Raw DNA** | Parse 23andMe/AncestryDNA raw data files | Tab-separated `rsid \t chromosome \t position \t genotype`. Cross-reference against a curated pharmacogenomic SNP table (PharmGKB public data) to extract clinically relevant variants |
-| **Medications cross-ref** | Drug-gene interaction warnings | When viewing a medication, check `genetic_results` for relevant CYP enzyme metabolizer status. Show badge: "⚡ CYP2D6 Poor Metabolizer — may need dose adjustment" on affected meds. Use FDA Table of Pharmacogenomic Biomarkers in Drug Labeling as reference |
-| **AI Profile** | Add genetics to `buildProfile()` | Include metabolizer phenotypes, high-risk variants, gene-drug conflicts in AI context. AI can flag: "Patient is CYP2D6 poor metabolizer — current dose of tramadol may have elevated effect" |
-| **New section: Genetics** | UI for viewing/managing genetic data | Filter by category (PGx/Health/Wellness), gene cards with variant + phenotype + affected drugs, import button, link to source reports |
-| **Dashboard alerts** | Genetic interaction warnings | Add to consolidated alerts: medications prescribed that conflict with known metabolizer status |
-
-**Key Technical Decisions:**
-- Import via file upload (JSON/TSV/PDF) in Settings, NOT via third-party API (Promethease and Genomind don't offer patient-facing APIs)
-- PharmGKB clinical annotations (public domain) as the drug-gene reference database — ship as static JSON like `interactions.js`
-- PDF parsing for Genomind: explore client-side `pdf.js` extraction; fallback to manual structured entry form
-- Genetic data included in encrypted exports/imports
-- AI disclaimers must be even stronger for genetic interpretations: "Genetic information requires professional interpretation. Discuss with your healthcare provider or genetic counselor."
-
----
-
-### 2. Flo Period & Fertility Tracker Integration
-
-**Goal:** Track menstrual cycles, symptoms, and fertility windows alongside other health data so the AI can correlate cycle phases with symptoms, medication effects, mood patterns, and energy levels.
-
-**Data Sources:**
-- **Flo app** — Exports cycle data (period dates, flow intensity, symptoms, ovulation predictions). Export format: typically JSON or CSV from Flo's data export feature (GDPR "Download My Data" request).
-- **Manual entry** — Direct logging of period dates, flow, symptoms, fertility markers (BBT, cervical mucus, OPKs).
-
-**Implementation Plan:**
-
-| Phase | Work | Details |
-|-------|------|---------|
-| **Schema** | New `cycles` table | `user_id`, `date`, `type` (period/ovulation/symptom/fertility_marker), `value` (flow: light/medium/heavy/spotting; OPK: positive/negative; BBT: temperature), `symptom` (cramps/bloating/headache/fatigue/breast_tenderness/acne/mood_swing/nausea/backache/insomnia), `notes` | RLS scoped to user |
-| **Import: Flo** | Parse Flo GDPR data export | Flo's "Download My Data" produces a ZIP with JSON files: `cycles.json` (period start/end dates, flow levels), `symptoms.json` (daily symptom logs), `ovulation.json` (predicted fertile windows). Map to `cycles` table format |
-| **New section: Cycle Tracker** | Full cycle tracking UI | Calendar view showing period days (rose), fertile window (amber), ovulation (sage). Log flow intensity, symptoms, fertility markers. Cycle history with average length calculation. Current cycle day indicator |
-| **Predictions** | Client-side cycle predictions | Calculate average cycle length from history (last 6 cycles). Predict next period start, fertile window (5 days before + ovulation day), luteal phase. Show countdown on Dashboard |
-| **Vitals correlation** | Link cycles to existing vitals | Auto-tag vitals entries (mood, energy, pain, sleep) with cycle phase (menstrual/follicular/ovulatory/luteal). Enable "color by cycle phase" toggle on Vitals chart |
-| **Journal correlation** | Cycle phase context in journal | Show current cycle day/phase badge on journal entries. AI pattern recognition can correlate journal mood/symptoms with cycle phases |
-| **AI Profile** | Add cycle data to `buildProfile()` | Include: current cycle day, average cycle length, last period date, common cycle-related symptoms, upcoming predicted period. AI can flag: "Fatigue pattern correlates with luteal phase days 20-28" |
-| **Medication interactions** | Cycle-aware med reminders | Flag medications affected by hormonal fluctuations. Note birth control in cycle context. AI awareness of HRT, hormonal medications, supplements (iron during heavy flow, etc.) |
-| **Dashboard integration** | Cycle status on Dashboard | Timeline entry for predicted period. Alert for late period. Quick-log button for period start |
-
-**Key Technical Decisions:**
-- Calendar UI: build with CSS grid (not a heavy calendar library) to match existing minimal-dependency approach
-- Cycle predictions: simple average-based algorithm, NOT a medical-grade fertility predictor. Clear disclaimer: "Cycle predictions are estimates based on your history. Not reliable for contraception or fertility planning."
-- Flo import via GDPR data export (user requests from Flo app → receives ZIP → uploads to Salve)
-- Sensitive data: cycle data encrypted at rest like all other health data. Included in backup exports.
-- Search integration: cycle entries searchable (symptoms, dates, notes)
-
----
-
-### 3. Apple Health Integration
-
-**Goal:** Import health data from Apple Health (steps, heart rate, sleep, workouts, medications, lab results, vitals) to consolidate all health tracking in one place with AI analysis.
-
-**Data Sources:**
-- **Apple Health Export** — iOS Settings → Health → Export All Health Data → ZIP file containing `export.xml` (CDA format) with all HealthKit data types.
-- **Apple Shortcuts bridge** — An iOS Shortcut that queries HealthKit and sends data to Salve's import endpoint.
-
-**Implementation Plan:**
-
-| Phase | Work | Details |
-|-------|------|---------|
-| **Import: XML Export** | Parse Apple Health `export.xml` | Apple Health exports a large XML file with `<Record>` elements. Each record has `type` (e.g. `HKQuantityTypeIdentifierHeartRate`), `value`, `unit`, `startDate`, `endDate`, `sourceName`. Parse with streaming XML parser (client-side, `DOMParser` or chunked) to handle large files (can be 100MB+) |
-| **Type mapping** | Map HealthKit types to Salve tables | `HKQuantityTypeIdentifierHeartRate` → vitals (hr), `HKQuantityTypeIdentifierBloodPressureSystolic/Diastolic` → vitals (bp), `HKQuantityTypeIdentifierBodyMass` → vitals (weight), `HKQuantityTypeIdentifierBodyTemperature` → vitals (temp), `HKQuantityTypeIdentifierBloodGlucose` → vitals (glucose), `HKCategoryTypeIdentifierSleepAnalysis` → vitals (sleep), `HKQuantityTypeIdentifierStepCount` → new vitals type (steps), `HKWorkoutTypeIdentifier` → new activities table, `HKClinicalTypeIdentifierLabResultRecord` → labs (FHIR R4 format) |
-| **Data aggregation** | Summarize high-frequency data | Apple Watch records heart rate every few minutes → aggregate to daily min/avg/max/resting. Steps → daily totals. Sleep → daily duration. Workouts → individual entries. Avoids flooding Supabase with millions of rows |
-| **Schema additions** | New vitals types + activities table | Add `steps` and `active_energy` to VITAL_TYPES in `defaults.js`. New `activities` table: `user_id`, `date`, `type` (walk/run/cycle/swim/yoga/strength/etc.), `duration_minutes`, `distance`, `calories`, `heart_rate_avg`, `source`, `notes` |
-| **Apple Shortcuts bridge** | iOS Shortcut for periodic sync | Build a downloadable iOS Shortcut (like `salve-sync.jsx` pattern) that: queries HealthKit for last 7 days of data → formats as Salve-compatible JSON → POSTs to user's Salve import endpoint or copies to clipboard for paste-import. Avoids the bulk XML export for regular syncing |
-| **Import UI** | Apple Health import in Settings | "Import from Apple Health" button → file picker for `export.xml` or `export.zip` → progress bar (large file parsing) → preview of data to import (record counts by type) → confirm → merge import (additive, skip duplicates by date+type+value) |
-| **Vitals enrichment** | Richer vitals with Apple data | Steps chart, activity history, resting heart rate trends, sleep duration tracking. All feed into existing Vitals section with new chart types |
-| **AI Profile** | Add Apple Health data to `buildProfile()` | Include: average daily steps (7-day), average resting heart rate, sleep duration trends, recent workouts, activity level assessment. AI can correlate: "Sleep duration dropped to 4.5hr avg this week — coincides with increased pain scores" |
-| **Dashboard integration** | Activity summary on Dashboard | Daily step count, last workout, sleep score in timeline or quick stats. Activity streak tracking |
-
-**Key Technical Decisions:**
-- PWA limitation: no direct HealthKit API access (requires native iOS app). Two workarounds: (1) XML export file import, (2) iOS Shortcuts bridge for lighter periodic sync
-- XML parsing: must handle large files (50-200MB). Use streaming/chunked parsing, NOT `DOMParser` on the full file. Consider Web Workers for background parsing to avoid UI freeze
-- Data aggregation is critical — Apple Watch generates thousands of data points per day. Store daily summaries, not raw readings
-- Duplicate detection: match on `date + type + value` to prevent re-importing same data
-- Apple Shortcuts: distribute as `.shortcut` file downloadable from Settings (similar to existing Claude sync artifact in `public/salve-sync.jsx`)
-- Clinical records (FHIR R4): Apple Health can store lab results from participating health systems. These use FHIR format — parse into Salve's labs table with proper unit mapping
-- Large import = progress indicator + Web Worker + cancelable
-
----
-
-### 4. Health To-Do's & Reminders
+### 1. Health To-Do's & Reminders
 
 **Goal:** Let users create custom actionable items (refill reminders, follow-up calls, symptom tracking tasks, appointment prep) that surface as Dashboard alerts alongside existing system alerts. Optionally integrate with Apple Reminders for native notifications.
 
@@ -683,7 +597,7 @@ vercel --prod        # Deploy to production
 
 ---
 
-### 5. AI-Powered Data Control via Chat
+### 2. AI-Powered Data Control via Chat
 
 **Goal:** Let users modify their health data through natural language commands in the AI chat. Instead of navigating to sections and filling forms, users can say "add Lexapro 10mg to my medications" or "remove all meds from CVS pharmacy" and the AI executes the changes against Supabase, with confirmation before any destructive action.
 
@@ -722,3 +636,98 @@ search_records: { query, table (optional) } — returns matching records for con
 - Rate limiting: tool executions count against normal Supabase operations, not AI rate limit. Max 10 tool calls per chat turn to prevent runaway loops
 - Error handling: if a CRUD operation fails, the tool result includes the error and the AI reports it to the user naturally
 - This does NOT bypass any security — all writes go through the same `db.js` → Supabase RLS pipeline as manual UI edits
+
+---
+
+### 3. Flo Period & Fertility Tracker Integration
+
+**Goal:** Track menstrual cycles, symptoms, and fertility windows alongside other health data so the AI can correlate cycle phases with symptoms, medication effects, mood patterns, and energy levels.
+
+**Data Sources:**
+- **Flo app** — Exports cycle data (period dates, flow intensity, symptoms, ovulation predictions). Export format: typically JSON or CSV from Flo's data export feature (GDPR "Download My Data" request).
+- **Manual entry** — Direct logging of period dates, flow, symptoms, fertility markers (BBT, cervical mucus, OPKs).
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Schema** | New `cycles` table | `user_id`, `date`, `type` (period/ovulation/symptom/fertility_marker), `value` (flow: light/medium/heavy/spotting; OPK: positive/negative; BBT: temperature), `symptom` (cramps/bloating/headache/fatigue/breast_tenderness/acne/mood_swing/nausea/backache/insomnia), `notes` | RLS scoped to user |
+| **Import: Flo** | Parse Flo GDPR data export | Flo's "Download My Data" produces a ZIP with JSON files: `cycles.json` (period start/end dates, flow levels), `symptoms.json` (daily symptom logs), `ovulation.json` (predicted fertile windows). Map to `cycles` table format |
+| **New section: Cycle Tracker** | Full cycle tracking UI | Calendar view showing period days (rose), fertile window (amber), ovulation (sage). Log flow intensity, symptoms, fertility markers. Cycle history with average length calculation. Current cycle day indicator |
+| **Predictions** | Client-side cycle predictions | Calculate average cycle length from history (last 6 cycles). Predict next period start, fertile window (5 days before + ovulation day), luteal phase. Show countdown on Dashboard |
+| **Vitals correlation** | Link cycles to existing vitals | Auto-tag vitals entries (mood, energy, pain, sleep) with cycle phase (menstrual/follicular/ovulatory/luteal). Enable "color by cycle phase" toggle on Vitals chart |
+| **Journal correlation** | Cycle phase context in journal | Show current cycle day/phase badge on journal entries. AI pattern recognition can correlate journal mood/symptoms with cycle phases |
+| **AI Profile** | Add cycle data to `buildProfile()` | Include: current cycle day, average cycle length, last period date, common cycle-related symptoms, upcoming predicted period. AI can flag: "Fatigue pattern correlates with luteal phase days 20-28" |
+| **Medication interactions** | Cycle-aware med reminders | Flag medications affected by hormonal fluctuations. Note birth control in cycle context. AI awareness of HRT, hormonal medications, supplements (iron during heavy flow, etc.) |
+| **Dashboard integration** | Cycle status on Dashboard | Timeline entry for predicted period. Alert for late period. Quick-log button for period start |
+
+**Key Technical Decisions:**
+- Calendar UI: build with CSS grid (not a heavy calendar library) to match existing minimal-dependency approach
+- Cycle predictions: simple average-based algorithm, NOT a medical-grade fertility predictor. Clear disclaimer: "Cycle predictions are estimates based on your history. Not reliable for contraception or fertility planning."
+- Flo import via GDPR data export (user requests from Flo app → receives ZIP → uploads to Salve)
+- Sensitive data: cycle data encrypted at rest like all other health data. Included in backup exports.
+- Search integration: cycle entries searchable (symptoms, dates, notes)
+
+---
+
+### 4. Apple Health Integration
+
+**Goal:** Import health data from Apple Health (steps, heart rate, sleep, workouts, medications, lab results, vitals) to consolidate all health tracking in one place with AI analysis.
+
+**Data Sources:**
+- **Apple Health Export** — iOS Settings → Health → Export All Health Data → ZIP file containing `export.xml` (CDA format) with all HealthKit data types.
+- **Apple Shortcuts bridge** — An iOS Shortcut that queries HealthKit and sends data to Salve's import endpoint.
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Import: XML Export** | Parse Apple Health `export.xml` | Apple Health exports a large XML file with `<Record>` elements. Each record has `type` (e.g. `HKQuantityTypeIdentifierHeartRate`), `value`, `unit`, `startDate`, `endDate`, `sourceName`. Parse with streaming XML parser (client-side, `DOMParser` or chunked) to handle large files (can be 100MB+) |
+| **Type mapping** | Map HealthKit types to Salve tables | `HKQuantityTypeIdentifierHeartRate` → vitals (hr), `HKQuantityTypeIdentifierBloodPressureSystolic/Diastolic` → vitals (bp), `HKQuantityTypeIdentifierBodyMass` → vitals (weight), `HKQuantityTypeIdentifierBodyTemperature` → vitals (temp), `HKQuantityTypeIdentifierBloodGlucose` → vitals (glucose), `HKCategoryTypeIdentifierSleepAnalysis` → vitals (sleep), `HKQuantityTypeIdentifierStepCount` → new vitals type (steps), `HKWorkoutTypeIdentifier` → new activities table, `HKClinicalTypeIdentifierLabResultRecord` → labs (FHIR R4 format) |
+| **Data aggregation** | Summarize high-frequency data | Apple Watch records heart rate every few minutes → aggregate to daily min/avg/max/resting. Steps → daily totals. Sleep → daily duration. Workouts → individual entries. Avoids flooding Supabase with millions of rows |
+| **Schema additions** | New vitals types + activities table | Add `steps` and `active_energy` to VITAL_TYPES in `defaults.js`. New `activities` table: `user_id`, `date`, `type` (walk/run/cycle/swim/yoga/strength/etc.), `duration_minutes`, `distance`, `calories`, `heart_rate_avg`, `source`, `notes` |
+| **Apple Shortcuts bridge** | iOS Shortcut for periodic sync | Build a downloadable iOS Shortcut (like `salve-sync.jsx` pattern) that: queries HealthKit for last 7 days of data → formats as Salve-compatible JSON → POSTs to user's Salve import endpoint or copies to clipboard for paste-import. Avoids the bulk XML export for regular syncing |
+| **Import UI** | Apple Health import in Settings | "Import from Apple Health" button → file picker for `export.xml` or `export.zip` → progress bar (large file parsing) → preview of data to import (record counts by type) → confirm → merge import (additive, skip duplicates by date+type+value) |
+| **Vitals enrichment** | Richer vitals with Apple data | Steps chart, activity history, resting heart rate trends, sleep duration tracking. All feed into existing Vitals section with new chart types |
+| **AI Profile** | Add Apple Health data to `buildProfile()` | Include: average daily steps (7-day), average resting heart rate, sleep duration trends, recent workouts, activity level assessment. AI can correlate: "Sleep duration dropped to 4.5hr avg this week — coincides with increased pain scores" |
+| **Dashboard integration** | Activity summary on Dashboard | Daily step count, last workout, sleep score in timeline or quick stats. Activity streak tracking |
+
+**Key Technical Decisions:**
+- PWA limitation: no direct HealthKit API access (requires native iOS app). Two workarounds: (1) XML export file import, (2) iOS Shortcuts bridge for lighter periodic sync
+- XML parsing: must handle large files (50-200MB). Use streaming/chunked parsing, NOT `DOMParser` on the full file. Consider Web Workers for background parsing to avoid UI freeze
+- Data aggregation is critical — Apple Watch generates thousands of data points per day. Store daily summaries, not raw readings
+- Duplicate detection: match on `date + type + value` to prevent re-importing same data
+- Apple Shortcuts: distribute as `.shortcut` file downloadable from Settings (similar to existing Claude sync artifact in `public/salve-sync.jsx`)
+- Clinical records (FHIR R4): Apple Health can store lab results from participating health systems. These use FHIR format — parse into Salve's labs table with proper unit mapping
+- Large import = progress indicator + Web Worker + cancelable
+
+---
+
+### 5. DNA / Promethease / Genomind Integration
+
+**Goal:** Import pharmacogenomic (PGx) and genetic health data so the AI can factor gene variants into medication analysis, flag drug-gene interactions, and surface genetic predispositions alongside conditions.
+
+**Data Sources:**
+- **Promethease** — SNP analysis reports from raw genetic data (23andMe, AncestryDNA, etc.). Users download reports as JSON or HTML.
+- **Genomind PGx** — Pharmacogenomic test results showing how the patient metabolizes specific drug classes (CYP2D6, CYP2C19, CYP3A4, etc.). PDF reports with gene-drug tables.
+- **Genomind MentalHealthMap** — Genetic determinants for mood, stress, sleep, focus, substance use. PDF reports.
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Schema** | New `genetic_results` table | `user_id`, `source` (promethease/genomind/23andme/other), `test_date`, `gene`, `variant` (rsID or star allele), `result` (e.g. *1/*2, AG), `phenotype` (poor/intermediate/normal/rapid/ultrarapid metabolizer), `affected_drugs` (JSONB array), `category` (pharmacogenomic/health/wellness), `raw_data` (JSONB), `notes` | RLS scoped to user |
+| **Import: Promethease** | Parse Promethease JSON export | Extract SNP entries (`rsid`, `genotype`, `magnitude`, `summary`). Map high-magnitude SNPs to pharmacogenomic categories. Flag clinically relevant variants (CYP450 enzymes, MTHFR, COMT, VKORC1, HLA-B, etc.) |
+| **Import: Genomind** | Parse Genomind PDF or manual entry | OCR/manual entry of gene-drug table. Each row = gene + result + affected medications + metabolizer status. Genomind PGx covers ~24 genes across psychiatric, cardiology, pain meds |
+| **Import: Raw DNA** | Parse 23andMe/AncestryDNA raw data files | Tab-separated `rsid \t chromosome \t position \t genotype`. Cross-reference against a curated pharmacogenomic SNP table (PharmGKB public data) to extract clinically relevant variants |
+| **Medications cross-ref** | Drug-gene interaction warnings | When viewing a medication, check `genetic_results` for relevant CYP enzyme metabolizer status. Show badge: "⚡ CYP2D6 Poor Metabolizer — may need dose adjustment" on affected meds. Use FDA Table of Pharmacogenomic Biomarkers in Drug Labeling as reference |
+| **AI Profile** | Add genetics to `buildProfile()` | Include metabolizer phenotypes, high-risk variants, gene-drug conflicts in AI context. AI can flag: "Patient is CYP2D6 poor metabolizer — current dose of tramadol may have elevated effect" |
+| **New section: Genetics** | UI for viewing/managing genetic data | Filter by category (PGx/Health/Wellness), gene cards with variant + phenotype + affected drugs, import button, link to source reports |
+| **Dashboard alerts** | Genetic interaction warnings | Add to consolidated alerts: medications prescribed that conflict with known metabolizer status |
+
+**Key Technical Decisions:**
+- Import via file upload (JSON/TSV/PDF) in Settings, NOT via third-party API (Promethease and Genomind don't offer patient-facing APIs)
+- PharmGKB clinical annotations (public domain) as the drug-gene reference database — ship as static JSON like `interactions.js`
+- PDF parsing for Genomind: explore client-side `pdf.js` extraction; fallback to manual structured entry form
+- Genetic data included in encrypted exports/imports
+- AI disclaimers must be even stronger for genetic interpretations: "Genetic information requires professional interpretation. Discuss with your healthcare provider or genetic counselor."

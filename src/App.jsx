@@ -201,7 +201,7 @@ function AppContent() {
       case 'providers':   return <Providers {...shared} />;
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} />;
-      case 'ai':          return <AIPanel data={data} />;
+      case 'ai':          return <AIPanel {...shared} updateSettings={updateSettings} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
       case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} eraseAll={eraseAll} reloadData={reloadData} />;
       // Comprehensive sections
@@ -221,7 +221,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-salve-bg">
+    <div className="min-h-screen bg-salve-bg overflow-hidden">
       <div className="max-w-[480px] mx-auto pb-24 relative">
         <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} onSearch={() => onNav('search')} />
         <main className="px-4">

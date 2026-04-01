@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -7,11 +7,13 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, sendChat } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, sendChat, sendChatWithTools } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
+import { DESTRUCTIVE_TOOLS } from '../../constants/tools';
+import { createToolExecutor } from '../../services/toolExecutor';
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -499,7 +501,58 @@ function ChatThinking() {
   );
 }
 
-export default function AIPanel({ data }) {
+/* ── Tool Execution Card ──────────────────────────────────── */
+
+const TOOL_LABELS = {
+  add_medication: 'Add medication', update_medication: 'Update medication', remove_medication: 'Remove medication',
+  add_condition: 'Add condition', update_condition: 'Update condition', remove_condition: 'Remove condition',
+  add_allergy: 'Add allergy', remove_allergy: 'Remove allergy',
+  add_appointment: 'Add appointment', update_appointment: 'Update appointment', remove_appointment: 'Remove appointment',
+  add_provider: 'Add provider', update_provider: 'Update provider', remove_provider: 'Remove provider',
+  add_vital: 'Log vital', add_journal_entry: 'Add journal entry', update_settings: 'Update profile',
+  search_records: 'Search records', list_records: 'List records',
+};
+
+function ToolExecutionCard({ execution, onConfirm }) {
+  const { name, status, message, input } = execution;
+  const label = TOOL_LABELS[name] || name;
+  const isDestructive = DESTRUCTIVE_TOOLS.has(name);
+  const summary = input?.name || input?.substance || input?.query || input?.table || '';
+
+  if (status === 'pending' && onConfirm) {
+    return (
+      <div className="rounded-lg border border-salve-rose/30 bg-salve-rose/5 p-2.5 text-[12px] font-montserrat" role="alertdialog">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <AlertTriangle size={13} className="text-salve-rose" />
+          <span className="font-semibold text-salve-rose">{label}</span>
+          {summary && <span className="text-salve-textFaint">— {summary}</span>}
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => onConfirm(true)} className="text-[11px] font-semibold text-salve-text bg-salve-rose/20 hover:bg-salve-rose/30 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Confirm</button>
+          <button onClick={() => onConfirm(false)} className="text-[11px] text-salve-textFaint hover:text-salve-text bg-salve-card2 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  const colors = {
+    running: { border: 'border-salve-lav/20', bg: 'bg-salve-lav/5', icon: <Loader2 size={12} className="animate-spin text-salve-lav" /> },
+    success: { border: 'border-salve-sage/20', bg: 'bg-salve-sage/5', icon: <CheckCircle2 size={12} className="text-salve-sage" /> },
+    error: { border: 'border-salve-rose/20', bg: 'bg-salve-rose/5', icon: <XCircle size={12} className="text-salve-rose" /> },
+    cancelled: { border: 'border-salve-border', bg: 'bg-salve-card2', icon: <XCircle size={12} className="text-salve-textFaint" /> },
+  }[status] || { border: 'border-salve-border', bg: 'bg-salve-card2', icon: null };
+
+  return (
+    <div className={`rounded-lg border ${colors.border} ${colors.bg} px-2.5 py-1.5 text-[11px] font-montserrat flex items-center gap-1.5`}>
+      {colors.icon}
+      <span className="text-salve-textMid">{label}</span>
+      {summary && <span className="text-salve-textFaint">— {summary}</span>}
+      {status === 'cancelled' && <span className="text-salve-textFaint italic ml-1">cancelled</span>}
+    </div>
+  );
+}
+
+export default function AIPanel({ data, addItem, updateItem, removeItem, updateSettings }) {
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -516,6 +569,66 @@ export default function AIPanel({ data }) {
     localStorage.setItem(NEWS_SAVE_KEY, JSON.stringify(next));
     setSavedNews(next);
     setConfirmRemoveHeadline(null);
+  };
+
+  // Tool execution state for AI-powered data control
+  const [toolExecutions, setToolExecutions] = useState([]);
+  const toolExecutionsRef = useRef([]);
+  const pendingConfirmRef = useRef(null);
+
+  // Keep ref in sync with state
+  useEffect(() => { toolExecutionsRef.current = toolExecutions; }, [toolExecutions]);
+
+  const toolExecutor = useCallback(() => {
+    if (!addItem || !updateItem || !removeItem) return null;
+    return createToolExecutor({ data, addItem, updateItem, removeItem, updateSettings: updateSettings || (() => {}) });
+  }, [data, addItem, updateItem, removeItem, updateSettings]);
+
+  // onToolCall: callback for the agentic loop
+  // Returns tool_result objects for each tool call
+  const onToolCall = useCallback(async (toolUseBlocks) => {
+    const exec = toolExecutor();
+    if (!exec) return toolUseBlocks.map(t => ({ tool_use_id: t.id, content: 'Tool execution unavailable', is_error: true }));
+
+    const results = [];
+    for (const toolCall of toolUseBlocks) {
+      const isDestructive = DESTRUCTIVE_TOOLS.has(toolCall.name);
+
+      if (isDestructive) {
+        // Wait for user confirmation
+        const confirmed = await new Promise(resolve => {
+          pendingConfirmRef.current = { toolCall, resolve };
+          setToolExecutions(prev => [...prev, { id: toolCall.id, name: toolCall.name, input: toolCall.input, status: 'pending' }]);
+        });
+
+        if (!confirmed) {
+          setToolExecutions(prev => prev.map(t => t.id === toolCall.id ? { ...t, status: 'cancelled' } : t));
+          results.push({ tool_use_id: toolCall.id, content: 'User cancelled this action.' });
+          continue;
+        }
+      }
+
+      // Execute the tool
+      setToolExecutions(prev => {
+        const exists = prev.find(t => t.id === toolCall.id);
+        if (exists) return prev.map(t => t.id === toolCall.id ? { ...t, status: 'running' } : t);
+        return [...prev, { id: toolCall.id, name: toolCall.name, input: toolCall.input, status: 'running' }];
+      });
+
+      const result = await exec(toolCall);
+      setToolExecutions(prev => prev.map(t => t.id === toolCall.id ? {
+        ...t, status: result.is_error ? 'error' : 'success', message: result.content
+      } : t));
+      results.push(result);
+    }
+    return results;
+  }, [toolExecutor]);
+
+  const confirmPending = (confirm) => {
+    if (pendingConfirmRef.current) {
+      pendingConfirmRef.current.resolve(confirm);
+      pendingConfirmRef.current = null;
+    }
   };
 
   const profile = buildProfile(data);
@@ -574,16 +687,27 @@ export default function AIPanel({ data }) {
     setChatMessages(msgs);
     setChatInput('');
     setLoading(true);
+    setToolExecutions([]);
     try {
-      const r = await sendChat(msgs, profile);
-      const updated = [...msgs, { role: 'assistant', content: r }];
-      setChatMessages(updated);
-      saveConversation(updated);
+      const hasCrud = addItem && updateItem && removeItem;
+      if (hasCrud) {
+        const r = await sendChatWithTools(msgs, profile, onToolCall);
+        const executions = toolExecutionsRef.current.length ? [...toolExecutionsRef.current] : undefined;
+        const updated = [...msgs, { role: 'assistant', content: r.text, toolExecutions: executions }];
+        setChatMessages(updated);
+        saveConversation(updated);
+      } else {
+        const r = await sendChat(msgs, profile);
+        const updated = [...msgs, { role: 'assistant', content: r }];
+        setChatMessages(updated);
+        saveConversation(updated);
+      }
     } catch (e) {
       const updated = [...msgs, { role: 'assistant', content: 'Error: ' + e.message }];
       setChatMessages(updated);
     } finally {
       setLoading(false);
+      setToolExecutions([]);
     }
   };
 
@@ -615,6 +739,13 @@ export default function AIPanel({ data }) {
             {m.role === 'assistant' ? (
               <>
                 <AIMarkdown compact>{stripDisclaimer(m.content)}</AIMarkdown>
+                {m.toolExecutions?.length > 0 && (
+                  <div className="mt-2 flex flex-col gap-1">
+                    {m.toolExecutions.map(t => (
+                      <ToolExecutionCard key={t.id} execution={t} />
+                    ))}
+                  </div>
+                )}
                 <div className="flex justify-end mt-1.5 -mr-1">
                   <CopyButton text={stripDisclaimer(m.content)} className="!text-[10px] !px-2 !py-0.5" />
                 </div>
@@ -622,6 +753,13 @@ export default function AIPanel({ data }) {
             ) : m.content}
           </article>
         ))}
+        {toolExecutions.length > 0 && loading && (
+          <div className="self-start flex flex-col gap-1 max-w-[85%]">
+            {toolExecutions.map(t => (
+              <ToolExecutionCard key={t.id} execution={t} onConfirm={confirmPending} />
+            ))}
+          </div>
+        )}
         {loading && <ChatThinking />}
         <div ref={chatEndRef} />
       </div>

@@ -76,11 +76,17 @@ export default async function handler(req, res) {
   }
 
   // Proxy to Anthropic
-  const { messages, system, max_tokens: rawMaxTokens = 2000, use_web_search = false } = req.body;
+  const { messages, system, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools } = req.body;
   const max_tokens = Math.min(Number(rawMaxTokens) || 2000, 4096);
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages array is required' });
+  }
+
+  // Validate client-provided tools if present
+  if (clientTools != null && (!Array.isArray(clientTools) || clientTools.length > 20 ||
+      clientTools.some(t => typeof t.name !== 'string' || typeof t.input_schema !== 'object'))) {
+    return res.status(400).json({ error: 'Invalid tools parameter' });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
@@ -95,9 +101,13 @@ export default async function handler(req, res) {
       messages,
     };
     if (system) body.system = system;
-    if (use_web_search) {
-      body.tools = [{ type: 'web_search_20250305', name: 'web_search' }];
-    }
+
+    // Merge client tools with web search tool if needed
+    const allTools = [
+      ...(Array.isArray(clientTools) ? clientTools : []),
+      ...(use_web_search ? [{ type: 'web_search_20250305', name: 'web_search' }] : []),
+    ];
+    if (allTools.length > 0) body.tools = allTools;
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 115_000); // 115s (under Vercel's 120s limit)
