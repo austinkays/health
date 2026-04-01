@@ -52,7 +52,8 @@ health/
 │   └── salve-sync.jsx            # Claude artifact for MCP health data sync into Salve (directive header instructs Claude.ai to auto-render)
 ├── docs/
 │   ├── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
-│   └── MIGRATION_PLAN.md         # Migration planning notes
+│   ├── MIGRATION_PLAN.md         # Migration planning notes
+│   └── superpowers/specs/        # Design specs for upcoming features
 ├── supabase/
 │   └── migrations/
 │       ├── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
@@ -66,7 +67,8 @@ health/
 │       ├── 009_allergy_type.sql               # Add type column to allergies (medication/food/environmental/etc)
 │       ├── 010_appointment_video_url.sql      # Add video_call_url to appointments for telehealth
 │       ├── 011_drug_prices.sql                # Drug prices table for NADAC price snapshots
-│       └── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
+│       ├── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
+│       └── 015_cycles.sql                     # Cycle tracking: period, ovulation, symptom, fertility_marker entries with RLS
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + time-aware ambiance CSS variables + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
@@ -75,8 +77,8 @@ health/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
 │   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
-│   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods
-│   │   └── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (20 tools), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
+│   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods, EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS
+│   │   └── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (22 tools incl add/remove cycle), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
 │   ├── services/
 │   │   ├── supabase.js           # Supabase client init (from VITE_SUPABASE_URL/ANON_KEY)
 │   │   ├── auth.js               # signIn (magic link), signOut, getSession, onAuthChange
@@ -88,8 +90,9 @@ health/
 │   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action)
-│   │   └── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
+│   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
+│   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
+│   │   └── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
@@ -114,7 +117,7 @@ health/
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
-│   │   └── sections/             # One file per app section (21 total)
+│   │   └── sections/             # One file per app section (22 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
@@ -135,6 +138,7 @@ health/
 │   │       ├── Appeals.jsx       # Insurance appeals & disputes + deadline countdown badges
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
+│   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar view (period days=rose, fertile window=amber, ovulation=sage, predicted=dashed), stats card (current day, avg length, days until next), quick-log (tap calendar day), filter pills (all/period/symptom/ovulation/fertility), cycle phase detection (menstrual/follicular/ovulatory/luteal), predictions (next period, fertile window), Flo GDPR import with dedup, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
 │   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download + copyable prompt
 │   └── utils/
@@ -166,6 +170,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `ai_conversations` | title, messages (JSONB) | |
 | `drug_prices` | medication_id, rxcui, ndc, nadac_per_unit, pricing_unit, drug_name, effective_date, as_of_date, classification, fetched_at | NADAC price snapshots for medications |
 | `insurance_claims` | date, provider, description, billed_amount, allowed_amount, paid_amount, patient_responsibility, status (submitted/processing/paid/denied/appealed), claim_number, insurance_plan, notes | Tracks individual insurance claims with amounts |
+| `cycles` | date, type (period/ovulation/symptom/fertility_marker), value, symptom, notes | Menstrual cycle tracking; period flow levels, ovulation markers, cycle symptoms, fertility markers (BBT, cervical mucus, OPK) |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -188,7 +193,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 21 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 22 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -392,7 +397,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 20 sections render without errors (including Auth screen)
+- [ ] All 22 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
 - [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
@@ -447,7 +452,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 20 sections reachable via Quick Access (6+ primary tiles, expandable up to all 16, + 5 in bottom nav)
+- [ ] All 22 sections reachable via Quick Access (6+ primary tiles, expandable up to all 17, + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
@@ -533,6 +538,21 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Labs: reference range auto-displays from labRanges.js when no manual range entered
 - [ ] Labs: "(standard)" label distinguishes auto-ranges from user-entered ranges
 
+### Cycle Tracker Tests
+- [ ] CycleTracker: CRUD works (add, edit, delete with confirmation)
+- [ ] CycleTracker: calendar shows period days (rose), predicted (dashed rose), fertile (amber)
+- [ ] CycleTracker: stats card shows current cycle day, avg length, days until next period
+- [ ] CycleTracker: quick-log (tap calendar day) pre-fills form for that date
+- [ ] CycleTracker: filter pills work (All, Period, Symptoms, Ovulation, Fertility)
+- [ ] CycleTracker: Flo import parses JSON, dedupes against existing records
+- [ ] CycleTracker: deep-link from Search expands + scrolls to specific record with highlight pulse
+- [ ] Dashboard: predicted period shows in unified timeline
+- [ ] Dashboard: late period alert shows in consolidated alerts with days-late count
+- [ ] AI chat: add_cycle_entry tool creates cycle record via natural language
+- [ ] AI chat: remove_cycle_entry requires confirmation before deleting
+- [ ] AI profile: includes cycle stats (avg length, current day, common symptoms)
+- [ ] Search: cycle entries searchable by type, symptom, date, notes
+
 ## Environment Variables
 
 | Variable | Where | Purpose |
@@ -551,6 +571,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `docs/PRODUCTION_AUDIT.md` | Full production-readiness audit: security fixes, data integrity issues, AI underutilization, UX gaps per section, accessibility, PWA/performance, implementation priority checklist |
 | `docs/IMPORT_IMPLEMENTATION.md` | Import/export/merge implementation guide |
 | `docs/MIGRATION_PLAN.md` | Migration planning notes |
+| `docs/superpowers/specs/2026-04-01-cycle-tracker-completion-design.md` | Cycle Tracker completion spec: vitals/journal correlation, AI cycle analysis, med awareness, Dashboard quick-log |
 
 ## Commands
 
@@ -639,33 +660,39 @@ search_records: { query, table (optional) } — returns matching records for con
 
 ---
 
-### 3. Flo Period & Fertility Tracker Integration
+### 3. Flo Period & Fertility Tracker Integration — PARTIALLY BUILT
 
 **Goal:** Track menstrual cycles, symptoms, and fertility windows alongside other health data so the AI can correlate cycle phases with symptoms, medication effects, mood patterns, and energy levels.
 
-**Data Sources:**
-- **Flo app** — Exports cycle data (period dates, flow intensity, symptoms, ovulation predictions). Export format: typically JSON or CSV from Flo's data export feature (GDPR "Download My Data" request).
-- **Manual entry** — Direct logging of period dates, flow, symptoms, fertility markers (BBT, cervical mucus, OPKs).
+**Status: Core feature built, cross-feature correlation remaining.**
 
-**Implementation Plan:**
+**What's built:**
+- `cycles` table with RLS (`015_cycles.sql`), CRUD via `db.cycles`, included in `loadAll`/`eraseAll`/exports/imports
+- Full CycleTracker.jsx UI: CSS grid calendar, stats card, filter pills, record list, add/edit form, deep-link + highlight
+- Flo GDPR import (`flo.js` parser + import UI with dedup)
+- Cycle predictions (next period, fertile window, ovulation), phase detection (menstrual/follicular/ovulatory/luteal)
+- Calendar overlays (period=rose, predicted=dashed rose, fertile=amber, ovulation=amber, symptom=lav)
+- AI profile integration (`profile.js` includes cycle stats, avg length, current day, common symptoms)
+- Dashboard integration (predicted period in timeline, late period alert with days-late count)
+- Search integration, AI tool-use (add/remove cycle entries via chat), quick-log (tap calendar day)
 
-| Phase | Work | Details |
-|-------|------|---------|
-| **Schema** | New `cycles` table | `user_id`, `date`, `type` (period/ovulation/symptom/fertility_marker), `value` (flow: light/medium/heavy/spotting; OPK: positive/negative; BBT: temperature), `symptom` (cramps/bloating/headache/fatigue/breast_tenderness/acne/mood_swing/nausea/backache/insomnia), `notes` | RLS scoped to user |
-| **Import: Flo** | Parse Flo GDPR data export | Flo's "Download My Data" produces a ZIP with JSON files: `cycles.json` (period start/end dates, flow levels), `symptoms.json` (daily symptom logs), `ovulation.json` (predicted fertile windows). Map to `cycles` table format |
-| **New section: Cycle Tracker** | Full cycle tracking UI | Calendar view showing period days (rose), fertile window (amber), ovulation (sage). Log flow intensity, symptoms, fertility markers. Cycle history with average length calculation. Current cycle day indicator |
-| **Predictions** | Client-side cycle predictions | Calculate average cycle length from history (last 6 cycles). Predict next period start, fertile window (5 days before + ovulation day), luteal phase. Show countdown on Dashboard |
-| **Vitals correlation** | Link cycles to existing vitals | Auto-tag vitals entries (mood, energy, pain, sleep) with cycle phase (menstrual/follicular/ovulatory/luteal). Enable "color by cycle phase" toggle on Vitals chart |
-| **Journal correlation** | Cycle phase context in journal | Show current cycle day/phase badge on journal entries. AI pattern recognition can correlate journal mood/symptoms with cycle phases |
-| **AI Profile** | Add cycle data to `buildProfile()` | Include: current cycle day, average cycle length, last period date, common cycle-related symptoms, upcoming predicted period. AI can flag: "Fatigue pattern correlates with luteal phase days 20-28" |
-| **Medication interactions** | Cycle-aware med reminders | Flag medications affected by hormonal fluctuations. Note birth control in cycle context. AI awareness of HRT, hormonal medications, supplements (iron during heavy flow, etc.) |
-| **Dashboard integration** | Cycle status on Dashboard | Timeline entry for predicted period. Alert for late period. Quick-log button for period start |
+**What's remaining (designed, spec at `docs/superpowers/specs/2026-04-01-cycle-tracker-completion-design.md`):**
+
+| Feature | Description |
+|---------|-------------|
+| **Shared utility** | Extract cycle logic from CycleTracker.jsx into `src/utils/cycles.js` with new `getCyclePhaseForDate(date, cycles)` for cross-feature use |
+| **Vitals correlation** | Phase badges on vitals cards + "Color by cycle phase" toggle on Vitals chart (Recharts ReferenceArea bands at 10% opacity) |
+| **Journal correlation** | Phase badges on journal cards + phase info in form + mood-phase summary card (avg mood by cycle phase, collapsible) |
+| **AI cycle analysis** | New "Cycle Patterns" feature in AIPanel: bar chart (avg vitals by phase) + AI analysis of phase-correlated patterns |
+| **Medication awareness** | Rose "Cycle-related" badge on hormonal/cycle-affected med cards + cycle-related meds in AI profile |
+| **Dashboard quick-log** | "Log today" button on cycle timeline entry + "Start tracking" CTA when no cycle data |
 
 **Key Technical Decisions:**
-- Calendar UI: build with CSS grid (not a heavy calendar library) to match existing minimal-dependency approach
-- Cycle predictions: simple average-based algorithm, NOT a medical-grade fertility predictor. Clear disclaimer: "Cycle predictions are estimates based on your history. Not reliable for contraception or fertility planning."
-- Flo import via GDPR data export (user requests from Flo app → receives ZIP → uploads to Salve)
-- Sensitive data: cycle data encrypted at rest like all other health data. Included in backup exports.
+- All correlation is computed on-the-fly (no schema changes) — `getCyclePhaseForDate()` derives phase from existing cycle data at render time
+- Calendar UI: CSS grid (not a heavy calendar library) to match existing minimal-dependency approach
+- Cycle predictions: simple average-based algorithm, NOT a medical-grade fertility predictor. Clear disclaimer required
+- Phase colors: Menstrual=rose, Follicular=sage, Ovulatory=amber, Luteal=lavender (consistent across all surfaces)
+- Sensitive data: encrypted at rest like all other health data. Included in backup exports
 - Search integration: cycle entries searchable (symptoms, dates, notes)
 
 ---
