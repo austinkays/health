@@ -482,8 +482,8 @@ function FeatureLoading() {
     <div className="rounded-xl border border-salve-border bg-salve-card text-center py-12 px-6 breathe-container">
       <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
         <div className="absolute inset-0 rounded-full border border-salve-lav/25 breathe-ring" />
-        <div className="absolute inset-2 rounded-full border border-salve-lav/15 breathe-ring" style={{ animationDelay: '0.5s' }} />
-        <div className="absolute -inset-3 rounded-full border border-salve-lav/8 breathe-ring" style={{ animationDelay: '1s' }} />
+        <div className="absolute inset-2 rounded-full border border-salve-lav/15 breathe-ring" style={{ animationDelay: '1.2s' }} />
+        <div className="absolute -inset-3 rounded-full border border-salve-lav/8 breathe-ring" style={{ animationDelay: '2.5s' }} />
         <Sparkles size={30} className="breathe-icon text-salve-lav" />
       </div>
       <p className="text-[11px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
