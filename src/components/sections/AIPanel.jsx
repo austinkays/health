@@ -212,14 +212,29 @@ function NewsResult({ result, onSaveChange }) {
   const [saved, setSaved] = useState(() => {
     try { return JSON.parse(localStorage.getItem(NEWS_SAVE_KEY) || '[]'); } catch { return []; }
   });
+  const [confirmUnsave, setConfirmUnsave] = useState(null);
   const toggleSave = (headline, body, sourceName, sourceUrl) => {
+    const exists = saved.find(s => s.headline === headline);
+    if (exists) {
+      // Unsaving — require confirmation
+      setConfirmUnsave(headline);
+      return;
+    }
     setSaved(prev => {
-      const exists = prev.find(s => s.headline === headline);
-      const next = exists ? prev.filter(s => s.headline !== headline) : [...prev, { headline, body, sourceName, sourceUrl, savedAt: new Date().toISOString() }];
+      const next = [...prev, { headline, body, sourceName, sourceUrl, savedAt: new Date().toISOString() }];
       localStorage.setItem(NEWS_SAVE_KEY, JSON.stringify(next));
       onSaveChange?.(next);
       return next;
     });
+  };
+  const doUnsave = (headline) => {
+    setSaved(prev => {
+      const next = prev.filter(s => s.headline !== headline);
+      localStorage.setItem(NEWS_SAVE_KEY, JSON.stringify(next));
+      onSaveChange?.(next);
+      return next;
+    });
+    setConfirmUnsave(null);
   };
   const isSaved = (headline) => saved.some(s => s.headline === headline);
 
@@ -283,6 +298,13 @@ function NewsResult({ result, onSaveChange }) {
                   >
                     <Bookmark size={14} className={isSaved(story.headline) ? 'text-salve-amber fill-salve-amber' : 'text-salve-textFaint hover:text-salve-amber'} strokeWidth={1.5} />
                   </button>
+                </div>
+              )}
+              {confirmUnsave === story.headline && (
+                <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-amber/10 border border-salve-amber/20">
+                  <span className="flex-1 text-[11px] text-salve-amber font-montserrat">Remove saved story?</span>
+                  <button onClick={() => doUnsave(story.headline)} className="text-[11px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
+                  <button onClick={() => setConfirmUnsave(null)} className="text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
                 </div>
               )}
               <div className="text-[13px] text-salve-textMid leading-relaxed font-montserrat">
@@ -462,10 +484,12 @@ export default function AIPanel({ data }) {
     try { return JSON.parse(localStorage.getItem(NEWS_SAVE_KEY) || '[]'); } catch { return []; }
   });
   const [showSaved, setShowSaved] = useState(false);
+  const [confirmRemoveHeadline, setConfirmRemoveHeadline] = useState(null);
   const removeSavedNews = (headline) => {
     const next = savedNews.filter(s => s.headline !== headline);
     localStorage.setItem(NEWS_SAVE_KEY, JSON.stringify(next));
     setSavedNews(next);
+    setConfirmRemoveHeadline(null);
   };
 
   const profile = buildProfile(data);
@@ -668,10 +692,17 @@ export default function AIPanel({ data }) {
                 <div key={i} className="rounded-xl border border-salve-amber/15 bg-salve-card p-3.5">
                   <div className="flex items-start gap-2 mb-1.5">
                     <span className="flex-1 text-[13px] font-semibold text-salve-text font-playfair leading-snug">{s.headline}</span>
-                    <button onClick={() => removeSavedNews(s.headline)} className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5" aria-label="Remove saved story">
+                    <button onClick={() => setConfirmRemoveHeadline(s.headline)} className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5" aria-label="Remove saved story">
                       <Bookmark size={13} className="text-salve-amber fill-salve-amber" strokeWidth={1.5} />
                     </button>
                   </div>
+                  {confirmRemoveHeadline === s.headline && (
+                    <div className="flex items-center gap-2 mb-1.5 px-1 py-1.5 rounded-lg bg-salve-amber/10 border border-salve-amber/20">
+                      <span className="flex-1 text-[11px] text-salve-amber font-montserrat">Remove saved story?</span>
+                      <button onClick={() => removeSavedNews(s.headline)} className="text-[11px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
+                      <button onClick={() => setConfirmRemoveHeadline(null)} className="text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
+                    </div>
+                  )}
                   <div className="text-[12px] text-salve-textMid leading-relaxed line-clamp-3 font-montserrat">{s.body}</div>
                   {s.sourceUrl && (
                     <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-salve-amber mt-1.5 font-montserrat hover:underline no-underline">
