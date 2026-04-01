@@ -640,3 +640,79 @@ vercel --prod        # Deploy to production
 - Apple Shortcuts: distribute as `.shortcut` file downloadable from Settings (similar to existing Claude sync artifact in `public/salve-sync.jsx`)
 - Clinical records (FHIR R4): Apple Health can store lab results from participating health systems. These use FHIR format — parse into Salve's labs table with proper unit mapping
 - Large import = progress indicator + Web Worker + cancelable
+
+---
+
+### 4. Health To-Do's & Reminders
+
+**Goal:** Let users create custom actionable items (refill reminders, follow-up calls, symptom tracking tasks, appointment prep) that surface as Dashboard alerts alongside existing system alerts. Optionally integrate with Apple Reminders for native notifications.
+
+**Data Sources:**
+- **Manual entry** — User creates to-do items directly in-app with optional due dates, recurrence, and priority.
+- **AI-generated** — AI features (appointment prep, care gaps, cost optimization) can suggest actionable to-do items that the user confirms.
+- **Apple Reminders (stretch)** — iOS Shortcuts bridge to sync to-do items bidirectionally with Apple Reminders lists.
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Schema** | New `todos` table | `user_id`, `title`, `notes`, `due_date` (nullable), `priority` (low/medium/high/urgent), `category` (medication/appointment/follow_up/insurance/lab/custom), `completed`, `completed_at`, `recurring` (none/daily/weekly/monthly), `related_id` (nullable FK to any record), `related_table` (nullable — medications/appointments/etc.), `source` (manual/ai_suggested), `dismissed` | RLS scoped to user |
+| **CRUD** | Add `db.todos` service | Standard CRUD factory via `db.js`. Add `todos` to `db.loadAll()`, `db.eraseAll()`, `useHealthData` state, `tableToKey` mapping, `storage.js` export/import, search config |
+| **New section: To-Do's** | Full to-do management UI | List with filter tabs (All/Active/Completed/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), category icons, due date countdown, mark complete with strikethrough animation, swipe or tap to dismiss, add/edit form with optional due date + recurrence picker |
+| **Dashboard integration** | To-do alerts in consolidated alerts | Overdue and urgent to-do items appear in the Dashboard alert card alongside interactions/care gaps/anesthesia/abnormal labs. Count included in `getContextLine()` total. Due-today items show in unified timeline. Dismissable per existing `ALERT_DISMISS_KEY` pattern |
+| **Quick-add** | Dashboard quick-add button | Floating or inline "+" button on Dashboard for rapid to-do creation without navigating to full section. Minimal form: title + optional due date + priority |
+| **AI suggestions** | AI-generated to-do items | When AI features return actionable recommendations (e.g., "Schedule follow-up with cardiologist", "Refill metformin before trip"), show "Add as to-do?" button that pre-populates a to-do with the suggestion. Source tagged as `ai_suggested` |
+| **Recurring** | Recurring to-do support | When a recurring to-do is completed, auto-create next occurrence based on recurrence pattern. Show recurrence icon (↻) on card |
+| **Related records** | Cross-reference to-do items | Optional link to a medication (refill reminder), appointment (prep task), provider (follow-up call), etc. Deep-link from to-do card to related record. Related record shows to-do badge |
+| **Apple Reminders bridge** | iOS Shortcuts sync (stretch) | Downloadable iOS Shortcut that: reads Salve to-do items from clipboard/export → creates Apple Reminders with due dates + lists. Reverse: exports Apple Reminders list → Salve import merge. NOT real-time sync — manual trigger like existing `salve-sync.jsx` pattern |
+| **Notifications** | PWA push notifications (stretch) | Service worker push notifications for due/overdue to-do items. Requires push subscription registration + Vercel serverless cron or Supabase Edge Function for scheduling. Optional — app already works without native notifications |
+
+**Key Technical Decisions:**
+- To-do items are first-class data — included in encrypted cache, backup exports, import merge, and search
+- Dashboard alert integration reuses the existing `getContextLine()` + consolidated alert card pattern — no new alert UI needed
+- `related_id` + `related_table` enables polymorphic association to any record type without foreign key constraints
+- Recurring to-do logic runs client-side on completion — no server-side scheduler needed
+- Apple Reminders: Shortcuts-based (no API), same distribution pattern as Apple Health Shortcuts bridge
+- Quick Access grid: add "To-Do's" to `ALL_LINKS` in Dashboard.jsx (becomes 17th tile)
+
+---
+
+### 5. AI-Powered Data Control via Chat
+
+**Goal:** Let users modify their health data through natural language commands in the AI chat. Instead of navigating to sections and filling forms, users can say "add Lexapro 10mg to my medications" or "remove all meds from CVS pharmacy" and the AI executes the changes against Supabase, with confirmation before any destructive action.
+
+**Architecture: Tool-Use Pattern**
+
+The AI chat already uses Anthropic's API via `callAPI()`. This feature adds **client-side tool execution** — the AI returns structured tool calls, the client executes them against `db.js` CRUD, and confirms results back to the AI.
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Tool definitions** | Define health data tools for Anthropic | Create tool schemas for: `add_medication`, `update_medication`, `remove_medication`, `add_condition`, `update_condition`, `remove_condition`, `add_allergy`, `remove_allergy`, `add_appointment`, `update_appointment`, `add_todo`, `update_profile`, `search_records`, `list_records`. Each tool has typed input parameters matching the table schemas |
+| **System prompt** | Extend `PROMPTS.ask` for data control | Add instructions: "You have tools to modify the user's health data. When asked to add, update, or remove records, use the appropriate tool. ALWAYS confirm destructive actions (remove, bulk update) before executing. Show what will change and ask 'Should I proceed?'" |
+| **Tool execution engine** | Client-side tool call handler in AIPanel | When AI response contains `tool_use` blocks, parse tool name + parameters → map to `addItem(table, item)` / `updateItem(table, id, changes)` / `removeItem(table, id)` from `useHealthData` → execute → return `tool_result` to AI for confirmation message |
+| **Confirmation flow** | User approval for destructive actions | For `remove_*` and bulk `update_*` tools: AI first describes what will change → user confirms via chat ("yes" / "no") or inline Confirm/Cancel buttons → only then execute. Non-destructive adds can auto-execute with undo option |
+| **Preview panel** | Show pending changes visually | Before execution, render a diff-style preview card in chat: "Will add: Lexapro 10mg daily, prescribed by Dr. Smith" or "Will remove 3 medications from CVS pharmacy: [list]". Styled like existing alert cards |
+| **State sync** | Update React state after tool execution | After successful CRUD via `useHealthData.addItem/updateItem/removeItem`, the data state auto-updates. AI profile rebuilds on next feature call. Toast notifications confirm each action |
+| **Multi-step operations** | Batch and conditional operations | Support compound requests: "Add diagnosis of GERD and add omeprazole 20mg for it" → AI chains `add_condition` then `add_medication` with `purpose: "GERD"`. "Remove everything from my old pharmacy" → AI calls `list_records` to find matching meds, shows list, confirms, then iterates `update_medication` |
+| **Undo support** | Reversible actions | After each modification, show "Undo" button in chat that reverses the last action. For adds → remove. For removes → re-add with original data (stored in chat message metadata). For updates → revert to previous values |
+| **Profile preview integration** | "What AI Sees" reflects changes | After tool execution, offer "See updated profile?" link that opens `AIProfilePreview` to verify the AI's context has been updated |
+| **Audit trail** | Log AI-initiated changes | Tag records modified by AI tools with `source: 'ai_chat'` metadata or log to a lightweight `ai_actions` audit trail (conversation_id, action, table, record_id, timestamp). Visible in Settings under "AI Activity Log" |
+
+**Tool Schema Example:**
+```
+add_medication: { name (required), dose, frequency, route, prescriber, pharmacy, purpose, display_name, start_date, active }
+update_medication: { id (required), ...partial fields to update }
+remove_medication: { id (required) } — requires user confirmation
+search_records: { query, table (optional) } — returns matching records for context
+```
+
+**Key Technical Decisions:**
+- Uses Anthropic's native tool-use API (already supported by `api/chat.js` which forwards arbitrary message structures) — NOT regex parsing of chat text
+- Tool execution happens **client-side** in AIPanel.jsx, NOT server-side — tools call `useHealthData` CRUD which goes through normal Supabase auth + RLS
+- Destructive actions (remove, bulk update) ALWAYS require explicit user confirmation — AI cannot auto-delete
+- The AI sees the full health profile via system prompt, so it can resolve references like "my heart medication" → find the beta blocker in the med list
+- Rate limiting: tool executions count against normal Supabase operations, not AI rate limit. Max 10 tool calls per chat turn to prevent runaway loops
+- Error handling: if a CRUD operation fails, the tool result includes the error and the AI reports it to the user naturally
+- This does NOT bypass any security — all writes go through the same `db.js` → Supabase RLS pipeline as manual UI edits
