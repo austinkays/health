@@ -28,7 +28,7 @@ function dateKey(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
 
 /* ── Component ───────────────────────────────────────────── */
 
-export default function CycleTracker({ data, addItem, updateItem, removeItem, highlightId }) {
+export default function CycleTracker({ data, addItem, updateItem, removeItem, highlightId, quickLog }) {
   const [subView, setSubView] = useState(null);      // null | 'form' | 'import'
   const [form, setForm] = useState({ ...EMPTY_CYCLE });
   const [editId, setEditId] = useState(null);
@@ -50,6 +50,15 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
       setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
     }
   }, [highlightId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Quick-log: auto-open period form when navigated with quickLog flag */
+  useEffect(() => {
+    if (quickLog && !subView) {
+      const today = new Date().toISOString().slice(0, 10);
+      setForm({ ...EMPTY_CYCLE, date: today, type: 'period', value: 'Medium' });
+      setSubView('form');
+    }
+  }, [quickLog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* Cycle statistics */
   const stats = useMemo(() => computeCycleStats(cycles), [cycles]);

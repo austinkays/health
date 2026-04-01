@@ -68,6 +68,7 @@ function AppContent() {
   const [sessionExpired, setSessionExpired] = useState(false);
   const [tab, setTab] = useState('dash');
   const [highlightId, setHighlightId] = useState(null);
+  const [navOpts, setNavOpts] = useState(null);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
   const showToast = useToast();
 
@@ -92,6 +93,7 @@ function AppContent() {
   const onNav = (t, opts) => {
     setTab(t);
     setHighlightId(opts?.highlightId || null);
+    setNavOpts(opts || null);
     window.scrollTo(0, 0);
   };
 
@@ -231,7 +233,7 @@ function AppContent() {
       case 'surgical':    return <SurgicalPlanning {...shared} />;
       case 'insurance':   return <Insurance {...shared} />;
       case 'pharmacies': return <Pharmacies {...shared} />;
-      case 'cycles':     return <CycleTracker {...shared} />;
+      case 'cycles':     return <CycleTracker {...shared} quickLog={navOpts?.quickLog} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;

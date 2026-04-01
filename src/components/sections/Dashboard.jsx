@@ -113,6 +113,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [showMore, setShowMore] = useState(() => localStorage.getItem('salve:dash-more') === '1');
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
+  const [cycleCTADismissed, setCycleCTADismissed] = useState(() => !!localStorage.getItem('salve:dismiss-cycle-cta'));
   const alertsDismissed = alertDismissal !== null;
 
   /* ── Customizable Quick Access state ──────── */
@@ -622,10 +623,34 @@ export default function Dashboard({ data, interactions, onNav }) {
             const dotColor = isAppt ? C.sage : isPeriod ? C.rose : C.amber;
             const label = isAppt ? (item.reason || 'Appointment') : isPeriod ? item._label : `${item.name} ${item.dose || ''}`.trim();
             const sub = isAppt ? item.provider : isPeriod ? 'Predicted' : 'Refill';
+            if (isPeriod) {
+              return (
+                <div
+                  key={item.id || i}
+                  className="w-full flex items-center gap-3 py-2.5 px-1 rounded-lg group timeline-row"
+                >
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                  <button
+                    onClick={() => onNav('cycles')}
+                    className="flex-1 text-left min-w-0 bg-transparent border-0 cursor-pointer p-0"
+                  >
+                    <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
+                    <div className="text-[11px] text-salve-textFaint">{sub}</div>
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onNav('cycles', { quickLog: true }); }}
+                    className="ml-auto py-1 px-2.5 rounded-full text-[10px] font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
+                    aria-label="Log period for today"
+                  >
+                    Log today
+                  </button>
+                </div>
+              );
+            }
             return (
               <button
                 key={item.id || i}
-                onClick={() => onNav(isAppt ? 'appts' : isPeriod ? 'cycles' : 'meds')}
+                onClick={() => onNav(isAppt ? 'appts' : 'meds')}
                 className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
@@ -640,6 +665,33 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             );
           })}
+        </section>
+      )}
+
+      {/* ── Cycle tracking CTA (when no cycle data) ─ */}
+      {!data.cycles?.length && data.meds?.length > 0 && !cycleCTADismissed && (
+        <section aria-label="Cycle tracking suggestion" className="dash-stagger dash-stagger-4 mb-3">
+          <Card className="!bg-salve-rose/5 !border-salve-rose/15">
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => onNav('cycles')}
+                className="flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 flex-1"
+              >
+                <Heart size={16} className="text-salve-rose flex-shrink-0" />
+                <div className="text-left">
+                  <div className="text-[13px] font-medium text-salve-text font-montserrat">Start tracking your cycle</div>
+                  <div className="text-[10px] text-salve-textFaint font-montserrat">Correlate with vitals, mood &amp; meds</div>
+                </div>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); localStorage.setItem('salve:dismiss-cycle-cta', '1'); setCycleCTADismissed(true); }}
+                className="text-salve-textFaint bg-transparent border-none cursor-pointer p-1 text-xs"
+                aria-label="Dismiss cycle tracking suggestion"
+              >
+                ✕
+              </button>
+            </div>
+          </Card>
         </section>
       )}
 
