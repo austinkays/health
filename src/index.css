@@ -97,11 +97,11 @@
 }
 
 @keyframes readyReveal {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 .ready-reveal {
-  animation: readyReveal 0.8s ease-out;
+  animation: readyReveal 2.5s ease-in-out;
 }
 
 @keyframes wellnessFade {

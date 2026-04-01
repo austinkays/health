@@ -487,21 +487,22 @@ function FeatureLoading({ ready, onReveal }) {
       </div>
       <p className="text-[11px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
       <div key={key} className="wellness-msg text-[13px] text-salve-textMid font-montserrat italic mb-5" role="status" aria-live="polite">{message}</div>
-      {ready ? (
-        <button
-          onClick={onReveal}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-salve-lav/25 bg-salve-lav/8 text-salve-lav text-xs font-montserrat font-medium tracking-wide cursor-pointer transition-all duration-300 hover:bg-salve-lav/15 hover:border-salve-lav/40 ready-reveal"
-          aria-label="View your insight"
-        >
-          <Sparkles size={14} />
-          Your insight is ready
-        </button>
-      ) : (
-        <div className="flex items-center justify-center gap-2 text-salve-textFaint/40">
+      <div className="relative h-10 flex items-center justify-center">
+        <div className={`flex items-center justify-center gap-2 text-salve-textFaint/40 transition-opacity duration-1000 ${ready ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <Loader2 size={12} className="animate-spin" />
           <span className="text-[10px] font-montserrat tracking-wider uppercase">Loading your insights</span>
         </div>
-      )}
+        {ready && (
+          <button
+            onClick={onReveal}
+            className="absolute inset-0 m-auto w-fit inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-salve-lav/25 bg-salve-lav/8 text-salve-lav text-xs font-montserrat font-medium tracking-wide cursor-pointer transition-all duration-300 hover:bg-salve-lav/15 hover:border-salve-lav/40 ready-reveal"
+            aria-label="View your insight"
+          >
+            <Sparkles size={14} />
+            Your insight is ready
+          </button>
+        )}
+      </div>
     </div>
   );
 }
