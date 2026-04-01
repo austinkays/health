@@ -243,16 +243,24 @@ function NewsResult({ result, onSaveChange }) {
 
   // Parse headline, body, and inline source from each section
   const parseStory = (section) => {
-    const headMatch = section.match(/^##\s+(.+?)\s*[\n\r]/);
+    // Extract headline from ## heading (capture everything until the next newline)
+    const headMatch = section.match(/^##\s+(.+)/m);
     const headline = headMatch ? headMatch[1].trim() : null;
-    let body = headMatch ? section.replace(/^##\s+.+?[\n\r]/, '') : section;
+    // Remove the heading line entirely
+    let body = headMatch ? section.replace(/^##\s+.+\n?/m, '') : section;
     // Extract inline source link: "Source: [Name](url)" or "*Source: [Name](url)*"
     const srcMatch = body.match(/\*?\**Source:?\**\s*\[([^\]]+)\]\(([^)]+)\)\*?/);
-    const srcPlain = !srcMatch ? body.match(/\*?\**Source:?\**\s*([^*\n]+?)\*?\s*$/) : null;
+    const srcPlain = !srcMatch ? body.match(/\*?\**Source:?\**\s*([^*\n]+?)\*?\s*$/m) : null;
     // Strip the source line from body text
     body = body.replace(/\n*\*?\**Source:?\**\s*(?:\[[^\]]+\]\([^)]+\)|[^*\n]+?)\*?\s*$/m, '').trim();
-    // Also strip any trailing --- separator
+    // Strip trailing --- separators
     body = body.replace(/\n---\s*$/, '').trim();
+    // Clean up orphaned punctuation on its own line (". " or just ".")
+    body = body.replace(/^\s*\.\s*$/gm, '').trim();
+    // Rejoin sentences broken across lines (line ending without period + next line starting lowercase)
+    body = body.replace(/([^.!?\n])\n([a-z])/g, '$1 $2');
+    // Collapse multiple blank lines into one
+    body = body.replace(/\n{3,}/g, '\n\n').trim();
     return {
       headline,
       body,
