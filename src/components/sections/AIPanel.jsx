@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark } from 'lucide-react';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -32,7 +32,12 @@ function splitSections(text) {
   const cleaned = stripDisclaimer(text);
   // Split by ## headings — keep the heading with its content
   const parts = cleaned.split(/(?=^## )/m).filter(s => s.trim());
-  if (parts.length > 1) return parts;
+  if (parts.length > 1) {
+    // Drop preamble text before first ## heading
+    const filtered = parts.filter(p => p.trimStart().startsWith('## '));
+    if (filtered.length > 0) return filtered;
+    return parts;
+  }
   // Fallback: split by horizontal rules
   const hrParts = cleaned.split(/\n---\n/).filter(s => s.trim());
   return hrParts.length > 1 ? hrParts : [cleaned];
@@ -188,10 +193,46 @@ function ConnectionsResult({ result }) {
 
 /* ── News Result ─────────────────────────────────────────── */
 
-function NewsResult({ result }) {
+const NEWS_SAVE_KEY = 'salve:saved-news';
+
+function NewsResult({ result, onSaveChange }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = splitSections(text);
+
+  // Saved stories in localStorage
+  const [saved, setSaved] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(NEWS_SAVE_KEY) || '[]'); } catch { return []; }
+  });
+  const toggleSave = (headline, body, sourceName, sourceUrl) => {
+    setSaved(prev => {
+      const exists = prev.find(s => s.headline === headline);
+      const next = exists ? prev.filter(s => s.headline !== headline) : [...prev, { headline, body, sourceName, sourceUrl, savedAt: new Date().toISOString() }];
+      localStorage.setItem(NEWS_SAVE_KEY, JSON.stringify(next));
+      onSaveChange?.(next);
+      return next;
+    });
+  };
+  const isSaved = (headline) => saved.some(s => s.headline === headline);
+
+  // Parse headline, body, and inline source from each section
+  const parseStory = (section) => {
+    const headMatch = section.match(/^##\s+(.+?)\s*[\n\r]/);
+    const headline = headMatch ? headMatch[1].trim() : null;
+    let body = headMatch ? section.replace(/^##\s+.+?[\n\r]/, '') : section;
+    // Extract inline source link: "Source: [Name](url)" or "*Source: [Name](url)*"
+    const srcMatch = body.match(/\*?Source:\s*\[([^\]]+)\]\(([^)]+)\)\*?/);
+    const srcPlain = !srcMatch ? body.match(/\*?Source:\s*([^*\n]+?)\*?\s*$/) : null;
+    if (srcMatch || srcPlain) {
+      body = body.replace(/\*?Source:\s*(?:\[[^\]]+\]\([^)]+\)|[^*\n]+?)\*?\s*$/, '').trim();
+    }
+    return {
+      headline,
+      body: body.trim(),
+      sourceName: srcMatch ? srcMatch[1] : (srcPlain ? srcPlain[1].trim() : null),
+      sourceUrl: srcMatch ? srcMatch[2] : null,
+    };
+  };
 
   // Fallback: single card if we can't parse sections
   if (sections.length <= 1) {
@@ -209,23 +250,47 @@ function NewsResult({ result }) {
     );
   }
 
+  const stories = sections.map(parseStory);
+
   return (
     <div>
       <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} />
       <div className="flex flex-col gap-2.5">
-        {sections.map((section, i) => (
+        {stories.map((story, i) => (
           <div
             key={i}
             className="card-hover rounded-xl border border-salve-amber/15 bg-salve-card overflow-hidden dash-stagger"
             style={{ animationDelay: `${i * 0.08}s` }}
           >
             <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
-              <div className="flex items-start gap-2.5">
-                <Newspaper size={14} className="text-salve-amber mt-0.5 flex-shrink-0" strokeWidth={1.5} />
-                <div className="flex-1 min-w-0">
-                  <AIMarkdown>{section.trim()}</AIMarkdown>
+              {story.headline && (
+                <div className="flex items-start gap-2.5 mb-2">
+                  <Newspaper size={14} className="text-salve-amber mt-0.5 flex-shrink-0" strokeWidth={1.5} />
+                  <span className="flex-1 text-[14px] font-semibold text-salve-text font-playfair leading-snug">{story.headline}</span>
+                  <button
+                    onClick={() => toggleSave(story.headline, story.body, story.sourceName, story.sourceUrl)}
+                    className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5 transition-colors"
+                    aria-label={isSaved(story.headline) ? 'Remove from saved' : 'Save story'}
+                  >
+                    <Bookmark size={14} className={isSaved(story.headline) ? 'text-salve-amber fill-salve-amber' : 'text-salve-textFaint hover:text-salve-amber'} strokeWidth={1.5} />
+                  </button>
                 </div>
+              )}
+              <div className="text-[13px] text-salve-textMid leading-relaxed font-montserrat">
+                <AIMarkdown>{story.body}</AIMarkdown>
               </div>
+              {story.sourceName && (
+                <div className="mt-2.5 pt-2 border-t border-salve-border/30">
+                  {story.sourceUrl ? (
+                    <a href={story.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-salve-amber hover:text-salve-text transition-colors font-montserrat font-medium no-underline hover:underline">
+                      <ExternalLink size={10} />
+                      {story.sourceName} — Read full article
+                    </a>
+                  ) : (
+                    <span className="text-[11px] text-salve-textFaint italic font-montserrat">Source: {story.sourceName}</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -384,6 +449,15 @@ export default function AIPanel({ data }) {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [conversationId, setConversationId] = useState(null);
+  const [savedNews, setSavedNews] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(NEWS_SAVE_KEY) || '[]'); } catch { return []; }
+  });
+  const [showSaved, setShowSaved] = useState(false);
+  const removeSavedNews = (headline) => {
+    const next = savedNews.filter(s => s.headline !== headline);
+    localStorage.setItem(NEWS_SAVE_KEY, JSON.stringify(next));
+    setSavedNews(next);
+  };
 
   const profile = buildProfile(data);
 
@@ -529,7 +603,7 @@ export default function AIPanel({ data }) {
       ) : result ? (
         mode === 'insight' ? <InsightResult result={result} /> :
         mode === 'connections' ? <ConnectionsResult result={result} /> :
-        mode === 'news' ? <NewsResult result={result} /> :
+        mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} /> :
         mode === 'resources' ? <ResourcesResult result={result} /> :
         mode === 'costs' ? <CostResult result={result} /> :
         null
@@ -566,6 +640,42 @@ export default function AIPanel({ data }) {
       <Button variant="lavender" onClick={() => setMode('ask')} className="w-full justify-center">
         <Send size={15} /> Ask a Question
       </Button>
+
+      {savedNews.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowSaved(!showSaved)}
+            className="w-full flex items-center justify-between text-[12px] text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer py-2"
+          >
+            <span className="flex items-center gap-1.5">
+              <Bookmark size={13} className="text-salve-amber" />
+              Saved News ({savedNews.length})
+            </span>
+            <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${showSaved ? 'rotate-180' : ''}`} />
+          </button>
+          {showSaved && (
+            <div className="flex flex-col gap-2 mt-1">
+              {savedNews.map((s, i) => (
+                <div key={i} className="rounded-xl border border-salve-amber/15 bg-salve-card p-3.5">
+                  <div className="flex items-start gap-2 mb-1.5">
+                    <span className="flex-1 text-[13px] font-semibold text-salve-text font-playfair leading-snug">{s.headline}</span>
+                    <button onClick={() => removeSavedNews(s.headline)} className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5" aria-label="Remove saved story">
+                      <Bookmark size={13} className="text-salve-amber fill-salve-amber" strokeWidth={1.5} />
+                    </button>
+                  </div>
+                  <div className="text-[12px] text-salve-textMid leading-relaxed line-clamp-3 font-montserrat">{s.body}</div>
+                  {s.sourceUrl && (
+                    <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-salve-amber mt-1.5 font-montserrat hover:underline no-underline">
+                      <ExternalLink size={9} /> {s.sourceName || 'Read article'}
+                    </a>
+                  )}
+                  <div className="text-[9px] text-salve-textFaint mt-1">Saved {new Date(s.savedAt).toLocaleDateString()}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       <p className="text-[10px] text-salve-textFaint italic text-center mt-3">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
     </div>

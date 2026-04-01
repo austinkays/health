@@ -123,7 +123,7 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit + tag filter pills
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult, ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges for web search; styled Disclaimer component; "What AI Sees" preview button opens full-screen slide-up panel
+│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections), ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges for web search; styled Disclaimer component; "What AI Sees" preview button opens full-screen slide-up panel; Saved News collapsible section on main menu (shows bookmarked stories with headlines, truncated body, source links, saved date, remove button)
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -243,7 +243,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 **AI features using this proxy:**
 1. **Dashboard insight** - one-shot health tip based on full profile
 2. **Health connections** - cross-analysis of meds, conditions, vitals patterns
-3. **Health news** - web-search-powered recent medical news for user's conditions
+3. **Health news** - web-search-powered recent medical news for user's conditions (3-5 sentence summaries, per-story inline source links, no preamble, bookmark/save per story)
 4. **Disability resources** - web-search-powered programs/benefits finder
 5. **AI chat panel** - multi-turn conversation with health context as system prompt
 6. **Lab interpretation** - contextual explanation of abnormal lab results using patient profile
@@ -406,6 +406,13 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] AI results: Insight shows lavender accent card with left border
 - [ ] AI results: Connections splits into section cards with sage accent and stagger animation
 - [ ] AI results: News shows per-story amber accent cards + SourcesBadges
+- [ ] AI results: News stories have 3-5 sentence summaries (not 1-2 sentence teasers)
+- [ ] AI results: News preamble text is filtered out (no "I'll search..." card)
+- [ ] AI results: News per-story inline source link with "Read full article" shows at bottom
+- [ ] AI results: News bookmark icon toggles saved state (filled amber = saved)
+- [ ] AI results: News saved stories persist in localStorage under `salve:saved-news`
+- [ ] AI results: Saved News collapsible section appears on AI main menu when stories are saved
+- [ ] AI results: Removing bookmark from saved news view removes the story
 - [ ] AI results: Resources shows rose accordion sections with accent bars + SourcesBadges
 - [ ] AI results: Disclaimer renders as styled component (not raw markdown)
 - [ ] Settings: all profile fields save correctly
