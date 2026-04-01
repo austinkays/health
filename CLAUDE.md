@@ -87,7 +87,7 @@ health/
 │   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
-│   │   └── profile.js            # buildProfile() - assembles health context for AI prompts (sanitized against prompt injection; includes NADAC pricing + monthly cost summary + mechanism of action)
+│   │   └── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   └── useConfirmDelete.js   # Delete confirmation state management
@@ -114,7 +114,7 @@ health/
 │   │   └── sections/             # One file per app section (21 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, customizable 6+More quick access
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
-│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + progressive disclosure FDA details (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
+│   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
 │   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
@@ -291,7 +291,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
-| **AI prompt safety** | `profile.js` sanitizes all user-provided text (strips `<>{}`, truncates to 500 chars) before embedding in AI prompts |
+| **AI prompt safety** | `profile.js` sanitizes all user-provided text (strips `<>{}`, configurable char limits via `san(text, limit)` — default 500, up to 1000 for FDA data) before embedding in AI prompts |
 | **HTTP headers** | CSP (no unsafe-inline/eval in script-src), X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy, Permissions-Policy |
 | **Stale chunk recovery** | `lazyWithRetry()` wrapper catches chunk load failures from stale deploys; one-time `sessionStorage`-guarded page reload fetches updated assets |
 | **Import safety** | `importRestore()` creates in-memory backup before erasing; auto-restores on failure |
@@ -500,7 +500,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Medications: DailyMed link uses brand/generic name from FDA data (not raw RxNorm name with dosage)
 - [ ] Medications: expanded card shows inline FDA summary (generic/brand, class, manufacturer, mechanism of action, boxed warning text, indications)
 - [ ] Medications: expanded card shows "Fetch drug info" link for linked meds missing fda_data
-- [ ] Medications: "More drug details" toggle reveals side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage (all with line-clamp)
+- [ ] Medications: "More drug details" toggle reveals side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage (each with per-section Show more/Show less expand toggles)
 - [ ] Medications: FDA detail text has redundant section headers stripped (e.g. "ADVERSE REACTIONS" not duplicated)
 - [ ] Medications: NADAC price shown with Generic/Brand badge on expanded cards
 - [ ] Medications: monthly wholesale cost estimate displayed above medication list
@@ -545,3 +545,98 @@ npm run build        # Production build
 npm run preview      # Preview production build locally
 vercel --prod        # Deploy to production
 ```
+
+## Roadmap — Amber's Top 3 Feature Requests
+
+### 1. DNA / Promethease / Genomind Integration
+
+**Goal:** Import pharmacogenomic (PGx) and genetic health data so the AI can factor gene variants into medication analysis, flag drug-gene interactions, and surface genetic predispositions alongside conditions.
+
+**Data Sources:**
+- **Promethease** — SNP analysis reports from raw genetic data (23andMe, AncestryDNA, etc.). Users download reports as JSON or HTML.
+- **Genomind PGx** — Pharmacogenomic test results showing how the patient metabolizes specific drug classes (CYP2D6, CYP2C19, CYP3A4, etc.). PDF reports with gene-drug tables.
+- **Genomind MentalHealthMap** — Genetic determinants for mood, stress, sleep, focus, substance use. PDF reports.
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Schema** | New `genetic_results` table | `user_id`, `source` (promethease/genomind/23andme/other), `test_date`, `gene`, `variant` (rsID or star allele), `result` (e.g. *1/*2, AG), `phenotype` (poor/intermediate/normal/rapid/ultrarapid metabolizer), `affected_drugs` (JSONB array), `category` (pharmacogenomic/health/wellness), `raw_data` (JSONB), `notes` | RLS scoped to user |
+| **Import: Promethease** | Parse Promethease JSON export | Extract SNP entries (`rsid`, `genotype`, `magnitude`, `summary`). Map high-magnitude SNPs to pharmacogenomic categories. Flag clinically relevant variants (CYP450 enzymes, MTHFR, COMT, VKORC1, HLA-B, etc.) |
+| **Import: Genomind** | Parse Genomind PDF or manual entry | OCR/manual entry of gene-drug table. Each row = gene + result + affected medications + metabolizer status. Genomind PGx covers ~24 genes across psychiatric, cardiology, pain meds |
+| **Import: Raw DNA** | Parse 23andMe/AncestryDNA raw data files | Tab-separated `rsid \t chromosome \t position \t genotype`. Cross-reference against a curated pharmacogenomic SNP table (PharmGKB public data) to extract clinically relevant variants |
+| **Medications cross-ref** | Drug-gene interaction warnings | When viewing a medication, check `genetic_results` for relevant CYP enzyme metabolizer status. Show badge: "⚡ CYP2D6 Poor Metabolizer — may need dose adjustment" on affected meds. Use FDA Table of Pharmacogenomic Biomarkers in Drug Labeling as reference |
+| **AI Profile** | Add genetics to `buildProfile()` | Include metabolizer phenotypes, high-risk variants, gene-drug conflicts in AI context. AI can flag: "Patient is CYP2D6 poor metabolizer — current dose of tramadol may have elevated effect" |
+| **New section: Genetics** | UI for viewing/managing genetic data | Filter by category (PGx/Health/Wellness), gene cards with variant + phenotype + affected drugs, import button, link to source reports |
+| **Dashboard alerts** | Genetic interaction warnings | Add to consolidated alerts: medications prescribed that conflict with known metabolizer status |
+
+**Key Technical Decisions:**
+- Import via file upload (JSON/TSV/PDF) in Settings, NOT via third-party API (Promethease and Genomind don't offer patient-facing APIs)
+- PharmGKB clinical annotations (public domain) as the drug-gene reference database — ship as static JSON like `interactions.js`
+- PDF parsing for Genomind: explore client-side `pdf.js` extraction; fallback to manual structured entry form
+- Genetic data included in encrypted exports/imports
+- AI disclaimers must be even stronger for genetic interpretations: "Genetic information requires professional interpretation. Discuss with your healthcare provider or genetic counselor."
+
+---
+
+### 2. Flo Period & Fertility Tracker Integration
+
+**Goal:** Track menstrual cycles, symptoms, and fertility windows alongside other health data so the AI can correlate cycle phases with symptoms, medication effects, mood patterns, and energy levels.
+
+**Data Sources:**
+- **Flo app** — Exports cycle data (period dates, flow intensity, symptoms, ovulation predictions). Export format: typically JSON or CSV from Flo's data export feature (GDPR "Download My Data" request).
+- **Manual entry** — Direct logging of period dates, flow, symptoms, fertility markers (BBT, cervical mucus, OPKs).
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Schema** | New `cycles` table | `user_id`, `date`, `type` (period/ovulation/symptom/fertility_marker), `value` (flow: light/medium/heavy/spotting; OPK: positive/negative; BBT: temperature), `symptom` (cramps/bloating/headache/fatigue/breast_tenderness/acne/mood_swing/nausea/backache/insomnia), `notes` | RLS scoped to user |
+| **Import: Flo** | Parse Flo GDPR data export | Flo's "Download My Data" produces a ZIP with JSON files: `cycles.json` (period start/end dates, flow levels), `symptoms.json` (daily symptom logs), `ovulation.json` (predicted fertile windows). Map to `cycles` table format |
+| **New section: Cycle Tracker** | Full cycle tracking UI | Calendar view showing period days (rose), fertile window (amber), ovulation (sage). Log flow intensity, symptoms, fertility markers. Cycle history with average length calculation. Current cycle day indicator |
+| **Predictions** | Client-side cycle predictions | Calculate average cycle length from history (last 6 cycles). Predict next period start, fertile window (5 days before + ovulation day), luteal phase. Show countdown on Dashboard |
+| **Vitals correlation** | Link cycles to existing vitals | Auto-tag vitals entries (mood, energy, pain, sleep) with cycle phase (menstrual/follicular/ovulatory/luteal). Enable "color by cycle phase" toggle on Vitals chart |
+| **Journal correlation** | Cycle phase context in journal | Show current cycle day/phase badge on journal entries. AI pattern recognition can correlate journal mood/symptoms with cycle phases |
+| **AI Profile** | Add cycle data to `buildProfile()` | Include: current cycle day, average cycle length, last period date, common cycle-related symptoms, upcoming predicted period. AI can flag: "Fatigue pattern correlates with luteal phase days 20-28" |
+| **Medication interactions** | Cycle-aware med reminders | Flag medications affected by hormonal fluctuations. Note birth control in cycle context. AI awareness of HRT, hormonal medications, supplements (iron during heavy flow, etc.) |
+| **Dashboard integration** | Cycle status on Dashboard | Timeline entry for predicted period. Alert for late period. Quick-log button for period start |
+
+**Key Technical Decisions:**
+- Calendar UI: build with CSS grid (not a heavy calendar library) to match existing minimal-dependency approach
+- Cycle predictions: simple average-based algorithm, NOT a medical-grade fertility predictor. Clear disclaimer: "Cycle predictions are estimates based on your history. Not reliable for contraception or fertility planning."
+- Flo import via GDPR data export (user requests from Flo app → receives ZIP → uploads to Salve)
+- Sensitive data: cycle data encrypted at rest like all other health data. Included in backup exports.
+- Search integration: cycle entries searchable (symptoms, dates, notes)
+
+---
+
+### 3. Apple Health Integration
+
+**Goal:** Import health data from Apple Health (steps, heart rate, sleep, workouts, medications, lab results, vitals) to consolidate all health tracking in one place with AI analysis.
+
+**Data Sources:**
+- **Apple Health Export** — iOS Settings → Health → Export All Health Data → ZIP file containing `export.xml` (CDA format) with all HealthKit data types.
+- **Apple Shortcuts bridge** — An iOS Shortcut that queries HealthKit and sends data to Salve's import endpoint.
+
+**Implementation Plan:**
+
+| Phase | Work | Details |
+|-------|------|---------|
+| **Import: XML Export** | Parse Apple Health `export.xml` | Apple Health exports a large XML file with `<Record>` elements. Each record has `type` (e.g. `HKQuantityTypeIdentifierHeartRate`), `value`, `unit`, `startDate`, `endDate`, `sourceName`. Parse with streaming XML parser (client-side, `DOMParser` or chunked) to handle large files (can be 100MB+) |
+| **Type mapping** | Map HealthKit types to Salve tables | `HKQuantityTypeIdentifierHeartRate` → vitals (hr), `HKQuantityTypeIdentifierBloodPressureSystolic/Diastolic` → vitals (bp), `HKQuantityTypeIdentifierBodyMass` → vitals (weight), `HKQuantityTypeIdentifierBodyTemperature` → vitals (temp), `HKQuantityTypeIdentifierBloodGlucose` → vitals (glucose), `HKCategoryTypeIdentifierSleepAnalysis` → vitals (sleep), `HKQuantityTypeIdentifierStepCount` → new vitals type (steps), `HKWorkoutTypeIdentifier` → new activities table, `HKClinicalTypeIdentifierLabResultRecord` → labs (FHIR R4 format) |
+| **Data aggregation** | Summarize high-frequency data | Apple Watch records heart rate every few minutes → aggregate to daily min/avg/max/resting. Steps → daily totals. Sleep → daily duration. Workouts → individual entries. Avoids flooding Supabase with millions of rows |
+| **Schema additions** | New vitals types + activities table | Add `steps` and `active_energy` to VITAL_TYPES in `defaults.js`. New `activities` table: `user_id`, `date`, `type` (walk/run/cycle/swim/yoga/strength/etc.), `duration_minutes`, `distance`, `calories`, `heart_rate_avg`, `source`, `notes` |
+| **Apple Shortcuts bridge** | iOS Shortcut for periodic sync | Build a downloadable iOS Shortcut (like `salve-sync.jsx` pattern) that: queries HealthKit for last 7 days of data → formats as Salve-compatible JSON → POSTs to user's Salve import endpoint or copies to clipboard for paste-import. Avoids the bulk XML export for regular syncing |
+| **Import UI** | Apple Health import in Settings | "Import from Apple Health" button → file picker for `export.xml` or `export.zip` → progress bar (large file parsing) → preview of data to import (record counts by type) → confirm → merge import (additive, skip duplicates by date+type+value) |
+| **Vitals enrichment** | Richer vitals with Apple data | Steps chart, activity history, resting heart rate trends, sleep duration tracking. All feed into existing Vitals section with new chart types |
+| **AI Profile** | Add Apple Health data to `buildProfile()` | Include: average daily steps (7-day), average resting heart rate, sleep duration trends, recent workouts, activity level assessment. AI can correlate: "Sleep duration dropped to 4.5hr avg this week — coincides with increased pain scores" |
+| **Dashboard integration** | Activity summary on Dashboard | Daily step count, last workout, sleep score in timeline or quick stats. Activity streak tracking |
+
+**Key Technical Decisions:**
+- PWA limitation: no direct HealthKit API access (requires native iOS app). Two workarounds: (1) XML export file import, (2) iOS Shortcuts bridge for lighter periodic sync
+- XML parsing: must handle large files (50-200MB). Use streaming/chunked parsing, NOT `DOMParser` on the full file. Consider Web Workers for background parsing to avoid UI freeze
+- Data aggregation is critical — Apple Watch generates thousands of data points per day. Store daily summaries, not raw readings
+- Duplicate detection: match on `date + type + value` to prevent re-importing same data
+- Apple Shortcuts: distribute as `.shortcut` file downloadable from Settings (similar to existing Claude sync artifact in `public/salve-sync.jsx`)
+- Clinical records (FHIR R4): Apple Health can store lab results from participating health systems. These use FHIR format — parse into Salve's labs table with proper unit mapping
+- Large import = progress indicator + Web Worker + cancelable
