@@ -651,9 +651,6 @@ export default function AIPanel({ data }) {
       <div className="text-center mb-5">
         <div className="text-3xl mb-2 opacity-60 text-salve-lav">✦</div>
         <p className="text-[13px] text-salve-textFaint italic">AI-powered insights from the health data you've gathered.</p>
-        <div className="mt-3 flex justify-center">
-          <AIProfilePreview data={data} />
-        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -717,6 +714,9 @@ export default function AIPanel({ data }) {
         </div>
       )}
 
+      <div className="mt-4 flex justify-center">
+        <AIProfilePreview data={data} />
+      </div>
       <p className="text-[10px] text-salve-textFaint italic text-center mt-3">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
     </div>
     </AIConsentGate>
