@@ -53,7 +53,7 @@ export default function Header({ tab, name, onBack, onSearch }) {
   const decor = TAB_DECOR[tab] || ['☽', '✧', '·'];
 
   return (
-    <header className="px-6 pt-7 pb-5 relative overflow-hidden">
+    <header className="px-6 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] pb-5 relative overflow-hidden">
       {/* Decorative constellation — per-section glyphs */}
       <div className="absolute top-2 right-16 opacity-[0.10] text-[52px] select-none pointer-events-none leading-none text-salve-lav">{decor[0]}</div>
       <div className="absolute top-14 right-24 opacity-[0.08] text-base text-salve-lav select-none pointer-events-none">{decor[1]}</div>
