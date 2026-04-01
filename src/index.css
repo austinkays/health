@@ -61,19 +61,20 @@
 }
 
 @keyframes breathe {
-  0%, 100% { transform: scale(0.8); opacity: 0.35; filter: drop-shadow(0 0 2px currentColor); }
-  45% { transform: scale(1.5); opacity: 1; filter: drop-shadow(0 0 14px currentColor) drop-shadow(0 0 28px currentColor); }
-  55% { transform: scale(1.5); opacity: 1; filter: drop-shadow(0 0 14px currentColor) drop-shadow(0 0 28px currentColor); }
+  0%, 100% { transform: scale(0.6); opacity: 0.25; filter: drop-shadow(0 0 0 currentColor); }
+  40% { transform: scale(1.6); opacity: 1; filter: drop-shadow(0 0 16px currentColor) drop-shadow(0 0 32px currentColor); }
+  55% { transform: scale(1.6); opacity: 1; filter: drop-shadow(0 0 16px currentColor) drop-shadow(0 0 32px currentColor); }
 }
 @keyframes breatheRing {
-  0%, 100% { transform: scale(0.7); opacity: 0.3; }
-  45% { transform: scale(1.8); opacity: 0; }
-  55% { transform: scale(1.8); opacity: 0; }
+  0% { transform: scale(0.5); opacity: 0; }
+  20% { opacity: 0.25; }
+  50% { transform: scale(2); opacity: 0; }
+  100% { transform: scale(0.5); opacity: 0; }
 }
 @keyframes breatheGlow {
-  0%, 100% { box-shadow: 0 0 8px rgba(184, 169, 232, 0.03), 0 0 20px rgba(184, 169, 232, 0); }
-  45% { box-shadow: 0 0 24px rgba(184, 169, 232, 0.15), 0 0 60px rgba(184, 169, 232, 0.08); }
-  55% { box-shadow: 0 0 24px rgba(184, 169, 232, 0.15), 0 0 60px rgba(184, 169, 232, 0.08); }
+  0%, 100% { box-shadow: 0 0 4px rgba(184, 169, 232, 0.02), 0 0 12px rgba(184, 169, 232, 0); }
+  40% { box-shadow: 0 0 28px rgba(184, 169, 232, 0.18), 0 0 70px rgba(184, 169, 232, 0.08); }
+  55% { box-shadow: 0 0 28px rgba(184, 169, 232, 0.18), 0 0 70px rgba(184, 169, 232, 0.08); }
 }
 .breathe-icon {
   animation: breathe 10s ease-in-out infinite;
