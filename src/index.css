@@ -133,8 +133,22 @@
   0% { opacity: 0; transform: translateY(8px); }
   100% { opacity: 1; transform: translateY(0); }
 }
+@keyframes readyShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
 .ready-reveal {
-  animation: readyReveal 2.5s ease-in-out;
+  animation: readyReveal 2.5s ease-in-out, readyShimmer 3s 2.5s ease-in-out infinite;
+  background-image: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(184, 169, 232, 0.15) 48%,
+    rgba(184, 169, 232, 0.25) 50%,
+    rgba(184, 169, 232, 0.15) 52%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  background-color: rgba(184, 169, 232, 0.08);
 }
 
 @keyframes wellnessFade {

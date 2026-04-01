@@ -23,6 +23,52 @@ const FEATURES = [
   { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage },
 ];
 
+const INSIGHTS_SAVE_KEY = 'salve:saved-insights';
+
+function useSavedInsights() {
+  const [saved, setSaved] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(INSIGHTS_SAVE_KEY) || '[]'); } catch { return []; }
+  });
+  const save = useCallback((type, label, text) => {
+    setSaved(prev => {
+      const next = [...prev, { type, label, text: stripDisclaimer(text), savedAt: new Date().toISOString() }];
+      localStorage.setItem(INSIGHTS_SAVE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const remove = useCallback((index) => {
+    setSaved(prev => {
+      const next = prev.filter((_, i) => i !== index);
+      localStorage.setItem(INSIGHTS_SAVE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+  const isSaved = useCallback((type, text) =>
+    saved.some(s => s.type === type && s.text === stripDisclaimer(text)), [saved]);
+  return { saved, save, remove, isSaved };
+}
+
+function SaveInsightButton({ type, label, text, savedInsights }) {
+  const { save, isSaved } = savedInsights;
+  const alreadySaved = isSaved(type, text);
+  if (alreadySaved) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-salve-sage font-montserrat font-medium px-2.5 py-1 rounded-full bg-salve-sage/10">
+        <Bookmark size={11} className="fill-salve-sage" /> Saved
+      </span>
+    );
+  }
+  return (
+    <button
+      onClick={() => save(type, label, text)}
+      className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1 transition-all duration-200 border-none cursor-pointer font-montserrat bg-salve-card2 text-salve-textFaint hover:text-salve-text hover:bg-salve-border"
+      aria-label="Save this insight"
+    >
+      <Bookmark size={11} /> Save
+    </button>
+  );
+}
+
 // Strip the AI disclaimer from markdown text for separate rendering
 function stripDisclaimer(text) {
   if (!text) return '';
@@ -70,7 +116,7 @@ function CopyButton({ text, className = '' }) {
   );
 }
 
-function ResultHeader({ icon: Icon, label, color, text }) {
+function ResultHeader({ icon: Icon, label, color, text, featureType, savedInsights }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
@@ -79,7 +125,10 @@ function ResultHeader({ icon: Icon, label, color, text }) {
         </div>
         <span className="text-[13px] font-semibold text-salve-text font-montserrat tracking-wide">{label}</span>
       </div>
-      {text && <CopyButton text={stripDisclaimer(text)} />}
+      <div className="flex items-center gap-1.5">
+        {text && savedInsights && <SaveInsightButton type={featureType} label={label} text={text} savedInsights={savedInsights} />}
+        {text && <CopyButton text={stripDisclaimer(text)} />}
+      </div>
     </div>
   );
 }
@@ -91,6 +140,50 @@ function Disclaimer() {
       <p className="text-[10px] text-salve-textFaint italic m-0 font-montserrat">
         AI suggestions are not medical advice. Always consult your healthcare providers.
       </p>
+    </div>
+  );
+}
+
+function SavedInsightsSection({ savedInsights }) {
+  const [open, setOpen] = useState(false);
+  const [confirmIdx, setConfirmIdx] = useState(null);
+  const featureColors = { insight: C.lav, connections: C.sage, news: C.amber, resources: C.rose, costs: C.sage };
+  return (
+    <div className="mt-4">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between text-[12px] text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer py-2"
+      >
+        <span className="flex items-center gap-1.5">
+          <Bookmark size={13} className="text-salve-lav" />
+          Saved Insights ({savedInsights.saved.length})
+        </span>
+        <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div className="flex flex-col gap-2 mt-1">
+          {savedInsights.saved.map((s, i) => (
+            <div key={i} className="rounded-xl border bg-salve-card p-3.5" style={{ borderColor: (featureColors[s.type] || C.lav) + '25' }}>
+              <div className="flex items-start gap-2 mb-1.5">
+                <span className="text-[10px] font-montserrat font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: featureColors[s.type] || C.lav, background: (featureColors[s.type] || C.lav) + '15' }}>{s.label}</span>
+                <span className="flex-1" />
+                <button onClick={() => setConfirmIdx(i)} className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5" aria-label="Remove saved insight">
+                  <Bookmark size={13} className="text-salve-lav fill-salve-lav" strokeWidth={1.5} />
+                </button>
+              </div>
+              {confirmIdx === i && (
+                <div className="flex items-center gap-2 mb-1.5 px-1 py-1.5 rounded-lg bg-salve-lav/10 border border-salve-lav/20">
+                  <span className="flex-1 text-[11px] text-salve-lav font-montserrat">Remove saved insight?</span>
+                  <button onClick={() => { savedInsights.remove(i); setConfirmIdx(null); }} className="text-[11px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
+                  <button onClick={() => setConfirmIdx(null)} className="text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
+                </div>
+              )}
+              <div className="text-[12px] text-salve-textMid leading-relaxed line-clamp-4 font-montserrat">{s.text.slice(0, 200)}{s.text.length > 200 ? '...' : ''}</div>
+              <div className="text-[9px] text-salve-textFaint mt-1">Saved {new Date(s.savedAt).toLocaleDateString()}</div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -129,13 +222,13 @@ function SourcesBadges({ sources }) {
 
 /* ── Insight Result ──────────────────────────────────────── */
 
-function InsightResult({ result }) {
+function InsightResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const cleaned = stripDisclaimer(text);
 
   return (
     <div>
-      <ResultHeader icon={Sparkles} label="Health Insight" color={C.lav} text={text} />
+      <ResultHeader icon={Sparkles} label="Health Insight" color={C.lav} text={text} featureType="insight" savedInsights={savedInsights} />
       <div className="rounded-xl border border-salve-lav/20 bg-salve-lav/5 insight-glow overflow-hidden dash-stagger">
         <div className="border-l-[3px] border-salve-lav/40 p-4 pl-5">
           <AIMarkdown reveal>{cleaned}</AIMarkdown>
@@ -148,7 +241,7 @@ function InsightResult({ result }) {
 
 /* ── Connections Result ───────────────────────────────────── */
 
-function ConnectionsResult({ result }) {
+function ConnectionsResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sections = splitSections(text);
 
@@ -156,7 +249,7 @@ function ConnectionsResult({ result }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} />
+        <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} featureType="connections" savedInsights={savedInsights} />
         <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -177,7 +270,7 @@ function ConnectionsResult({ result }) {
 
   return (
     <div>
-      <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} />
+      <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} featureType="connections" savedInsights={savedInsights} />
       <div className="flex flex-col gap-2.5">
         {parsed.map((section, i) => (
           <div
@@ -206,7 +299,7 @@ function ConnectionsResult({ result }) {
 
 const NEWS_SAVE_KEY = 'salve:saved-news';
 
-function NewsResult({ result, onSaveChange }) {
+function NewsResult({ result, onSaveChange, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = splitSections(text);
@@ -273,7 +366,7 @@ function NewsResult({ result, onSaveChange }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} />
+        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} />
         <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -289,7 +382,7 @@ function NewsResult({ result, onSaveChange }) {
 
   return (
     <div>
-      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} />
+      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} />
       <div className="flex flex-col gap-2.5">
         {stories.map((story, i) => (
           <div
@@ -380,7 +473,7 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
 
 /* ── Resources Result ────────────────────────────────────── */
 
-function ResourcesResult({ result }) {
+function ResourcesResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = splitSections(text);
@@ -389,7 +482,7 @@ function ResourcesResult({ result }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} />
+        <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} featureType="resources" savedInsights={savedInsights} />
         <div className="rounded-xl border border-salve-rose/20 bg-salve-rose/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-rose/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -411,7 +504,7 @@ function ResourcesResult({ result }) {
 
   return (
     <div>
-      <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} />
+      <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} featureType="resources" savedInsights={savedInsights} />
       <div className="flex flex-col gap-2.5">
         {parsed.map((section, i) => (
           <AccordionSection
@@ -431,7 +524,7 @@ function ResourcesResult({ result }) {
 
 /* ── Cost Savings Result ─────────────────────────────────── */
 
-function CostResult({ result }) {
+function CostResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = splitSections(text);
@@ -439,7 +532,7 @@ function CostResult({ result }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} />
+        <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} featureType="costs" savedInsights={savedInsights} />
         <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -460,7 +553,7 @@ function CostResult({ result }) {
 
   return (
     <div>
-      <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} />
+      <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} featureType="costs" savedInsights={savedInsights} />
       <div className="flex flex-col gap-2.5">
         {parsed.map((section, i) => (
           <div
@@ -581,6 +674,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [revealed, setRevealed] = useState(false);
+  const savedInsights = useSavedInsights();
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [conversationId, setConversationId] = useState(null);
@@ -814,11 +908,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       {(loading || (result && !revealed)) ? (
         <FeatureLoading ready={!loading && !!result} onReveal={() => setRevealed(true)} />
       ) : result && revealed ? (
-        mode === 'insight' ? <InsightResult result={result} /> :
-        mode === 'connections' ? <ConnectionsResult result={result} /> :
-        mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} /> :
-        mode === 'resources' ? <ResourcesResult result={result} /> :
-        mode === 'costs' ? <CostResult result={result} /> :
+        mode === 'insight' ? <InsightResult result={result} savedInsights={savedInsights} /> :
+        mode === 'connections' ? <ConnectionsResult result={result} savedInsights={savedInsights} /> :
+        mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} savedInsights={savedInsights} /> :
+        mode === 'resources' ? <ResourcesResult result={result} savedInsights={savedInsights} /> :
+        mode === 'costs' ? <CostResult result={result} savedInsights={savedInsights} /> :
         null
       ) : null}
     </div>
@@ -892,6 +986,10 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
             </div>
           )}
         </div>
+      )}
+
+      {savedInsights.saved.length > 0 && (
+        <SavedInsightsSection savedInsights={savedInsights} />
       )}
 
       <div className="mt-4 flex justify-center">
