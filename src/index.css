@@ -157,7 +157,7 @@
 }
 .card-hover:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(184, 169, 232, 0.08), 0 0 0 1px rgba(184, 169, 232, 0.1);
+  box-shadow: 0 2px 8px rgba(184, 169, 232, 0.06), 0 0 0 1px rgba(184, 169, 232, 0.1);
   border-color: rgba(184, 169, 232, 0.2);
 }
 .card-hover:active {
@@ -244,41 +244,33 @@
 /* Quick access tile magic hover */
 .tile-magic {
   position: relative;
+  overflow: hidden;
   transition: transform 0.25s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .tile-magic::before {
   content: '';
   position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    rgba(184, 169, 232, 0.04) 30deg,
-    rgba(184, 169, 232, 0.06) 60deg,
-    rgba(143, 191, 160, 0.05) 100deg,
-    rgba(143, 191, 160, 0.06) 120deg,
-    rgba(184, 169, 232, 0.04) 150deg,
-    transparent 180deg,
-    transparent 360deg
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(184, 169, 232, 0.08) 0%,
+    rgba(143, 191, 160, 0.04) 50%,
+    transparent 80%
   );
-  filter: blur(12px);
   opacity: 0;
   transition: opacity 0.4s ease;
-  animation: sparkleRotate 12s linear infinite;
 }
 .tile-magic:hover::before {
   opacity: 1;
 }
 .tile-magic:hover {
-  transform: translateY(-2px) scale(1.02);
-  border-color: rgba(184, 169, 232, 0.25);
-  box-shadow: 0 8px 24px rgba(184, 169, 232, 0.1), 0 0 0 1px rgba(143, 191, 160, 0.08);
+  transform: translateY(-1px);
+  border-color: rgba(184, 169, 232, 0.2);
+  box-shadow: 0 4px 12px rgba(184, 169, 232, 0.08), 0 0 0 1px rgba(143, 191, 160, 0.06);
 }
 .tile-magic:active {
-  transform: translateY(0) scale(0.97);
+  transform: translateY(0) scale(0.98);
 }
 
 /* Badge subtle shimmer */
