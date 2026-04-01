@@ -40,7 +40,7 @@ export function npiRegistryUrl(npi) {
 
 /**
  * Best available provider link. Checks saved providers for NPI first,
- * falls back to Google "I'm Feeling Lucky" for direct navigation to clinic page.
+ * falls back to Google search with specific query (specialty + clinic).
  */
 export function providerLookupUrl(providerName, savedProviders) {
   if (!providerName?.trim()) return null;
@@ -52,7 +52,7 @@ export function providerLookupUrl(providerName, savedProviders) {
   if (match?.specialty) parts.push(match.specialty);
   if (match?.clinic) parts.push(match.clinic);
   if (!match?.clinic && !match?.specialty) parts.push('doctor');
-  return `https://www.google.com/search?btnI=1&q=${encodeURIComponent(parts.join(' '))}`;
+  return `https://www.google.com/search?q=${encodeURIComponent(parts.join(' '))}`;
 }
 
 /** Google Calendar "Add to Calendar" URL (no API key needed) */
