@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -7,13 +8,14 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, sendChat, sendChatWithTools } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { DESTRUCTIVE_TOOLS } from '../../constants/tools';
 import { createToolExecutor } from '../../services/toolExecutor';
+import { computeCycleStats, getCyclePhaseForDate } from '../../utils/cycles';
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -21,6 +23,7 @@ const FEATURES = [
   { id: 'news', label: 'Health News', desc: 'Recent news for your conditions', icon: Newspaper, color: C.amber },
   { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose },
   { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage },
+  { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose },
 ];
 
 const INSIGHTS_SAVE_KEY = 'salve:saved-insights';
@@ -147,7 +150,7 @@ function Disclaimer() {
 function SavedInsightsSection({ savedInsights }) {
   const [open, setOpen] = useState(false);
   const [confirmIdx, setConfirmIdx] = useState(null);
-  const featureColors = { insight: C.lav, connections: C.sage, news: C.amber, resources: C.rose, costs: C.sage };
+  const featureColors = { insight: C.lav, connections: C.sage, news: C.amber, resources: C.rose, costs: C.sage, cycle_patterns: C.rose };
   return (
     <div className="mt-4">
       <button
@@ -669,6 +672,80 @@ function ToolExecutionCard({ execution, onConfirm }) {
   );
 }
 
+function CyclePatternChart({ data }) {
+  const PHASE_ORDER = ['Menstrual', 'Follicular', 'Ovulatory', 'Luteal'];
+  const PHASE_COLORS = { Menstrual: C.rose, Follicular: C.sage, Ovulatory: C.amber, Luteal: C.lav };
+  const VITAL_TYPES_FOR_CHART = ['pain', 'mood', 'energy', 'sleep'];
+  const VITAL_LABELS = { pain: 'Pain', mood: 'Mood', energy: 'Energy', sleep: 'Sleep' };
+
+  const chartData = useMemo(() => {
+    const phaseData = {};
+    for (const phase of PHASE_ORDER) phaseData[phase] = {};
+
+    for (const v of (data.vitals || [])) {
+      if (!VITAL_TYPES_FOR_CHART.includes(v.type)) continue;
+      const cp = getCyclePhaseForDate(v.date, data.cycles);
+      if (!cp) continue;
+      if (!phaseData[cp.phase][v.type]) phaseData[cp.phase][v.type] = [];
+      phaseData[cp.phase][v.type].push(Number(v.value));
+    }
+
+    return PHASE_ORDER.map(phase => {
+      const row = { phase };
+      let hasData = false;
+      for (const type of VITAL_TYPES_FOR_CHART) {
+        const vals = phaseData[phase][type] || [];
+        if (vals.length >= 3) {
+          row[type] = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+          hasData = true;
+        }
+      }
+      row._hasData = hasData;
+      row._color = PHASE_COLORS[phase];
+      return row;
+    }).filter(r => r._hasData);
+  }, [data.vitals, data.cycles]);
+
+  const vitalKeys = VITAL_TYPES_FOR_CHART.filter(type =>
+    chartData.some(row => row[type] !== undefined)
+  );
+
+  if (chartData.length < 2 || vitalKeys.length === 0) {
+    return (
+      <div className="text-xs text-salve-textFaint font-montserrat text-center py-3">
+        Not enough data for chart visualization yet. Keep tracking vitals across your cycle.
+      </div>
+    );
+  }
+
+  const barColors = { pain: C.rose, mood: C.lav, energy: C.amber, sleep: C.sage };
+
+  return (
+    <Card className="mb-3">
+      <div className="text-xs font-medium font-montserrat text-salve-textFaint uppercase tracking-wider mb-2">Average by Cycle Phase</div>
+      <ResponsiveContainer width="100%" height={160}>
+        <BarChart data={chartData} barCategoryGap="20%">
+          <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
+          <XAxis dataKey="phase" tick={{ fontSize: 10, fill: C.textFaint }} />
+          <YAxis tick={{ fontSize: 10, fill: C.textFaint }} domain={[0, 10]} />
+          <Tooltip contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }} />
+          {vitalKeys.map(type => (
+            <Bar key={type} dataKey={type} name={VITAL_LABELS[type]} fill={barColors[type]} radius={[4, 4, 0, 0]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+      <div className="flex justify-center gap-3 mt-1.5">
+        {vitalKeys.map(type => (
+          <div key={type} className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: barColors[type] }} />
+            <span className="text-[9px] text-salve-textFaint font-montserrat">{VITAL_LABELS[type]}</span>
+          </div>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export default function AIPanel({ data, addItem, updateItem, removeItem, updateSettings }) {
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
@@ -791,9 +868,49 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     setRevealed(false);
     setLoading(true);
     try {
-      const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
-      const r = await fn(profile);
-      setResult(r);
+      if (id === 'cycle_patterns') {
+        const stats = computeCycleStats(data.cycles || []);
+        if (stats.periodStarts.length < 2) {
+          setResult('Log more cycle and vitals data to unlock pattern analysis. Aim for at least one full cycle with regular vitals tracking.');
+          setLoading(false);
+          return;
+        }
+        const totalEntries = (data.vitals?.length || 0) + (data.journal?.length || 0);
+        if (totalEntries < 10) {
+          setResult('Log more vitals or journal entries alongside your cycle data. Aim for at least 10 entries for meaningful pattern analysis.');
+          setLoading(false);
+          return;
+        }
+
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const cutoff = threeMonthsAgo.toISOString().slice(0, 10);
+
+        const recentVitals = (data.vitals || [])
+          .filter(v => v.date >= cutoff && ['pain', 'mood', 'energy', 'sleep'].includes(v.type))
+          .map(v => {
+            const cp = getCyclePhaseForDate(v.date, data.cycles);
+            return `${v.date} | ${v.type}: ${v.value} | ${cp ? `${cp.phase} day ${cp.dayOfCycle}` : 'no cycle data'}`;
+          });
+
+        const recentJournal = (data.journal || [])
+          .filter(e => e.date >= cutoff)
+          .map(e => {
+            const cp = getCyclePhaseForDate(e.date, data.cycles);
+            return `${e.date} | mood: ${e.mood || '?'} severity: ${e.severity || '?'} | ${cp ? `${cp.phase} day ${cp.dayOfCycle}` : 'no cycle data'} | ${(e.content || '').slice(0, 100)}`;
+          });
+
+        const activeMeds = (data.meds || []).filter(m => m.active !== false).map(m => m.name).join(', ');
+
+        const cycleProfile = `Cycle stats: avg length ${stats.avgLength} days, last period ${stats.lastPeriod}, ${stats.periodStarts.length} tracked cycles\n\nRecent vitals (last 3 months, tagged by cycle phase):\n${recentVitals.join('\n') || 'No recent vitals'}\n\nRecent journal entries (last 3 months, tagged by cycle phase):\n${recentJournal.join('\n') || 'No recent journal entries'}\n\nActive medications: ${activeMeds || 'None'}`;
+
+        const r = await fetchCyclePatterns(cycleProfile);
+        setResult(r);
+      } else {
+        const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
+        const r = await fn(profile);
+        setResult(r);
+      }
     } catch (e) {
       setResult({ text: 'Error: ' + e.message, sources: [] });
     } finally {
@@ -913,6 +1030,18 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} savedInsights={savedInsights} /> :
         mode === 'resources' ? <ResourcesResult result={result} savedInsights={savedInsights} /> :
         mode === 'costs' ? <CostResult result={result} savedInsights={savedInsights} /> :
+        mode === 'cycle_patterns' ? (
+          <div>
+            <ResultHeader icon={Heart} label="Cycle Patterns" color={C.rose} text={typeof result === 'string' ? result : result?.text} featureType="cycle_patterns" savedInsights={savedInsights} />
+            <CyclePatternChart data={data} />
+            <div className="rounded-xl border border-salve-rose/20 bg-salve-rose/5 overflow-hidden">
+              <div className="border-l-[3px] border-salve-rose/40 p-4 pl-5">
+                <AIMarkdown reveal>{stripDisclaimer(typeof result === 'string' ? result : result?.text)}</AIMarkdown>
+              </div>
+            </div>
+            <Disclaimer />
+          </div>
+        ) :
         null
       ) : null}
     </div>

@@ -251,6 +251,27 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
   );
 }
 
+export async function fetchCyclePatterns(cycleProfileText) {
+  return callAPI(
+    [{ role: 'user', content: 'Analyze my cycle-correlated health patterns from the data below.' }],
+    `You are a health data analyst examining cycle-correlated patterns. Analyze the provided vitals and journal data tagged by menstrual cycle phase.
+
+Your analysis should cover:
+1. Phase-correlated symptom patterns — cite specific averages (e.g., "Pain averages 6.2 during luteal vs 2.1 during follicular")
+2. Mood and energy trends by phase
+3. Medication timing insights if hormonal or cycle-related medications are detected
+4. Data gaps — suggest specific tracking improvements
+5. Actionable recommendations
+
+Use markdown formatting. Be specific with numbers. If data is insufficient for a category, say so briefly and move on.
+
+IMPORTANT: You are not a doctor. Include the disclaimer: "This analysis is based on self-reported data patterns. Always discuss cycle-related health concerns with your healthcare provider."
+
+Patient cycle data:
+${cycleProfileText}`
+  );
+}
+
 /* ── Tool-use agentic loop ──────────────────────────────── */
 
 const TOOLS_ADDENDUM = `
