@@ -52,6 +52,12 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [enrichResult, setEnrichResult] = useState(null);
   const [maintOpen, setMaintOpen] = useState(false);
   const [fdaDetailId, setFdaDetailId] = useState(null);
+
+  /** Strip leading FDA section headers like "ADVERSE REACTIONS" or "Pregnancy:" from label text */
+  const stripFdaHeader = (text) => {
+    if (!text) return text;
+    return text.replace(/^[A-Z][A-Z &/,()-]+(?::\s*|\s+)/,'').replace(/^\s+/,'');
+  };
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
@@ -623,13 +629,13 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                         <div className="flex items-center gap-1 text-[10px] text-salve-rose font-medium">
                           <AlertTriangle size={10} /> FDA Black Box Warning
                         </div>
-                        <div className="mt-1 text-[10px] text-salve-rose/80 leading-relaxed line-clamp-3">{m.fda_data.boxed_warning[0]}</div>
+                        <div className="mt-1 text-[10px] text-salve-rose/80 leading-relaxed line-clamp-3">{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
                       </div>
                     )}
                     {/* ── Indications (always visible when available) ── */}
                     {m.fda_data.indications?.length > 0 && (
                       <div className="mt-1.5 text-[10px] text-salve-textMid leading-relaxed">
-                        <span className="font-medium text-salve-text">Used for:</span> <span className="line-clamp-2">{m.fda_data.indications[0]}</span>
+                        <span className="font-medium text-salve-text">Used for:</span> <span className="line-clamp-2">{stripFdaHeader(m.fda_data.indications[0])}</span>
                       </div>
                     )}
                     {/* ── Drug Details toggle ── */}
@@ -648,49 +654,49 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                             {m.fda_data.adverse_reactions?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-amber mb-0.5">Side Effects</div>
-                                <div className="text-salve-textMid line-clamp-4">{m.fda_data.adverse_reactions[0]}</div>
+                                <div className="text-salve-textMid line-clamp-4">{stripFdaHeader(m.fda_data.adverse_reactions[0])}</div>
                               </div>
                             )}
                             {m.fda_data.dosage?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-text mb-0.5">Dosage & Administration</div>
-                                <div className="text-salve-textMid line-clamp-4">{m.fda_data.dosage[0]}</div>
+                                <div className="text-salve-textMid line-clamp-4">{stripFdaHeader(m.fda_data.dosage[0])}</div>
                               </div>
                             )}
                             {m.fda_data.contraindications?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-rose mb-0.5">Contraindications</div>
-                                <div className="text-salve-textMid line-clamp-3">{m.fda_data.contraindications[0]}</div>
+                                <div className="text-salve-textMid line-clamp-3">{stripFdaHeader(m.fda_data.contraindications[0])}</div>
                               </div>
                             )}
                             {m.fda_data.drug_interactions?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-amber mb-0.5">Drug Interactions</div>
-                                <div className="text-salve-textMid line-clamp-3">{m.fda_data.drug_interactions[0]}</div>
+                                <div className="text-salve-textMid line-clamp-3">{stripFdaHeader(m.fda_data.drug_interactions[0])}</div>
                               </div>
                             )}
                             {m.fda_data.precautions?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-text mb-0.5">Precautions</div>
-                                <div className="text-salve-textMid line-clamp-3">{m.fda_data.precautions[0]}</div>
+                                <div className="text-salve-textMid line-clamp-3">{stripFdaHeader(m.fda_data.precautions[0])}</div>
                               </div>
                             )}
                             {m.fda_data.pregnancy?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-lav mb-0.5">Pregnancy</div>
-                                <div className="text-salve-textMid line-clamp-3">{m.fda_data.pregnancy[0]}</div>
+                                <div className="text-salve-textMid line-clamp-3">{stripFdaHeader(m.fda_data.pregnancy[0])}</div>
                               </div>
                             )}
                             {m.fda_data.overdosage?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-rose mb-0.5">Overdosage</div>
-                                <div className="text-salve-textMid line-clamp-3">{m.fda_data.overdosage[0]}</div>
+                                <div className="text-salve-textMid line-clamp-3">{stripFdaHeader(m.fda_data.overdosage[0])}</div>
                               </div>
                             )}
                             {m.fda_data.storage?.length > 0 && (
                               <div>
                                 <div className="font-medium text-salve-textMid mb-0.5">Storage</div>
-                                <div className="text-salve-textFaint">{m.fda_data.storage[0]}</div>
+                                <div className="text-salve-textFaint">{stripFdaHeader(m.fda_data.storage[0])}</div>
                               </div>
                             )}
                           </div>
