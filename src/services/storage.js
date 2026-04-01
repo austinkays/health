@@ -206,7 +206,11 @@ function normalizeImportData(fileData) {
       appeals_and_disputes: fileData.appeals_and_disputes || [],
       surgical_planning:    fileData.surgical_planning    || [],
       insurance:            fileData.insurance            || [],
+      insurance_claims:     fileData.insurance_claims     || [],
+      drug_prices:          fileData.drug_prices          || [],
+      todos:                fileData.todos                || [],
       cycles:               fileData.cycles               || [],
+      conversations:        fileData.ai_conversations     || fileData.conversations || [],
     };
   }
 
@@ -230,7 +234,11 @@ function normalizeImportData(fileData) {
       appeals_and_disputes: fileData.appeals_and_disputes || [],
       surgical_planning:    fileData.surgical_planning    || [],
       insurance:            fileData.insurance            || [],
+      insurance_claims:     fileData.insurance_claims     || [],
+      drug_prices:          fileData.drug_prices          || [],
+      todos:                fileData.todos                || [],
       cycles:               fileData.cycles               || [],
+      conversations:        fileData.conversations        || [],
     };
   }
 

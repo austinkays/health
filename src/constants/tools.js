@@ -306,7 +306,7 @@ export const HEALTH_TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search text to match against record fields' },
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'vitals', 'cycles'], description: 'Optional: limit search to a specific table' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles'], description: 'Optional: limit search to a specific table' },
       },
       required: ['query'],
     },
@@ -317,7 +317,7 @@ export const HEALTH_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'vitals', 'cycles'], description: 'Table to list records from' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles'], description: 'Table to list records from' },
       },
       required: ['table'],
     },
