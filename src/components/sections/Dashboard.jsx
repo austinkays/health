@@ -17,6 +17,7 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { searchEntities, highlightMatch } from '../../utils/search.jsx';
+import useWellnessMessage from '../../hooks/useWellnessMessage';
 
 /* ── Rotating placeholder phrases ────────────────────────── */
 const SEARCH_PLACEHOLDERS = [
@@ -107,6 +108,7 @@ const DASH_PRIMARY_KEY = 'salve:dash-primary';
 export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+  const wellness = useWellnessMessage();
   const [showMore, setShowMore] = useState(() => localStorage.getItem('salve:dash-more') === '1');
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
@@ -495,11 +497,12 @@ export default function Dashboard({ data, interactions, onNav }) {
                 <Sparkles size={14} color={C.lavDim} />
                 <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-3">
                 <div className="h-3 bg-salve-lav/10 rounded-full w-full" />
                 <div className="h-3 bg-salve-lav/10 rounded-full w-4/5" />
                 <div className="h-3 bg-salve-lav/10 rounded-full w-3/5" />
               </div>
+              <div key={wellness.key} className="wellness-msg text-[12px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
             </Card>
           ) : insight && (
             <Card className="!bg-salve-lav/5 !border-salve-lav/15 insight-glow">

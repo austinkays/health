@@ -69,7 +69,7 @@ health/
 │       └── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
-│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation
+│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation
 │   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter animations, highlightId deep-link state, onNav(tab, opts) extended navigation, ToastProvider wrapper, toast-wrapped CRUD
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
@@ -90,7 +90,8 @@ health/
 │   │   └── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action)
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
-│   │   └── useConfirmDelete.js   # Delete confirmation state management
+│   │   ├── useConfirmDelete.js   # Delete confirmation state management
+│   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 4s interval, random no-repeat, fade animation)
 │   ├── components/
 │   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit)
 │   │   ├── ui/                   # Shared primitives
@@ -112,7 +113,7 @@ health/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
 │   │   └── sections/             # One file per app section (21 total)
-│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, customizable 6+More quick access
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, customizable 6+More quick access
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
@@ -123,7 +124,7 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit + tag filter pills
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu (shows bookmarked stories with headlines, truncated body, source links, saved date, remove button with confirmation)
+│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu (shows bookmarked stories with headlines, truncated body, source links, saved date, remove button with confirmation); FeatureLoading + ChatThinking components with cycling wellness messages via useWellnessMessage hook
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records

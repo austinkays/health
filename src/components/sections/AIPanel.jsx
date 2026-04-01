@@ -11,6 +11,7 @@ import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOpt
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
+import useWellnessMessage from '../../hooks/useWellnessMessage';
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -473,6 +474,28 @@ function CostResult({ result }) {
   );
 }
 
+function FeatureLoading() {
+  const { message, key } = useWellnessMessage();
+  return (
+    <div className="rounded-xl border border-salve-border bg-salve-card text-center py-10">
+      <div className="w-10 h-10 rounded-full bg-salve-lav/10 flex items-center justify-center mx-auto mb-3">
+        <Loader2 size={20} className="animate-spin text-salve-lav" />
+      </div>
+      <div key={key} className="wellness-msg text-[13px] text-salve-textMid font-montserrat italic" role="status" aria-live="polite">{message}</div>
+    </div>
+  );
+}
+
+function ChatThinking() {
+  const { message, key } = useWellnessMessage();
+  return (
+    <div className="self-start flex items-center gap-2 text-salve-textFaint text-xs">
+      <Loader2 size={14} className="animate-spin flex-shrink-0" />
+      <span key={key} className="wellness-msg italic" role="status" aria-live="polite">{message}</span>
+    </div>
+  );
+}
+
 export default function AIPanel({ data }) {
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
@@ -596,11 +619,7 @@ export default function AIPanel({ data }) {
             ) : m.content}
           </article>
         ))}
-        {loading && (
-          <div className="self-start flex items-center gap-2 text-salve-textFaint text-xs">
-            <Loader2 size={14} className="animate-spin" /> Thinking...
-          </div>
-        )}
+        {loading && <ChatThinking />}
         <div ref={chatEndRef} />
       </div>
       <div className="flex gap-2">
@@ -626,13 +645,7 @@ export default function AIPanel({ data }) {
         {FEATURES.find(f => f.id === mode)?.label}
       </SectionTitle>
       {loading ? (
-        <div className="rounded-xl border border-salve-border bg-salve-card text-center py-10">
-          <div className="w-10 h-10 rounded-full bg-salve-lav/10 flex items-center justify-center mx-auto mb-3">
-            <Loader2 size={20} className="animate-spin text-salve-lav" />
-          </div>
-          <div className="text-[13px] text-salve-textMid font-montserrat">Analyzing your health profile...</div>
-          <div className="text-[11px] text-salve-textFaint mt-1">This may take a moment</div>
-        </div>
+        <FeatureLoading />
       ) : result ? (
         mode === 'insight' ? <InsightResult result={result} /> :
         mode === 'connections' ? <ConnectionsResult result={result} /> :
