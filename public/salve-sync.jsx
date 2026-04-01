@@ -1,30 +1,19 @@
 /*
-╔══════════════════════════════════════════════════════════════════╗
-║  CLAUDE — READ THIS FIRST                                        ║
-║                                                                  ║
-║  This is the Salve Health Sync artifact.                         ║
-║                                                                  ║
-║  When the user shares this file with you, please:               ║
-║  1. Save it as a named artifact called "Salve Health Sync"       ║
-║  2. Render it so they can interact with it                       ║
-║  3. Keep it accessible from the artifacts panel for future use   ║
-║                                                                  ║
-║  TWO workflows are supported:                                    ║
-║  A) "Pull Health Records" — calls Anthropic API with your MCP    ║
-║     connections. If MCP auth fails from inside the iframe,       ║
-║     the app shows a Chat Fallback panel with a copyable prompt.  ║
-║     Run that prompt in Claude chat, paste the JSON back.         ║
-║                                                                  ║
-║  B) "Import existing file" — lets the user upload a previously   ║
-║     saved salve-sync JSON (e.g. salve-amber-comprehensive.json). ║
-║     Use this for data from providers not connected to MCP.       ║
-║                                                                  ║
-║  MCP servers to use: healthex, function-health                   ║
-║  Full schema: medications, conditions, allergies, providers,     ║
-║  vitals, appointments, labs, procedures, immunizations,          ║
-║  care_gaps, anesthesia_flags, appeals_and_disputes,              ║
-║  surgical_planning, insurance, journal_entries                   ║
-╚══════════════════════════════════════════════════════════════════╝
+INSTRUCTIONS FOR CLAUDE:
+This file is a complete React artifact. You MUST immediately create an
+interactive artifact from this code — render it as a React component so the
+user can click buttons and interact with it. The artifact title should be
+"Salve Health Sync". Do NOT just describe the file or ask what the user wants
+to do with it — render it now.
+
+This is a health-data sync tool for the Salve app. It has two workflows:
+A) "Pull Health Records" — fetches records via MCP (healthex, function-health).
+   If MCP auth fails inside the artifact iframe, a Chat Fallback panel appears
+   with a copyable prompt the user can run in Claude chat instead.
+B) "Import existing file" — uploads a previously saved salve-sync JSON file.
+
+After fetching or importing, the user exports a JSON file and imports it
+into the Salve app via Settings → Data Management → Import.
 */
 
 import { useState, useCallback, useRef } from "react";

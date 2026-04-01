@@ -49,7 +49,7 @@ health/
 ├── public/
 │   ├── manifest.json             # PWA manifest
 │   ├── favicon.svg
-│   └── salve-sync.jsx            # Claude artifact for MCP health data sync into Salve
+│   └── salve-sync.jsx            # Claude artifact for MCP health data sync into Salve (directive header instructs Claude.ai to auto-render)
 ├── docs/
 │   ├── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
 │   └── MIGRATION_PLAN.md         # Migration planning notes
@@ -136,7 +136,7 @@ health/
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
-│   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download
+│   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download + copyable prompt
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers

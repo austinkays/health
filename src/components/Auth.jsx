@@ -241,7 +241,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess }) {
             Syncing from Claude?
           </p>
           <p className="text-salve-textFaint text-xs leading-relaxed mb-4">
-            Download the sync artifact, paste it into Claude, and export your health records — then import the file here in Settings.
+            Download the sync artifact, open Claude.ai, attach the file with the included prompt, and Claude will walk you through syncing your health records.
           </p>
           <a
             href="/salve-sync.jsx"

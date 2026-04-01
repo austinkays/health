@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -7,6 +7,36 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import AIProfilePreview from '../ui/AIProfilePreview';
+
+const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
+
+It connects to health services via MCP to pull my medical records (medications, conditions, labs, etc.) and export them as a JSON file I can import into Salve.
+
+Before I start, can you check if I have any health-related MCP connections set up (like healthex or Function Health)? If not, help me get connected so the sync can pull my records.`;
+
+function CopyPromptButton() {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(SYNC_PROMPT).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={copy}
+      className={`mt-2 w-full py-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors border cursor-pointer font-montserrat ${
+        copied
+          ? 'bg-salve-sage/15 border-salve-sage/30 text-salve-sage'
+          : 'bg-salve-card2 border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav'
+      }`}
+      aria-label={copied ? 'Prompt copied to clipboard' : 'Copy prompt to send with artifact'}
+    >
+      <ClipboardCopy size={14} />
+      {copied ? 'Copied!' : 'Copy prompt to send with file'}
+    </button>
+  );
+}
 
 export default function Settings({ data, updateSettings, updateItem, eraseAll, reloadData }) {
   const s = data.settings;
@@ -289,8 +319,8 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
           <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal list-inside">
             <li>Download the sync artifact below</li>
             <li>Open <strong className="text-salve-text">Claude.ai</strong> and start a new conversation</li>
-            <li>Attach the downloaded file — it becomes an interactive sync tool</li>
-            <li>Click <strong className="text-salve-text">"Pull Health Records"</strong> to sync from connected providers, or import an existing file</li>
+            <li>Attach the file <strong className="text-salve-text">and</strong> paste the prompt (copy it below)</li>
+            <li>Claude will render an interactive sync tool — click <strong className="text-salve-text">"Pull Health Records"</strong></li>
             <li>Download the sync file, then import it below in <strong className="text-salve-text">Data Management</strong></li>
           </ol>
         </div>
@@ -307,6 +337,7 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
           Download Claude Sync Artifact
           <Sparkles size={14} className="opacity-50" />
         </a>
+        <CopyPromptButton />
       </Card>
 
       <SectionTitle
