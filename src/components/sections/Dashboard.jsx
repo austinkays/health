@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -80,27 +80,27 @@ function getAlertDismissal() {
 
 /* ── Quick Access config (static — outside component) ──── */
 
-const PRIMARY_LINKS = [
-  { id: 'summary',     label: 'Summary',      icon: ClipboardList, color: C.lav },
-  { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,   color: C.lav },
-  { id: 'providers',    label: 'Providers',     icon: User,          color: C.sage },
-  { id: 'allergies',    label: 'Allergies',     icon: Shield,        color: C.amber },
-  { id: 'appts',        label: 'Appointments',  icon: Calendar,      color: C.rose },
-  { id: 'labs',         label: 'Labs',          icon: FlaskConical,  color: C.lav },
+const ALL_LINKS = [
+  { id: 'summary',      label: 'Summary',      icon: ClipboardList,   color: C.lav },
+  { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,     color: C.lav },
+  { id: 'providers',    label: 'Providers',    icon: User,            color: C.sage },
+  { id: 'allergies',    label: 'Allergies',    icon: Shield,          color: C.amber },
+  { id: 'appts',        label: 'Appointments', icon: Calendar,        color: C.rose },
+  { id: 'labs',         label: 'Labs',         icon: FlaskConical,    color: C.lav },
+  { id: 'insurance',    label: 'Insurance',    icon: BadgeDollarSign, color: C.sage },
+  { id: 'procedures',   label: 'Procedures',   icon: Syringe,         color: C.sage },
+  { id: 'immunizations',label: 'Vaccines',     icon: ShieldCheck,     color: C.sage },
+  { id: 'care_gaps',    label: 'Care Gaps',    icon: AlertTriangle,   color: C.amber },
+  { id: 'anesthesia',   label: 'Anesthesia',   icon: AlertOctagon,    color: C.rose },
+  { id: 'appeals',      label: 'Appeals',      icon: Scale,           color: C.amber },
+  { id: 'surgical',     label: 'Surgery Plan', icon: PlaneTakeoff,    color: C.lav },
+  { id: 'interactions', label: 'Interactions', icon: AlertTriangle,   color: C.amber },
+  { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       color: C.sage },
+  { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];
 
-const MORE_LINKS = [
-  { id: 'insurance',    label: 'Insurance',     icon: BadgeDollarSign, color: C.sage },
-  { id: 'procedures',    label: 'Procedures',    icon: Syringe,       color: C.sage },
-  { id: 'immunizations', label: 'Vaccines',      icon: ShieldCheck,   color: C.sage },
-  { id: 'care_gaps',     label: 'Care Gaps',     icon: AlertTriangle, color: C.amber },
-  { id: 'anesthesia',    label: 'Anesthesia',    icon: AlertOctagon,  color: C.rose },
-  { id: 'appeals',       label: 'Appeals',       icon: Scale,         color: C.amber },
-  { id: 'surgical',      label: 'Surgery Plan',  icon: PlaneTakeoff,  color: C.lav },
-  { id: 'interactions',  label: 'Interactions',  icon: AlertTriangle, color: C.amber },
-  { id: 'pharmacies',    label: 'Pharmacies',    icon: Building2,     color: C.sage },
-  { id: 'settings',      label: 'Settings',      icon: SettingsIcon,  color: C.textMid },
-];
+const DEFAULT_PRIMARY_IDS = ['summary', 'conditions', 'providers', 'allergies', 'appts', 'labs'];
+const DASH_PRIMARY_KEY = 'salve:dash-primary';
 
 /* ── Component ───────────────────────────────────────────── */
 
@@ -111,6 +111,24 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
   const alertsDismissed = alertDismissal !== null;
+
+  /* ── Customizable Quick Access state ──────── */
+  const [primaryIds, setPrimaryIds] = useState(() => {
+    try {
+      const raw = localStorage.getItem(DASH_PRIMARY_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length === 6 && parsed.every(id => ALL_LINKS.some(l => l.id === id)))
+          return parsed;
+      }
+    } catch { /* ignore corrupt data */ }
+    return DEFAULT_PRIMARY_IDS;
+  });
+  const [editing, setEditing] = useState(false);
+  const [replacingIndex, setReplacingIndex] = useState(null);
+
+  const primaryLinks = useMemo(() => primaryIds.map(id => ALL_LINKS.find(l => l.id === id)).filter(Boolean), [primaryIds]);
+  const moreLinks = useMemo(() => ALL_LINKS.filter(l => !primaryIds.includes(l.id)), [primaryIds]);
 
   /* ── Search state ───────────────────────────── */
   const [searchQuery, setSearchQuery] = useState('');
@@ -279,6 +297,20 @@ export default function Dashboard({ data, interactions, onNav }) {
     const next = !showMore;
     setShowMore(next);
     localStorage.setItem('salve:dash-more', next ? '1' : '0');
+  };
+
+  const handleSwap = (newId) => {
+    if (replacingIndex === null) return;
+    const next = [...primaryIds];
+    next[replacingIndex] = newId;
+    setPrimaryIds(next);
+    localStorage.setItem(DASH_PRIMARY_KEY, JSON.stringify(next));
+    setReplacingIndex(null);
+  };
+
+  const finishEditing = () => {
+    setEditing(false);
+    setReplacingIndex(null);
   };
 
   const dismissAlerts = (duration) => {
@@ -557,43 +589,95 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       {/* ── Quick Access (6 primary + expandable) ── */}
       <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
+        {/* Edit / Done header */}
+        <div className="flex justify-end mb-1">
+          <button
+            onClick={() => editing ? finishEditing() : setEditing(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[11px] font-montserrat"
+            style={{ color: editing ? C.sage : C.textFaint }}
+            aria-label={editing ? 'Done editing' : 'Edit quick access'}
+          >
+            {editing ? <Check size={13} /> : <Pencil size={13} />}
+            {editing ? 'Done' : 'Edit'}
+          </button>
+        </div>
+
+        {/* Primary 6 tiles */}
         <div className="grid grid-cols-3 gap-2 mb-2">
-          {PRIMARY_LINKS.map(l => (
+          {primaryLinks.map((l, i) => (
             <button
               key={l.id}
-              onClick={() => onNav(l.id)}
-              className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
+              onClick={() => editing ? setReplacingIndex(replacingIndex === i ? null : i) : onNav(l.id)}
+              className={`bg-salve-card border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all ${
+                editing
+                  ? replacingIndex === i
+                    ? 'border-salve-lav ring-1 ring-salve-lav'
+                    : 'border-dashed border-salve-border2'
+                  : 'border-salve-border'
+              }`}
             >
               <l.icon size={20} color={l.color} strokeWidth={1.5} />
               <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+              {editing && <ArrowLeftRight size={10} className="text-salve-textFaint" />}
             </button>
           ))}
         </div>
 
-        {/* Expand / collapse more sections */}
-        <button
-          onClick={toggleMore}
-          className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 bg-transparent border border-salve-border rounded-xl cursor-pointer tile-magic"
-        >
-          <Grid size={13} className="text-salve-textFaint" />
-          <span className="text-[11px] text-salve-textFaint font-montserrat">
-            {showMore ? 'Show less' : 'More sections'}
-          </span>
-        </button>
-
-        {showMore && (
-          <div className="grid grid-cols-3 gap-2 mb-4 dash-stagger" style={{ animationDelay: '0s', animationDuration: '0.3s' }}>
-            {MORE_LINKS.map(l => (
-              <button
-                key={l.id}
-                onClick={() => onNav(l.id)}
-                className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
-              >
-                <l.icon size={20} color={l.color} strokeWidth={1.5} />
-                <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-              </button>
-            ))}
+        {/* Swap popup */}
+        {editing && replacingIndex !== null && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setReplacingIndex(null)}>
+            <div className="absolute inset-0 bg-black/50" />
+            <div
+              className="relative w-full max-w-[480px] bg-salve-card border-t border-salve-border rounded-t-2xl p-4 pb-8"
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-xs text-salve-textMid font-montserrat mb-3 text-center">
+                Replace <strong className="text-salve-text">{primaryLinks[replacingIndex]?.label}</strong> with:
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {moreLinks.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => handleSwap(l.id)}
+                    className="bg-salve-card2 border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
+                  >
+                    <l.icon size={20} color={l.color} strokeWidth={1.5} />
+                    <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
+        )}
+
+        {/* More sections toggle (hidden during edit) */}
+        {!editing && (
+          <>
+            <button
+              onClick={toggleMore}
+              className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 bg-transparent border border-salve-border rounded-xl cursor-pointer tile-magic"
+            >
+              <Grid size={13} className="text-salve-textFaint" />
+              <span className="text-[11px] text-salve-textFaint font-montserrat">
+                {showMore ? 'Show less' : 'More sections'}
+              </span>
+            </button>
+
+            {showMore && (
+              <div className="grid grid-cols-3 gap-2 mb-4 dash-stagger" style={{ animationDelay: '0s', animationDuration: '0.3s' }}>
+                {moreLinks.map(l => (
+                  <button
+                    key={l.id}
+                    onClick={() => onNav(l.id)}
+                    className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
+                  >
+                    <l.icon size={20} color={l.color} strokeWidth={1.5} />
+                    <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>

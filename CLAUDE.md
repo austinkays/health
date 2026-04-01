@@ -112,7 +112,7 @@ health/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
 │   │   └── sections/             # One file per app section (21 total)
-│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, 6+More quick access
+│   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight, appointment prep nudge (48hr), unified timeline, customizable 6+More quick access
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + progressive disclosure FDA details (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags
@@ -357,7 +357,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - Magical UI effects: card hover lift + lavender glow, button shimmer sweep, quick-access tile rotating conic gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade-slide-up animations
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
 - Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (6 primary + expandable "More")
-- Quick Access primary 6: Conditions, Providers, Allergies, Appointments, Labs, Insurance; "More" expander reveals 8 additional sections
+- Quick Access default 6: Summary, Conditions, Providers, Allergies, Appointments, Labs; "More" expander reveals remaining sections
+- Quick Access tiles are **user-customizable**: Edit button (pencil icon) enters edit mode → tap a tile to select it → bottom sheet shows available replacements → tap replacement to swap → Done button saves. Persisted in `localStorage` under `salve:dash-primary` (array of 6 IDs). Falls back to `DEFAULT_PRIMARY_IDS` if corrupt/missing.
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
 - All section views have a back arrow in the header that returns to Dashboard
 - **Global Search:** Header magnifying glass icon (visible on all pages) opens the Search view; Dashboard has a live search centerpiece with inline results (up to 5) and "See all" deep-link to full Search view
@@ -396,6 +397,12 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Dashboard: AI insight hidden when no consent; shimmer when loading; quote-style when loaded
 - [ ] Dashboard: unified timeline shows appointments and refills sorted by date
 - [ ] Dashboard: Quick Access shows 6 primary tiles; "More" expands to reveal all
+- [ ] Dashboard: Quick Access Edit button enters edit mode with dashed borders and swap icons
+- [ ] Dashboard: Tapping a tile in edit mode selects it (lavender ring) and shows replacement bottom sheet
+- [ ] Dashboard: Selecting a replacement swaps the tile and persists to localStorage
+- [ ] Dashboard: Done button exits edit mode; "More sections" hidden during editing
+- [ ] Dashboard: Quick Access customization survives page reload (localStorage `salve:dash-primary`)
+- [ ] Dashboard: Corrupt/missing localStorage falls back to default 6 tiles
 - [ ] Dashboard: entrance animations stagger correctly without layout shift
 - [ ] Dashboard: "More" expanded state persists across page loads
 - [ ] AI insight loads on dashboard (with /api/chat proxy + auth token)
@@ -425,7 +432,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 20 sections reachable via Quick Access (6 primary + 9 in More expander + 5 in bottom nav)
+- [ ] All 20 sections reachable via Quick Access (6 primary + 10 in More expander + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
