@@ -24,6 +24,8 @@ const TABLE_MAP = {
   insurance:            'insurance',
   insurance_claims:     'insurance_claims',
   drug_prices:          'drug_prices',
+  todos:                'todos',
+  conversations:        'ai_conversations',
 };
 
 // Strip server-generated fields before inserting
