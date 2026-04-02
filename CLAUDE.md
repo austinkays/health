@@ -117,7 +117,7 @@ health/
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
-│   │   └── sections/             # One file per app section (22 total)
+│   │   └── sections/             # One file per app section (23 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
@@ -139,8 +139,9 @@ health/
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
 │   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar view (period days=rose, fertile window=amber, ovulation=sage, predicted=dashed), stats card (current day, avg length, days until next), quick-log (tap calendar day), filter pills (all/period/symptom/ovulation/fertility), cycle phase detection (menstrual/follicular/ovulatory/luteal), predictions (next period, fertile window), Flo GDPR import with dedup, deep-link + highlight support
+│   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
-│   │       └── Settings.jsx      # Profile, AI mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download + copyable prompt
+│   │       └── Settings.jsx      # Profile, Sage mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download + copyable prompt
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
@@ -171,6 +172,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `drug_prices` | medication_id, rxcui, ndc, nadac_per_unit, pricing_unit, drug_name, effective_date, as_of_date, classification, fetched_at | NADAC price snapshots for medications |
 | `insurance_claims` | date, provider, description, billed_amount, allowed_amount, paid_amount, patient_responsibility, status (submitted/processing/paid/denied/appealed), claim_number, insurance_plan, notes | Tracks individual insurance claims with amounts |
 | `cycles` | date, type (period/ovulation/symptom/fertility_marker), value, symptom, notes | Menstrual cycle tracking; period flow levels, ovulation markers, cycle symptoms, fertility markers (BBT, cervical mucus, OPK) |
+| `todos` | title, notes, due_date (nullable), priority (low/medium/high/urgent), category (custom/medication/appointment/follow_up/insurance/lab), completed, completed_at, recurring (none/daily/weekly/monthly), related_id, related_table, source (manual/ai_suggested), dismissed | Health to-do items with optional due dates, priorities, and cross-references. Dashboard alerts for overdue/urgent items. |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -193,7 +195,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 22 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 23 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -365,7 +367,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - "made with love for my best friend & soulmate" tagline above bottom nav — Home page only, scroll-reveal (hidden until user scrolls past 50px to bottom, resets on tab change, transparent background, 500ms fade-in transition)
 - Magical UI effects: time-aware ambiance (card hover glow shifts sage→lavender→amber→dim by time of day), button shimmer sweep, quick-access tile contained radial gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade+slide+deblur transitions, AI prose reveal (paragraph-by-paragraph stagger), celebration sparkle burst on success toasts, breathe meditation loader (10s deep breathing cycle with bloom/rings/glow)
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
-- Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → AI insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
+- Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → Sage insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
 - Quick Access default 6: Summary, Conditions, Providers, Allergies, Appointments, Labs; "More" expander reveals remaining sections
 - Quick Access tiles are **user-customizable**: Edit button (pencil icon) enters edit mode → tap a tile to select it → bottom sheet shows available replacements → tap replacement to swap → Done button saves. "+" tile at end of grid adds new tiles from available sections. "×" badge on each tile removes it (minimum 1 tile enforced). Persisted in `localStorage` under `salve:dash-primary` (array of 1–16 IDs). Falls back to `DEFAULT_PRIMARY_IDS` if corrupt/missing.
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
@@ -397,14 +399,14 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 22 sections render without errors (including Auth screen)
+- [ ] All 23 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
 - [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
 - [ ] Drug interaction checker flags known combos
 - [ ] Dashboard: contextual greeting shows correct time-of-day message
 - Dashboard: alerts consolidate into single card (anesthesia + interactions + care gaps + abnormal labs)
-- [ ] Dashboard: AI insight hidden when no consent; shimmer when loading; quote-style when loaded
+- [ ] Dashboard: Sage insight hidden when no consent; shimmer when loading; quote-style when loaded
 - [ ] Dashboard: unified timeline shows appointments and refills sorted by date
 - [ ] Dashboard: Quick Access shows 6 primary tiles by default; "More" expands to reveal remaining
 - [ ] Dashboard: Quick Access Edit button enters edit mode with dashed borders, swap icons, and × remove badges
@@ -419,8 +421,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Dashboard: Corrupt/missing localStorage falls back to default 6 tiles
 - [ ] Dashboard: entrance animations stagger correctly without layout shift
 - [ ] Dashboard: "More" expanded state persists across page loads
-- [ ] AI insight loads on dashboard (with /api/chat proxy + auth token)
-- [ ] AI chat panel sends/receives messages
+- [ ] Sage insight loads on dashboard (with /api/chat proxy + auth token)
+- [ ] Sage chat panel sends/receives messages
 - [ ] AI chat: copy button appears on assistant responses (copies text to clipboard)
 - [ ] AI chat: "Add Lexapro 10mg" creates medication via tool-use (ToolExecutionCard shows success)
 - [ ] AI chat: "Remove [medication]" shows pending confirmation card with Confirm/Cancel buttons
@@ -452,7 +454,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 22 sections reachable via Quick Access (6+ primary tiles, expandable up to all 17, + 5 in bottom nav)
+- [ ] All 23 sections reachable via Quick Access (6+ primary tiles, expandable up to all 18, + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
@@ -553,6 +555,27 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] AI profile: includes cycle stats (avg length, current day, common symptoms)
 - [ ] Search: cycle entries searchable by type, symptom, date, notes
 
+### Health To-Do Tests
+- [ ] Todos: CRUD works (add, edit, delete with confirmation)
+- [ ] Todos: filter tabs work (Active, All, Done, Overdue)
+- [ ] Todos: priority badges show correct colors (urgent=rose, high=amber, medium=lav, low=sage)
+- [ ] Todos: due date countdown shows "Due today", "Due in 3 days", "Overdue by 2 days"
+- [ ] Todos: complete toggle strikethroughs title, sets completed_at
+- [ ] Todos: overdue filter shows red pill with count
+- [ ] Todos: recurring indicator shows on cards
+- [ ] Todos: expandable cards show notes, category, edit/delete
+- [ ] Todos: deep-link from Search expands + scrolls to specific record with highlight pulse
+- [ ] Dashboard: overdue/urgent todos appear in consolidated alerts
+- [ ] Dashboard: due-soon todos appear in unified timeline
+- [ ] Dashboard: To-Do's tile appears in Quick Access grid
+- [ ] Dashboard: todo alert count included in getContextLine total
+- [ ] AI chat: "Add a todo to refill prescription" creates todo via tool-use
+- [ ] AI chat: "Mark my refill todo as complete" updates todo
+- [ ] AI chat: "Remove todo" requires confirmation before deleting
+- [ ] AI profile: includes active to-do items with priorities and due dates
+- [ ] Search: todos searchable by title, notes, category, priority
+- [ ] Export/import: todos included in backup and restore
+
 ## Environment Variables
 
 | Variable | Where | Purpose |
@@ -586,6 +609,8 @@ vercel --prod        # Deploy to production
 
 - [x] **Name the AI chatbot "Sage"** — Done. Leaf avatar, "Hey, I'm Sage" greeting, "Sage is thinking" loading, sage-green Daily Insight cards, BottomNav tab renamed, consent gate updated, disclaimers rebranded.
 - [ ] **Configure Google Sign In** — Button is wired up in Auth.jsx, needs Google Cloud Console OAuth credentials + Supabase provider config to work.
+- [x] **Health To-Do's & Reminders** — Done. Full Todos.jsx section with CRUD, filter tabs, priority badges, due date countdown, complete toggle, recurring support. Dashboard integration (overdue/urgent alerts, due-soon timeline, Quick Access tile). AI tool-use (add/update/remove via Sage chat). Search integration. Active todos in AI profile context.
+- [x] **Cycle Tracker Completion** — Done. Shared `utils/cycles.js` with `getCyclePhaseForDate`, Vitals phase badges + chart overlay, Journal phase badges + mood-phase summary, AI cycle patterns feature, medication cycle awareness badges, Dashboard quick-log.
 
 ## Roadmap — Amber's Top 5 Feature Requests (Easiest → Hardest)
 
