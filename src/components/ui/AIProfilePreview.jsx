@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff, X, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, X, ChevronDown, MessageSquare } from 'lucide-react';
 import { C } from '../../constants/colors';
 import { buildProfile } from '../../services/profile';
 
@@ -110,8 +110,12 @@ export default function AIProfilePreview({ data }) {
 
             {/* Scrollable content */}
             <div className="overflow-y-auto flex-1 px-5 py-4 overscroll-contain">
-              <p className="text-[11px] text-salve-textFaint italic mb-4 leading-relaxed">
+              <p className="text-[11px] text-salve-textFaint italic mb-2 leading-relaxed">
                 Health context sent to AI when you use any AI feature. Only shared when you explicitly trigger an AI action.
+              </p>
+              <p className="text-[11px] text-salve-lav/70 mb-4 leading-relaxed flex items-center gap-1.5">
+                <MessageSquare size={11} className="flex-shrink-0" />
+                <span>Need to update something? Tell the <strong className="text-salve-lav">AI Chat</strong> — e.g. "add Lexapro 10mg" or "remove my old pharmacy"</span>
               </p>
 
               {sections.map((sec, i) => {

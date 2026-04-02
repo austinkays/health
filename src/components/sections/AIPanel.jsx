@@ -1121,8 +1121,14 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         <SavedInsightsSection savedInsights={savedInsights} />
       )}
 
-      <div className="mt-4 flex justify-center">
+      <div className="mt-4 flex flex-col items-center gap-1.5">
         <AIProfilePreview data={data} />
+        <button
+          onClick={() => setMode('chat')}
+          className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+        >
+          Update your data via AI Chat →
+        </button>
       </div>
       <p className="text-[10px] text-salve-textFaint italic text-center mt-3">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
     </div>
