@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  Eye, X, ChevronDown, MessageSquare, Pill, Stethoscope, Shield,
+  Eye, ChevronDown, MessageSquare, Pill, Stethoscope, Shield,
   User, Heart, Calendar, BookOpen, FlaskConical, Dna, CheckSquare,
-  Activity, BadgeDollarSign, FileText, Leaf, Zap,
+  Activity, BadgeDollarSign, FileText, Leaf,
 } from 'lucide-react';
 import { C } from '../../constants/colors';
 import { fmtDate } from '../../utils/dates';
@@ -211,76 +211,64 @@ export default function AIProfilePreview({ data }) {
   const sections = useMemo(() => buildSections(data), [data]);
   const dataPoints = useMemo(() => sections.reduce((sum, s) => sum + s.items.length, 0), [sections]);
 
-  useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
-
   return (
-    <>
-      {/* Pill button */}
-      <button
-        onClick={() => setOpen(true)}
-        className="group relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium font-montserrat cursor-pointer transition-all duration-200 bg-transparent border border-salve-sage/40 text-salve-sage hover:border-salve-sage hover:shadow-[0_0_12px_rgba(143,191,160,0.15)]"
-      >
-        <Eye size={12} strokeWidth={2} />
-        <span>What Sage Sees</span>
-        <span className="text-salve-textFaint">· {dataPoints}</span>
-      </button>
-
-      {/* Slide-up panel */}
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={() => setOpen(false)}>
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
-          <div
-            className="relative w-full max-w-[480px] h-[85vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
-            onClick={e => e.stopPropagation()}
+    <div className="w-full">
+      {/* Pill button (collapsed state) */}
+      {!open && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setOpen(true)}
+            className="group relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium font-montserrat cursor-pointer transition-all duration-200 bg-transparent border border-salve-sage/40 text-salve-sage hover:border-salve-sage hover:shadow-[0_0_12px_rgba(143,191,160,0.15)]"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-salve-border/50 flex-shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-6 h-6 rounded-full bg-salve-sage/15 flex items-center justify-center">
-                  <Leaf size={13} className="text-salve-sage" />
-                </div>
-                <span className="text-[14px] font-semibold text-salve-text font-montserrat">What Sage Sees</span>
-                <span className="text-[10px] text-salve-textFaint font-montserrat rounded-full bg-salve-card2 px-2 py-0.5">{dataPoints}</span>
+            <Eye size={12} strokeWidth={2} />
+            <span>What Sage Sees</span>
+            <span className="text-salve-textFaint">· {dataPoints}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Expanded card (inline) */}
+      {open && (
+        <div className="rounded-xl border border-salve-sage/20 bg-salve-card overflow-hidden mt-1">
+          {/* Header */}
+          <button
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-transparent border-none cursor-pointer border-b border-salve-border/50"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-full bg-salve-sage/15 flex items-center justify-center">
+                <Leaf size={11} className="text-salve-sage" />
               </div>
-              <button
-                onClick={() => setOpen(false)}
-                className="bg-salve-card2 border-none rounded-full p-1.5 cursor-pointer text-salve-textMid hover:text-salve-text transition-colors"
-                aria-label="Close"
-              >
-                <X size={16} />
-              </button>
+              <span className="text-[13px] font-semibold text-salve-text font-montserrat">What Sage Sees</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat rounded-full bg-salve-card2 px-1.5 py-0.5">{dataPoints}</span>
             </div>
+            <ChevronDown size={14} className="text-salve-textFaint rotate-180" />
+          </button>
 
-            {/* Content */}
-            <div className="overflow-y-auto flex-1 px-5 pt-4 pb-8 overscroll-contain">
-              <p className="text-[11px] text-salve-textFaint italic mb-1.5 leading-relaxed">
-                A summary of the health data Sage uses to personalize your insights.
-              </p>
-              <p className="text-[11px] text-salve-lav/70 mb-4 leading-relaxed flex items-center gap-1.5">
-                <MessageSquare size={11} className="flex-shrink-0" />
-                <span>Tell <strong className="text-salve-lav">Sage</strong> to update anything — e.g. "add Lexapro 10mg"</span>
-              </p>
+          {/* Content */}
+          <div className="px-4 pt-3 pb-4">
+            <p className="text-[10px] text-salve-textFaint italic mb-1 leading-relaxed">
+              Health data Sage uses to personalize your insights.
+            </p>
+            <p className="text-[10px] text-salve-lav/70 mb-3 leading-relaxed flex items-center gap-1">
+              <MessageSquare size={9} className="flex-shrink-0" />
+              <span>Tell <strong className="text-salve-lav">Sage</strong> to update anything — e.g. "add Lexapro 10mg"</span>
+            </p>
 
-              {sections.length === 0 ? (
-                <div className="text-center py-8">
-                  <Leaf size={24} className="text-salve-sage/30 mx-auto mb-2" />
-                  <p className="text-[12px] text-salve-textFaint">No health data yet. Start adding medications, conditions, or vitals.</p>
-                </div>
-              ) : (
-                sections.map((sec, i) => (
-                  <Section key={sec.id} section={sec} defaultOpen={i < 4} />
-                ))
-              )}
-            </div>
+            {sections.length === 0 ? (
+              <div className="text-center py-4">
+                <Leaf size={20} className="text-salve-sage/30 mx-auto mb-1.5" />
+                <p className="text-[11px] text-salve-textFaint">No health data yet.</p>
+              </div>
+            ) : (
+              sections.map((sec, i) => (
+                <Section key={sec.id} section={sec} defaultOpen={i < 3} />
+              ))
+            )}
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
