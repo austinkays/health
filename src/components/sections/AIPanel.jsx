@@ -466,7 +466,7 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
       <div
         className={`accordion-content ${open ? 'accordion-open' : 'accordion-closed'}`}
       >
-        <div className="border-l-[3px] border-salve-rose/40 mx-4 mb-4 pl-4 pt-0">
+        <div className="border-l-[3px] border-salve-rose/40 mx-4 mb-4 pl-4 pt-0 [&_h3]:border-t [&_h3]:border-salve-border/30 [&_h3]:pt-2.5 [&_h3]:mt-3 [&_h3:first-child]:border-0 [&_h3:first-child]:pt-0 [&_h3:first-child]:mt-0">
           <AIMarkdown reveal>{content.trim()}</AIMarkdown>
         </div>
       </div>
