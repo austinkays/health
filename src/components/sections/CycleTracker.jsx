@@ -113,11 +113,18 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   }, [nextPeriod, stats.avgLength]);
 
   /* Save handler */
+  const [saveError, setSaveError] = useState(null);
   const save = async () => {
     if (!form.date) return;
-    if (editId) await updateItem('cycles', editId, form);
-    else await addItem('cycles', form);
-    setForm({ ...EMPTY_CYCLE }); setEditId(null); setSubView(null);
+    setSaveError(null);
+    try {
+      if (editId) await updateItem('cycles', editId, form);
+      else await addItem('cycles', form);
+      setForm({ ...EMPTY_CYCLE }); setEditId(null); setSubView(null);
+    } catch (err) {
+      console.error('[CycleTracker] Save failed:', err);
+      setSaveError(err.message || 'Save failed. The cycles table may need to be created in your database.');
+    }
   };
 
   /* Quick-log: tap a calendar day to log period */
@@ -191,6 +198,11 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
           )}
 
           <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Any additional details..." />
+          {saveError && (
+            <div className="text-xs text-salve-rose font-montserrat bg-salve-rose/10 border border-salve-rose/20 rounded-lg p-2.5 mb-2">
+              {saveError}
+            </div>
+          )}
           <div className="flex gap-2">
             <Button onClick={save} disabled={!form.date}><Check size={15} /> Save</Button>
             <Button variant="ghost" onClick={() => { setSubView(null); setForm({ ...EMPTY_CYCLE }); setEditId(null); }}>Cancel</Button>
