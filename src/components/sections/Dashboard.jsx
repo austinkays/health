@@ -712,9 +712,9 @@ export default function Dashboard({ data, interactions, onNav }) {
               onClick={() => editing ? setReplacingIndex(replacingIndex === i ? null : i) : onNav(l.id)}
               className={`relative bg-salve-card border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all ${
                 editing
-                  ? `overflow-visible ${replacingIndex === i
+                  ? replacingIndex === i
                     ? 'border-salve-lav ring-1 ring-salve-lav'
-                    : 'border-dashed border-salve-border2'}`
+                    : 'border-dashed border-salve-border2'
                   : 'border-salve-border'
               }`}
             >
@@ -725,7 +725,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                   tabIndex={0}
                   onClick={(e) => { e.stopPropagation(); handleRemove(i); }}
                   onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleRemove(i); } }}
-                  className="absolute -top-1.5 -right-1.5 z-10 w-4 h-4 rounded-full bg-salve-rose/90 flex items-center justify-center cursor-pointer hover:bg-salve-rose transition-colors"
+                  className="absolute top-1 right-1 z-10 w-4.5 h-4.5 rounded-full bg-salve-rose/90 flex items-center justify-center cursor-pointer hover:bg-salve-rose transition-colors shadow-sm"
                   aria-label={`Remove ${l.label}`}
                 >
                   <X size={10} className="text-salve-bg" />
