@@ -113,7 +113,6 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [showMore, setShowMore] = useState(() => localStorage.getItem('salve:dash-more') === '1');
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
-  const [cycleCTADismissed, setCycleCTADismissed] = useState(() => !!localStorage.getItem('salve:dismiss-cycle-cta'));
   const alertsDismissed = alertDismissal !== null;
 
   /* ── Customizable Quick Access state ──────── */
@@ -665,33 +664,6 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             );
           })}
-        </section>
-      )}
-
-      {/* ── Cycle tracking CTA (when no cycle data) ─ */}
-      {!data.cycles?.length && data.meds?.length > 0 && !cycleCTADismissed && (
-        <section aria-label="Cycle tracking suggestion" className="dash-stagger dash-stagger-4 mb-3">
-          <Card className="!bg-salve-rose/5 !border-salve-rose/15">
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => onNav('cycles')}
-                className="flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 flex-1"
-              >
-                <Heart size={16} className="text-salve-rose flex-shrink-0" />
-                <div className="text-left">
-                  <div className="text-[13px] font-medium text-salve-text font-montserrat">Start tracking your cycle</div>
-                  <div className="text-[10px] text-salve-textFaint font-montserrat">Correlate with vitals, mood &amp; meds</div>
-                </div>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); localStorage.setItem('salve:dismiss-cycle-cta', '1'); setCycleCTADismissed(true); }}
-                className="text-salve-textFaint bg-transparent border-none cursor-pointer p-1 text-xs"
-                aria-label="Dismiss cycle tracking suggestion"
-              >
-                ✕
-              </button>
-            </div>
-          </Card>
         </section>
       )}
 
