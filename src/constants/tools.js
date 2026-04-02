@@ -343,6 +343,21 @@ export const HEALTH_TOOLS = [
     },
   },
   {
+    name: 'add_genetic_result',
+    description: 'Add a pharmacogenomic test result (gene variant and metabolizer status).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        gene: { type: 'string', description: 'Gene name (e.g., CYP2D6, CYP2C19, VKORC1)' },
+        variant: { type: 'string', description: 'Variant or allele (e.g., *1/*4, rs3892097)' },
+        phenotype: { type: 'string', enum: ['poor metabolizer', 'intermediate metabolizer', 'normal metabolizer', 'rapid metabolizer', 'ultrarapid metabolizer'], description: 'Metabolizer phenotype' },
+        source: { type: 'string', description: 'Test provider (e.g., Genomind, GeneSight, 23andMe)' },
+        notes: { type: 'string', description: 'Additional notes' },
+      },
+      required: ['gene', 'phenotype'],
+    },
+  },
+  {
     name: 'update_settings',
     description: 'Update the patient\'s profile settings.',
     input_schema: {
@@ -367,7 +382,7 @@ export const HEALTH_TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search text to match against record fields' },
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles', 'activities'], description: 'Optional: limit search to a specific table' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles', 'activities', 'genetic_results'], description: 'Optional: limit search to a specific table' },
       },
       required: ['query'],
     },
@@ -378,7 +393,7 @@ export const HEALTH_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles', 'activities'], description: 'Table to list records from' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles', 'activities', 'genetic_results'], description: 'Table to list records from' },
       },
       required: ['table'],
     },
@@ -420,6 +435,7 @@ export const TOOL_TABLE_MAP = {
   update_todo:         { table: 'todos', operation: 'update' },
   remove_todo:         { table: 'todos', operation: 'remove' },
   add_activity:        { table: 'activities', operation: 'add' },
+  add_genetic_result:  { table: 'genetic_results', operation: 'add' },
   update_settings:     { table: 'profile', operation: 'update' },
   search_records:      { table: null, operation: 'search' },
   list_records:        { table: null, operation: 'list' },
@@ -437,4 +453,5 @@ export const RECORD_SUMMARIES = {
   cycles:        r => `${r.type}: ${r.value || r.symptom || ''}`.trim() + (r.date ? ` (${r.date})` : ''),
   todos:         r => r.title || 'to-do',
   activities:    r => `${r.type || 'Activity'}${r.duration_minutes ? ` (${r.duration_minutes} min)` : ''}`,
+  genetic_results: r => `${r.gene}: ${r.phenotype}`,
 };

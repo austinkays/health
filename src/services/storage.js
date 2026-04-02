@@ -27,6 +27,7 @@ const TABLE_MAP = {
   todos:                'todos',
   cycles:               'cycles',
   activities:           'activities',
+  genetic_results:     'genetic_results',
   conversations:        'ai_conversations',
 };
 
@@ -212,6 +213,7 @@ function normalizeImportData(fileData) {
       todos:                fileData.todos                || [],
       cycles:               fileData.cycles               || [],
       activities:           fileData.activities           || [],
+      genetic_results:     fileData.genetic_results      || [],
       conversations:        fileData.ai_conversations     || fileData.conversations || [],
     };
   }
@@ -241,6 +243,7 @@ function normalizeImportData(fileData) {
       todos:                fileData.todos                || [],
       cycles:               fileData.cycles               || [],
       activities:           fileData.activities           || [],
+      genetic_results:     fileData.genetic_results      || [],
       conversations:        fileData.conversations        || [],
     };
   }

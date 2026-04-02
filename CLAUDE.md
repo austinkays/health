@@ -69,7 +69,8 @@ health/
 │       ├── 011_drug_prices.sql                # Drug prices table for NADAC price snapshots
 │       ├── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
 │       ├── 015_cycles.sql                     # Cycle tracking: period, ovulation, symptom, fertility_marker entries with RLS
-│       └── 016_activities.sql                 # Activities/workouts table for Apple Health import with RLS
+│       ├── 016_activities.sql                 # Activities/workouts table for Apple Health import with RLS
+│       └── 017_genetic_results.sql            # Pharmacogenomic results table with RLS
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + time-aware ambiance CSS variables + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
@@ -79,7 +80,8 @@ health/
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
 │   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
 │   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods, EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS
-│   │   └── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (22 tools incl add/remove cycle), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
+│   │   ├── pgx.js                # Pharmacogenomic drug-gene lookup: PGX_GENES, PHENOTYPES, PGX_INTERACTIONS (~40 gene-drug pairs), findPgxMatches()
+│   │   └── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (27 tools incl add/remove cycle, todos, activity, genetic), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
 │   ├── services/
 │   │   ├── supabase.js           # Supabase client init (from VITE_SUPABASE_URL/ANON_KEY)
 │   │   ├── auth.js               # signIn (magic link), signOut, getSession, onAuthChange
@@ -120,7 +122,7 @@ health/
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
-│   │   └── sections/             # One file per app section (24 total)
+│   │   └── sections/             # One file per app section (25 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
@@ -142,6 +144,7 @@ health/
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
 │   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar view (period days=rose, fertile window=amber, ovulation=sage, predicted=dashed), stats card (current day, avg length, days until next), quick-log (tap calendar day), filter pills (all/period/symptom/ovulation/fertility), cycle phase detection (menstrual/follicular/ovulatory/luteal), predictions (next period, fertile window), Flo GDPR import with dedup, deep-link + highlight support
+│   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
 │   │       └── Settings.jsx      # Profile, Sage mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download + copyable prompt
@@ -177,6 +180,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `cycles` | date, type (period/ovulation/symptom/fertility_marker), value, symptom, notes | Menstrual cycle tracking; period flow levels, ovulation markers, cycle symptoms, fertility markers (BBT, cervical mucus, OPK) |
 | `todos` | title, notes, due_date (nullable), priority (low/medium/high/urgent), category (custom/medication/appointment/follow_up/insurance/lab), completed, completed_at, recurring (none/daily/weekly/monthly), related_id, related_table, source (manual/ai_suggested), dismissed | Health to-do items with optional due dates, priorities, and cross-references. Dashboard alerts for overdue/urgent items. |
 | `activities` | date, type, duration_minutes, distance, calories, heart_rate_avg, source, notes | Workout/exercise tracking from Apple Health import or manual entry. |
+| `genetic_results` | source, gene, variant, phenotype, affected_drugs (JSONB), category, notes | Pharmacogenomic test results (CYP450 metabolizer status, HLA variants). Drug-gene badges on medication cards. |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -199,7 +203,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 24 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 25 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -269,7 +273,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 12. **Appeal letter drafting** - generates professional appeal letters using patient health profile and appeal details
 13. **Medication cross-reactivity** - AI analysis of drug-class relationships when adding meds with known allergies (e.g., penicillin→cephalosporin)
 14. **Cost optimization** - web-search-powered analysis of medication costs with generic alternatives, PAPs, discount programs, and savings strategies
-15. **AI-powered data control** - natural language CRUD via Anthropic tool-use API in chat; 25 tools (add/update/remove medications, conditions, allergies, appointments, providers, todos; add vitals/journal/cycle entries/activities; remove cycle entries; update profile; search/list records); destructive actions require inline confirmation; tool execution cards show live status; 10-iteration agentic loop cap
+15. **AI-powered data control** - natural language CRUD via Anthropic tool-use API in chat; 26 tools (add/update/remove medications, conditions, allergies, appointments, providers, todos; add vitals/journal/cycle entries/activities/genetic results; remove cycle entries; update profile; search/list records); destructive actions require inline confirmation; tool execution cards show live status; 10-iteration agentic loop cap
 
 ### Vercel Configuration
 
@@ -403,7 +407,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 24 sections render without errors (including Auth screen)
+- [ ] All 25 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
 - [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
@@ -458,7 +462,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 24 sections reachable via Quick Access (6+ primary tiles, expandable up to all 18, + 5 in bottom nav)
+- [ ] All 25 sections reachable via Quick Access (6+ primary tiles, expandable up to all 19, + 5 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)
@@ -616,6 +620,7 @@ vercel --prod        # Deploy to production
 - [x] **Health To-Do's & Reminders** — Done. Full Todos.jsx section with CRUD, filter tabs, priority badges, due date countdown, complete toggle, recurring support. Dashboard integration (overdue/urgent alerts, due-soon timeline, Quick Access tile). AI tool-use (add/update/remove via Sage chat). Search integration. Active todos in AI profile context.
 - [x] **Cycle Tracker Completion** — Done. Shared `utils/cycles.js` with `getCyclePhaseForDate`, Vitals phase badges + chart overlay, Journal phase badges + mood-phase summary, AI cycle patterns feature, medication cycle awareness badges, Dashboard quick-log.
 - [x] **Apple Health Integration** — Done. XML import parser (`services/healthkit.js`) with chunked regex extraction, daily aggregation (HR, steps, sleep, weight, temp, glucose, BP pairing), workout parsing, FHIR R4 lab results. Import UI in Settings (`AppleHealthImport.jsx`) with progress bar, dedup preview, bulk insert. New `activities` table for workouts. New vitals types: steps, active_energy. Paste-from-clipboard for iOS Shortcut bridge. Full wiring: db, storage, search, AI tools, profile context. Remaining: iOS Shortcut artifact file, dedicated Dashboard activity card.
+- [x] **DNA / Pharmacogenomics Integration** — Done. New `genetic_results` table with RLS. Static drug-gene lookup (`constants/pgx.js`) with ~40 FDA/PharmGKB gene-drug pairs across 15 genes (CYP2D6, CYP2C19, CYP2C9, CYP3A4, VKORC1, HLA-B, SLCO1B1, DPYD, TPMT, NUDT15, UGT1A1, CYP1A2, CYP2B6, COMT, MTHFR). Genetics.jsx section with manual entry, auto-populated affected drugs, phenotype badges, clipboard paste import. PGx badges on medication cards (severity-colored: danger=rose, caution=amber, info=lavender). Dashboard drug-gene conflict alerts. Sage AI profile includes pharmacogenomics + drug-gene conflict flags. Full wiring: db, storage, search, AI tools, profile context.
 
 ## Roadmap — Amber's Top 5 Feature Requests (Easiest → Hardest)
 

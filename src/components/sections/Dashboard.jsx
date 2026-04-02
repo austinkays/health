@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare, Dna, Zap,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -18,6 +18,7 @@ import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { searchEntities, highlightMatch } from '../../utils/search.jsx';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
+import { findPgxMatches } from '../../constants/pgx';
 
 /* ── Rotating placeholder phrases ────────────────────────── */
 const SEARCH_PLACEHOLDERS = [
@@ -101,6 +102,7 @@ const ALL_LINKS = [
   { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       color: C.sage },
   { id: 'cycles',       label: 'Cycles',       icon: Heart,           color: C.rose },
   { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     color: C.lav },
+  { id: 'genetics',     label: 'Genetics',     icon: Dna,             color: C.lav },
   { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];
 
@@ -336,6 +338,13 @@ export default function Dashboard({ data, interactions, onNav }) {
     if (todoAlertCount > 0) {
       items.push({ id: 'todos', icon: CheckSquare, color: C.amber, text: `${todoAlertCount} To-do${todoAlertCount > 1 ? 's' : ''} need${todoAlertCount === 1 ? 's' : ''} attention`, nav: 'todos' });
     }
+    // Drug-gene conflicts
+    const pgxConflicts = (data.genetic_results || []).length > 0
+      ? activeMeds.filter(m => findPgxMatches(m.display_name || m.name, data.genetic_results).some(p => p.severity === 'danger' || p.severity === 'caution')).length
+      : 0;
+    if (pgxConflicts > 0) {
+      items.push({ id: 'pgx', icon: Zap, color: C.amber, text: `${pgxConflicts} medication${pgxConflicts > 1 ? 's' : ''} with gene interaction${pgxConflicts > 1 ? 's' : ''}`, nav: 'genetics' });
+    }
     // Late period alert from cycle data
     const cyclePeriods = (data.cycles || []).filter(c => c.type === 'period').map(c => c.date).sort();
     if (cyclePeriods.length >= 2) {
@@ -364,7 +373,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       }
     }
     return items;
-  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos]);
+  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, activeMeds]);
 
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);

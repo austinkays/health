@@ -468,6 +468,32 @@ export function buildProfile(data) {
     }
   }
 
+  // Pharmacogenomics
+  const genetics = data.genetic_results || [];
+  if (genetics.length) {
+    p += '\n\u2014 PHARMACOGENOMICS \u2014\n';
+    genetics.forEach(g => {
+      p += '- ' + san(g.gene) + ': ' + san(g.phenotype);
+      if (g.variant) p += ' (' + san(g.variant) + ')';
+      const drugs = g.affected_drugs || [];
+      if (drugs.length) p += ' \u2014 affects: ' + drugs.slice(0, 10).join(', ');
+      p += '\n';
+    });
+    // Flag conflicts with current meds
+    const activeMedNames = (data.meds || []).filter(m => m.active !== false).map(m => (m.display_name || m.name || '').toLowerCase());
+    const conflicts = [];
+    genetics.forEach(g => {
+      (g.affected_drugs || []).forEach(d => {
+        if (activeMedNames.some(mn => mn.includes(d) || d.includes(mn))) {
+          conflicts.push(`${d} (${g.gene} ${g.phenotype})`);
+        }
+      });
+    });
+    if (conflicts.length) {
+      p += 'DRUG-GENE CONFLICTS WITH CURRENT MEDS: ' + conflicts.join('; ') + '\n';
+    }
+  }
+
   // Recent activities / workouts
   const activities = (data.activities || []).filter(a => {
     if (!a.date) return false;

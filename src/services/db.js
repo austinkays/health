@@ -97,6 +97,7 @@ export const db = {
   todos: crud('todos', { orderBy: 'due_date', ascending: true }),
   cycles: crud('cycles', { orderBy: 'date', ascending: false }),
   activities: crud('activities', { orderBy: 'date', ascending: false }),
+  genetic_results: crud('genetic_results'),
 
   bulkAdd, // For large imports (Apple Health)
 
@@ -151,6 +152,7 @@ export const db = {
       db.todos.list(),
       db.cycles.list(),
       db.activities.list(),
+      db.genetic_results.list(),
     ]);
 
     const v = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
@@ -166,6 +168,7 @@ export const db = {
       todos: v(19, []),
       cycles: v(20, []),
       activities: v(21, []),
+      genetic_results: v(22, []),
     };
   },
 
@@ -180,7 +183,7 @@ export const db = {
       'vitals', 'appointments', 'journal_entries', 'ai_conversations',
       'labs', 'procedures', 'immunizations', 'care_gaps',
       'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',
-      'insurance_claims', 'drug_prices', 'todos', 'cycles', 'activities',
+      'insurance_claims', 'drug_prices', 'todos', 'cycles', 'activities', 'genetic_results',
     ];
 
     const errors = [];

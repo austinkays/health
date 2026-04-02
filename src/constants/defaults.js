@@ -112,6 +112,11 @@ export const WORKOUT_TYPES = [
   'Strength Training', 'Yoga', 'HIIT', 'Elliptical', 'Rowing', 'Other',
 ];
 
+export const EMPTY_GENETIC_RESULT = {
+  source: '', gene: '', variant: '', phenotype: '',
+  affected_drugs: [], category: 'pharmacogenomic', notes: '',
+};
+
 export const CYCLE_RELATED_KEYWORDS = [
   'birth control', 'contraceptive', 'oral contraceptive',
   'estrogen', 'progestin', 'progesterone', 'levonorgestrel',

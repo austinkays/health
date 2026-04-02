@@ -13,6 +13,7 @@ export default function useHealthData(session) {
     todos: [],
     cycles: [],
     activities: [],
+    genetic_results: [],
     settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
   });
   const [loading, setLoading] = useState(true);
@@ -138,6 +139,7 @@ function tableToKey(table) {
     todos: 'todos',
     cycles: 'cycles',
     activities: 'activities',
+    genetic_results: 'genetic_results',
   };
   return map[table] || table;
 }

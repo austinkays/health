@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart, Zap } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -13,6 +13,7 @@ import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { Building2 } from 'lucide-react';
 import { fetchCrossReactivity } from '../../services/ai';
+import { findPgxMatches } from '../../constants/pgx';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -567,13 +568,26 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 )}
                 {!isExpanded && (() => {
                   const cycleLabel = getCycleRelatedLabel(m);
-                  return cycleLabel ? (
+                  const pgxMatches = findPgxMatches(m.display_name || m.name, data.genetic_results);
+                  if (!cycleLabel && pgxMatches.length === 0) return null;
+                  return (
                     <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
-                        <Heart size={8} /> {cycleLabel}
-                      </span>
+                      {cycleLabel && (
+                        <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
+                          <Heart size={8} /> {cycleLabel}
+                        </span>
+                      )}
+                      {pgxMatches.map((pm, i) => (
+                        <span key={i} className={`inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full text-[9px] font-medium ${
+                          pm.severity === 'danger' ? 'bg-salve-rose/10 border border-salve-rose/20 text-salve-rose'
+                            : pm.severity === 'caution' ? 'bg-salve-amber/10 border border-salve-amber/20 text-salve-amber'
+                            : 'bg-salve-lav/10 border border-salve-lav/20 text-salve-lav'
+                        }`}>
+                          <Zap size={8} /> {pm.gene} {pm.phenotype.split(' ')[0]}
+                        </span>
+                      ))}
                     </div>
-                  ) : null;
+                  );
                 })()}
               </div>
               <div className="flex items-center gap-1 ml-2">
