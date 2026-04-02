@@ -84,7 +84,7 @@ export default async function handler(req, res) {
   }
 
   // Validate client-provided tools if present
-  if (clientTools != null && (!Array.isArray(clientTools) || clientTools.length > 20 ||
+  if (clientTools != null && (!Array.isArray(clientTools) || clientTools.length > 30 ||
       clientTools.some(t => typeof t.name !== 'string' || typeof t.input_schema !== 'object'))) {
     return res.status(400).json({ error: 'Invalid tools parameter' });
   }
