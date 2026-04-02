@@ -1124,7 +1124,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       <div className="mt-4 flex flex-col items-center gap-1.5">
         <AIProfilePreview data={data} />
         <button
-          onClick={() => setMode('chat')}
+          onClick={() => setMode('ask')}
           className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
         >
           Update your data via AI Chat →
