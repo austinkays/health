@@ -38,7 +38,7 @@ function CopyPromptButton() {
   );
 }
 
-export default function Settings({ data, updateSettings, updateItem, eraseAll, reloadData }) {
+export default function Settings({ data, updateSettings, updateItem, eraseAll, reloadData, onNav }) {
   const s = data.settings;
   const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
@@ -252,7 +252,15 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
         </Card>
       )}
 
-      <AIProfilePreview data={data} />
+      <div className="flex flex-col items-center gap-1.5 my-1">
+        <AIProfilePreview data={data} />
+        <button
+          onClick={() => onNav('ai')}
+          className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+        >
+          Want to make a change? Chat with AI →
+        </button>
+      </div>
 
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>

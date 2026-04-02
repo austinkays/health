@@ -222,7 +222,7 @@ function AppContent() {
       case 'journal':     return <Journal {...shared} />;
       case 'ai':          return <AIPanel {...shared} updateSettings={updateSettings} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
-      case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} eraseAll={eraseAll} reloadData={reloadData} />;
+      case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} eraseAll={eraseAll} reloadData={reloadData} onNav={onNav} />;
       // Comprehensive sections
       case 'labs':        return <Labs {...shared} />;
       case 'procedures':  return <Procedures {...shared} />;
