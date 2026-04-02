@@ -218,10 +218,10 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
         <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
       </Card>
 
-      <SectionTitle>AI Companion</SectionTitle>
+      <SectionTitle>Sage</SectionTitle>
       <Card>
         <Field
-          label="AI Mode"
+          label="Sage Mode"
           value={s.ai_mode || 'onDemand'}
           onChange={v => set('ai_mode', v)}
           options={[
@@ -240,7 +240,7 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield size={14} className="text-salve-sage" />
-              <span className="text-[13px] text-salve-textMid">AI data sharing enabled</span>
+              <span className="text-[13px] text-salve-textMid">Sage data sharing enabled</span>
             </div>
             <button
               onClick={() => { revokeAIConsent(); setAiConsent(false); }}

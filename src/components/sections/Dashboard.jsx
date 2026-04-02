@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -565,24 +565,24 @@ export default function Dashboard({ data, interactions, onNav }) {
       {hasAIConsent() && (insight || insightLoading) && (
         <section aria-label="Daily insight" className="dash-stagger dash-stagger-3 mb-4">
           {insightLoading ? (
-            <Card className="!bg-salve-lav/5 !border-salve-lav/15 shimmer-bg insight-glow">
+            <Card className="!bg-salve-sage/5 !border-salve-sage/15 shimmer-bg insight-glow">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={14} color={C.lavDim} />
-                <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
+                <Leaf size={14} className="text-salve-sageDim" />
+                <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
               </div>
               <div className="relative w-14 h-14 mx-auto mb-3 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border border-salve-lav/20 breathe-ring" />
-                <div className="absolute inset-2 rounded-full border border-salve-lav/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
-                <Sparkles size={18} className="breathe-icon text-salve-lavDim" />
+                <div className="absolute inset-0 rounded-full border border-salve-sage/20 breathe-ring" />
+                <div className="absolute inset-2 rounded-full border border-salve-sage/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
+                <Leaf size={18} className="breathe-icon text-salve-sageDim" />
               </div>
               <p className="text-[10px] text-salve-textFaint/50 font-montserrat tracking-widest uppercase mb-3 text-center">Breathe with me</p>
               <div key={wellness.key} className="wellness-msg text-[12px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
             </Card>
           ) : insight && (
-            <Card className="!bg-salve-lav/5 !border-salve-lav/15 insight-glow">
+            <Card className="!bg-salve-sage/5 !border-salve-sage/15 insight-glow">
               <div className="flex items-center gap-2 mb-2.5">
-                <Sparkles size={14} color={C.lav} />
-                <span className="text-xs text-salve-lavDim font-montserrat tracking-wide">DAILY INSIGHT</span>
+                <Leaf size={14} className="text-salve-sage" />
+                <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
               </div>
               <AIMarkdown compact>{insight}</AIMarkdown>
             </Card>

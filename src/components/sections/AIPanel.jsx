@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
@@ -75,7 +75,7 @@ function SaveInsightButton({ type, label, text, savedInsights }) {
 // Strip the AI disclaimer from markdown text for separate rendering
 function stripDisclaimer(text) {
   if (!text) return '';
-  return text.replace(/\n---\n\*AI suggestions are not medical advice\.[^*]*\*\s*$/, '').trim();
+  return text.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions are not medical advice\.[^*]*\*\s*$/, '').trim();
 }
 
 // Split markdown text into sections by ## headings or --- separators
@@ -141,7 +141,7 @@ function Disclaimer() {
     <div className="flex items-center justify-center gap-1.5 mt-4 pt-3 border-t border-salve-border/30">
       <Info size={10} className="text-salve-textFaint shrink-0" />
       <p className="text-[10px] text-salve-textFaint italic m-0 font-montserrat">
-        AI suggestions are not medical advice. Always consult your healthcare providers.
+        Sage's suggestions are not medical advice. Always consult your healthcare providers.
       </p>
     </div>
   );
@@ -587,14 +587,14 @@ function FeatureLoading({ ready, onReveal }) {
       <div className="relative w-24 h-24 mx-auto mb-6 flex items-center justify-center">
         <div className="absolute inset-0 rounded-full border border-salve-lav/30 breathe-ring" />
         <div className="absolute -inset-2 rounded-full border border-salve-lav/15 breathe-ring" style={{ animationDelay: '1.5s' }} />
-        <Sparkles size={30} className="breathe-icon text-salve-lav" />
+        <Leaf size={30} className="breathe-icon text-salve-sage" />
       </div>
       <p className="text-[11px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
       <div key={key} className="wellness-msg text-[13px] text-salve-textMid font-montserrat italic mb-5" role="status" aria-live="polite">{message}</div>
       <div className="relative h-10 flex items-center justify-center">
         <div className={`flex items-center justify-center gap-2 text-salve-textFaint/40 transition-opacity duration-1000 ${ready ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <Loader2 size={12} className="animate-spin" />
-          <span className="text-[10px] font-montserrat tracking-wider uppercase">Loading your insights</span>
+          <span className="text-[10px] font-montserrat tracking-wider uppercase">Sage is thinking</span>
         </div>
         {ready && (
           <button
@@ -602,8 +602,8 @@ function FeatureLoading({ ready, onReveal }) {
             className="absolute inset-0 m-auto w-fit inline-flex items-center gap-2 px-5 py-2.5 rounded-full border border-salve-lav/25 bg-salve-lav/8 text-salve-lav text-xs font-montserrat font-medium tracking-wide cursor-pointer transition-all duration-300 hover:bg-salve-lav/15 hover:border-salve-lav/40 ready-reveal"
             aria-label="View your insight"
           >
-            <Sparkles size={14} />
-            Your insight is ready
+            <Leaf size={14} />
+            Sage has your insight
           </button>
         )}
       </div>
@@ -614,9 +614,14 @@ function FeatureLoading({ ready, onReveal }) {
 function ChatThinking() {
   const { message, key } = useWellnessMessage();
   return (
-    <div className="self-start flex items-center gap-2 text-salve-textFaint text-xs">
-      <Loader2 size={14} className="animate-spin flex-shrink-0" />
-      <span key={key} className="wellness-msg italic" role="status" aria-live="polite">{message}</span>
+    <div className="self-start flex items-start gap-2 text-salve-textFaint text-xs">
+      <div className="w-5 h-5 rounded-full bg-salve-sage/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+        <Leaf size={11} className="text-salve-sage" />
+      </div>
+      <div className="flex flex-col gap-0.5">
+        <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
+        <span key={key} className="wellness-msg italic" role="status" aria-live="polite">{message}</span>
+      </div>
     </div>
   );
 }
@@ -957,7 +962,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     <AIConsentGate>
     <div className="mt-2">
       <SectionTitle action={<button onClick={() => { setMode(null); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
-        Ask Insight
+        Chat with Sage
       </SectionTitle>
       {chatMessages.length > 0 && (
         <div className="flex justify-end mb-2">
@@ -975,6 +980,12 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           }`}>
             {m.role === 'assistant' ? (
               <>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <div className="w-4 h-4 rounded-full bg-salve-sage/15 flex items-center justify-center flex-shrink-0">
+                    <Leaf size={9} className="text-salve-sage" />
+                  </div>
+                  <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
+                </div>
                 <AIMarkdown compact>{stripDisclaimer(m.content)}</AIMarkdown>
                 {m.toolExecutions?.length > 0 && (
                   <div className="mt-2 flex flex-col gap-1">
@@ -1006,7 +1017,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           value={chatInput}
           onChange={e => setChatInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
-          placeholder="Ask about your health..."
+          placeholder="Ask Sage about your health..."
         />
         <Button onClick={handleChat} disabled={!chatInput.trim() || loading} className="!px-3" aria-label="Send message">
           <Send size={16} />
@@ -1052,8 +1063,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     <AIConsentGate>
     <div className="mt-2">
       <div className="text-center mb-5">
-        <div className="text-3xl mb-2 opacity-60 text-salve-lav">✦</div>
-        <p className="text-[13px] text-salve-textFaint italic">AI-powered insights from the health data you've gathered.</p>
+        <div className="w-10 h-10 rounded-full bg-salve-sage/15 flex items-center justify-center mx-auto mb-2">
+          <Leaf size={20} className="text-salve-sage" />
+        </div>
+        <p className="text-[15px] font-playfair font-semibold text-salve-text mb-0.5">Hey, I'm Sage</p>
+        <p className="text-[13px] text-salve-textFaint italic">Your health companion, powered by your data.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -1071,7 +1085,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       </div>
 
       <Button variant="lavender" onClick={() => setMode('ask')} className="w-full justify-center">
-        <Send size={15} /> Ask a Question
+        <Send size={15} /> Chat with Sage
       </Button>
 
       {savedNews.length > 0 && (
@@ -1127,10 +1141,10 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           onClick={() => setMode('ask')}
           className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
         >
-          Update your data via AI Chat →
+          Update your data via Sage →
         </button>
       </div>
-      <p className="text-[10px] text-salve-textFaint italic text-center mt-3">AI suggestions are not medical advice. Always consult your healthcare providers.</p>
+      <p className="text-[10px] text-salve-textFaint italic text-center mt-3">Sage's suggestions are not medical advice. Always consult your healthcare providers.</p>
     </div>
     </AIConsentGate>
   );

@@ -584,7 +584,7 @@ vercel --prod        # Deploy to production
 
 ## To-Do
 
-- [ ] **Name the AI chatbot "Sage"** — Give the AI companion a personality. Sage = wise advisor + sage green accent color. Changes: chat greeting ("Hey, I'm Sage"), loading states ("Sage is thinking..."), wellness messages attributed to Sage, small leaf/sprig avatar in chat. Warm, gender-neutral, approachable.
+- [x] **Name the AI chatbot "Sage"** — Done. Leaf avatar, "Hey, I'm Sage" greeting, "Sage is thinking" loading, sage-green Daily Insight cards, BottomNav tab renamed, consent gate updated, disclaimers rebranded.
 - [ ] **Configure Google Sign In** — Button is wired up in Auth.jsx, needs Google Cloud Console OAuth credentials + Supabase provider config to work.
 
 ## Roadmap — Amber's Top 5 Feature Requests (Easiest → Hardest)

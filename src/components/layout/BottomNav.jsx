@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Home, Pill, Heart, Sparkles, BookOpen, Settings as SettingsIcon } from 'lucide-react';
+import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home },
   { id: 'meds', label: 'Meds', icon: Pill },
   { id: 'vitals', label: 'Vitals', icon: Heart },
-  { id: 'ai', label: 'Insight', icon: Sparkles },
+  { id: 'ai', label: 'Sage', icon: Leaf },
   { id: 'journal', label: 'Journal', icon: BookOpen },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];

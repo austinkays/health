@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, ExternalLink } from 'lucide-react';
+import { Shield, ExternalLink, Leaf } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 
@@ -31,12 +31,14 @@ export default function AIConsentGate({ children }) {
     <div className="mt-2">
       <Card className="!border-salve-lav/30">
         <div className="flex items-center gap-2 mb-3">
-          <Shield size={20} className="text-salve-lav" />
-          <h3 className="font-playfair text-base font-semibold text-salve-text m-0">Health Data & AI</h3>
+          <div className="w-7 h-7 rounded-full bg-salve-sage/15 flex items-center justify-center flex-shrink-0">
+            <Leaf size={15} className="text-salve-sage" />
+          </div>
+          <h3 className="font-playfair text-base font-semibold text-salve-text m-0">Meet Sage</h3>
         </div>
 
         <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
-          Salve's AI features send parts of your health profile to <strong className="text-salve-text">Anthropic</strong> (a third-party AI provider) to generate personalized insights. This may include:
+          Sage is your health companion. To generate personalized insights, Sage sends parts of your health profile to <strong className="text-salve-text">Anthropic</strong> (a third-party AI provider). This may include:
         </p>
 
         <ul className="text-[13px] text-salve-textMid leading-relaxed mb-3 list-disc pl-4 space-y-1">
@@ -52,12 +54,12 @@ export default function AIConsentGate({ children }) {
 
         <div className="flex gap-2">
           <Button variant="lavender" onClick={grant} className="flex-1 justify-center">
-            I Understand — Enable AI
+            I Understand — Enable Sage
           </Button>
         </div>
 
         <p className="text-[10px] text-salve-textFaint italic text-center mt-3 leading-relaxed">
-          AI suggestions are not medical advice. Always consult your healthcare providers.
+          Sage's suggestions are not medical advice. Always consult your healthcare providers.
         </p>
       </Card>
     </div>
