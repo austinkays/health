@@ -77,7 +77,7 @@ export default function AIProfilePreview({ data }) {
         className="group relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium font-montserrat cursor-pointer transition-all duration-200 bg-transparent border border-salve-sage/40 text-salve-sage hover:border-salve-sage hover:shadow-[0_0_12px_rgba(143,191,160,0.15)]"
       >
         <Eye size={12} strokeWidth={2} />
-        <span>What AI Sees</span>
+        <span>What Sage Sees</span>
         <span className="text-salve-textFaint">· {dataPoints}</span>
       </button>
 
@@ -96,7 +96,7 @@ export default function AIProfilePreview({ data }) {
             <div className="flex items-center justify-between px-5 py-4 border-b border-salve-border/50 flex-shrink-0">
               <div className="flex items-center gap-2.5">
                 <Eye size={15} className="text-salve-sage" />
-                <span className="text-[14px] font-semibold text-salve-text font-montserrat">What AI Sees</span>
+                <span className="text-[14px] font-semibold text-salve-text font-montserrat">What Sage Sees</span>
                 <span className="text-[11px] text-salve-textFaint font-montserrat rounded-full bg-salve-card2 px-2 py-0.5">{dataPoints} data points</span>
               </div>
               <button

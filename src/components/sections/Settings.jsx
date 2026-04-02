@@ -231,7 +231,7 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
           ]}
         />
         <p className="text-xs text-salve-textFaint italic leading-relaxed mt-1">
-          AI features use your health profile for personalized insights.
+          Sage uses your health profile for personalized insights.
         </p>
       </Card>
 
@@ -258,7 +258,7 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
           onClick={() => onNav('ai')}
           className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
         >
-          Want to make a change? Chat with AI →
+          Want to make a change? Chat with Sage →
         </button>
       </div>
 
@@ -307,7 +307,7 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
       <SectionTitle>Health Background</SectionTitle>
       <Card>
         <p className="text-xs text-salve-textMid mb-2.5 leading-relaxed italic">
-          Add context about your health history. This gets included when AI features analyze your profile.
+          Add context about your health history. Sage includes this when analyzing your profile.
         </p>
         <Field
           label="Background & Context"
