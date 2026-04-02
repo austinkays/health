@@ -128,7 +128,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             disabled={patternsLoading}
             className="!text-xs w-full !justify-center"
           >
-            {patternsLoading ? <><Loader size={13} className="animate-spin" /> Finding patterns...</> : <><Sparkles size={13} /> Analyze Patterns with AI</>}
+            {patternsLoading ? <><Loader size={13} className="animate-spin" /> Finding patterns...</> : <><Sparkles size={13} /> Analyze Patterns with Sage</>}
           </Button>
           {patternsAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">

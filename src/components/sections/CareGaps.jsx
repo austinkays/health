@@ -116,13 +116,13 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
             disabled={aiLoading}
             className="!text-xs w-full !justify-center"
           >
-            {aiLoading ? <><Loader size={13} className="animate-spin" /> Analyzing your profile...</> : <><Sparkles size={13} /> Suggest Care Gaps with AI</>}
+            {aiLoading ? <><Loader size={13} className="animate-spin" /> Analyzing your profile...</> : <><Sparkles size={13} /> Suggest Care Gaps with Sage</>}
           </Button>
           {aiSuggestions && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> AI Suggestions</div>
-                <button onClick={() => setAiSuggestions(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss AI suggestions">×</button>
+                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Suggestions</div>
+                <button onClick={() => setAiSuggestions(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss Sage suggestions">×</button>
               </div>
               <AIMarkdown>{aiSuggestions}</AIMarkdown>
             </Card>

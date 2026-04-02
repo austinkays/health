@@ -468,5 +468,19 @@ export function buildProfile(data) {
     }
   }
 
+  // Active to-dos
+  const todos = (data.todos || []).filter(t => !t.completed);
+  if (todos.length) {
+    p += '\n— ACTIVE TO-DO ITEMS —\n';
+    todos.forEach(t => {
+      p += '- ' + san(t.title);
+      if (t.priority && t.priority !== 'low') p += ' [' + t.priority + ']';
+      if (t.due_date) p += ' due ' + t.due_date;
+      if (t.category && t.category !== 'custom') p += ' (' + t.category + ')';
+      if (t.notes) p += ' — ' + san(t.notes, 200);
+      p += '\n';
+    });
+  }
+
   return p;
 }

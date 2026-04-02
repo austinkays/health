@@ -327,7 +327,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
             >
               {crossReactLoading ? <Loader size={11} className="animate-spin" /> : <Sparkles size={11} />}
-              {crossReactLoading ? 'Checking cross-reactivity...' : 'Check AI cross-reactivity with allergies'}
+              {crossReactLoading ? 'Checking cross-reactivity...' : 'Check cross-reactivity with Sage'}
             </button>
             {crossReactAI && (
               <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">

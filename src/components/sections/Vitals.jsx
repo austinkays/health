@@ -227,7 +227,7 @@ export default function Vitals({ data, addItem, removeItem }) {
             disabled={trendLoading}
             className="!text-xs w-full !justify-center"
           >
-            {trendLoading ? <><Loader size={13} className="animate-spin" /> Analyzing trends...</> : <><TrendingUp size={13} /> Analyze Trends with AI</>}
+            {trendLoading ? <><Loader size={13} className="animate-spin" /> Analyzing trends...</> : <><TrendingUp size={13} /> Analyze Trends with Sage</>}
           </Button>
           {trendAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">

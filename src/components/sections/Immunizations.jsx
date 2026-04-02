@@ -86,7 +86,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem, h
             disabled={scheduleLoading}
             className="!text-xs w-full !justify-center"
           >
-            {scheduleLoading ? <><Loader size={13} className="animate-spin" /> Reviewing schedule...</> : <><Sparkles size={13} /> Review Schedule with AI</>}
+            {scheduleLoading ? <><Loader size={13} className="animate-spin" /> Reviewing schedule...</> : <><Sparkles size={13} /> Review Schedule with Sage</>}
           </Button>
           {scheduleAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
