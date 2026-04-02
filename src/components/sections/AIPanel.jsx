@@ -188,7 +188,9 @@ function SavedInsightsSection({ savedInsights }) {
                 {isExpanded ? (
                   <AIMarkdown compact>{s.text}</AIMarkdown>
                 ) : (
-                  <div className="text-[12px] text-salve-textMid leading-relaxed font-montserrat">{s.text.slice(0, 200)}{isLong ? '...' : ''}</div>
+                  <div className="text-[12px] text-salve-textMid leading-relaxed font-montserrat line-clamp-3">
+                    {s.text.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/\*/g, '').replace(/^- /gm, '').replace(/^\d+\.\s/gm, '').slice(0, 250)}
+                  </div>
                 )}
                 <div className="flex items-center justify-between mt-1.5">
                   <div className="text-[9px] text-salve-textFaint">Saved {new Date(s.savedAt).toLocaleDateString()}</div>
