@@ -231,11 +231,11 @@ export default function AIProfilePreview({ data }) {
 
       {/* Slide-up panel */}
       {open && (
-        <div className="fixed inset-0 z-[100] flex flex-col items-center" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-[100] flex items-end justify-center" onClick={() => setOpen(false)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
           <div
-            className="relative mt-auto w-full max-w-[480px] max-h-[80vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
+            className="relative w-full max-w-[480px] max-h-[88vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
