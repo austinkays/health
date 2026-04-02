@@ -235,7 +235,7 @@ export default function AIProfilePreview({ data }) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
           <div
-            className="relative mt-auto w-full max-w-[480px] max-h-[85vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
+            className="relative mt-auto w-full max-w-[480px] max-h-[80vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
@@ -257,7 +257,7 @@ export default function AIProfilePreview({ data }) {
             </div>
 
             {/* Content */}
-            <div className="overflow-y-auto flex-1 px-5 py-4 overscroll-contain">
+            <div className="overflow-y-auto flex-1 px-5 pt-4 pb-8 overscroll-contain">
               <p className="text-[11px] text-salve-textFaint italic mb-1.5 leading-relaxed">
                 A summary of the health data Sage uses to personalize your insights.
               </p>
@@ -310,6 +310,7 @@ function Section({ section, defaultOpen }) {
         <div className="pb-2 ml-[10px] pl-3 border-l border-salve-border/30">
           {items.map((item, j) => (
             <div key={j} className="flex items-baseline gap-2 py-[3px]">
+              <div className="w-1 h-1 rounded-full flex-shrink-0 mt-[6px]" style={{ backgroundColor: color }} />
               <span className="text-[12px] text-salve-textMid leading-snug">{item.text}</span>
               {item.badge && (
                 <span
@@ -319,7 +320,7 @@ function Section({ section, defaultOpen }) {
                   {item.badge}
                 </span>
               )}
-              {item.detail && !item.badge && (
+              {item.detail && (
                 <span className="text-[10px] text-salve-textFaint flex-shrink-0 whitespace-nowrap">{item.detail}</span>
               )}
             </div>
