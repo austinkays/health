@@ -7,8 +7,9 @@ import { detectAppleHealthFormat, detectAppleHealthJSON, parseAppleHealthExport,
 import { db } from '../../services/db';
 
 export default function AppleHealthImport({ data, reloadData }) {
-  const [stage, setStage] = useState('idle'); // idle, parsing, preview, importing, done, error
+  const [stage, setStage] = useState('idle'); // idle, parsing, preview, importing, done, error, paste
   const [progress, setProgress] = useState(0);
+  const [pasteText, setPasteText] = useState('');
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
@@ -73,13 +74,13 @@ export default function AppleHealthImport({ data, reloadData }) {
     }
   };
 
-  /* ── Paste from clipboard (iOS Shortcut) ────────────── */
-  const handlePaste = async () => {
+  /* ── Paste from textarea (iOS Shortcut) ─────────────── */
+  const processPaste = () => {
+    if (!pasteText.trim()) return;
     try {
-      const text = await navigator.clipboard.readText();
-      const parsed = JSON.parse(text);
+      const parsed = JSON.parse(pasteText.trim());
       if (!detectAppleHealthJSON(parsed)) {
-        throw new Error('Clipboard data is not from the Salve Health Shortcut.');
+        throw new Error('Data is not from the Salve Health Shortcut. Expected { _source: "salve-healthkit-shortcut" }');
       }
 
       const newVitals = deduplicateAgainst(parsed.vitals || [], data.vitals || [], DEDUP_KEYS.vitals);
@@ -95,9 +96,10 @@ export default function AppleHealthImport({ data, reloadData }) {
         },
         data: { vitals: newVitals, labs: [], activities: newActivities },
       });
+      setPasteText('');
       setStage('preview');
     } catch (err) {
-      setError(err.message || 'Could not read clipboard data');
+      setError(err.message || 'Could not parse data');
       setStage('error');
     }
   };
@@ -247,6 +249,31 @@ export default function AppleHealthImport({ data, reloadData }) {
     );
   }
 
+  // Paste state — textarea for iOS Shortcut data
+  if (stage === 'paste') {
+    return (
+      <Card>
+        <p className="text-[13px] text-salve-text font-medium leading-relaxed mb-2">Paste from iOS Shortcut</p>
+        <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
+          Run the Salve Health Shortcut on your iPhone, then paste the output below.
+        </p>
+        <textarea
+          value={pasteText}
+          onChange={e => setPasteText(e.target.value)}
+          placeholder="Paste JSON data here..."
+          className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2 text-[12px] text-salve-text font-montserrat outline-none focus:border-salve-sage placeholder:text-salve-textFaint resize-y min-h-[80px]"
+          rows={4}
+        />
+        <div className="flex gap-2 mt-2">
+          <Button variant="lavender" onClick={processPaste} className="flex-1 justify-center" disabled={!pasteText.trim()}>
+            Import
+          </Button>
+          <button onClick={reset} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat hover:text-salve-text px-2">Cancel</button>
+        </div>
+      </Card>
+    );
+  }
+
   // Idle state — file picker + paste button
   return (
     <Card>
@@ -275,7 +302,7 @@ export default function AppleHealthImport({ data, reloadData }) {
       </Button>
 
       <button
-        onClick={handlePaste}
+        onClick={() => setStage('paste')}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium font-montserrat cursor-pointer transition-colors bg-salve-card2 border border-salve-border text-salve-textMid hover:border-salve-sage/40 hover:text-salve-sage"
       >
         <Clipboard size={13} /> Paste from iOS Shortcut

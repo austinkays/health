@@ -53,6 +53,8 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [pasteError, setPasteError] = useState('');
+  const [showPaste, setShowPaste] = useState(false);
+  const [pasteText, setPasteText] = useState('');
   const [explanations, setExplanations] = useState({});
   const [explainLoading, setExplainLoading] = useState(null);
   const del = useConfirmDelete();
@@ -119,13 +121,13 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
     setSubView('form');
   };
 
-  // Paste import
-  const handlePaste = async () => {
+  // Paste import — processes JSON from the textarea
+  const processPaste = async () => {
     setPasteError('');
+    if (!pasteText.trim()) return;
     try {
-      const text = await navigator.clipboard.readText();
-      const results = JSON.parse(text);
-      if (!Array.isArray(results)) throw new Error('Expected a JSON array');
+      const results = JSON.parse(pasteText.trim());
+      if (!Array.isArray(results)) throw new Error('Expected a JSON array of results');
       let added = 0;
       for (const r of results) {
         if (!r.gene) continue;
@@ -142,8 +144,10 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
         added++;
       }
       setPasteError(`Imported ${added} result${added !== 1 ? 's' : ''}`);
+      setPasteText('');
+      setShowPaste(false);
     } catch (err) {
-      setPasteError(err.message || 'Could not parse clipboard data');
+      setPasteError(err.message || 'Could not parse data. Expected JSON array.');
     }
   };
 
@@ -203,9 +207,11 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
         <SectionTitle>Genetics</SectionTitle>
         <div className="flex gap-1.5">
           <button
-            onClick={handlePaste}
-            className="flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-medium font-montserrat cursor-pointer transition-colors bg-salve-card2 border border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav"
-            aria-label="Paste genetic results from clipboard"
+            onClick={() => setShowPaste(!showPaste)}
+            className={`flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-medium font-montserrat cursor-pointer transition-colors border ${
+              showPaste ? 'bg-salve-lav/10 border-salve-lav/30 text-salve-lav' : 'bg-salve-card2 border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav'
+            }`}
+            aria-label="Paste genetic results"
           >
             <Clipboard size={12} /> Paste
           </button>
@@ -218,6 +224,27 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
       {pasteError && (
         <div className={`text-xs font-montserrat mb-2.5 px-3 py-2 rounded-lg ${pasteError.startsWith('Imported') ? 'bg-salve-sage/10 text-salve-sage' : 'bg-salve-rose/10 text-salve-rose'}`}>
           {pasteError}
+        </div>
+      )}
+
+      {showPaste && (
+        <div className="mb-3 rounded-xl border border-salve-lav/20 bg-salve-card p-3">
+          <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
+            Paste a JSON array of results. Format: <code className="text-salve-lav bg-salve-lav/10 px-1 rounded text-[10px]">[{`{"gene":"CYP2D6","phenotype":"poor metabolizer","variant":"*4/*4","source":"genomind"}`}]</code>
+          </p>
+          <textarea
+            value={pasteText}
+            onChange={e => setPasteText(e.target.value)}
+            placeholder='Paste JSON here...'
+            className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2 text-[12px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint resize-y min-h-[60px]"
+            rows={3}
+          />
+          <div className="flex gap-2 mt-2">
+            <Button variant="lavender" onClick={processPaste} className="!py-1.5 !px-3 !text-xs" disabled={!pasteText.trim()}>
+              Import
+            </Button>
+            <button onClick={() => { setShowPaste(false); setPasteText(''); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat hover:text-salve-text">Cancel</button>
+          </div>
         </div>
       )}
 
