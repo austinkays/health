@@ -324,12 +324,12 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
           <p className="text-[13px] text-salve-text font-medium leading-relaxed">
             Sync health records from your connected providers directly into Salve using Claude.
           </p>
-          <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal list-inside">
+          <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal pl-5">
             <li>Download the sync artifact below</li>
-            <li>Open <strong className="text-salve-text">Claude.ai</strong> and start a new conversation</li>
-            <li>Attach the file <strong className="text-salve-text">and</strong> paste the prompt (copy it below)</li>
-            <li>Claude will render an interactive sync tool — click <strong className="text-salve-text">"Pull Health Records"</strong></li>
-            <li>Download the sync file, then import it below in <strong className="text-salve-text">Data Management</strong></li>
+            <li>Open <strong className="text-salve-text">Claude.ai</strong>, start a new conversation</li>
+            <li>Attach the file and paste the prompt below</li>
+            <li>Click <strong className="text-salve-text">"Pull Health Records"</strong> in the rendered tool</li>
+            <li>Download the sync file, import it in <strong className="text-salve-text">Data&nbsp;Management</strong></li>
           </ol>
         </div>
         <a
