@@ -65,6 +65,9 @@ RULES:
   crossReactivity:
     'You are a pharmacology specialist. A patient is adding a new medication and has known allergies. Analyze whether there is cross-reactivity risk between the medication and their allergies. Consider: drug class relationships (e.g., penicillin–cephalosporin), chemical structure similarities, known cross-sensitivity rates, and severity of the documented allergy. Be specific: state the cross-reactivity risk percentage if known, and clearly recommend whether to proceed with caution, avoid, or if the risk is negligible. Be concise (3-4 sentences). Do not be alarmist but prioritize safety.',
 
+  geneticExplanation:
+    'You are a genetic counselor explaining pharmacogenomic test results to a patient in plain, friendly language. Given the gene name, variant, phenotype (metabolizer status), and their current medications, explain: (1) What this gene does in 1 simple sentence — avoid jargon, use analogies like "your body processes this drug faster/slower than most people". (2) What their specific result means for them personally — reference their actual medications if any are affected. (3) One clear, actionable takeaway they can discuss with their doctor. Keep it warm, reassuring, and under 150 words. Use "you/your" language. Do NOT use medical jargon without explaining it. Start with a brief reassuring statement. End with a reminder to discuss with their healthcare provider.',
+
   costOptimization:
     'You are a medication cost specialist. Given this patient\'s health profile with NADAC wholesale drug prices, analyze their medication costs and provide actionable suggestions. Consider: generic alternatives for brand-name drugs, therapeutic substitutes that may be cheaper, patient assistance programs (PAPs) from manufacturers, pharmacy discount cards (GoodRx, RxSaver, Cost Plus Drugs), 90-day supply savings, mail-order pharmacy options, state prescription assistance programs, and manufacturer savings cards/coupons. For each suggestion, be specific: name the program, estimate potential savings, and note any eligibility requirements. Organize by medication. Be warm and practical. End with total potential monthly savings estimate.',
 };
@@ -292,6 +295,19 @@ IMPORTANT: You are not a doctor. Include the disclaimer: "This analysis is based
 
 Patient cycle data:
 ${cycleProfileText}`
+  );
+}
+
+export async function fetchGeneticExplanation(gene, variant, phenotype, affectedDrugs, currentMedNames) {
+  const medContext = currentMedNames.length > 0
+    ? `The patient currently takes: ${currentMedNames.join(', ')}. Some of these may be affected.`
+    : 'The patient has no current medications that match the affected drug list.';
+  const drugList = affectedDrugs.length > 0 ? `Affected drugs for this gene/phenotype: ${affectedDrugs.join(', ')}.` : '';
+
+  return callAPI(
+    [{ role: 'user', content: `Explain my ${gene} result: variant ${variant || 'unknown'}, phenotype: ${phenotype}. ${drugList} ${medContext}` }],
+    PROMPTS.geneticExplanation,
+    800
   );
 }
 

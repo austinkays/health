@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Dna, ChevronDown, Clipboard, Zap } from 'lucide-react';
+import { Plus, Dna, ChevronDown, Clipboard, Zap, Leaf, Loader2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,9 @@ import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_GENETIC_RESULT } from '../../constants/defaults';
 import { PGX_GENES, PHENOTYPES, PGX_SOURCES, PGX_INTERACTIONS } from '../../constants/pgx';
+import { fetchGeneticExplanation } from '../../services/ai';
+import { hasAIConsent } from '../ui/AIConsentGate';
+import AIMarkdown from '../ui/AIMarkdown';
 
 /* ── Helpers ────────────────────────────────────────────── */
 
@@ -50,6 +53,8 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const [pasteError, setPasteError] = useState('');
+  const [explanations, setExplanations] = useState({});
+  const [explainLoading, setExplainLoading] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -60,6 +65,25 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
       setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
     }
   }, [highlightId]);
+
+  // Sage explanation for a genetic result
+  const explainResult = async (g) => {
+    if (explanations[g.id]) return; // already have it
+    setExplainLoading(g.id);
+    try {
+      const currentMedNames = (data.meds || [])
+        .filter(m => m.active !== false)
+        .map(m => m.display_name || m.name);
+      const result = await fetchGeneticExplanation(
+        g.gene, g.variant, g.phenotype, g.affected_drugs || [], currentMedNames
+      );
+      const text = result?.content?.[0]?.text || result?.text || '';
+      setExplanations(prev => ({ ...prev, [g.id]: text }));
+    } catch {
+      setExplanations(prev => ({ ...prev, [g.id]: 'Unable to generate explanation. Try again later.' }));
+    }
+    setExplainLoading(null);
+  };
 
   // Auto-populate affected drugs when gene/phenotype changes
   useEffect(() => {
@@ -276,6 +300,36 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
                         {medMatches.length > 0 && (
                           <div className="text-[10px] text-salve-amber mt-1 italic">
                             Highlighted drugs match your current medications
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Sage explanation */}
+                    {hasAIConsent() && (
+                      <div className="mt-2">
+                        {!explanations[g.id] && explainLoading !== g.id && (
+                          <button
+                            onClick={() => explainResult(g)}
+                            className="flex items-center gap-1.5 bg-salve-sage/10 border border-salve-sage/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-sage/20 transition-colors"
+                          >
+                            <Leaf size={12} className="text-salve-sage" />
+                            <span className="text-[11px] text-salve-sage font-montserrat font-medium">What does this mean for me?</span>
+                          </button>
+                        )}
+                        {explainLoading === g.id && (
+                          <div className="flex items-center gap-2 py-2">
+                            <Loader2 size={13} className="animate-spin text-salve-sage" />
+                            <span className="text-[11px] text-salve-textFaint italic font-montserrat">Sage is analyzing your result...</span>
+                          </div>
+                        )}
+                        {explanations[g.id] && (
+                          <div className="rounded-lg bg-salve-sage/5 border border-salve-sage/15 p-3 mt-1">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <Leaf size={11} className="text-salve-sage" />
+                              <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">SAGE</span>
+                            </div>
+                            <AIMarkdown compact>{explanations[g.id]}</AIMarkdown>
                           </div>
                         )}
                       </div>
