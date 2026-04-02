@@ -326,6 +326,23 @@ export const HEALTH_TOOLS = [
     },
   },
   {
+    name: 'add_activity',
+    description: 'Log a workout or physical activity.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        date: { type: 'string', description: 'Activity date (YYYY-MM-DD)' },
+        type: { type: 'string', description: 'Activity type (e.g., Running, Walking, Yoga, Cycling, Swimming, Strength Training)' },
+        duration_minutes: { type: 'number', description: 'Duration in minutes' },
+        distance: { type: 'number', description: 'Distance in km (optional)' },
+        calories: { type: 'number', description: 'Calories burned (optional)' },
+        heart_rate_avg: { type: 'number', description: 'Average heart rate during activity (optional)' },
+        notes: { type: 'string', description: 'Additional notes' },
+      },
+      required: ['type'],
+    },
+  },
+  {
     name: 'update_settings',
     description: 'Update the patient\'s profile settings.',
     input_schema: {
@@ -350,7 +367,7 @@ export const HEALTH_TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search text to match against record fields' },
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles'], description: 'Optional: limit search to a specific table' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles', 'activities'], description: 'Optional: limit search to a specific table' },
       },
       required: ['query'],
     },
@@ -361,7 +378,7 @@ export const HEALTH_TOOLS = [
     input_schema: {
       type: 'object',
       properties: {
-        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles'], description: 'Table to list records from' },
+        table: { type: 'string', enum: ['meds', 'conditions', 'providers', 'allergies', 'pharmacies', 'appts', 'journal', 'labs', 'procedures', 'immunizations', 'care_gaps', 'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance', 'insurance_claims', 'drug_prices', 'todos', 'vitals', 'cycles', 'activities'], description: 'Table to list records from' },
       },
       required: ['table'],
     },
@@ -402,6 +419,7 @@ export const TOOL_TABLE_MAP = {
   add_todo:            { table: 'todos', operation: 'add' },
   update_todo:         { table: 'todos', operation: 'update' },
   remove_todo:         { table: 'todos', operation: 'remove' },
+  add_activity:        { table: 'activities', operation: 'add' },
   update_settings:     { table: 'profile', operation: 'update' },
   search_records:      { table: null, operation: 'search' },
   list_records:        { table: null, operation: 'list' },
@@ -418,4 +436,5 @@ export const RECORD_SUMMARIES = {
   journal:       r => r.title || 'journal entry',
   cycles:        r => `${r.type}: ${r.value || r.symptom || ''}`.trim() + (r.date ? ` (${r.date})` : ''),
   todos:         r => r.title || 'to-do',
+  activities:    r => `${r.type || 'Activity'}${r.duration_minutes ? ` (${r.duration_minutes} min)` : ''}`,
 };

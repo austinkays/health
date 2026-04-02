@@ -7,6 +7,7 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import AIProfilePreview from '../ui/AIProfilePreview';
+import AppleHealthImport from '../ui/AppleHealthImport';
 
 const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
 
@@ -347,6 +348,9 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
         </a>
         <CopyPromptButton />
       </Card>
+
+      <SectionTitle>Apple Health</SectionTitle>
+      <AppleHealthImport data={data} reloadData={reloadData} />
 
       <SectionTitle
         action={

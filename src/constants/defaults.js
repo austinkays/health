@@ -58,6 +58,8 @@ export const VITAL_TYPES = [
   { id: 'weight', label: 'Weight', unit: 'lbs' },
   { id: 'temp', label: 'Temperature', unit: '°F', normalLow: 97.0, normalHigh: 99.5 },
   { id: 'glucose', label: 'Blood Sugar', unit: 'mg/dL', normalLow: 70, normalHigh: 140 },
+  { id: 'steps', label: 'Steps', unit: 'steps', min: 0 },
+  { id: 'active_energy', label: 'Active Energy', unit: 'kcal', min: 0 },
 ];
 
 // Mood options for journal entries
@@ -99,6 +101,16 @@ export const EMPTY_TODO = {
   recurring: 'none', related_id: null,
   related_table: '', source: 'manual', dismissed: false,
 };
+
+export const EMPTY_ACTIVITY = {
+  date: '', type: '', duration_minutes: '', distance: '',
+  calories: '', heart_rate_avg: '', source: 'manual', notes: '',
+};
+
+export const WORKOUT_TYPES = [
+  'Running', 'Walking', 'Cycling', 'Swimming', 'Hiking',
+  'Strength Training', 'Yoga', 'HIIT', 'Elliptical', 'Rowing', 'Other',
+];
 
 export const CYCLE_RELATED_KEYWORDS = [
   'birth control', 'contraceptive', 'oral contraceptive',

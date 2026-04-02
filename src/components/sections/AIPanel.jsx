@@ -636,6 +636,7 @@ const TOOL_LABELS = {
   add_provider: 'Add provider', update_provider: 'Update provider', remove_provider: 'Remove provider',
   add_vital: 'Log vital', add_journal_entry: 'Add journal entry', update_settings: 'Update profile',
   add_todo: 'Add to-do', update_todo: 'Update to-do', remove_todo: 'Remove to-do',
+  add_activity: 'Log activity',
   search_records: 'Search records', list_records: 'List records',
 };
 

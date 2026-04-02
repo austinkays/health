@@ -168,6 +168,16 @@ export const ENTITY_CONFIG = {
     secondary: v => v.date || '',
     idField: 'id',
   },
+  activities: {
+    label: 'Activities',
+    icon: Activity,
+    color: C.sage,
+    tab: 'vitals',
+    fields: ['type', 'notes', 'date', 'source'],
+    primary: a => a.type || 'Activity',
+    secondary: a => [a.duration_minutes ? `${a.duration_minutes} min` : '', a.date].filter(Boolean).join(' · '),
+    idField: 'id',
+  },
   todos: {
     label: "To-Do's",
     icon: CheckSquare,
@@ -207,7 +217,7 @@ export const FILTER_TABS = [
 export const MORE_CATEGORIES = [
   'allergies', 'procedures', 'immunizations', 'care_gaps',
   'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning',
-  'insurance', 'vitals', 'cycles', 'todos',
+  'insurance', 'vitals', 'cycles', 'todos', 'activities',
 ];
 
 /* ── Helpers ─────────────────────────────────────────────── */

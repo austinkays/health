@@ -468,6 +468,23 @@ export function buildProfile(data) {
     }
   }
 
+  // Recent activities / workouts
+  const activities = (data.activities || []).filter(a => {
+    if (!a.date) return false;
+    const d = new Date(a.date + 'T00:00:00');
+    return d >= new Date(Date.now() - 30 * 86400000);
+  });
+  if (activities.length) {
+    p += '\n— RECENT ACTIVITIES (30 days) —\n';
+    p += `Total workouts: ${activities.length}\n`;
+    const types = {};
+    activities.forEach(a => { types[a.type] = (types[a.type] || 0) + 1; });
+    const topTypes = Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    p += 'Most common: ' + topTypes.map(([t, c]) => `${t} (${c}x)`).join(', ') + '\n';
+    const avgDur = activities.filter(a => a.duration_minutes).reduce((s, a) => s + Number(a.duration_minutes), 0) / activities.filter(a => a.duration_minutes).length;
+    if (avgDur) p += `Avg duration: ${Math.round(avgDur)} min\n`;
+  }
+
   // Active to-dos
   const todos = (data.todos || []).filter(t => !t.completed);
   if (todos.length) {

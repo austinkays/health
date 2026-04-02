@@ -68,7 +68,8 @@ health/
 │       ├── 010_appointment_video_url.sql      # Add video_call_url to appointments for telehealth
 │       ├── 011_drug_prices.sql                # Drug prices table for NADAC price snapshots
 │       ├── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
-│       └── 015_cycles.sql                     # Cycle tracking: period, ovulation, symptom, fertility_marker entries with RLS
+│       ├── 015_cycles.sql                     # Cycle tracking: period, ovulation, symptom, fertility_marker entries with RLS
+│       └── 016_activities.sql                 # Activities/workouts table for Apple Health import with RLS
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + time-aware ambiance CSS variables + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
@@ -92,6 +93,7 @@ health/
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
+│   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, daily aggregation (HR/steps/sleep/BP pairing), workout + FHIR lab parsing, deduplicateAgainst()
 │   │   └── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
@@ -113,6 +115,7 @@ health/
 │   │   │   ├── AIMarkdown.jsx     # Markdown renderer for AI responses (react-markdown, auto-linkifies bare URLs); `reveal` prop wraps output in `.ai-prose-reveal` for paragraph-by-paragraph stagger animation
 │   │   │   ├── AIProfilePreview.jsx # "What AI Sees" pill button + full-screen slide-up panel
 │   │   │   ├── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
+│   │   │   ├── AppleHealthImport.jsx # Apple Health import UI: file picker (.xml/.zip), progress bar, dedup preview, bulk insert, clipboard paste for iOS Shortcut
 │   │   │   └── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook); celebration sparkle burst on success toasts (CelebrationBurst component with 6 radial Sparkles particles)
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
@@ -173,6 +176,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `insurance_claims` | date, provider, description, billed_amount, allowed_amount, paid_amount, patient_responsibility, status (submitted/processing/paid/denied/appealed), claim_number, insurance_plan, notes | Tracks individual insurance claims with amounts |
 | `cycles` | date, type (period/ovulation/symptom/fertility_marker), value, symptom, notes | Menstrual cycle tracking; period flow levels, ovulation markers, cycle symptoms, fertility markers (BBT, cervical mucus, OPK) |
 | `todos` | title, notes, due_date (nullable), priority (low/medium/high/urgent), category (custom/medication/appointment/follow_up/insurance/lab), completed, completed_at, recurring (none/daily/weekly/monthly), related_id, related_table, source (manual/ai_suggested), dismissed | Health to-do items with optional due dates, priorities, and cross-references. Dashboard alerts for overdue/urgent items. |
+| `activities` | date, type, duration_minutes, distance, calories, heart_rate_avg, source, notes | Workout/exercise tracking from Apple Health import or manual entry. |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -611,6 +615,7 @@ vercel --prod        # Deploy to production
 - [ ] **Configure Google Sign In** — Button is wired up in Auth.jsx, needs Google Cloud Console OAuth credentials + Supabase provider config to work.
 - [x] **Health To-Do's & Reminders** — Done. Full Todos.jsx section with CRUD, filter tabs, priority badges, due date countdown, complete toggle, recurring support. Dashboard integration (overdue/urgent alerts, due-soon timeline, Quick Access tile). AI tool-use (add/update/remove via Sage chat). Search integration. Active todos in AI profile context.
 - [x] **Cycle Tracker Completion** — Done. Shared `utils/cycles.js` with `getCyclePhaseForDate`, Vitals phase badges + chart overlay, Journal phase badges + mood-phase summary, AI cycle patterns feature, medication cycle awareness badges, Dashboard quick-log.
+- [x] **Apple Health Integration** — Done. XML import parser (`services/healthkit.js`) with chunked regex extraction, daily aggregation (HR, steps, sleep, weight, temp, glucose, BP pairing), workout parsing, FHIR R4 lab results. Import UI in Settings (`AppleHealthImport.jsx`) with progress bar, dedup preview, bulk insert. New `activities` table for workouts. New vitals types: steps, active_energy. Paste-from-clipboard for iOS Shortcut bridge. Full wiring: db, storage, search, AI tools, profile context. Remaining: iOS Shortcut artifact file, dedicated Dashboard activity card.
 
 ## Roadmap — Amber's Top 5 Feature Requests (Easiest → Hardest)
 

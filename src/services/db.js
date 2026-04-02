@@ -55,6 +55,21 @@ function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
   };
 }
 
+// ── Bulk insert for large imports (Apple Health, etc.) ──
+async function bulkAdd(table, items, batchSize = 500) {
+  if (!items?.length) return [];
+  const { data: { user } } = await supabase.auth.getUser();
+  const uid = user.id;
+  const all = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize).map(item => ({ ...item, user_id: uid }));
+    const { data, error } = await supabase.from(table).insert(batch).select();
+    if (error) throw error;
+    all.push(...cleanAll(data));
+  }
+  return all;
+}
+
 // ── Table-specific services ──
 export const db = {
   medications: crud('medications'),
@@ -81,6 +96,9 @@ export const db = {
   drug_prices: crud('drug_prices', { orderBy: 'fetched_at', ascending: false }),
   todos: crud('todos', { orderBy: 'due_date', ascending: true }),
   cycles: crud('cycles', { orderBy: 'date', ascending: false }),
+  activities: crud('activities', { orderBy: 'date', ascending: false }),
+
+  bulkAdd, // For large imports (Apple Health)
 
   // Profile is 1:1 with user — different pattern
   profile: {
@@ -132,6 +150,7 @@ export const db = {
       db.drug_prices.list(),
       db.todos.list(),
       db.cycles.list(),
+      db.activities.list(),
     ]);
 
     const v = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
@@ -146,6 +165,7 @@ export const db = {
       drug_prices: v(18, []),
       todos: v(19, []),
       cycles: v(20, []),
+      activities: v(21, []),
     };
   },
 
@@ -160,7 +180,7 @@ export const db = {
       'vitals', 'appointments', 'journal_entries', 'ai_conversations',
       'labs', 'procedures', 'immunizations', 'care_gaps',
       'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',
-      'insurance_claims', 'drug_prices', 'todos', 'cycles',
+      'insurance_claims', 'drug_prices', 'todos', 'cycles', 'activities',
     ];
 
     const errors = [];
