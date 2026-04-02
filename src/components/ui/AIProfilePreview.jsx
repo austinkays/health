@@ -235,7 +235,7 @@ export default function AIProfilePreview({ data }) {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
           <div
-            className="relative w-full max-w-[480px] max-h-[88vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
+            className="relative w-full max-w-[480px] h-[85vh] bg-salve-bg rounded-t-2xl border-t border-x border-salve-border overflow-hidden flex flex-col animate-[slideUp_0.25s_ease-out]"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
