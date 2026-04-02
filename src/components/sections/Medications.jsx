@@ -641,8 +641,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                         <div className="flex items-center gap-1 text-[10px] text-salve-rose font-medium">
                           <AlertTriangle size={10} /> FDA Black Box Warning
                         </div>
-                        <div className={`mt-1 text-[10px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 200 ? 'line-clamp-3' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
-                        {m.fda_data.boxed_warning[0].length > 200 && (
+                        <div className={`mt-1 text-[10px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
+                        {m.fda_data.boxed_warning[0].length > 500 && (
                           <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:warning`]: !prev[`${m.id}:warning`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors">
                             {fdaExpanded[`${m.id}:warning`] ? 'Show less' : 'Show more'}
                           </button>
@@ -652,8 +652,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                     {/* ── Indications (always visible when available) ── */}
                     {m.fda_data.indications?.length > 0 && (
                       <div className="mt-1.5 text-[10px] text-salve-textMid leading-relaxed">
-                        <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 200 ? 'line-clamp-2' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
-                        {m.fda_data.indications[0].length > 200 && (
+                        <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 500 ? 'line-clamp-4' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
+                        {m.fda_data.indications[0].length > 500 && (
                           <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:indications`]: !prev[`${m.id}:indications`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors block">
                             {fdaExpanded[`${m.id}:indications`] ? 'Show less' : 'Show more'}
                           </button>
@@ -686,11 +686,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                               const sKey = `${m.id}:${s.key}`;
                               const isOpen = !!fdaExpanded[sKey];
                               const text = stripFdaHeader(s.data[0]);
-                              const isLong = text && text.length > 200;
+                              const isLong = text && text.length > 500;
                               return (
                                 <div key={s.key}>
                                   <div className={`font-medium ${s.color} mb-0.5`}>{s.label}</div>
-                                  <div className={`text-salve-textMid whitespace-pre-line ${!isOpen && isLong ? 'line-clamp-3' : ''}`}>{text}</div>
+                                  <div className={`text-salve-textMid whitespace-pre-line ${!isOpen && isLong ? 'line-clamp-6' : ''}`}>{text}</div>
                                   {isLong && (
                                     <button
                                       onClick={() => setFdaExpanded(prev => ({ ...prev, [sKey]: !isOpen }))}
