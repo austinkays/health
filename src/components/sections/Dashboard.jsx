@@ -712,9 +712,9 @@ export default function Dashboard({ data, interactions, onNav }) {
               onClick={() => editing ? setReplacingIndex(replacingIndex === i ? null : i) : onNav(l.id)}
               className={`relative bg-salve-card border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all ${
                 editing
-                  ? replacingIndex === i
+                  ? `overflow-visible ${replacingIndex === i
                     ? 'border-salve-lav ring-1 ring-salve-lav'
-                    : 'border-dashed border-salve-border2'
+                    : 'border-dashed border-salve-border2'}`
                   : 'border-salve-border'
               }`}
             >
