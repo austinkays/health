@@ -282,6 +282,50 @@ export const HEALTH_TOOLS = [
       required: ['id'],
     },
   },  {
+    name: 'add_todo',
+    description: 'Add a new health to-do or task for the patient.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: 'Task title' },
+        notes: { type: 'string', description: 'Additional notes or details' },
+        due_date: { type: 'string', description: 'Due date (YYYY-MM-DD)' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'], description: 'Priority level' },
+        category: { type: 'string', enum: ['custom', 'medication', 'appointment', 'follow_up', 'insurance', 'lab'], description: 'Task category' },
+        recurring: { type: 'string', enum: ['none', 'daily', 'weekly', 'monthly'], description: 'Recurrence pattern' },
+      },
+      required: ['title'],
+    },
+  },
+  {
+    name: 'update_todo',
+    description: 'Update an existing to-do item. Use list_records or search_records to find the ID first.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'The to-do ID to update' },
+        title: { type: 'string', description: 'New title' },
+        notes: { type: 'string', description: 'New notes' },
+        due_date: { type: 'string', description: 'New due date (YYYY-MM-DD)' },
+        priority: { type: 'string', enum: ['low', 'medium', 'high', 'urgent'] },
+        category: { type: 'string', enum: ['custom', 'medication', 'appointment', 'follow_up', 'insurance', 'lab'] },
+        completed: { type: 'boolean', description: 'Mark as completed (true) or reopen (false)' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'remove_todo',
+    description: 'Remove a to-do item by ID. ALWAYS confirm with the user before calling this.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'The to-do ID to remove' },
+      },
+      required: ['id'],
+    },
+  },
+  {
     name: 'update_settings',
     description: 'Update the patient\'s profile settings.',
     input_schema: {
@@ -332,6 +376,7 @@ export const DESTRUCTIVE_TOOLS = new Set([
   'remove_appointment',
   'remove_provider',
   'remove_cycle_entry',
+  'remove_todo',
 ]);
 
 // Map tool name → { table (db service name), operation }
@@ -354,6 +399,9 @@ export const TOOL_TABLE_MAP = {
   add_journal_entry:   { table: 'journal', operation: 'add' },
   add_cycle_entry:     { table: 'cycles', operation: 'add' },
   remove_cycle_entry:  { table: 'cycles', operation: 'remove' },
+  add_todo:            { table: 'todos', operation: 'add' },
+  update_todo:         { table: 'todos', operation: 'update' },
+  remove_todo:         { table: 'todos', operation: 'remove' },
   update_settings:     { table: 'profile', operation: 'update' },
   search_records:      { table: null, operation: 'search' },
   list_records:        { table: null, operation: 'list' },
@@ -369,4 +417,5 @@ export const RECORD_SUMMARIES = {
   vitals:        r => `${r.type}: ${r.value}${r.unit ? ' ' + r.unit : ''}`,
   journal:       r => r.title || 'journal entry',
   cycles:        r => `${r.type}: ${r.value || r.symptom || ''}`.trim() + (r.date ? ` (${r.date})` : ''),
+  todos:         r => r.title || 'to-do',
 };

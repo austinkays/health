@@ -1,7 +1,7 @@
 import {
   Pill, Stethoscope, User, Shield, Calendar,
   BookOpen, FlaskConical, Building2, Syringe, ShieldCheck, AlertTriangle,
-  AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign, Activity, Heart,
+  AlertOctagon, Scale, PlaneTakeoff, BadgeDollarSign, Activity, Heart, CheckSquare,
 } from 'lucide-react';
 import { C } from '../constants/colors';
 
@@ -168,6 +168,16 @@ export const ENTITY_CONFIG = {
     secondary: v => v.date || '',
     idField: 'id',
   },
+  todos: {
+    label: "To-Do's",
+    icon: CheckSquare,
+    color: C.lav,
+    tab: 'todos',
+    fields: ['title', 'notes', 'category', 'priority'],
+    primary: t => t.title || 'To-do',
+    secondary: t => [t.priority, t.due_date, t.completed ? '✓ Done' : ''].filter(Boolean).join(' · '),
+    idField: 'id',
+  },
   cycles: {
     label: 'Cycles',
     icon: Heart,
@@ -197,7 +207,7 @@ export const FILTER_TABS = [
 export const MORE_CATEGORIES = [
   'allergies', 'procedures', 'immunizations', 'care_gaps',
   'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning',
-  'insurance', 'vitals', 'cycles',
+  'insurance', 'vitals', 'cycles', 'todos',
 ];
 
 /* ── Helpers ─────────────────────────────────────────────── */

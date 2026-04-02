@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -41,7 +41,9 @@ function getTimeGreeting() {
 function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount, alertsHidden) {
   // Priority: critical alerts → upcoming events → encouragement
   if (!alertsHidden) {
-    const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0) + abnormalLabCount;
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const overdueTodoCount = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now).length;
+    const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0) + abnormalLabCount + (overdueTodoCount > 0 ? 1 : 0);
     if (totalAlerts > 0) return `${totalAlerts} item${totalAlerts > 1 ? 's' : ''} need${totalAlerts === 1 ? 's' : ''} your attention`;
   }
 
@@ -98,6 +100,7 @@ const ALL_LINKS = [
   { id: 'interactions', label: 'Interactions', icon: AlertTriangle,   color: C.amber },
   { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       color: C.sage },
   { id: 'cycles',       label: 'Cycles',       icon: Heart,           color: C.rose },
+  { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     color: C.lav },
   { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];
 
@@ -217,10 +220,16 @@ export default function Dashboard({ data, interactions, onNav }) {
       }
     }
 
-    return [...appts, ...refills, ...periodEntry]
+    // Due-soon to-dos (next 7 days, not completed/dismissed)
+    const weekFromNow = new Date(now.getTime() + 7 * 86400000);
+    const dueTodos = (data.todos || [])
+      .filter(t => !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') >= now && new Date(t.due_date + 'T00:00:00') <= weekFromNow)
+      .map(t => ({ ...t, _type: 'todo', _sortDate: t.due_date }));
+
+    return [...appts, ...refills, ...periodEntry, ...dueTodos]
       .sort((a, b) => new Date(a._sortDate) - new Date(b._sortDate))
       .slice(0, 4);
-  }, [data.appts, activeMeds, data.cycles]);
+  }, [data.appts, activeMeds, data.cycles, data.todos]);
 
   const latestJournal = useMemo(
     () => data.journal.length > 0 ? data.journal[0] : null,
@@ -319,6 +328,14 @@ export default function Dashboard({ data, interactions, onNav }) {
     if (urgentGaps > 0) {
       items.push({ id: 'care_gaps', icon: AlertTriangle, color: C.amber, text: `${urgentGaps} Urgent Care Gap${urgentGaps > 1 ? 's' : ''}`, nav: 'care_gaps' });
     }
+    // Overdue or urgent to-dos
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const overdueTodos = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now);
+    const urgentTodos = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.priority === 'urgent');
+    const todoAlertCount = new Set([...overdueTodos.map(t => t.id), ...urgentTodos.map(t => t.id)]).size;
+    if (todoAlertCount > 0) {
+      items.push({ id: 'todos', icon: CheckSquare, color: C.amber, text: `${todoAlertCount} To-do${todoAlertCount > 1 ? 's' : ''} need${todoAlertCount === 1 ? 's' : ''} attention`, nav: 'todos' });
+    }
     // Late period alert from cycle data
     const cyclePeriods = (data.cycles || []).filter(c => c.type === 'period').map(c => c.date).sort();
     if (cyclePeriods.length >= 2) {
@@ -347,7 +364,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       }
     }
     return items;
-  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles]);
+  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos]);
 
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
@@ -619,9 +636,10 @@ export default function Dashboard({ data, interactions, onNav }) {
           {timeline.map((item, i) => {
             const isAppt = item._type === 'appt';
             const isPeriod = item._type === 'period';
-            const dotColor = isAppt ? C.sage : isPeriod ? C.rose : C.amber;
-            const label = isAppt ? (item.reason || 'Appointment') : isPeriod ? item._label : `${item.name} ${item.dose || ''}`.trim();
-            const sub = isAppt ? item.provider : isPeriod ? 'Predicted' : 'Refill';
+            const isTodo = item._type === 'todo';
+            const dotColor = isAppt ? C.sage : isPeriod ? C.rose : isTodo ? C.lav : C.amber;
+            const label = isAppt ? (item.reason || 'Appointment') : isPeriod ? item._label : isTodo ? item.title : `${item.name} ${item.dose || ''}`.trim();
+            const sub = isAppt ? item.provider : isPeriod ? 'Predicted' : isTodo ? 'To-do' : 'Refill';
             if (isPeriod) {
               return (
                 <div
@@ -649,7 +667,7 @@ export default function Dashboard({ data, interactions, onNav }) {
             return (
               <button
                 key={item.id || i}
-                onClick={() => onNav(isAppt ? 'appts' : 'meds')}
+                onClick={() => onNav(isAppt ? 'appts' : isTodo ? 'todos' : 'meds')}
                 className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
               >
                 <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
