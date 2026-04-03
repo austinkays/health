@@ -89,64 +89,99 @@ export function detectAppleHealthJSON(data) {
 
 /* ── Main XML parser (chunked, regex-based) ───────────── */
 
-export function parseAppleHealthExport(xmlText, { onProgress } = {}) {
-  const rawVitals = {};   // { 'hr|2024-01-15': [72, 68, 74] }
-  const rawBP = {};       // { '2024-01-15T08:30': { sys, dia } }
-  const rawSleep = {};    // { '2024-01-15': totalMinutes }
+// Accepts either a string OR an ArrayBuffer (for large files)
+export function parseAppleHealthExport(input, { onProgress } = {}) {
+  const rawVitals = {};
+  const rawBP = {};
+  const rawSleep = {};
   const activities = [];
   const labs = [];
   const counts = { records: 0, vitals: 0, sleep: 0, workouts: 0, labs: 0, skipped: 0 };
 
-  const totalLen = xmlText.length;
-  const CHUNK_SIZE = 1024 * 1024; // 1MB
-  const OVERLAP = 2048;
+  const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB decoded text chunks
+  const OVERLAP = 4096;
 
-  // Process in chunks
-  for (let offset = 0; offset < totalLen; offset += CHUNK_SIZE - OVERLAP) {
-    const chunk = xmlText.slice(offset, offset + CHUNK_SIZE);
+  if (typeof input === 'string') {
+    // String mode (small files or direct .xml upload)
+    processChunkedText(input, input.length, CHUNK_SIZE, OVERLAP, rawVitals, rawBP, rawSleep, activities, labs, counts, onProgress);
+  } else if (input instanceof ArrayBuffer) {
+    // ArrayBuffer mode (large ZIP files — decode in chunks, never hold full string)
+    const decoder = new TextDecoder('utf-8');
+    const totalBytes = input.byteLength;
+    const DECODE_CHUNK = 2 * 1024 * 1024; // 2MB decode window
+    let carryover = '';
 
-    // Parse <Record> elements
-    const recordRegex = /<Record\s+([^>]+?)\/>/g;
-    let match;
-    while ((match = recordRegex.exec(chunk)) !== null) {
-      counts.records++;
-      const attrs = parseAttributes(match[1]);
-      processRecord(attrs, rawVitals, rawBP, rawSleep, counts);
-    }
+    for (let byteOffset = 0; byteOffset < totalBytes; byteOffset += DECODE_CHUNK) {
+      const slice = new Uint8Array(input, byteOffset, Math.min(DECODE_CHUNK, totalBytes - byteOffset));
+      const isLast = byteOffset + DECODE_CHUNK >= totalBytes;
+      const decoded = decoder.decode(slice, { stream: !isLast });
+      const text = carryover + decoded;
 
-    // Parse <Workout> elements
-    const workoutRegex = /<Workout\s+([^>]+?)(?:\/>|>[\s\S]*?<\/Workout>)/g;
-    while ((match = workoutRegex.exec(chunk)) !== null) {
-      const attrs = parseAttributes(match[1]);
-      const activity = processWorkout(attrs);
-      if (activity) {
-        activities.push(activity);
-        counts.workouts++;
+      // Process this chunk, but keep the last OVERLAP chars as carryover
+      // to handle tags split across chunk boundaries
+      if (!isLast && text.length > OVERLAP) {
+        const processable = text.slice(0, text.length - OVERLAP);
+        carryover = text.slice(text.length - OVERLAP);
+        processTextChunk(processable, rawVitals, rawBP, rawSleep, activities, labs, counts);
+      } else {
+        processTextChunk(text, rawVitals, rawBP, rawSleep, activities, labs, counts);
+        carryover = '';
       }
-    }
 
-    // Parse <ClinicalRecord> with FHIR data
-    const clinicalRegex = /<ClinicalRecord\s+([^>]+?)\/>/g;
-    while ((match = clinicalRegex.exec(chunk)) !== null) {
-      const attrs = parseAttributes(match[1]);
-      const lab = processClinicalRecord(attrs);
-      if (lab) {
-        labs.push(lab);
-        counts.labs++;
+      if (onProgress) {
+        onProgress(Math.min(95, Math.round((byteOffset + DECODE_CHUNK) / totalBytes * 95)));
       }
-    }
-
-    if (onProgress) {
-      onProgress(Math.min(100, Math.round((offset + CHUNK_SIZE) / totalLen * 100)));
     }
   }
 
-  // Aggregate raw data into daily summaries
   const vitals = aggregateVitals(rawVitals, rawBP, rawSleep);
   counts.vitals = vitals.length;
   counts.sleep = Object.keys(rawSleep).length;
 
   return { vitals, labs, activities, counts };
+}
+
+function processChunkedText(text, totalLen, chunkSize, overlap, rawVitals, rawBP, rawSleep, activities, labs, counts, onProgress) {
+  for (let offset = 0; offset < totalLen; offset += chunkSize - overlap) {
+    const chunk = text.slice(offset, offset + chunkSize);
+    processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts);
+    if (onProgress) {
+      onProgress(Math.min(95, Math.round((offset + chunkSize) / totalLen * 95)));
+    }
+  }
+}
+
+function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts) {
+  // Parse <Record> elements
+  const recordRegex = /<Record\s+([^>]+?)\/>/g;
+  let match;
+  while ((match = recordRegex.exec(chunk)) !== null) {
+    counts.records++;
+    const attrs = parseAttributes(match[1]);
+    processRecord(attrs, rawVitals, rawBP, rawSleep, counts);
+  }
+
+  // Parse <Workout> elements
+  const workoutRegex = /<Workout\s+([^>]+?)(?:\/>|>[\s\S]*?<\/Workout>)/g;
+  while ((match = workoutRegex.exec(chunk)) !== null) {
+    const attrs = parseAttributes(match[1]);
+    const activity = processWorkout(attrs);
+    if (activity) {
+      activities.push(activity);
+      counts.workouts++;
+    }
+  }
+
+  // Parse <ClinicalRecord> with FHIR data
+  const clinicalRegex = /<ClinicalRecord\s+([^>]+?)\/>/g;
+  while ((match = clinicalRegex.exec(chunk)) !== null) {
+    const attrs = parseAttributes(match[1]);
+    const lab = processClinicalRecord(attrs);
+    if (lab) {
+      labs.push(lab);
+      counts.labs++;
+    }
+  }
 }
 
 /* ── Attribute parser ─────────────────────────────────── */

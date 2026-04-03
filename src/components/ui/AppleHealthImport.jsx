@@ -23,6 +23,25 @@ export default function AppleHealthImport({ data, reloadData }) {
     setResult(null);
   };
 
+  /* ── Shared: dedup + preview ──────────────────────────── */
+  const finishParsing = (parsed) => {
+    const newVitals = deduplicateAgainst(parsed.vitals, data.vitals || [], DEDUP_KEYS.vitals);
+    const newLabs = deduplicateAgainst(parsed.labs, data.labs || [], DEDUP_KEYS.labs);
+    const newActivities = deduplicateAgainst(parsed.activities, data.activities || [], DEDUP_KEYS.activities);
+
+    setPreview({
+      total: parsed.counts,
+      new: { vitals: newVitals.length, labs: newLabs.length, activities: newActivities.length },
+      skipped: {
+        vitals: parsed.vitals.length - newVitals.length,
+        labs: parsed.labs.length - newLabs.length,
+        activities: parsed.activities.length - newActivities.length,
+      },
+      data: { vitals: newVitals, labs: newLabs, activities: newActivities },
+    });
+    setStage('preview');
+  };
+
   /* ── File handler ────────────────────────────────────── */
   const handleFile = async (file) => {
     if (!file) return;
@@ -45,18 +64,9 @@ export default function AppleHealthImport({ data, reloadData }) {
           || allFiles.find(n => n.endsWith('.xml') && !n.includes('cda'));
         if (!xmlFile) throw new Error('No export.xml found in ZIP. Make sure this is an Apple Health export.');
 
-        // Use arraybuffer + TextDecoder for large files (avoids string length limits)
-        setProgress(8);
+        // Get arraybuffer — parser handles chunked decoding internally
+        setProgress(10);
         const buf = await zip.files[xmlFile].async('arraybuffer');
-        setProgress(15);
-        const decoder = new TextDecoder('utf-8');
-        // Decode in 50MB chunks to avoid memory pressure
-        const CHUNK = 50 * 1024 * 1024;
-        const parts = [];
-        for (let i = 0; i < buf.byteLength; i += CHUNK) {
-          parts.push(decoder.decode(new Uint8Array(buf, i, Math.min(CHUNK, buf.byteLength - i)), { stream: i + CHUNK < buf.byteLength }));
-        }
-        xmlText = parts.join('');
         setProgress(20);
 
         // Parse FHIR JSON files from clinical-records folder
@@ -71,6 +81,18 @@ export default function AppleHealthImport({ data, reloadData }) {
             }
           } catch { /* skip unparseable files */ }
         }
+        // For ZIP, we pass the ArrayBuffer directly — parser decodes in chunks
+        const parsed = parseAppleHealthExport(buf, {
+          onProgress: (p) => setProgress(20 + Math.round(p * 0.7)),
+        });
+
+        // Merge clinical-records folder labs
+        if (clinicalLabs.length) {
+          parsed.labs.push(...clinicalLabs);
+          parsed.counts.labs += clinicalLabs.length;
+        }
+
+        return finishParsing(parsed);
       } else {
         xmlText = await file.text();
       }
@@ -82,29 +104,7 @@ export default function AppleHealthImport({ data, reloadData }) {
       const parsed = parseAppleHealthExport(xmlText, {
         onProgress: (p) => setProgress(Math.max(10, p)),
       });
-
-      // Merge clinical-records folder labs with XML-parsed labs
-      if (clinicalLabs.length) {
-        parsed.labs.push(...clinicalLabs);
-        parsed.counts.labs += clinicalLabs.length;
-      }
-
-      // Deduplicate against existing data
-      const newVitals = deduplicateAgainst(parsed.vitals, data.vitals || [], DEDUP_KEYS.vitals);
-      const newLabs = deduplicateAgainst(parsed.labs, data.labs || [], DEDUP_KEYS.labs);
-      const newActivities = deduplicateAgainst(parsed.activities, data.activities || [], DEDUP_KEYS.activities);
-
-      setPreview({
-        total: parsed.counts,
-        new: { vitals: newVitals.length, labs: newLabs.length, activities: newActivities.length },
-        skipped: {
-          vitals: parsed.vitals.length - newVitals.length,
-          labs: parsed.labs.length - newLabs.length,
-          activities: parsed.activities.length - newActivities.length,
-        },
-        data: { vitals: newVitals, labs: newLabs, activities: newActivities },
-      });
-      setStage('preview');
+      return finishParsing(parsed);
     } catch (err) {
       setError(err.message || 'Failed to parse Apple Health export');
       setStage('error');
