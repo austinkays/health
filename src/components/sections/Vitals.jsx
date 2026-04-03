@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader } from 'lucide-react';
+import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader, Watch, Smartphone } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -45,15 +45,27 @@ const flagStyle = (flag) => {
   return { color: C.amber, bg: 'rgba(232,200,138,0.15)' };
 };
 
+const SOURCE_ICON = { oura: Watch, apple_health: Smartphone };
+const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
+const SOURCE_COLOR = { oura: C.sage, apple_health: C.lav, manual: C.textFaint };
+
 export default function Vitals({ data, addItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_VITAL });
   const [ct, setCt] = useState('pain');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [trendAI, setTrendAI] = useState(null);
   const [trendLoading, setTrendLoading] = useState(false);
   const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // Detect which sources exist in the data
+  const sources = useMemo(() => {
+    const s = new Set();
+    (data.vitals || []).forEach(v => s.add(v.source || (v.notes?.includes('Oura') ? 'oura' : v.notes?.includes('Apple Health') ? 'apple_health' : 'manual')));
+    return [...s].sort();
+  }, [data.vitals]);
 
   const saveV = async () => {
     if (!form.value || isNaN(Number(form.value))) return;
@@ -134,6 +146,31 @@ export default function Vitals({ data, addItem, removeItem }) {
           </button>
         ))}
       </div>
+
+      {/* Source filter pills — only show when multiple sources */}
+      {sources.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap mb-3">
+          <button
+            onClick={() => setSourceFilter('all')}
+            className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+              sourceFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+            }`}
+          >All sources</button>
+          {sources.map(s => {
+            const Icon = SOURCE_ICON[s];
+            return (
+              <button key={s} onClick={() => setSourceFilter(s)}
+                className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
+                  sourceFilter === s ? `border-salve-sage bg-salve-sage/15 text-salve-sage` : 'border-salve-border bg-transparent text-salve-textFaint'
+                }`}
+              >
+                {Icon && <Icon size={9} />}
+                {SOURCE_LABEL[s] || s}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {data.cycles?.length > 0 && cd.length > 1 && (
         <div className="flex justify-end mb-1.5">
@@ -243,10 +280,18 @@ export default function Vitals({ data, addItem, removeItem }) {
 
       <SectionTitle>Recent Entries</SectionTitle>
       {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
-        data.vitals.slice().reverse().slice(0, 15).map(v => {
+        data.vitals.slice().reverse()
+          .filter(v => {
+            if (sourceFilter === 'all') return true;
+            const src = v.source || (v.notes?.includes('Oura') ? 'oura' : v.notes?.includes('Apple Health') ? 'apple_health' : 'manual');
+            return src === sourceFilter;
+          })
+          .slice(0, 20).map(v => {
           const t = VITAL_TYPES.find(x => x.id === v.type);
           const flag = getVitalFlag(v.type, v.value, v.value2);
           const fs = flagStyle(flag);
+          const src = v.source || (v.notes?.includes('Oura') ? 'oura' : v.notes?.includes('Apple Health') ? 'apple_health' : 'manual');
+          const SrcIcon = SOURCE_ICON[src];
           return (
             <Card key={v.id} className="!p-3.5" style={flag ? { borderLeft: `3px solid ${fs.color}` } : undefined}>
               <div className="flex justify-between items-center">
@@ -259,6 +304,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  {SrcIcon && <SrcIcon size={10} style={{ color: SOURCE_COLOR[src] }} />}
                   <span className="text-[11px] text-salve-textFaint">
                     {fmtDate(v.date)}
                     {data.cycles?.length > 0 && (() => {

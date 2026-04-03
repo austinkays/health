@@ -13,7 +13,7 @@ import { C } from '../../constants/colors';
 import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS, FERTILITY_MARKERS } from '../../constants/defaults';
 import { detectFloFormat, parseFloExport } from '../../services/flo';
 import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility, getCycleAlerts } from '../../utils/cycles';
-import { isOuraConnected, syncOuraTemperature } from '../../services/oura';
+import { isOuraConnected, syncAllOuraData } from '../../services/oura';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -335,8 +335,9 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
               setOuraSyncMsg(null);
               try {
                 const baseline = parseFloat(localStorage.getItem('salve:oura-baseline')) || 97.7;
-                const result = await syncOuraTemperature(cycles, addItem, 30, baseline);
-                setOuraSyncMsg(result.added > 0 ? `+${result.added} reading${result.added !== 1 ? 's' : ''}` : 'Up to date');
+                const results = await syncAllOuraData({ cycles, vitals: [], activities: [] }, addItem, 30, baseline);
+                const tempResult = results.temperature || {};
+                setOuraSyncMsg(tempResult.added > 0 ? `+${tempResult.added} reading${tempResult.added !== 1 ? 's' : ''}` : 'Up to date');
                 setTimeout(() => setOuraSyncMsg(null), 3000);
               } catch { setOuraSyncMsg('Sync failed'); setTimeout(() => setOuraSyncMsg(null), 3000); }
               finally { setOuraSyncing(false); }

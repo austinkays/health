@@ -247,3 +247,238 @@ export async function syncOuraTemperature(existingCycles, addItem, days = 30, ba
     total: ouraTemps.length,
   };
 }
+
+// ── Full sync: all Oura data types → vitals + activities ──
+
+function dateRange(days) {
+  const endDate = new Date().toISOString().slice(0, 10);
+  const startDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  return { startDate, endDate };
+}
+
+function existingDates(records, type) {
+  return new Set(
+    records.filter(r => r.type === type && r.notes?.includes('Oura')).map(r => r.date)
+  );
+}
+
+/**
+ * Sync Oura sleep data → vitals (sleep hours).
+ */
+export async function syncOuraSleep(existingVitals, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const sleepData = await fetchOuraSleep(startDate, endDate);
+  const existing = existingDates(existingVitals, 'sleep');
+
+  let added = 0;
+  for (const s of sleepData) {
+    if (!s.day || existing.has(s.day)) continue;
+    const totalHrs = s.total_sleep_duration ? Math.round((s.total_sleep_duration / 3600) * 10) / 10 : null;
+    if (totalHrs == null) continue;
+    await addItem('vitals', {
+      date: s.day,
+      type: 'sleep',
+      value: String(totalHrs),
+      value2: '',
+      unit: 'hrs',
+      notes: `Oura Ring (score: ${s.score ?? '—'}, efficiency: ${s.efficiency ?? '—'}%)`,
+      source: 'oura',
+    });
+    added++;
+  }
+  return { added, total: sleepData.length };
+}
+
+/**
+ * Sync Oura heart rate → vitals (resting HR from readiness data).
+ */
+export async function syncOuraHeartRate(existingVitals, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const readinessData = await fetchOuraReadiness(startDate, endDate);
+  const existing = existingDates(existingVitals, 'hr');
+
+  let added = 0;
+  for (const r of readinessData) {
+    if (!r.day || existing.has(r.day)) continue;
+    const rhr = r.contributors?.resting_heart_rate;
+    if (rhr == null) continue;
+    // Readiness doesn't give absolute HR — use sleep data instead
+    // We'll get resting HR from the sleep endpoint
+  }
+
+  // Fallback: use daily_sleep which has resting HR
+  const sleepData = await fetchOuraSleep(startDate, endDate);
+  for (const s of sleepData) {
+    if (!s.day || existing.has(s.day)) continue;
+    const rhr = s.lowest_heart_rate;
+    if (rhr == null) continue;
+    await addItem('vitals', {
+      date: s.day,
+      type: 'hr',
+      value: String(rhr),
+      value2: '',
+      unit: 'bpm',
+      notes: `Oura Ring (resting HR, avg HRV: ${s.average_hrv ?? '—'}ms)`,
+      source: 'oura',
+    });
+    added++;
+  }
+  return { added, total: sleepData.length };
+}
+
+/**
+ * Sync Oura SpO2 → vitals.
+ */
+export async function syncOuraSpO2(existingVitals, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const spo2Data = await ouraGet('daily_spo2', startDate, endDate);
+  const entries = spo2Data?.data || [];
+  const existing = existingDates(existingVitals, 'spo2');
+
+  let added = 0;
+  for (const s of entries) {
+    if (!s.day || existing.has(s.day)) continue;
+    const avg = s.spo2_percentage?.average;
+    if (avg == null) continue;
+    await addItem('vitals', {
+      date: s.day,
+      type: 'spo2',
+      value: String(avg),
+      value2: '',
+      unit: '%',
+      notes: `Oura Ring`,
+      source: 'oura',
+    });
+    added++;
+  }
+  return { added, total: entries.length };
+}
+
+/**
+ * Sync Oura readiness → vitals (as energy/readiness score out of 10).
+ */
+export async function syncOuraReadiness(existingVitals, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const readinessData = await fetchOuraReadiness(startDate, endDate);
+  const existing = existingDates(existingVitals, 'energy');
+
+  let added = 0;
+  for (const r of readinessData) {
+    if (!r.day || existing.has(r.day)) continue;
+    const score = r.score;
+    if (score == null) continue;
+    // Convert 0-100 readiness to 0-10 scale
+    const val = Math.round(score / 10);
+    await addItem('vitals', {
+      date: r.day,
+      type: 'energy',
+      value: String(val),
+      value2: '',
+      unit: '/10',
+      notes: `Oura Ring readiness (score: ${score}/100, temp trend: ${r.temperature_trend_deviation ?? '—'}°C)`,
+      source: 'oura',
+    });
+    added++;
+  }
+  return { added, total: readinessData.length };
+}
+
+/**
+ * Sync Oura stress data → vitals (as custom stress metric).
+ */
+export async function syncOuraStress(existingVitals, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const stressData = await ouraGet('daily_stress', startDate, endDate);
+  const entries = stressData?.data || [];
+  const existing = new Set(
+    existingVitals.filter(r => r.notes?.includes('Oura') && r.notes?.includes('stress')).map(r => r.date)
+  );
+
+  let added = 0;
+  for (const s of entries) {
+    if (!s.day || existing.has(s.day)) continue;
+    const stressHigh = s.stress_high;
+    if (stressHigh == null) continue;
+    // Store as pain type with stress context (no dedicated stress vital type yet)
+    // Convert stress_high (seconds of high stress) to a 0-10 scale
+    // Rough: 0 min = 0, 120+ min of high stress = 10
+    const stressVal = Math.min(10, Math.round((stressHigh / 60 / 12)));
+    await addItem('vitals', {
+      date: s.day,
+      type: 'pain', // Using pain as proxy for stress until dedicated type added
+      value: String(stressVal),
+      value2: '',
+      unit: '/10',
+      notes: `Oura Ring stress (high: ${Math.round(stressHigh / 60)}min, recovery: ${s.recovery_high ? Math.round(s.recovery_high / 60) : '—'}min)`,
+      source: 'oura',
+    });
+    added++;
+  }
+  return { added, total: entries.length };
+}
+
+/**
+ * Sync Oura workouts → activities table.
+ */
+export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const workoutData = await ouraGet('workout', startDate, endDate);
+  const entries = workoutData?.data || [];
+
+  // Dedup by date + activity type + duration
+  const existingKeys = new Set(
+    (existingActivities || [])
+      .filter(a => a.source === 'oura')
+      .map(a => `${a.date}|${a.type}|${a.duration_minutes}`)
+  );
+
+  const ouraTypeMap = {
+    walking: 'Walking', running: 'Running', cycling: 'Cycling',
+    swimming: 'Swimming', hiking: 'Hiking', strength_training: 'Strength Training',
+    yoga: 'Yoga', hiit: 'HIIT', elliptical: 'Elliptical', rowing: 'Rowing',
+    dancing: 'Dancing', pilates: 'Pilates', other: 'Other',
+  };
+
+  let added = 0;
+  for (const w of entries) {
+    const day = w.day || (w.start_datetime ? w.start_datetime.slice(0, 10) : null);
+    if (!day) continue;
+    const dur = w.total_calories ? Math.round((w.end_datetime && w.start_datetime
+      ? (new Date(w.end_datetime) - new Date(w.start_datetime)) / 60000
+      : 0)) : null;
+    const durMin = dur || (w.duration ? Math.round(w.duration / 60) : '');
+    const type = ouraTypeMap[w.activity?.toLowerCase()] || w.activity || 'Other';
+    const key = `${day}|${type}|${durMin}`;
+    if (existingKeys.has(key)) continue;
+
+    await addItem('activities', {
+      date: day,
+      type,
+      duration_minutes: String(durMin || ''),
+      distance: w.distance ? String(Math.round(w.distance) / 1000) : '',
+      calories: w.calories ? String(Math.round(w.calories)) : '',
+      heart_rate_avg: w.average_heart_rate ? String(w.average_heart_rate) : '',
+      source: 'oura',
+      notes: `Oura Ring (intensity: ${w.intensity || '—'})`,
+    });
+    added++;
+  }
+  return { added, total: entries.length };
+}
+
+/**
+ * Full Oura sync — all data types at once.
+ * Returns summary of what was synced.
+ */
+export async function syncAllOuraData(data, addItem, days = 30, baselineF = 97.7) {
+  const results = {};
+
+  try { results.temperature = await syncOuraTemperature(data.cycles || [], addItem, days, baselineF); } catch (e) { results.temperature = { error: e.message }; }
+  try { results.sleep = await syncOuraSleep(data.vitals || [], addItem, days); } catch (e) { results.sleep = { error: e.message }; }
+  try { results.heartRate = await syncOuraHeartRate(data.vitals || [], addItem, days); } catch (e) { results.heartRate = { error: e.message }; }
+  try { results.spo2 = await syncOuraSpO2(data.vitals || [], addItem, days); } catch (e) { results.spo2 = { error: e.message }; }
+  try { results.readiness = await syncOuraReadiness(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
+  try { results.workouts = await syncOuraWorkouts(data.activities || [], addItem, days); } catch (e) { results.workouts = { error: e.message }; }
+
+  return results;
+}

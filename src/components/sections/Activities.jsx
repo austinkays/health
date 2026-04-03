@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin } from 'lucide-react';
+import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Watch, Smartphone } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -11,6 +11,10 @@ import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_ACTIVITY, WORKOUT_TYPES } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
+
+const SOURCE_ICON = { oura: Watch, apple_health: Smartphone };
+const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
+const SOURCE_COLOR = { oura: '#8fbfa0', apple_health: '#b8a9e8', manual: '#6e6a80' };
 
 /* ── Helpers ────────────────────────────────────────────── */
 
@@ -41,9 +45,17 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   const [form, setForm] = useState(EMPTY_ACTIVITY);
   const [editId, setEditId] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // Detect sources
+  const sources = useMemo(() => {
+    const s = new Set();
+    (data.activities || []).forEach(a => s.add(a.source || 'manual'));
+    return [...s].sort();
+  }, [data.activities]);
 
   // Deep-link
   useEffect(() => {
@@ -67,11 +79,13 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
 
   // Filter
   const filtered = useMemo(() => {
-    if (filter === 'all') return sorted;
-    if (filter === 'workouts') return sorted.filter(a => a.type !== 'Daily Activity');
-    if (filter === 'daily') return sorted.filter(a => a.type === 'Daily Activity');
-    return sorted.filter(a => a.type === filter);
-  }, [sorted, filter]);
+    let list = sorted;
+    if (filter === 'workouts') list = list.filter(a => a.type !== 'Daily Activity');
+    else if (filter === 'daily') list = list.filter(a => a.type === 'Daily Activity');
+    else if (filter !== 'all') list = list.filter(a => a.type === filter);
+    if (sourceFilter !== 'all') list = list.filter(a => (a.source || 'manual') === sourceFilter);
+    return list;
+  }, [sorted, filter, sourceFilter]);
 
   // Stats
   const stats = useMemo(() => {
@@ -187,6 +201,30 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
         ))}
       </div>
 
+      {/* Source filter pills */}
+      {sources.length > 1 && (
+        <div className="flex gap-1.5 flex-wrap mb-3">
+          <button onClick={() => setSourceFilter('all')}
+            className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+              sourceFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+            }`}
+          >All sources</button>
+          {sources.map(s => {
+            const Icon = SOURCE_ICON[s];
+            return (
+              <button key={s} onClick={() => setSourceFilter(s)}
+                className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
+                  sourceFilter === s ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
+                }`}
+              >
+                {Icon && <Icon size={9} />}
+                {SOURCE_LABEL[s] || s}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* List */}
       {filtered.length === 0 ? (
         <EmptyState icon={Activity} text={filter === 'all' ? 'No activities yet' : `No ${filter} activities`} motif="leaf" />
@@ -214,6 +252,14 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                       {a.duration_minutes && !isDaily && (
                         <Badge label={formatDuration(a.duration_minutes)} color={C.textMid} bg={C.textFaint + '15'} />
                       )}
+                      {a.source && a.source !== 'manual' && (() => {
+                        const SrcIcon = SOURCE_ICON[a.source];
+                        return (
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-montserrat px-1.5 py-0.5 rounded-md" style={{ color: SOURCE_COLOR[a.source], background: SOURCE_COLOR[a.source] + '18' }}>
+                            {SrcIcon && <SrcIcon size={8} />} {SOURCE_LABEL[a.source] || a.source}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {!isExpanded && (
                       <div className="flex items-center gap-2.5 text-xs text-salve-textFaint flex-wrap">

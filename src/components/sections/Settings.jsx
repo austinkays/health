@@ -8,7 +8,7 @@ import { exportAll, validateImport, importRestore, importMerge, encryptExport, d
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
-import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncOuraTemperature } from '../../services/oura';
+import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 
 const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
 
@@ -105,12 +105,21 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
     setOuraSuccess(null);
     try {
       const baseline = parseFloat(ouraBaseline) || 97.7;
-      const result = await syncOuraTemperature(data.cycles || [], addItem, 30, baseline);
-      if (result.added > 0) {
-        setOuraSuccess(`Synced ${result.added} temperature reading${result.added !== 1 ? 's' : ''} from Oura (${result.skipped} skipped — already logged).`);
+      const results = await syncAllOuraData(data, addItem, 30, baseline);
+
+      // Build summary
+      const parts = [];
+      const errors = [];
+      for (const [key, val] of Object.entries(results)) {
+        if (val.error) { errors.push(`${key}: ${val.error}`); continue; }
+        if (val.added > 0) parts.push(`${val.added} ${key}`);
+      }
+
+      if (parts.length > 0) {
+        setOuraSuccess(`Synced ${parts.join(', ')} from Oura.${errors.length ? ` (${errors.length} failed)` : ''}`);
         await reloadData();
       } else {
-        setOuraSuccess(`No new readings to sync (${result.total} total, all already logged).`);
+        setOuraSuccess(`Everything up to date.${errors.length ? ` (${errors.length} endpoints unavailable)` : ''}`);
       }
     } catch (e) {
       if (e.message.includes('expired') || e.message.includes('reconnect')) {
@@ -463,7 +472,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
                   flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50"
               >
                 {ouraSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                {ouraSyncing ? 'Syncing...' : 'Sync Temperature'}
+                {ouraSyncing ? 'Syncing...' : 'Sync All Data'}
               </button>
               <button
                 onClick={disconnectOura}
