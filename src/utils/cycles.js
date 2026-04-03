@@ -242,82 +242,37 @@ export function getSymptothermalStatus(cycles, stats) {
   };
 
   // ── POST-OVULATORY: Symptothermal confirmation ──
-  // Both BBT shift AND Peak + 3 mucus drying → highest confidence infertile
   if (bbtShift.confirmed && peakPlus3 && mucusDrying) {
-    return {
-      status: 'infertile-post',
-      confidence: 'high',
-      details: `Ovulation confirmed by both BBT shift (${bbtShift.shiftDay}) and mucus drying (Peak + ${daysSincePeak} days). You are in the post-ovulatory infertile phase — the most reliable infertile window of your cycle.`,
-      rules,
-    };
+    return { status: 'infertile-post', confidence: 'high', details: 'BBT shift + mucus drying both confirm ovulation has passed.', rules };
   }
-
-  // BBT shift only (no mucus data or not enough days past peak)
   if (bbtShift.confirmed && calFertility.zone === 'absolute') {
-    return {
-      status: 'infertile-post',
-      confidence: rules.hasMucusData ? 'medium' : 'medium',
-      details: `BBT shift confirmed ovulation (${bbtShift.shiftDay}). ${peakPlus3 ? 'Peak + 3 mucus rule also met.' : mucusDrying ? 'Mucus is drying but hasn\'t been 3 full days past peak yet.' : 'Log cervical mucus for full Symptothermal cross-check.'}`,
-      rules,
-    };
+    return { status: 'infertile-post', confidence: 'medium', details: 'BBT shift confirms ovulation. Log mucus for double-check.', rules };
   }
-
-  // Peak + 3 only (no BBT data)
   if (peakPlus3 && mucusDrying && calFertility.zone === 'absolute') {
-    return {
-      status: 'infertile-post',
-      confidence: 'medium',
-      details: `Mucus drying confirms ovulation has passed (Peak + ${daysSincePeak} days). Log BBT temperatures for full Symptothermal double-check.`,
-      rules,
-    };
+    return { status: 'infertile-post', confidence: 'medium', details: 'Mucus drying confirms ovulation passed. Log BBT for double-check.', rules };
   }
 
   // ── PEAK FERTILITY ──
-  if (lastMucus?.value === 'eggwhite' || (calFertility.zone === 'peak')) {
-    return {
-      status: 'peak',
-      confidence: lastMucus?.value === 'eggwhite' ? 'high' : 'medium',
-      details: `${lastMucus?.value === 'eggwhite' ? 'Egg-white cervical mucus detected — ovulation is likely imminent. ' : ''}Calendar estimates peak fertility (cycle day ${dayOfCycle}, expected ovulation ~day ${ovDay}).`,
-      rules,
-    };
+  if (lastMucus?.value === 'eggwhite' || calFertility.zone === 'peak') {
+    return { status: 'peak', confidence: lastMucus?.value === 'eggwhite' ? 'high' : 'medium', details: `Ovulation likely within 1–2 days (day ${dayOfCycle}).`, rules };
   }
 
   // ── FERTILE WINDOW ──
   if (calFertility.zone === 'fertile' || calFertility.zone === 'buffer' || lastMucus?.value === 'creamy') {
-    return {
-      status: 'fertile',
-      confidence: 'medium',
-      details: `Approaching the fertile window (cycle day ${dayOfCycle}). ${lastMucus?.value === 'creamy' ? 'Creamy mucus suggests rising estrogen. ' : ''}Estimated ovulation around day ${ovDay}.`,
-      rules,
-    };
+    return { status: 'fertile', confidence: 'medium', details: `Approaching fertile window. Ovulation expected ~day ${ovDay}.`, rules };
   }
 
-  // ── PRE-OVULATORY: relative infertility ──
+  // ── PRE-OVULATORY ──
   if (dayOfCycle <= 5) {
-    return {
-      status: 'infertile-pre',
-      confidence: 'medium',
-      details: `Menstrual phase (day ${dayOfCycle}). Generally considered infertile, but in short cycles (<24 days), early ovulation is possible.`,
-      rules,
-    };
+    return { status: 'infertile-pre', confidence: 'medium', details: 'Menstrual phase — generally infertile.', rules };
   }
-
   if (calFertility.zone === 'relative' && mucusDrying) {
-    return {
-      status: 'infertile-pre',
-      confidence: 'low',
-      details: `Pre-ovulatory phase with dry mucus (day ${dayOfCycle}). Calendar estimates low fertility, but this window is less predictable than post-ovulatory. Monitor mucus changes closely.`,
-      rules,
-    };
+    return { status: 'infertile-pre', confidence: 'low', details: 'Dry mucus, early in cycle. Watch for mucus changes.', rules };
   }
 
-  // ── POSSIBLY FERTILE (default) ──
-  return {
-    status: 'possibly-fertile',
-    confidence: 'low',
-    details: `Cycle day ${dayOfCycle}. ${!rules.hasBBTData && !rules.hasMucusData ? 'Log BBT and cervical mucus for Symptothermal analysis.' : !rules.hasBBTData ? 'Log daily BBT temperatures for thermal shift detection.' : !rules.hasMucusData ? 'Log cervical mucus for mucus pattern analysis.' : 'Waiting for more data this cycle.'}`,
-    rules,
-  };
+  // ── DEFAULT ──
+  const hint = !rules.hasBBTData && !rules.hasMucusData ? 'Log BBT + mucus for tracking.' : !rules.hasBBTData ? 'Log daily BBT.' : !rules.hasMucusData ? 'Log cervical mucus.' : 'Collecting data.';
+  return { status: 'possibly-fertile', confidence: 'low', details: `Day ${dayOfCycle}. ${hint}`, rules };
 }
 
 /**
@@ -334,7 +289,7 @@ export function getCycleAlerts(stats, cycles) {
       alerts.push({
         type: 'short_cycle',
         severity: 'warning',
-        message: `Your last cycle was ${lastLen} days. Short cycles can mean very early ovulation or an anovulatory cycle. Consider discussing with your provider.`,
+        message: `Last cycle was ${lastLen} days — shorter than typical. Ovulation may happen earlier than expected.`,
       });
     }
   }
@@ -350,7 +305,7 @@ export function getCycleAlerts(stats, cycles) {
       alerts.push({
         type: 'peak_mucus',
         severity: 'info',
-        message: `Peak cervical mucus (clear/stretchy) logged ${daysSinceEW === 0 ? 'today' : `${daysSinceEW} day${daysSinceEW > 1 ? 's' : ''} ago`}. Ovulation is likely imminent or just occurred.`,
+        message: `Peak mucus logged ${daysSinceEW === 0 ? 'today' : `${daysSinceEW}d ago`} — ovulation likely imminent.`,
       });
     }
   }
@@ -361,13 +316,7 @@ export function getCycleAlerts(stats, cycles) {
     alerts.push({
       type: 'bbt_confirmed',
       severity: 'success',
-      message: `Ovulation confirmed by BBT shift on ${bbtResult.shiftDay}. Baseline was ${bbtResult.baselineAvg}°F, shifted to ${bbtResult.shiftTemp}°F. You are now in the absolute infertile window.`,
-    });
-  } else if (bbtResult.message && cycles.some(c => c.type === 'bbt')) {
-    alerts.push({
-      type: 'bbt_status',
-      severity: 'info',
-      message: bbtResult.message,
+      message: `BBT shift confirmed ovulation (${bbtResult.shiftDay}). Post-ovulatory infertile phase.`,
     });
   }
 

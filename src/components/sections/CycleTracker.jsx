@@ -286,7 +286,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
                 type="number" placeholder="e.g. 97.45"
               />
               <p className="text-[10px] text-salve-textFaint font-montserrat italic -mt-1 mb-2 px-1">
-                Take at the same time each morning before getting out of bed. A sustained rise of ~0.5°F for 3 days confirms ovulation.
+                Same time each morning, before getting up.
               </p>
             </>
           )}
@@ -433,163 +433,76 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
         </div>
       )}
 
-      {/* ── Symptothermal Method card ───────────────────── */}
-      {stats.lastPeriod && (
-        <Card className="mb-3" style={{
-          borderLeft: `3px solid ${
-            stStatus.status === 'infertile-post' ? C.sage :
-            stStatus.status === 'infertile-pre' ? C.sage :
-            stStatus.status === 'peak' ? C.rose :
-            stStatus.status === 'fertile' ? C.amber :
-            C.lav
-          }`
-        }}>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Symptothermal Method</span>
-            <Badge style={{
-              color: stStatus.status.includes('infertile') ? C.sage : stStatus.status === 'peak' ? C.rose : stStatus.status === 'fertile' ? C.amber : C.lav,
-              backgroundColor: `${stStatus.status.includes('infertile') ? C.sage : stStatus.status === 'peak' ? C.rose : stStatus.status === 'fertile' ? C.amber : C.lav}22`
-            }}>
-              {stStatus.status === 'infertile-post' ? 'Infertile (confirmed)' :
-               stStatus.status === 'infertile-pre' ? 'Likely infertile' :
-               stStatus.status === 'peak' ? 'Peak fertility' :
-               stStatus.status === 'fertile' ? 'Fertile window' :
-               stStatus.status === 'possibly-fertile' ? 'Possibly fertile' : 'Tracking'}
-            </Badge>
-          </div>
-
-          <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mb-2.5">
-            {stStatus.details}
-          </p>
-
-          {/* Indicator checklist */}
-          <div className="grid grid-cols-3 gap-2 text-center">
-            <div className={`rounded-lg p-2 border ${stStatus.rules.bbtShiftConfirmed ? 'border-salve-sage/40 bg-salve-sage/10' : stStatus.rules.hasBBTData ? 'border-salve-border bg-salve-card2' : 'border-dashed border-salve-border bg-transparent'}`}>
-              <div className="text-[10px] font-montserrat font-medium" style={{ color: stStatus.rules.bbtShiftConfirmed ? C.sage : C.textFaint }}>
-                {stStatus.rules.bbtShiftConfirmed ? '✓ BBT' : '○ BBT'}
+      {/* ── Fertility Status ─────────────────────────────── */}
+      {stats.lastPeriod && (() => {
+        const stColor = stStatus.status.includes('infertile') ? C.sage : stStatus.status === 'peak' ? C.rose : stStatus.status === 'fertile' ? C.amber : C.lav;
+        const stLabel = stStatus.status === 'infertile-post' ? 'Infertile' : stStatus.status === 'infertile-pre' ? 'Likely Infertile' : stStatus.status === 'peak' ? 'Peak Fertile' : stStatus.status === 'fertile' ? 'Fertile' : stStatus.status === 'possibly-fertile' ? 'Possibly Fertile' : 'Tracking';
+        const checks = [
+          { key: 'BBT', ok: stStatus.rules.bbtShiftConfirmed, has: stStatus.rules.hasBBTData },
+          { key: 'Mucus', ok: stStatus.rules.peakPlus3 && stStatus.rules.mucusDrying, has: stStatus.rules.hasMucusData },
+          { key: 'Calendar', ok: stStatus.rules.calendarZone === 'absolute', has: true },
+        ];
+        return (
+          <Card className="mb-3 !p-3" style={{ borderLeft: `3px solid ${stColor}` }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base font-playfair font-semibold" style={{ color: stColor }}>{stLabel}</span>
+                <span className="text-[9px] text-salve-textFaint font-montserrat">· {stStatus.confidence} confidence</span>
               </div>
-              <div className="text-[9px] text-salve-textFaint font-montserrat mt-0.5">
-                {stStatus.rules.bbtShiftConfirmed ? 'Shift confirmed' : stStatus.rules.hasBBTData ? 'No shift yet' : 'Not logged'}
+              <div className="flex gap-1">
+                {checks.map(c => (
+                  <span key={c.key} className={`text-[8px] font-montserrat px-1.5 py-0.5 rounded-full ${c.ok ? 'bg-salve-sage/15 text-salve-sage' : c.has ? 'bg-salve-card2 text-salve-textFaint' : 'text-salve-textFaint opacity-40'}`}>
+                    {c.ok ? '✓' : '○'} {c.key}
+                  </span>
+                ))}
               </div>
             </div>
-            <div className={`rounded-lg p-2 border ${stStatus.rules.peakPlus3 && stStatus.rules.mucusDrying ? 'border-salve-sage/40 bg-salve-sage/10' : stStatus.rules.hasMucusData ? 'border-salve-border bg-salve-card2' : 'border-dashed border-salve-border bg-transparent'}`}>
-              <div className="text-[10px] font-montserrat font-medium" style={{ color: stStatus.rules.peakPlus3 && stStatus.rules.mucusDrying ? C.sage : C.textFaint }}>
-                {stStatus.rules.peakPlus3 && stStatus.rules.mucusDrying ? '✓ Mucus' : '○ Mucus'}
-              </div>
-              <div className="text-[9px] text-salve-textFaint font-montserrat mt-0.5">
-                {stStatus.rules.peakPlus3 ? `Peak + ${stStatus.rules.daysSincePeak}d` : stStatus.rules.lastMucusType ? `Last: ${stStatus.rules.lastMucusType}` : 'Not logged'}
-              </div>
-            </div>
-            <div className={`rounded-lg p-2 border ${stStatus.rules.calendarZone === 'absolute' ? 'border-salve-sage/40 bg-salve-sage/10' : 'border-salve-border bg-salve-card2'}`}>
-              <div className="text-[10px] font-montserrat font-medium" style={{ color: stStatus.rules.calendarZone === 'absolute' ? C.sage : stStatus.rules.calendarZone === 'peak' || stStatus.rules.calendarZone === 'fertile' ? C.amber : C.textFaint }}>
-                {stStatus.rules.calendarZone === 'absolute' ? '✓ Calendar' : '○ Calendar'}
-              </div>
-              <div className="text-[9px] text-salve-textFaint font-montserrat mt-0.5">
-                Day {stStatus.rules.dayOfCycle} / {stStatus.rules.calendarZone}
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[9px] text-salve-textFaint font-montserrat italic mt-2.5">
-            FAM is most reliable when all three indicators agree. This is educational — consult your provider for family planning.
-          </p>
-        </Card>
-      )}
+            <p className="text-[10px] text-salve-textMid font-montserrat mt-1">{stStatus.details}</p>
+          </Card>
+        );
+      })()}
 
       {/* ── BBT Chart ────────────────────────────────────── */}
       {bbtData.length >= 3 && (
-        <Card className="mb-3">
+        <Card className="mb-3 !p-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">BBT Temperature</span>
-            {bbtShift.confirmed && (
-              <Badge style={{ color: C.sage, backgroundColor: `${C.sage}22` }}>Shift confirmed</Badge>
-            )}
+            <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">BBT</span>
+            {bbtShift.confirmed
+              ? <span className="text-[9px] font-montserrat text-salve-sage">✓ Shift on {new Date(bbtShift.shiftDay + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+              : <span className="text-[9px] font-montserrat text-salve-textFaint">{bbtData.length} readings</span>
+            }
           </div>
-          <div className="relative h-24">
-            {/* Y-axis labels */}
+          <div className="relative h-20">
             {(() => {
               const temps = bbtData.map(d => d.temp);
               const min = Math.floor(Math.min(...temps) * 10) / 10 - 0.1;
               const max = Math.ceil(Math.max(...temps) * 10) / 10 + 0.1;
               const range = max - min || 1;
-              const baseline = bbtShift.confirmed ? bbtShift.baselineAvg : null;
-              const coverLine = baseline ? baseline + 0.3 : null;
-
+              const coverLine = bbtShift.confirmed ? bbtShift.baselineAvg + 0.3 : null;
               return (
                 <>
-                  {/* Grid lines */}
                   <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
-                    <span className="text-[8px] text-salve-textFaint font-montserrat">{max.toFixed(1)}°</span>
-                    <span className="text-[8px] text-salve-textFaint font-montserrat">{((max + min) / 2).toFixed(1)}°</span>
-                    <span className="text-[8px] text-salve-textFaint font-montserrat">{min.toFixed(1)}°</span>
+                    <span className="text-[7px] text-salve-textFaint font-montserrat">{max.toFixed(1)}°</span>
+                    <span className="text-[7px] text-salve-textFaint font-montserrat">{min.toFixed(1)}°</span>
                   </div>
-
-                  {/* Cover line (threshold for shift) */}
                   {coverLine && coverLine >= min && coverLine <= max && (
-                    <div
-                      className="absolute left-6 right-0 border-t border-dashed pointer-events-none"
-                      style={{
-                        borderColor: `${C.sage}66`,
-                        top: `${(1 - (coverLine - min) / range) * 100}%`,
-                      }}
-                    >
-                      <span className="absolute right-0 -top-3 text-[7px] font-montserrat" style={{ color: C.sage }}>cover line</span>
-                    </div>
+                    <div className="absolute left-5 right-0 border-t border-dashed pointer-events-none" style={{ borderColor: `${C.sage}55`, top: `${(1 - (coverLine - min) / range) * 100}%` }} />
                   )}
-
-                  {/* Data points + connecting line */}
-                  <svg className="absolute left-6 right-0 top-0 bottom-0 overflow-visible" viewBox={`0 0 ${bbtData.length - 1} 1`} preserveAspectRatio="none">
-                    {/* Line */}
-                    <polyline
-                      fill="none"
-                      stroke={C.lav}
-                      strokeWidth="0.03"
-                      points={bbtData.map((d, i) => `${i},${1 - (d.temp - min) / range}`).join(' ')}
-                    />
-                    {/* Points */}
-                    {bbtData.map((d, i) => {
-                      const y = 1 - (d.temp - min) / range;
-                      const isAboveCover = coverLine && d.temp >= coverLine;
-                      return (
-                        <circle
-                          key={d.date}
-                          cx={i}
-                          cy={y}
-                          r="0.04"
-                          fill={isAboveCover ? C.sage : C.lav}
-                          stroke={isAboveCover ? C.sage : C.lav}
-                          strokeWidth="0.01"
-                        />
-                      );
-                    })}
-                  </svg>
-
-                  {/* Date labels */}
-                  <div className="absolute left-6 right-0 bottom-0 flex justify-between translate-y-3.5">
-                    {bbtData.filter((_, i) => i === 0 || i === bbtData.length - 1 || i === Math.floor(bbtData.length / 2)).map(d => (
-                      <span key={d.date} className="text-[7px] text-salve-textFaint font-montserrat">
-                        {new Date(d.date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' })}
-                      </span>
+                  <svg className="absolute left-5 right-0 top-0 bottom-0 overflow-visible" viewBox={`0 0 ${bbtData.length - 1} 1`} preserveAspectRatio="none">
+                    <polyline fill="none" stroke={C.lav} strokeWidth="0.03" points={bbtData.map((d, i) => `${i},${1 - (d.temp - min) / range}`).join(' ')} />
+                    {bbtData.map((d, i) => (
+                      <circle key={d.date} cx={i} cy={1 - (d.temp - min) / range} r="0.04"
+                        fill={coverLine && d.temp >= coverLine ? C.sage : C.lav}
+                        stroke={coverLine && d.temp >= coverLine ? C.sage : C.lav} strokeWidth="0.01" />
                     ))}
+                  </svg>
+                  <div className="absolute left-5 right-0 bottom-0 flex justify-between translate-y-3">
+                    <span className="text-[7px] text-salve-textFaint font-montserrat">{new Date(bbtData[0].date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
+                    <span className="text-[7px] text-salve-textFaint font-montserrat">{new Date(bbtData[bbtData.length - 1].date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
                   </div>
                 </>
               );
             })()}
-          </div>
-          <div className="mt-5 pt-2 border-t border-salve-border/50 space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: C.lav }} />
-              <span className="text-[9px] text-salve-textFaint font-montserrat">Pre-shift temperatures</span>
-            </div>
-            {bbtShift.confirmed && (
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: C.sage }} />
-                <span className="text-[9px] text-salve-textFaint font-montserrat">Post-shift (above cover line {bbtShift.baselineAvg + 0.3}°F) — ovulation confirmed</span>
-              </div>
-            )}
-            <p className="text-[9px] text-salve-textFaint font-montserrat italic">
-              Take BBT at the same time each morning before getting up. A sustained rise of ≥0.3°F for 3+ days confirms ovulation occurred the day before the shift.
-            </p>
           </div>
         </Card>
       )}
@@ -710,37 +623,16 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
           })}
         </div>
 
-        {/* Explanation */}
-        <p className="text-[10px] text-salve-textFaint font-montserrat italic mt-2.5 leading-relaxed">
-          Predictions are based on your average cycle length ({stats.avgLength} days). Tap any date to log an entry.
-        </p>
-        {overlays.fertilityPct && (
-          <div className="mt-2 pt-2 border-t border-salve-border space-y-1.5">
-            <div className="flex items-start gap-2">
-              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>PEAK</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">1–2 days before ovulation. The egg is about to be released and the cervix is fully open, actively assisting sperm transport.</span>
+        {/* Compact legend */}
+        <div className="flex items-center justify-between mt-2.5 text-[8px] font-montserrat text-salve-textFaint">
+          <span>Avg {stats.avgLength}d · Tap to log</span>
+          {overlays.fertilityPct && (
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-0.5"><span className="w-2 h-2 rounded-sm" style={{ backgroundColor: `${C.amber}55` }} /> Fertile</span>
+              <span className="flex items-center gap-0.5"><span className="w-2 h-2 rounded-sm" style={{ backgroundColor: `${C.sage}25` }} /> Infertile</span>
             </div>
-            <div className="flex items-start gap-2">
-              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>FERTILE</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Up to 5 days before through 1 day after ovulation. The cervix produces alkaline mucus that lets sperm survive up to 120 hours while awaiting the egg, which survives only 12–24 hours once released.</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>BUFFER</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Safety margin 2 days before the fertile window. Ovulation can happen a couple of days early, so these days carry a small risk.</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.textFaint }}>RELATIVE</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Pre-ovulatory. The cervix produces dense mucus that traps and destroys sperm. Labeled "relative" because the follicular phase length varies — in a short cycle, sperm from late in a period could survive long enough to meet an early ovulation.</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.sage }}>0%</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Post-ovulatory. The egg is gone within 24 hours, progesterone seals the cervix, and the mucus becomes impenetrable. The luteal phase is the most predictable part of the cycle (12–14 days), making this the absolute infertile window.</span>
-            </div>
-            <p className="text-[9px] text-salve-textFaint font-montserrat italic">
-              Estimates based on average cycle physiology, not medical advice. Consult your provider for family planning.
-            </p>
-          </div>
-        )}
+          )}
+        </div>
       </Card>
 
       {/* ── Filter pills ────────────────────────────────── */}
