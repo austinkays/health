@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { RefreshCw, Loader, Heart, Moon, Zap, Wind, Activity, Thermometer, Brain, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { RefreshCw, Loader, Heart, Moon, Zap, Wind, Activity, Thermometer, Brain, TrendingUp, TrendingDown, Minus, ChevronDown, AlertCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import { OuraIcon } from '../ui/OuraIcon';
 import Badge from '../ui/Badge';
@@ -9,6 +9,46 @@ import { fmtDate } from '../../utils/dates';
 import { isOuraConnected, syncAllOuraData, fetchOuraSleepSessions, fetchOuraReadiness, fetchOuraTemperature, fetchOuraDailySleep } from '../../services/oura';
 
 const AUTO_SYNC_INTERVAL = 5 * 60_000; // 5 minutes
+
+/* ── Educational tooltips ──────────────────────── */
+const INFO = {
+  readiness: {
+    title: 'What is Readiness?',
+    body: 'Readiness measures how recovered your body is and how prepared you are for the day ahead. It considers your recent sleep, activity, body temperature, and resting heart rate. Scores above 70 mean you\'re well-recovered; below 60 suggests taking it easy.',
+  },
+  sleep: {
+    title: 'Sleep Stages',
+    body: 'Deep sleep restores your body and strengthens immunity. REM sleep consolidates memory and emotional processing. Light sleep transitions between stages. A healthy night typically has 15–20% deep, 20–25% REM, and 50–60% light sleep.',
+  },
+  hrv: {
+    title: 'What is HRV?',
+    body: 'Heart Rate Variability measures the variation in time between heartbeats. Higher HRV generally indicates better cardiovascular fitness and stress resilience. It fluctuates with stress, alcohol, illness, and exercise recovery.',
+  },
+  temp: {
+    title: 'Temperature Deviation',
+    body: 'Oura tracks how your skin temperature deviates from your personal baseline. Small variations (±0.5°C) are normal. Larger deviations may indicate illness, hormonal changes, or recovery needs. Note: not all Oura ring models support temperature tracking.',
+  },
+};
+
+function InfoCard({ info }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button
+      onClick={() => setOpen(!open)}
+      className="w-full text-left bg-transparent border-none p-0 cursor-pointer"
+      aria-expanded={open}
+    >
+      <div className="flex items-center gap-1.5">
+        <Brain size={10} className="text-salve-lav" />
+        <span className="text-[10px] text-salve-lav font-montserrat font-medium">{info.title}</span>
+        <ChevronDown size={10} className={`text-salve-lav transition-transform ${open ? 'rotate-180' : ''}`} />
+      </div>
+      {open && (
+        <p className="text-[10px] text-salve-textMid font-montserrat leading-relaxed mt-1.5 ml-4">{info.body}</p>
+      )}
+    </button>
+  );
+}
 
 function trendIcon(current, previous) {
   if (!current || !previous) return null;
@@ -245,9 +285,27 @@ export default function OuraRing({ data, addItem, onNav }) {
         <StatCard
           icon={Thermometer} label="Temp" color={C.amber}
           value={tempDev != null ? (tempDev > 0 ? '+' : '') + tempDev.toFixed(2) : null} unit="°C"
-          sub="Deviation from baseline"
+          sub={tempDev != null ? 'Deviation from baseline' : 'Not available'}
         />
       </div>
+
+      {/* Temp not available hint */}
+      {tempDev == null && liveData?.temperature?.length === 0 && (
+        <div className="flex items-start gap-2 px-3 py-2 mb-3 bg-salve-card2 border border-salve-border rounded-lg">
+          <AlertCircle size={12} className="text-salve-amber mt-0.5 shrink-0" />
+          <span className="text-[10px] text-salve-textMid font-montserrat leading-relaxed">
+            Temperature data isn't available. This requires a Gen3 Oura Ring and may take a few days of consistent wear to calibrate your baseline.
+          </span>
+        </div>
+      )}
+
+      {/* Educational info */}
+      <Card className="mb-3 space-y-2.5">
+        <InfoCard info={INFO.readiness} />
+        <InfoCard info={INFO.sleep} />
+        <InfoCard info={INFO.hrv} />
+        <InfoCard info={INFO.temp} />
+      </Card>
 
       {/* Sleep breakdown */}
       {latest?.sleep && (

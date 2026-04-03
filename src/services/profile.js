@@ -494,21 +494,78 @@ export function buildProfile(data) {
     }
   }
 
-  // Recent activities / workouts
+  // Wearable summaries (Oura Ring)
+  const ouraVitals = (data.vitals || []).filter(v => v.source === 'oura');
+  if (ouraVitals.length) {
+    p += '\n— WEARABLE DATA (Oura Ring) —\n';
+    const recent = ouraVitals.filter(v => {
+      const d = new Date(v.date + 'T00:00:00');
+      return d >= new Date(Date.now() - 7 * 86400000);
+    });
+
+    const sleepVals = recent.filter(v => v.type === 'sleep').map(v => Number(v.value)).filter(n => !isNaN(n));
+    if (sleepVals.length) p += `Sleep: avg ${(sleepVals.reduce((a, b) => a + b, 0) / sleepVals.length).toFixed(1)} hrs/night (7-day)\n`;
+
+    const hrVals = recent.filter(v => v.type === 'hr').map(v => Number(v.value)).filter(n => !isNaN(n));
+    if (hrVals.length) p += `Resting HR: avg ${Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length)} bpm (7-day)\n`;
+
+    const hrvNotes = recent.filter(v => v.notes?.includes('HRV'));
+    if (hrvNotes.length) {
+      const hrvVals = hrvNotes.map(v => { const m = v.notes.match(/HRV[:\s]*(\d+)/); return m ? Number(m[1]) : NaN; }).filter(n => !isNaN(n));
+      if (hrvVals.length) p += `HRV: avg ${Math.round(hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length)} ms (7-day)\n`;
+    }
+
+    const spo2Vals = recent.filter(v => v.type === 'spo2').map(v => Number(v.value)).filter(n => !isNaN(n));
+    if (spo2Vals.length) p += `SpO2: avg ${(spo2Vals.reduce((a, b) => a + b, 0) / spo2Vals.length).toFixed(1)}% (7-day)\n`;
+
+    // Readiness from notes (synced as energy type with readiness in notes)
+    const readinessNotes = recent.filter(v => v.notes?.includes('Readiness'));
+    if (readinessNotes.length) {
+      const scores = readinessNotes.map(v => { const m = v.notes.match(/Readiness[:\s]*(\d+)/); return m ? Number(m[1]) : NaN; }).filter(n => !isNaN(n));
+      if (scores.length) p += `Readiness: avg ${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}/100 (7-day)\n`;
+    }
+  }
+
+  // Recent activities / workouts (exclude passive tracking like "Daily Activity")
+  const PASSIVE_TYPES = new Set(['Daily Activity', 'daily_activity']);
   const activities = (data.activities || []).filter(a => {
     if (!a.date) return false;
+    if (PASSIVE_TYPES.has(a.type)) return false;
+    // Skip very short activities (<5 min) that are just minor movements
+    if (a.duration_minutes && Number(a.duration_minutes) < 5) return false;
     const d = new Date(a.date + 'T00:00:00');
     return d >= new Date(Date.now() - 30 * 86400000);
   });
   if (activities.length) {
-    p += '\n— RECENT ACTIVITIES (30 days) —\n';
+    p += '\n— RECENT WORKOUTS (30 days) —\n';
     p += `Total workouts: ${activities.length}\n`;
     const types = {};
     activities.forEach(a => { types[a.type] = (types[a.type] || 0) + 1; });
     const topTypes = Object.entries(types).sort((a, b) => b[1] - a[1]).slice(0, 5);
     p += 'Most common: ' + topTypes.map(([t, c]) => `${t} (${c}x)`).join(', ') + '\n';
-    const avgDur = activities.filter(a => a.duration_minutes).reduce((s, a) => s + Number(a.duration_minutes), 0) / activities.filter(a => a.duration_minutes).length;
+    const withDur = activities.filter(a => a.duration_minutes);
+    const avgDur = withDur.length ? withDur.reduce((s, a) => s + Number(a.duration_minutes), 0) / withDur.length : 0;
     if (avgDur) p += `Avg duration: ${Math.round(avgDur)} min\n`;
+    const totalCal = activities.reduce((s, a) => s + (Number(a.calories) || 0), 0);
+    if (totalCal > 0) p += `Total calories burned: ${Math.round(totalCal)}\n`;
+  }
+
+  // Apple Health summary (non-Oura)
+  const appleVitals = (data.vitals || []).filter(v => v.source === 'apple_health' || v.source === 'Apple Health' || (v.notes?.includes('Apple Health') && v.source !== 'oura'));
+  if (appleVitals.length) {
+    const recent = appleVitals.filter(v => {
+      const d = new Date(v.date + 'T00:00:00');
+      return d >= new Date(Date.now() - 7 * 86400000);
+    });
+    if (recent.length) {
+      p += '\n— APPLE HEALTH DATA (7-day) —\n';
+      const steps = recent.filter(v => v.type === 'steps').map(v => Number(v.value)).filter(n => !isNaN(n));
+      if (steps.length) p += `Avg daily steps: ${Math.round(steps.reduce((a, b) => a + b, 0) / steps.length).toLocaleString()}\n`;
+      const energy = recent.filter(v => v.type === 'active_energy').map(v => Number(v.value)).filter(n => !isNaN(n));
+      if (energy.length) p += `Avg daily active energy: ${Math.round(energy.reduce((a, b) => a + b, 0) / energy.length)} cal\n`;
+      const weight = recent.filter(v => v.type === 'weight').map(v => Number(v.value)).filter(n => !isNaN(n));
+      if (weight.length) p += `Recent weight: ${weight[weight.length - 1]} lbs\n`;
+    }
   }
 
   // Active to-dos

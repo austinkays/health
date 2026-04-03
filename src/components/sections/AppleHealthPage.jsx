@@ -67,7 +67,14 @@ export default function AppleHealthPage({ data, onNav }) {
   const [filter, setFilter] = useState('all');
 
   const ahVitals = useMemo(() => (data.vitals || []).filter(isAppleHealth), [data.vitals]);
-  const ahActivities = useMemo(() => (data.activities || []).filter(isAppleHealth), [data.activities]);
+  const ahActivitiesAll = useMemo(() => (data.activities || []).filter(isAppleHealth), [data.activities]);
+  // Filter out passive/tiny activities — real workouts only
+  const ahActivities = useMemo(() => ahActivitiesAll.filter(a => {
+    const t = (a.type || '').toLowerCase();
+    if (t === 'daily activity' || t === 'daily_activity') return false;
+    if (a.duration_minutes && Number(a.duration_minutes) < 5) return false;
+    return true;
+  }), [ahActivitiesAll]);
   const ahLabs = useMemo(() => (data.labs || []).filter(l => l.source === 'apple_health'), [data.labs]);
   const hasData = ahVitals.length > 0 || ahActivities.length > 0 || ahLabs.length > 0;
 

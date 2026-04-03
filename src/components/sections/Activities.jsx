@@ -45,7 +45,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_ACTIVITY);
   const [editId, setEditId] = useState(null);
-  const [filter, setFilter] = useState('all');
+  const [filter, setFilter] = useState('workouts');
   const [sourceFilter, setSourceFilter] = useState('all');
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
