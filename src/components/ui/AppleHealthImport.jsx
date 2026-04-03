@@ -281,9 +281,11 @@ export default function AppleHealthImport({ data, reloadData }) {
         Import vitals, workouts, and lab results from Apple Health.
       </p>
       <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal pl-5 mb-4">
-        <li>On your iPhone: <strong className="text-salve-text">Settings → Health → Export All Health Data</strong></li>
-        <li>Save or AirDrop the exported file to this device</li>
-        <li>Upload the <strong className="text-salve-text">.zip</strong> or <strong className="text-salve-text">.xml</strong> file below</li>
+        <li>Open the <strong className="text-salve-text">Health</strong> app on your iPhone</li>
+        <li>Tap your <strong className="text-salve-text">profile picture</strong> (top right)</li>
+        <li>Tap <strong className="text-salve-text">Export All Health&nbsp;Data</strong></li>
+        <li>AirDrop or save the .zip file to this device</li>
+        <li>Upload it below</li>
       </ol>
 
       <input
