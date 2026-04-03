@@ -37,8 +37,11 @@ export default function AppleHealthImport({ data, reloadData }) {
         setProgress(5);
         const JSZip = (await import('jszip')).default;
         const zip = await JSZip.loadAsync(file);
-        const xmlFile = Object.keys(zip.files).find(n => n.endsWith('export.xml') || n.endsWith('.xml'));
-        if (!xmlFile) throw new Error('No XML file found in ZIP. Expected export.xml from Apple Health.');
+        const allFiles = Object.keys(zip.files);
+        // Prefer export.xml specifically (may be inside apple_health_export/ folder)
+        const xmlFile = allFiles.find(n => n.endsWith('/export.xml') || n === 'export.xml')
+          || allFiles.find(n => n.endsWith('.xml') && !n.includes('cda'));
+        if (!xmlFile) throw new Error('No export.xml found in ZIP. Make sure this is an Apple Health export.');
         xmlText = await zip.files[xmlFile].async('string');
       } else {
         xmlText = await file.text();
