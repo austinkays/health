@@ -20,6 +20,7 @@ import AIMarkdown from '../ui/AIMarkdown';
 import { searchEntities, highlightMatch } from '../../utils/search.jsx';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { findPgxMatches } from '../../constants/pgx';
+import { isOuraConnected } from '../../services/oura';
 
 /* ── Rotating placeholder phrases ────────────────────────── */
 const SEARCH_PLACEHOLDERS = [
@@ -116,6 +117,8 @@ const DASH_PRIMARY_KEY = 'salve:dash-primary';
 
 /* ── Component ───────────────────────────────────────────── */
 
+const CONDITIONAL_TILES = new Set(['oura', 'apple_health', 'flo']);
+
 export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -124,6 +127,21 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
   const alertsDismissed = alertDismissal !== null;
+
+  /* ── Conditional tile visibility (only show connected sources) ── */
+  const hasAppleHealth = useMemo(() => (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
+    || (data.activities || []).some(a => a.source === 'apple_health' || a.source === 'Apple Health'), [data.vitals, data.activities]);
+  const hasFloData = useMemo(() => (data.cycles || []).length > 0, [data.cycles]);
+  const ouraConnected = isOuraConnected();
+
+  const visibleLinks = useMemo(() => {
+    return ALL_LINKS.filter(l => {
+      if (l.id === 'oura') return ouraConnected;
+      if (l.id === 'apple_health') return hasAppleHealth;
+      if (l.id === 'flo') return hasFloData;
+      return true;
+    });
+  }, [ouraConnected, hasAppleHealth, hasFloData]);
 
   /* ── Customizable Quick Access state ──────── */
   const [primaryIds, setPrimaryIds] = useState(() => {
@@ -141,8 +159,8 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [replacingIndex, setReplacingIndex] = useState(null);
   const [addingMode, setAddingMode] = useState(false);
 
-  const primaryLinks = useMemo(() => primaryIds.map(id => ALL_LINKS.find(l => l.id === id)).filter(Boolean), [primaryIds]);
-  const moreLinks = useMemo(() => ALL_LINKS.filter(l => !primaryIds.includes(l.id)), [primaryIds]);
+  const primaryLinks = useMemo(() => primaryIds.map(id => visibleLinks.find(l => l.id === id)).filter(Boolean), [primaryIds, visibleLinks]);
+  const moreLinks = useMemo(() => visibleLinks.filter(l => !primaryIds.includes(l.id)), [primaryIds, visibleLinks]);
 
   /* ── Search state ───────────────────────────── */
   const [searchQuery, setSearchQuery] = useState('');

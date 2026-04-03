@@ -48,6 +48,13 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [dataExpanded, setDataExpanded] = useState(false);
+  const [expandedSource, setExpandedSource] = useState(null);
+  const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
+
+  // Source detection
+  const hasAppleHealth = (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
+    || (data.activities || []).some(a => a.source === 'apple_health' || a.source === 'Apple Health');
+  const hasFloData = (data.cycles || []).length > 0;
 
   // Oura state
   const [ouraConnected, setOuraConnected] = useState(() => isOuraConnected());
@@ -408,16 +415,55 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
 
       <SectionTitle>Connected Sources</SectionTitle>
 
-      {/* ── Source cards: compact connected-status tiles ── */}
       <div className="space-y-2 mb-4">
-        {/* Oura Ring */}
+        {/* ── Claude Health Sync (always first) ── */}
         <Card>
-          <div className="flex items-center justify-between">
+          <button onClick={() => toggleSource('claude')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
+                <Sparkles size={16} className="text-salve-lav" />
+              </div>
+              <div className="text-left">
+                <span className="text-[13px] text-salve-text font-medium block">Claude Health Sync</span>
+                <span className="text-[10px] text-salve-textFaint">Pull records from MCP providers</span>
+              </div>
+            </div>
+            {expandedSource === 'claude' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          </button>
+          {expandedSource === 'claude' && (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              <ol className="text-[11px] text-salve-textMid space-y-1 leading-relaxed list-decimal pl-5 mb-3">
+                <li>Download the sync artifact</li>
+                <li>Open <strong className="text-salve-text">Claude.ai</strong> and attach it</li>
+                <li>Paste the prompt and pull records</li>
+                <li>Import the sync file in Data Management</li>
+              </ol>
+              <a
+                href="/salve-sync.jsx"
+                download="salve-sync.jsx"
+                className="btn-magic btn-magic-lav w-full py-3 rounded-xl font-semibold text-sm no-underline
+                  bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
+                  border border-salve-lav/30 text-salve-lav
+                  flex items-center justify-center gap-2.5
+                  hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
+              >
+                <Sparkles size={18} className="animate-pulse" />
+                Download Sync Artifact
+                <Sparkles size={14} className="opacity-50" />
+              </a>
+              <CopyPromptButton />
+            </div>
+          )}
+        </Card>
+
+        {/* ── Oura Ring ── */}
+        <Card>
+          <button onClick={() => toggleSource('oura')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
             <div className="flex items-center gap-2.5">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ouraConnected ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
                 <OuraIcon size={16} className={ouraConnected ? 'text-salve-sage' : 'text-salve-textFaint'} />
               </div>
-              <div>
+              <div className="text-left">
                 <span className="text-[13px] text-salve-text font-medium block">Oura Ring</span>
                 <span className="text-[10px] text-salve-textFaint">
                   {ouraConnected
@@ -428,139 +474,142 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
             </div>
             <div className="flex items-center gap-1.5">
               {ouraConnected && (
-                <button
-                  onClick={() => onNav('oura')}
-                  className="text-[10px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline"
-                >View →</button>
+                <span className="w-2 h-2 rounded-full bg-salve-sage" />
               )}
-              <span className={`w-2 h-2 rounded-full ${ouraConnected ? 'bg-salve-sage' : 'bg-salve-textFaint/30'}`} />
+              {expandedSource === 'oura' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
             </div>
-          </div>
-
-          {ouraConnected ? (
+          </button>
+          {expandedSource === 'oura' && (
             <div className="mt-3 pt-3 border-t border-salve-border/50">
-              <Field
-                label="BBT Baseline (°F)"
-                value={ouraBaseline}
-                onChange={saveOuraBaseline}
-                placeholder="97.7"
-                type="number"
-              />
-              <p className="text-[10px] text-salve-textFaint italic mb-3 -mt-1 leading-relaxed">
-                Oura measures temperature deviation from your personal baseline. Average waking BBT is ~97.7°F.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleOuraSync}
-                  disabled={ouraSyncing}
-                  className="flex-1 py-2 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat
-                    flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50"
-                >
-                  {ouraSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                  {ouraSyncing ? 'Syncing...' : 'Sync All Data'}
-                </button>
-                <button
-                  onClick={disconnectOura}
-                  className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat
-                    flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
-                >
-                  <Unlink size={12} /> Disconnect
-                </button>
-              </div>
+              {ouraConnected ? (
+                <>
+                  <div className="flex justify-end mb-2">
+                    <button onClick={() => onNav('oura')} className="text-[10px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Oura data →</button>
+                  </div>
+                  <Field
+                    label="BBT Baseline (°F)"
+                    value={ouraBaseline}
+                    onChange={saveOuraBaseline}
+                    placeholder="97.7"
+                    type="number"
+                  />
+                  <p className="text-[10px] text-salve-textFaint italic mb-3 -mt-1 leading-relaxed">
+                    Oura measures temperature deviation from your personal baseline. Average waking BBT is ~97.7°F.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleOuraSync}
+                      disabled={ouraSyncing}
+                      className="flex-1 py-2 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat
+                        flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {ouraSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {ouraSyncing ? 'Syncing...' : 'Sync All Data'}
+                    </button>
+                    <button
+                      onClick={disconnectOura}
+                      className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat
+                        flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                    >
+                      <Unlink size={12} /> Disconnect
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
+                    Connect your Oura Ring to import sleep, readiness, heart rate, temperature, and workout data.
+                  </p>
+                  <button
+                    onClick={connectOura}
+                    disabled={ouraLoading}
+                    className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat
+                      hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {ouraLoading ? <Loader size={16} className="animate-spin" /> : <OuraIcon size={16} />}
+                    {ouraLoading ? 'Connecting...' : 'Connect Oura Ring'}
+                  </button>
+                </>
+              )}
+              {ouraError && (
+                <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{ouraError}</div>
+              )}
+              {ouraSuccess && (
+                <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs whitespace-pre-line">{ouraSuccess}</div>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={connectOura}
-              disabled={ouraLoading}
-              className="w-full mt-3 py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat
-                hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {ouraLoading ? <Loader size={16} className="animate-spin" /> : <OuraIcon size={16} />}
-              {ouraLoading ? 'Connecting...' : 'Connect Oura Ring'}
-            </button>
-          )}
-
-          {ouraError && (
-            <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{ouraError}</div>
-          )}
-          {ouraSuccess && (
-            <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs whitespace-pre-line">{ouraSuccess}</div>
           )}
         </Card>
 
-        {/* Apple Health */}
+        {/* ── Apple Health ── */}
         <Card>
-          <div className="flex items-center justify-between mb-3">
+          <button onClick={() => toggleSource('apple')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
-                <Apple size={16} className="text-salve-lav" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasAppleHealth ? 'bg-salve-lav/15' : 'bg-salve-card2'}`}>
+                <Apple size={16} className={hasAppleHealth ? 'text-salve-lav' : 'text-salve-textFaint'} />
               </div>
-              <div>
+              <div className="text-left">
                 <span className="text-[13px] text-salve-text font-medium block">Apple Health</span>
-                <span className="text-[10px] text-salve-textFaint">Vitals, workouts, labs from iPhone</span>
+                <span className="text-[10px] text-salve-textFaint">
+                  {hasAppleHealth ? 'Data imported' : 'Vitals, workouts, labs from iPhone'}
+                </span>
               </div>
             </div>
-            <button
-              onClick={() => onNav('apple_health')}
-              className="text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline"
-            >View →</button>
-          </div>
-          <AppleHealthImport data={data} reloadData={reloadData} />
+            <div className="flex items-center gap-1.5">
+              {hasAppleHealth && <span className="w-2 h-2 rounded-full bg-salve-lav" />}
+              {expandedSource === 'apple' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+            </div>
+          </button>
+          {expandedSource === 'apple' && (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              {hasAppleHealth && (
+                <div className="flex justify-end mb-2">
+                  <button onClick={() => onNav('apple_health')} className="text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Apple Health data →</button>
+                </div>
+              )}
+              <AppleHealthImport data={data} reloadData={reloadData} />
+            </div>
+          )}
         </Card>
 
-        {/* Flo */}
+        {/* ── Flo ── */}
         <Card>
-          <div className="flex items-center justify-between">
+          <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
-                <Heart size={16} className="text-salve-rose" />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasFloData ? 'bg-salve-rose/15' : 'bg-salve-card2'}`}>
+                <Heart size={16} className={hasFloData ? 'text-salve-rose' : 'text-salve-textFaint'} />
               </div>
-              <div>
+              <div className="text-left">
                 <span className="text-[13px] text-salve-text font-medium block">Flo</span>
-                <span className="text-[10px] text-salve-textFaint">Cycle data via GDPR export</span>
+                <span className="text-[10px] text-salve-textFaint">
+                  {hasFloData ? 'Cycle data imported' : 'Cycle data via GDPR export'}
+                </span>
               </div>
             </div>
-            <button
-              onClick={() => onNav('flo')}
-              className="text-[10px] text-salve-rose font-montserrat bg-transparent border-none cursor-pointer hover:underline"
-            >View →</button>
-          </div>
-          <p className="text-[11px] text-salve-textFaint mt-2 leading-relaxed">
-            Import Flo data in the Cycle Tracker — tap the import button on the cycle calendar.
-          </p>
-        </Card>
-
-        {/* Claude Health Sync */}
-        <Card>
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
-              <Sparkles size={16} className="text-salve-lav" />
+            <div className="flex items-center gap-1.5">
+              {hasFloData && <span className="w-2 h-2 rounded-full bg-salve-rose" />}
+              {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
             </div>
-            <div>
-              <span className="text-[13px] text-salve-text font-medium block">Claude Health Sync</span>
-              <span className="text-[10px] text-salve-textFaint">Pull records from MCP providers</span>
+          </button>
+          {expandedSource === 'flo' && (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              {hasFloData && (
+                <div className="flex justify-end mb-2">
+                  <button onClick={() => onNav('flo')} className="text-[10px] text-salve-rose font-montserrat bg-transparent border-none cursor-pointer hover:underline">View cycle data →</button>
+                </div>
+              )}
+              <p className="text-[11px] text-salve-textFaint leading-relaxed">
+                Import Flo data in the Cycle Tracker — tap the import button on the cycle calendar.
+              </p>
+              <button
+                onClick={() => onNav('cycles')}
+                className="w-full mt-2 py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-rose font-medium text-sm font-montserrat
+                  hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Heart size={14} /> Go to Cycle Tracker
+              </button>
             </div>
-          </div>
-          <ol className="text-[11px] text-salve-textMid space-y-1 leading-relaxed list-decimal pl-5 mb-3">
-            <li>Download the sync artifact</li>
-            <li>Open <strong className="text-salve-text">Claude.ai</strong> and attach it</li>
-            <li>Paste the prompt and pull records</li>
-            <li>Import the sync file in Data Management</li>
-          </ol>
-          <a
-            href="/salve-sync.jsx"
-            download="salve-sync.jsx"
-            className="btn-magic btn-magic-lav w-full py-3 rounded-xl font-semibold text-sm no-underline
-              bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
-              border border-salve-lav/30 text-salve-lav
-              flex items-center justify-center gap-2.5
-              hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
-          >
-            <Sparkles size={18} className="animate-pulse" />
-            Download Sync Artifact
-            <Sparkles size={14} className="opacity-50" />
-          </a>
-          <CopyPromptButton />
+          )}
         </Card>
       </div>
 
