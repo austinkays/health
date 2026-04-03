@@ -90,20 +90,25 @@ export function detectAppleHealthJSON(data) {
 /* ── Main XML parser (chunked, regex-based) ───────────── */
 
 // Accepts either a string OR an ArrayBuffer (for large files)
-export function parseAppleHealthExport(input, { onProgress } = {}) {
+// monthsBack: only import data from the last N months (default 6)
+export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {}) {
   const rawVitals = {};
   const rawBP = {};
   const rawSleep = {};
   const activities = [];
   const labs = [];
-  const counts = { records: 0, vitals: 0, sleep: 0, workouts: 0, labs: 0, skipped: 0 };
+  const counts = { records: 0, vitals: 0, sleep: 0, workouts: 0, labs: 0, skipped: 0, tooOld: 0 };
+
+  // Compute cutoff date
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - monthsBack);
+  const cutoffStr = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
 
   const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB decoded text chunks
   const OVERLAP = 4096;
 
   if (typeof input === 'string') {
-    // String mode (small files or direct .xml upload)
-    processChunkedText(input, input.length, CHUNK_SIZE, OVERLAP, rawVitals, rawBP, rawSleep, activities, labs, counts, onProgress);
+    processChunkedText(input, input.length, CHUNK_SIZE, OVERLAP, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr, onProgress);
   } else if (input instanceof ArrayBuffer) {
     // ArrayBuffer mode (large ZIP files — decode in chunks, never hold full string)
     const decoder = new TextDecoder('utf-8');
@@ -122,9 +127,9 @@ export function parseAppleHealthExport(input, { onProgress } = {}) {
       if (!isLast && text.length > OVERLAP) {
         const processable = text.slice(0, text.length - OVERLAP);
         carryover = text.slice(text.length - OVERLAP);
-        processTextChunk(processable, rawVitals, rawBP, rawSleep, activities, labs, counts);
+        processTextChunk(processable, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr);
       } else {
-        processTextChunk(text, rawVitals, rawBP, rawSleep, activities, labs, counts);
+        processTextChunk(text, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr);
         carryover = '';
       }
 
@@ -141,23 +146,25 @@ export function parseAppleHealthExport(input, { onProgress } = {}) {
   return { vitals, labs, activities, counts };
 }
 
-function processChunkedText(text, totalLen, chunkSize, overlap, rawVitals, rawBP, rawSleep, activities, labs, counts, onProgress) {
+function processChunkedText(text, totalLen, chunkSize, overlap, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr, onProgress) {
   for (let offset = 0; offset < totalLen; offset += chunkSize - overlap) {
     const chunk = text.slice(offset, offset + chunkSize);
-    processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts);
+    processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr);
     if (onProgress) {
       onProgress(Math.min(95, Math.round((offset + chunkSize) / totalLen * 95)));
     }
   }
 }
 
-function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts) {
+function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr) {
   // Parse <Record> elements
   const recordRegex = /<Record\s+([^>]+?)\/>/g;
   let match;
   while ((match = recordRegex.exec(chunk)) !== null) {
     counts.records++;
     const attrs = parseAttributes(match[1]);
+    const date = parseDate(attrs.startDate);
+    if (date && date < cutoffStr) { counts.tooOld++; continue; }
     processRecord(attrs, rawVitals, rawBP, rawSleep, counts);
   }
 
@@ -165,6 +172,8 @@ function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, c
   const workoutRegex = /<Workout\s+([^>]+?)(?:\/>|>[\s\S]*?<\/Workout>)/g;
   while ((match = workoutRegex.exec(chunk)) !== null) {
     const attrs = parseAttributes(match[1]);
+    const date = parseDate(attrs.startDate);
+    if (date && date < cutoffStr) { counts.tooOld++; continue; }
     const activity = processWorkout(attrs);
     if (activity) {
       activities.push(activity);
@@ -172,7 +181,7 @@ function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, c
     }
   }
 
-  // Parse <ClinicalRecord> with FHIR data
+  // Parse <ClinicalRecord> with FHIR data (no date filter — labs are always relevant)
   const clinicalRegex = /<ClinicalRecord\s+([^>]+?)\/>/g;
   while ((match = clinicalRegex.exec(chunk)) !== null) {
     const attrs = parseAttributes(match[1]);

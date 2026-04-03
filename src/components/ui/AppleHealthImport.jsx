@@ -31,6 +31,7 @@ export default function AppleHealthImport({ data, reloadData }) {
 
     setPreview({
       total: parsed.counts,
+      tooOld: parsed.counts.tooOld || 0,
       new: { vitals: newVitals.length, labs: newLabs.length, activities: newActivities.length },
       skipped: {
         vitals: parsed.vitals.length - newVitals.length,
@@ -217,9 +218,14 @@ export default function AppleHealthImport({ data, reloadData }) {
               <span className="text-salve-sage font-semibold">{preview.new.labs} new</span>
             </div>
           )}
+          {preview.tooOld > 0 && (
+            <div className="text-[10px] text-salve-textFaint italic">
+              {preview.tooOld.toLocaleString()} older records skipped (6+ months ago)
+            </div>
+          )}
           {totalSkipped > 0 && (
             <div className="text-[10px] text-salve-textFaint italic">
-              {totalSkipped} duplicate record{totalSkipped !== 1 ? 's' : ''} will be skipped
+              {totalSkipped} duplicate{totalSkipped !== 1 ? 's' : ''} will be skipped
             </div>
           )}
         </div>
