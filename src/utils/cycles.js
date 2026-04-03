@@ -78,35 +78,57 @@ export function getCyclePhaseForDate(date, cycles) {
 
 /**
  * Estimates relative fertility for a given cycle day (1-based) and average cycle length.
- * Returns a value from 0–100 representing relative likelihood, NOT a medical probability.
+ * Returns { pct: 0–100, zone: 'absolute'|'relative'|'fertile'|'peak' }.
  *
- * Based on the standard fertility window model:
- * - Sperm survive up to 5 days; egg survives ~24 hours
- * - Peak fertility is 1–2 days before ovulation
- * - Ovulation estimated at avgLength - 14
- * - Luteal phase and menstrual phase are lowest
+ * Based on the HPO axis model and gamete viability:
+ *
+ * FERTILE WINDOW [ovDay-5 → ovDay]:
+ *   Sperm survive up to 120h in Type E (estrogenic) cervical mucus secreted
+ *   under high estradiol. Peak is O-1 and O-day (E2 >200pg/mL sustained ~50h
+ *   triggers LH surge → oocyte release). The oocyte survives only 12–24h.
+ *
+ * POST-OVULATORY — ABSOLUTE INFERTILITY [ovDay+1 → cycle end]:
+ *   Corpus luteum produces progesterone → cervical os constricts, mucus reverts
+ *   to impenetrable Type G, oocyte undergoes apoptosis within 24h. The luteal
+ *   phase is highly conserved at 12–14 days. Conception is biologically impossible.
+ *
+ * PRE-OVULATORY — RELATIVE INFERTILITY [day 1 → ovDay-6]:
+ *   Low E2 → Type G mucus blocks sperm. However, follicular phase length is
+ *   variable — accelerated folliculogenesis can shorten it. In short cycles,
+ *   spermatozoal viability (120h) from coitus during late menses can bridge to
+ *   an early ovulation. "Relative" because the barrier exists but is not absolute.
  */
 export function estimateFertility(dayOfCycle, avgLength) {
-  if (dayOfCycle <= 0) return 0;
+  if (dayOfCycle <= 0) return { pct: 0, zone: 'relative' };
   const ovDay = Math.round(avgLength - 14);
   const dist = dayOfCycle - ovDay; // negative = before ovulation, positive = after
 
-  // Fertility curve centered on ovulation day
-  // Peak: day before ovulation (dist = -1) and ovulation day (dist = 0)
-  if (dist === -1 || dist === 0) return 95;
-  if (dist === -2) return 80;
-  if (dist === 1) return 60;
-  if (dist === -3) return 55;
-  if (dist === -4) return 35;
-  if (dist === -5) return 20;
-  if (dist === 2) return 15;
+  // ── POST-OVULATORY: absolute infertility ──
+  // Oocyte dead within 24h, P4 dominance, Type G mucus, cervix closed
+  if (dist >= 2) return { pct: 0, zone: 'absolute' };
+  // Day after ovulation: oocyte may still be viable for ~12h
+  if (dist === 1) return { pct: 8, zone: 'fertile' };
 
-  // Menstrual phase (days 1–5): very low but not zero
-  if (dayOfCycle <= 5) return 5;
+  // ── FERTILE WINDOW: Type E mucus, sperm-permeable cervix ──
+  // Peak: O-1 and O-day — LH surge, oocyte release, optimal timing
+  if (dist === 0)  return { pct: 95, zone: 'peak' };
+  if (dist === -1) return { pct: 95, zone: 'peak' };
+  if (dist === -2) return { pct: 75, zone: 'fertile' };
+  if (dist === -3) return { pct: 50, zone: 'fertile' };
+  // Outer edge: sperm deposited now must survive 4–5 days
+  if (dist === -4) return { pct: 30, zone: 'fertile' };
+  if (dist === -5) return { pct: 15, zone: 'fertile' };
 
-  // Early follicular (approaching fertile window)
-  if (dist < -5 && dist >= -8) return 8;
+  // ── PRE-OVULATORY: relative infertility ──
+  // Type G mucus present but follicular phase length varies
+  // Closer to fertile window = higher risk from early ovulation
+  if (dist === -6) return { pct: 5, zone: 'relative' };
+  if (dist === -7) return { pct: 3, zone: 'relative' };
 
-  // Late luteal / pre-menstrual
-  return 2;
+  // Menstrual phase (days 1–5): very low but nonzero in short cycles
+  // Late menses + short follicular phase + 120h sperm viability = small risk
+  if (dayOfCycle <= 5) return { pct: 2, zone: 'relative' };
+
+  // Early follicular, far from ovulation
+  return { pct: 1, zone: 'relative' };
 }

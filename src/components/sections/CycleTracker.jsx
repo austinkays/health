@@ -378,7 +378,9 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             const showOvulation = overlays.ovulation && hasOvulation;
             const showSymptom = overlays.symptoms && hasSymptom;
             const isToday = dk === today;
-            const fertPct = overlays.fertilityPct ? (fertilityMap[dk] ?? null) : null;
+            const fertData = overlays.fertilityPct ? (fertilityMap[dk] ?? null) : null;
+            const fertPct = fertData?.pct ?? null;
+            const fertZone = fertData?.zone ?? null;
 
             let bg = 'transparent';
             let border = 'transparent';
@@ -387,20 +389,34 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             else if (showOvulation) bg = `${C.amber}55`;
             else if (isFertile) { bg = `${C.amber}30`; border = `${C.amber}40`; }
 
-            // Fertility % tints the cell with a sage-to-amber gradient based on level
-            const fertColor = fertPct !== null && fertPct >= 20 ? C.amber : C.sage;
-            const fertBgOpacity = fertPct !== null ? Math.round(fertPct * 0.35).toString(16).padStart(2, '0') : '00';
-            if (fertPct !== null && bg === 'transparent') bg = `${fertColor}${fertBgOpacity}`;
+            // Fertility % tints the cell based on zone and level
+            if (fertPct !== null && bg === 'transparent') {
+              if (fertZone === 'peak' || fertZone === 'fertile') {
+                const op = Math.round(fertPct * 0.35).toString(16).padStart(2, '0');
+                bg = `${C.amber}${op}`;
+              } else if (fertZone === 'absolute') {
+                bg = `${C.sage}12`;
+              }
+              // 'relative' zone gets no tint — stays transparent
+            }
+
+            // Color for the % label
+            const fertLabelColor = fertZone === 'peak' ? C.amber
+              : fertZone === 'fertile' ? C.amber
+              : fertZone === 'absolute' ? C.sage
+              : C.textFaint;
 
             return (
               <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
                 style={{ backgroundColor: bg, borderWidth: (isPredicted || isToday || isFertile) ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
-                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${showSymptom ? ', symptom logged' : ''}${showOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}${fertPct !== null ? `, ~${fertPct}% fertility` : ''}`}
+                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${showSymptom ? ', symptom logged' : ''}${showOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}${fertPct !== null ? `, ~${fertPct}% fertility (${fertZone})` : ''}`}
               >
                 <span className={`leading-none ${isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}`}>{day}</span>
-                {fertPct !== null ? (
-                  <span className="text-[7px] leading-none mt-0.5 font-medium" style={{ color: fertPct >= 50 ? C.amber : fertPct >= 15 ? C.sage : C.textFaint }}>{fertPct}%</span>
+                {fertData !== null ? (
+                  <span className="text-[7px] leading-none mt-0.5 font-medium" style={{ color: fertLabelColor }}>
+                    {fertZone === 'absolute' ? '0%' : `${fertPct}%`}
+                  </span>
                 ) : (
                   <div className="flex gap-0.5 mt-0.5 h-1">
                     {hasPeriod && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.rose }} />}
@@ -416,8 +432,30 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
         {/* Explanation */}
         <p className="text-[10px] text-salve-textFaint font-montserrat italic mt-2.5 leading-relaxed">
           Predictions are based on your average cycle length ({stats.avgLength} days). Tap any date to log an entry.
-          {overlays.fertilityPct && ' Fertility % is a relative estimate, not a medical probability — always consult your provider for family planning.'}
         </p>
+        {overlays.fertilityPct && (
+          <div className="mt-2 pt-2 border-t border-salve-border space-y-1.5">
+            <div className="flex items-start gap-2">
+              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>PEAK</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">O-1 to O-day. LH surge, oocyte released. Optimal timing.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>FERTILE</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">O-5 to O+1. Type E mucus allows sperm survival up to 120h.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.textFaint }}>RELATIVE</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Pre-ovulatory. Type G mucus blocks sperm, but follicular phase length varies — not absolute.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.sage }}>0%</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Post-ovulatory. Oocyte dead within 24h, progesterone seals cervix. Biologically infertile.</span>
+            </div>
+            <p className="text-[9px] text-salve-textFaint font-montserrat italic">
+              These are estimates based on standard HPO axis physiology, not medical advice. Consult your provider for family planning.
+            </p>
+          </div>
+        )}
       </Card>
 
       {/* ── Filter pills ────────────────────────────────── */}
