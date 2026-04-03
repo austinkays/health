@@ -72,6 +72,7 @@ function AppContent() {
   const [tab, setTab] = useState('dash');
   const [highlightId, setHighlightId] = useState(null);
   const [navOpts, setNavOpts] = useState(null);
+  const [navHistory, setNavHistory] = useState([]);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
   const showToast = useToast();
 
@@ -94,10 +95,26 @@ function AppContent() {
   };
 
   const onNav = (t, opts) => {
+    // Push current tab onto history stack so back button can return here
+    if (t !== tab) {
+      setNavHistory(prev => [...prev.slice(-19), tab]);
+    }
     setTab(t);
     setHighlightId(opts?.highlightId || null);
     setNavOpts(opts || null);
     window.scrollTo(0, 0);
+  };
+
+  const onBack = () => {
+    setNavHistory(prev => {
+      const next = [...prev];
+      const prevTab = next.pop() || 'dash';
+      setTab(prevTab);
+      setHighlightId(null);
+      setNavOpts(null);
+      window.scrollTo(0, 0);
+      return next;
+    });
   };
 
   // Time-aware ambiance — shift accent warmth throughout the day
@@ -249,9 +266,9 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-salve-bg overflow-hidden">
       <div className="max-w-[480px] mx-auto pb-24 relative">
-        <Header tab={tab} name={data.settings.name} onBack={() => onNav('dash')} onSearch={() => onNav('search')} />
+        <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} />
         <main className="px-4">
-          <ErrorBoundary onReset={() => onNav('dash')}>
+          <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
             <Suspense fallback={
               <div className="flex items-center justify-center py-20">
                 <LoadingSpinner text="Loading..." />
