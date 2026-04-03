@@ -74,12 +74,12 @@ health/
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + time-aware ambiance CSS variables + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation, ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s)
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s)
 │   ├── constants/
 │   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
 │   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
-│   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods, EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS
+│   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods, EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS (4-level: dry/sticky/creamy/eggwhite with fertility labels), FERTILITY_MARKERS
 │   │   ├── pgx.js                # Pharmacogenomic drug-gene lookup: PGX_GENES, PHENOTYPES, PGX_INTERACTIONS (~40 gene-drug pairs), findPgxMatches()
 │   │   └── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (27 tools incl add/remove cycle, todos, activity, genetic), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
 │   ├── services/
@@ -120,7 +120,7 @@ health/
 │   │   │   ├── AppleHealthImport.jsx # Apple Health import UI: file picker (.xml/.zip), progress bar, dedup preview, bulk insert, clipboard paste for iOS Shortcut
 │   │   │   └── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook); celebration sparkle burst on success toasts (CelebrationBurst component with 6 radial Sparkles particles)
 │   │   ├── layout/
-│   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
+│   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages), optional action prop for section-specific buttons; TAB_LABELS for all 26 sections (properly capitalized); TAB_DECOR per-section glyphs
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
 │   │   └── sections/             # One file per app section (26 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
@@ -143,7 +143,7 @@ health/
 │   │       ├── Appeals.jsx       # Insurance appeals & disputes + deadline countdown badges
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
-│   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar view (period days=rose, fertile window=amber, ovulation=sage, predicted=dashed), stats card (current day, avg length, days until next), quick-log (tap calendar day), filter pills (all/period/symptom/ovulation/fertility), cycle phase detection (menstrual/follicular/ovulatory/luteal), predictions (next period, fertile window), Flo GDPR import with dedup, deep-link + highlight support
+│   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar with toggleable overlays (predicted period, fertile window, ovulation, symptoms, fertility % — all persisted in localStorage `salve:cycle-overlays`); fertility % shows per-day relative estimate with HPO axis zones (peak/fertile/buffer/relative/absolute); cervical mucus logging (4 clinical levels: dry/sticky/creamy/egg-white with inline fertility hints); BBT temperature logging (decimal °F input); detectBBTShift() confirms ovulation via 3-day sustained ≥0.3°F rise above prior 6 readings; buffer zones (2-day safety margin before fertile window); edge case alerts (short cycles <21 days, peak mucus detection, BBT shift confirmation/missing); stats card (current day, avg length, days until next); quick-log (tap calendar day); filter pills (all/period/mucus/BBT/symptoms/fertility); cycle phase detection; predictions (count-backward rule: avgLength - 14); Flo GDPR import with dedup; deep-link + highlight support
 │   │       ├── Activities.jsx     # Workouts + daily activity: weekly summary stats, filter pills (All/Workouts/Daily), type-colored cards, duration/calories/distance/HR details, manual entry form, Apple Health import data home
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
@@ -155,6 +155,7 @@ health/
 │       ├── interactions.js       # checkInteractions() logic
 │       ├── links.js              # URL generators: dailyMedUrl (direct setid link or cleaned name search), medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl (NPI → registry, else Google with specialty+clinic), googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
 │       ├── maps.js               # mapsUrl(address) → Google Maps search URL
+│       ├── cycles.js             # Cycle logic: computeCycleStats (period start detection, avg length), getCyclePhase, predictNextPeriod (count-backward rule), getDayOfCycle, getCyclePhaseForDate, estimateFertility (returns {pct, zone} with peak/fertile/buffer/relative/absolute zones based on HPO axis physiology), detectBBTShift (3-day sustained ≥0.3°F rise above 6-day baseline), getCycleAlerts (short cycle, peak mucus, BBT shift/missing)
 │       └── search.jsx            # Shared search logic: ENTITY_CONFIG, searchEntities(), highlightMatch(), FILTER_TABS, MORE_CATEGORIES
 ```
 
@@ -178,8 +179,8 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `ai_conversations` | title, messages (JSONB) | |
 | `drug_prices` | medication_id, rxcui, ndc, nadac_per_unit, pricing_unit, drug_name, effective_date, as_of_date, classification, fetched_at | NADAC price snapshots for medications |
 | `insurance_claims` | date, provider, description, billed_amount, allowed_amount, paid_amount, patient_responsibility, status (submitted/processing/paid/denied/appealed), claim_number, insurance_plan, notes | Tracks individual insurance claims with amounts |
-| `cycles` | date, type (period/ovulation/symptom/fertility_marker), value, symptom, notes | Menstrual cycle tracking; period flow levels, ovulation markers, cycle symptoms, fertility markers (BBT, cervical mucus, OPK) |
-| `todos` | title, notes, due_date (nullable), priority (low/medium/high/urgent), category (custom/medication/appointment/follow_up/insurance/lab), completed, completed_at, recurring (none/daily/weekly/monthly), related_id, related_table, source (manual/ai_suggested), dismissed | Health to-do items with optional due dates, priorities, and cross-references. Dashboard alerts for overdue/urgent items. |
+| `cycles` | date, type (period/ovulation/symptom/cervical_mucus/bbt/fertility_marker), value, symptom, notes | Menstrual cycle tracking; period flow levels, ovulation markers, cycle symptoms, cervical mucus (4 levels: dry/sticky/creamy/eggwhite), BBT temperature (decimal °F), other fertility markers (OPK, mittelschmerz) |
+| `todos` | title, notes, due_date (nullable), priority (low/medium/high/urgent), category (custom/medication/appointment/follow_up/insurance/lab/research), completed, completed_at, recurring (none/daily/weekly/monthly), related_id, related_table, source (manual/ai_suggested), dismissed | Health to-do items with optional due dates, priorities, and cross-references. Dashboard alerts for overdue/urgent items. |
 | `activities` | date, type, duration_minutes, distance, calories, heart_rate_avg, source, notes | Workout/exercise tracking from Apple Health import or manual entry. |
 | `genetic_results` | source, gene, variant, phenotype, affected_drugs (JSONB), category, notes | Pharmacogenomic test results (CYP450 metabolizer status, HLA variants). Drug-gene badges on medication cards. |
 
@@ -381,7 +382,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - Quick Access tiles are **user-customizable**: Edit button (pencil icon) enters edit mode → tap a tile to select it → bottom sheet shows available replacements → tap replacement to swap → Done button saves. "+" tile at end of grid adds new tiles from available sections. "×" badge on each tile removes it (minimum 1 tile enforced). Persisted in `localStorage` under `salve:dash-primary` (array of 1–16 IDs). Falls back to `DEFAULT_PRIMARY_IDS` if corrupt/missing.
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
 - "More sections" button auto-hides when all tiles are promoted to primary grid
-- All section views have a back arrow in the header that returns to Dashboard
+- All section views have a back arrow in the header that returns to the **previous section** (navigation history stack, not always Dashboard). Bottom nav tabs and error recovery clear the stack.
+- Section page titles are shown only in the Header — no duplicate `SectionTitle` below. Action buttons (Add/Log/Write) are right-aligned below the header. Sub-section headings (e.g., "Interaction Warnings", "Recent Entries") are preserved.
 - **Global Search:** Header magnifying glass icon (visible on all pages) opens the Search view; Dashboard has a live search centerpiece with inline results (up to 5) and "See all" deep-link to full Search view
 - **Deep-link navigation:** `onNav(tab, { highlightId })` navigates to a section AND auto-expands + scrolls to a specific record; used by Search results. All 15 expandable sections support `highlightId` prop (expand + scrollIntoView + lavender pulse animation). Appointments and AnesthesiaFlags support scroll-only deep-link (no expandable cards).
 - **highlight-ring animation:** `highlight-pulse` keyframes in `index.css` — 1.5s lavender box-shadow pulse applied to deep-linked cards
