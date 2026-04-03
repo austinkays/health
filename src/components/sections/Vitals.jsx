@@ -61,9 +61,16 @@ export default function Vitals({ data, addItem, removeItem }) {
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
   // Detect which sources exist in the data
+  const getSource = (v) => {
+    if (v.source && v.source !== '') return v.source;
+    if (v.notes?.includes('Oura')) return 'oura';
+    if (v.notes?.includes('Apple Health')) return 'apple_health';
+    if (v.notes?.includes('readings. Min:')) return 'apple_health'; // HR aggregation pattern from healthkit.js
+    return 'manual';
+  };
   const sources = useMemo(() => {
     const s = new Set();
-    (data.vitals || []).forEach(v => s.add(v.source || (v.notes?.includes('Oura') ? 'oura' : v.notes?.includes('Apple Health') ? 'apple_health' : 'manual')));
+    (data.vitals || []).forEach(v => s.add(getSource(v)));
     return [...s].sort();
   }, [data.vitals]);
 
@@ -281,16 +288,12 @@ export default function Vitals({ data, addItem, removeItem }) {
       <SectionTitle>Recent Entries</SectionTitle>
       {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
         data.vitals.slice().reverse()
-          .filter(v => {
-            if (sourceFilter === 'all') return true;
-            const src = v.source || (v.notes?.includes('Oura') ? 'oura' : v.notes?.includes('Apple Health') ? 'apple_health' : 'manual');
-            return src === sourceFilter;
-          })
+          .filter(v => sourceFilter === 'all' || getSource(v) === sourceFilter)
           .slice(0, 20).map(v => {
           const t = VITAL_TYPES.find(x => x.id === v.type);
           const flag = getVitalFlag(v.type, v.value, v.value2);
           const fs = flagStyle(flag);
-          const src = v.source || (v.notes?.includes('Oura') ? 'oura' : v.notes?.includes('Apple Health') ? 'apple_health' : 'manual');
+          const src = getSource(v);
           const SrcIcon = SOURCE_ICON[src];
           return (
             <Card key={v.id} className="!p-3.5" style={flag ? { borderLeft: `3px solid ${fs.color}` } : undefined}>

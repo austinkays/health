@@ -50,10 +50,15 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-  // Detect sources
+  // Normalize source (older imports used 'Apple Health', newer use 'apple_health')
+  const getSource = (a) => {
+    const raw = a.source || 'manual';
+    if (raw === 'Apple Health' || raw === 'apple_health') return 'apple_health';
+    return raw;
+  };
   const sources = useMemo(() => {
     const s = new Set();
-    (data.activities || []).forEach(a => s.add(a.source || 'manual'));
+    (data.activities || []).forEach(a => s.add(getSource(a)));
     return [...s].sort();
   }, [data.activities]);
 
@@ -83,7 +88,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
     if (filter === 'workouts') list = list.filter(a => a.type !== 'Daily Activity');
     else if (filter === 'daily') list = list.filter(a => a.type === 'Daily Activity');
     else if (filter !== 'all') list = list.filter(a => a.type === filter);
-    if (sourceFilter !== 'all') list = list.filter(a => (a.source || 'manual') === sourceFilter);
+    if (sourceFilter !== 'all') list = list.filter(a => getSource(a) === sourceFilter);
     return list;
   }, [sorted, filter, sourceFilter]);
 
@@ -252,11 +257,13 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                       {a.duration_minutes && !isDaily && (
                         <Badge label={formatDuration(a.duration_minutes)} color={C.textMid} bg={C.textFaint + '15'} />
                       )}
-                      {a.source && a.source !== 'manual' && (() => {
-                        const SrcIcon = SOURCE_ICON[a.source];
+                      {(() => {
+                        const s = getSource(a);
+                        if (s === 'manual') return null;
+                        const SrcIcon = SOURCE_ICON[s];
                         return (
-                          <span className="inline-flex items-center gap-0.5 text-[9px] font-montserrat px-1.5 py-0.5 rounded-md" style={{ color: SOURCE_COLOR[a.source], background: SOURCE_COLOR[a.source] + '18' }}>
-                            {SrcIcon && <SrcIcon size={8} />} {SOURCE_LABEL[a.source] || a.source}
+                          <span className="inline-flex items-center gap-0.5 text-[9px] font-montserrat px-1.5 py-0.5 rounded-md" style={{ color: SOURCE_COLOR[s], background: SOURCE_COLOR[s] + '18' }}>
+                            {SrcIcon && <SrcIcon size={8} />} {SOURCE_LABEL[s] || s}
                           </span>
                         );
                       })()}

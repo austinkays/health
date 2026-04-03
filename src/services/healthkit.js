@@ -154,7 +154,7 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
       distance: null,
       calories: energy ? Math.round(energy) : null,
       heart_rate_avg: null,
-      source: 'Apple Health',
+      source: 'apple_health',
       notes: `${Math.round(steps).toLocaleString()} steps${energy ? `, ${Math.round(energy)} kcal active energy` : ''}`,
     });
   }
@@ -286,6 +286,7 @@ function aggregateVitals(rawVitals, rawBP, rawSleep) {
       vitals.push({
         date, type: 'hr', value: String(avg), value2: '', unit: 'bpm',
         notes: `${values.length} readings. Min: ${min}, Max: ${max}`,
+        source: 'apple_health',
       });
     } else {
       // Weight, temp, glucose, etc: last reading of the day
@@ -293,6 +294,7 @@ function aggregateVitals(rawVitals, rawBP, rawSleep) {
       const unitMap = { weight: 'lbs', temp: '°F', glucose: 'mg/dL', spo2: '%', resp: 'rpm' };
       vitals.push({
         date, type, value: String(last), value2: '', unit: unitMap[type] || '', notes: '',
+        source: 'apple_health',
       });
     }
   }
@@ -303,6 +305,7 @@ function aggregateVitals(rawVitals, rawBP, rawSleep) {
       vitals.push({
         date: bp.date, type: 'bp', value: String(Math.round(bp.sys)),
         value2: String(Math.round(bp.dia)), unit: 'mmHg', notes: '',
+        source: 'apple_health',
       });
     }
   }
@@ -312,6 +315,7 @@ function aggregateVitals(rawVitals, rawBP, rawSleep) {
     const hours = +(minutes / 60).toFixed(1);
     vitals.push({
       date, type: 'sleep', value: String(hours), value2: '', unit: 'hrs', notes: '',
+      source: 'apple_health',
     });
   }
 
