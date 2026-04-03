@@ -58,8 +58,6 @@ export const VITAL_TYPES = [
   { id: 'weight', label: 'Weight', unit: 'lbs' },
   { id: 'temp', label: 'Temperature', unit: '°F', normalLow: 97.0, normalHigh: 99.5 },
   { id: 'glucose', label: 'Blood Sugar', unit: 'mg/dL', normalLow: 70, normalHigh: 140 },
-  { id: 'steps', label: 'Steps', unit: 'steps', min: 0 },
-  { id: 'active_energy', label: 'Active Energy', unit: 'kcal', min: 0 },
   { id: 'spo2', label: 'Blood Oxygen', unit: '%', normalLow: 95, normalHigh: 100 },
   { id: 'resp', label: 'Respiratory Rate', unit: 'rpm', normalLow: 12, normalHigh: 20 },
 ];

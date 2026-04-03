@@ -6,8 +6,8 @@
 
 const HK_TYPE_MAP = {
   HKQuantityTypeIdentifierHeartRate: 'hr',
-  HKQuantityTypeIdentifierStepCount: 'steps',
-  HKQuantityTypeIdentifierActiveEnergyBurned: 'active_energy',
+  HKQuantityTypeIdentifierStepCount: '_steps',      // aggregated into activities, not vitals
+  HKQuantityTypeIdentifierActiveEnergyBurned: '_energy', // aggregated into activities, not vitals
   HKQuantityTypeIdentifierBodyMass: 'weight',
   HKQuantityTypeIdentifierBodyTemperature: 'temp',
   HKQuantityTypeIdentifierBloodGlucose: 'glucose',
@@ -95,6 +95,8 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
   const rawVitals = {};
   const rawBP = {};
   const rawSleep = {};
+  const rawSteps = {};    // { '2024-01-15': totalSteps }
+  const rawEnergy = {};   // { '2024-01-15': totalKcal }
   const activities = [];
   const labs = [];
   const counts = { records: 0, vitals: 0, sleep: 0, workouts: 0, labs: 0, skipped: 0, tooOld: 0 };
@@ -108,7 +110,7 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
   const OVERLAP = 4096;
 
   if (typeof input === 'string') {
-    processChunkedText(input, input.length, CHUNK_SIZE, OVERLAP, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr, onProgress);
+    processChunkedText(input, input.length, CHUNK_SIZE, OVERLAP, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr, onProgress);
   } else if (input instanceof ArrayBuffer) {
     // ArrayBuffer mode (large ZIP files — decode in chunks, never hold full string)
     const decoder = new TextDecoder('utf-8');
@@ -127,9 +129,9 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
       if (!isLast && text.length > OVERLAP) {
         const processable = text.slice(0, text.length - OVERLAP);
         carryover = text.slice(text.length - OVERLAP);
-        processTextChunk(processable, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr);
+        processTextChunk(processable, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr);
       } else {
-        processTextChunk(text, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr);
+        processTextChunk(text, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr);
         carryover = '';
       }
 
@@ -143,20 +145,35 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
   counts.vitals = vitals.length;
   counts.sleep = Object.keys(rawSleep).length;
 
+  // Convert daily steps/energy into activity summary records
+  for (const [date, steps] of Object.entries(rawSteps)) {
+    const energy = rawEnergy[date] || 0;
+    activities.push({
+      date, type: 'Daily Activity',
+      duration_minutes: null,
+      distance: null,
+      calories: energy ? Math.round(energy) : null,
+      heart_rate_avg: null,
+      source: 'Apple Health',
+      notes: `${Math.round(steps).toLocaleString()} steps${energy ? `, ${Math.round(energy)} kcal active energy` : ''}`,
+    });
+  }
+  counts.workouts = activities.length;
+
   return { vitals, labs, activities, counts };
 }
 
-function processChunkedText(text, totalLen, chunkSize, overlap, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr, onProgress) {
+function processChunkedText(text, totalLen, chunkSize, overlap, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr, onProgress) {
   for (let offset = 0; offset < totalLen; offset += chunkSize - overlap) {
     const chunk = text.slice(offset, offset + chunkSize);
-    processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr);
+    processTextChunk(chunk, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr);
     if (onProgress) {
       onProgress(Math.min(95, Math.round((offset + chunkSize) / totalLen * 95)));
     }
   }
 }
 
-function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, counts, cutoffStr) {
+function processTextChunk(chunk, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr) {
   // Parse <Record> elements
   const recordRegex = /<Record\s+([^>]+?)\/>/g;
   let match;
@@ -165,7 +182,7 @@ function processTextChunk(chunk, rawVitals, rawBP, rawSleep, activities, labs, c
     const attrs = parseAttributes(match[1]);
     const date = parseDate(attrs.startDate);
     if (date && date < cutoffStr) { counts.tooOld++; continue; }
-    processRecord(attrs, rawVitals, rawBP, rawSleep, counts);
+    processRecord(attrs, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, counts);
   }
 
   // Parse <Workout> elements
@@ -207,12 +224,22 @@ function parseAttributes(attrStr) {
 
 /* ── Record processing ────────────────────────────────── */
 
-function processRecord(attrs, rawVitals, rawBP, rawSleep, counts) {
+function processRecord(attrs, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, counts) {
   const type = HK_TYPE_MAP[attrs.type];
   if (!type) { counts.skipped++; return; }
   const date = parseDate(attrs.startDate);
   if (!date) return;
   const value = parseFloat(attrs.value);
+
+  // Steps and energy → aggregate for activities, not vitals
+  if (type === '_steps') {
+    rawSteps[date] = (rawSteps[date] || 0) + (isNaN(value) ? 0 : value);
+    return;
+  }
+  if (type === '_energy') {
+    rawEnergy[date] = (rawEnergy[date] || 0) + (isNaN(value) ? 0 : value);
+    return;
+  }
 
   if (type === 'sleep') {
     // Sleep: accumulate asleep minutes per night
@@ -259,18 +286,6 @@ function aggregateVitals(rawVitals, rawBP, rawSleep) {
       vitals.push({
         date, type: 'hr', value: String(avg), value2: '', unit: 'bpm',
         notes: `${values.length} readings. Min: ${min}, Max: ${max}`,
-      });
-    } else if (type === 'steps') {
-      // Steps: daily sum
-      const total = Math.round(values.reduce((a, b) => a + b, 0));
-      vitals.push({
-        date, type: 'steps', value: String(total), value2: '', unit: 'steps', notes: '',
-      });
-    } else if (type === 'active_energy') {
-      // Active energy: daily sum
-      const total = Math.round(values.reduce((a, b) => a + b, 0));
-      vitals.push({
-        date, type: 'active_energy', value: String(total), value2: '', unit: 'kcal', notes: '',
       });
     } else {
       // Weight, temp, glucose, etc: last reading of the day
