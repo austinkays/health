@@ -27,6 +27,7 @@ const TAB_LABELS = {
   todos: "To-Do's",
   genetics: 'Genetics',
   activities: 'Activities',
+  oura: 'Oura Ring',
   summary: 'Health Summary',
 };
 
@@ -56,6 +57,7 @@ const TAB_DECOR = {
   todos:         ['✓', '·', '✧'],
   genetics:      ['✧', '✦', '·'],
   activities:    ['♡', '·', '✧'],
+  oura:          ['◉', '·', '✧'],
   summary:       ['☽', '✧', '✿'],
 };
 
