@@ -3,7 +3,7 @@ import { Apple, Upload, Loader2, CheckCircle2, AlertTriangle, Clipboard } from '
 import Card from './Card';
 import Button from './Button';
 import { C } from '../../constants/colors';
-import { detectAppleHealthFormat, detectAppleHealthJSON, parseAppleHealthExport, deduplicateAgainst, DEDUP_KEYS } from '../../services/healthkit';
+import { detectAppleHealthFormat, detectAppleHealthJSON, parseAppleHealthExport, deduplicateAgainst, DEDUP_KEYS, parseFhirToLab } from '../../services/healthkit';
 import { db } from '../../services/db';
 
 export default function AppleHealthImport({ data, reloadData }) {
@@ -33,6 +33,8 @@ export default function AppleHealthImport({ data, reloadData }) {
     try {
       let xmlText;
 
+      let clinicalLabs = [];
+
       if (file.name.endsWith('.zip')) {
         setProgress(5);
         const JSZip = (await import('jszip')).default;
@@ -43,6 +45,19 @@ export default function AppleHealthImport({ data, reloadData }) {
           || allFiles.find(n => n.endsWith('.xml') && !n.includes('cda'));
         if (!xmlFile) throw new Error('No export.xml found in ZIP. Make sure this is an Apple Health export.');
         xmlText = await zip.files[xmlFile].async('string');
+
+        // Parse FHIR JSON files from clinical-records folder
+        const clinicalFiles = allFiles.filter(n => n.includes('clinical-records') && n.endsWith('.json'));
+        for (const cf of clinicalFiles) {
+          try {
+            const json = JSON.parse(await zip.files[cf].async('string'));
+            const lab = parseFhirToLab(json);
+            if (lab) {
+              if (Array.isArray(lab)) clinicalLabs.push(...lab);
+              else clinicalLabs.push(lab);
+            }
+          } catch { /* skip unparseable files */ }
+        }
       } else {
         xmlText = await file.text();
       }
@@ -54,6 +69,12 @@ export default function AppleHealthImport({ data, reloadData }) {
       const parsed = parseAppleHealthExport(xmlText, {
         onProgress: (p) => setProgress(Math.max(10, p)),
       });
+
+      // Merge clinical-records folder labs with XML-parsed labs
+      if (clinicalLabs.length) {
+        parsed.labs.push(...clinicalLabs);
+        parsed.counts.labs += clinicalLabs.length;
+      }
 
       // Deduplicate against existing data
       const newVitals = deduplicateAgainst(parsed.vitals, data.vitals || [], DEDUP_KEYS.vitals);

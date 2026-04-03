@@ -324,6 +324,61 @@ function processClinicalRecord(attrs) {
   }
 }
 
+/* ── Standalone FHIR JSON → Lab record parser ─────────── */
+// For parsing individual .json files from the clinical-records folder
+
+export function parseFhirToLab(fhir) {
+  if (!fhir) return null;
+
+  // Handle Bundle (contains multiple entries)
+  if (fhir.resourceType === 'Bundle' && Array.isArray(fhir.entry)) {
+    const labs = fhir.entry
+      .map(e => parseFhirToLab(e.resource))
+      .filter(Boolean);
+    return labs.length === 1 ? labs[0] : labs.length > 0 ? labs : null;
+  }
+
+  // Handle DiagnosticReport (may reference contained Observations)
+  if (fhir.resourceType === 'DiagnosticReport') {
+    if (Array.isArray(fhir.contained)) {
+      const labs = fhir.contained.map(c => parseFhirToLab(c)).filter(Boolean);
+      return labs.length === 1 ? labs[0] : labs.length > 0 ? labs : null;
+    }
+    return null;
+  }
+
+  if (fhir.resourceType !== 'Observation') return null;
+
+  const testName = fhir.code?.coding?.[0]?.display || fhir.code?.text || '';
+  if (!testName) return null;
+
+  const result = fhir.valueQuantity?.value ?? fhir.valueString ?? '';
+  const unit = fhir.valueQuantity?.unit || fhir.valueQuantity?.code || '';
+  const range = fhir.referenceRange?.[0]
+    ? `${fhir.referenceRange[0].low?.value ?? ''} - ${fhir.referenceRange[0].high?.value ?? ''}`
+    : '';
+
+  const interp = fhir.interpretation?.[0]?.coding?.[0]?.code || '';
+  let flag = '';
+  if (interp === 'H' || interp === 'HH') flag = 'high';
+  else if (interp === 'L' || interp === 'LL') flag = 'low';
+  else if (interp === 'A') flag = 'abnormal';
+  else if (interp === 'N') flag = 'normal';
+
+  const date = parseDate(fhir.effectiveDateTime || fhir.issued || '');
+
+  return {
+    date: date || '',
+    test_name: testName,
+    result: String(result),
+    unit,
+    range,
+    flag,
+    provider: fhir.performer?.[0]?.display || 'Apple Health',
+    notes: '',
+  };
+}
+
 /* ── Deduplication ────────────────────────────────────── */
 
 export function deduplicateAgainst(newRecords, existing, keyFn) {
