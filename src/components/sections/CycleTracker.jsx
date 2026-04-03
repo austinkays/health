@@ -28,6 +28,13 @@ function dateKey(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
 
 /* ── Component ───────────────────────────────────────────── */
 
+const OVERLAY_KEY = 'salve:cycle-overlays';
+const DEFAULT_OVERLAYS = { predicted: true, fertile: true, ovulation: true, symptoms: true };
+function loadOverlays() {
+  try { return { ...DEFAULT_OVERLAYS, ...JSON.parse(localStorage.getItem(OVERLAY_KEY)) }; }
+  catch { return { ...DEFAULT_OVERLAYS }; }
+}
+
 export default function CycleTracker({ data, addItem, updateItem, removeItem, highlightId, quickLog }) {
   const [subView, setSubView] = useState(null);      // null | 'form' | 'import'
   const [form, setForm] = useState({ ...EMPTY_CYCLE });
@@ -37,6 +44,12 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   const [calMonth, setCalMonth] = useState(() => { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth() }; });
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [overlays, setOverlays] = useState(loadOverlays);
+  const toggleOverlay = (key) => setOverlays(prev => {
+    const next = { ...prev, [key]: !prev[key] };
+    localStorage.setItem(OVERLAY_KEY, JSON.stringify(next));
+    return next;
+  });
   const fileRef = useRef(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -287,32 +300,27 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
           <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Next month"><ChevronRight size={18} className="text-salve-textMid" /></button>
         </div>
 
-        {/* Legend — above calendar so user understands the colors */}
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3 px-1">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: `${C.rose}55` }} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">Period (logged)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded shrink-0 border border-dashed" style={{ borderColor: `${C.rose}88`, backgroundColor: `${C.rose}15` }} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">Predicted period</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: `${C.amber}55` }} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">Ovulation</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded shrink-0 border" style={{ backgroundColor: `${C.amber}30`, borderColor: `${C.amber}40` }} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">Fertile window</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: C.lav }} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">Symptom logged</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded shrink-0 border" style={{ borderColor: C.lav }} />
-            <span className="text-[11px] text-salve-textMid font-montserrat">Today</span>
-          </div>
+        {/* Overlay toggles — tap to show/hide calendar layers */}
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {[
+            { key: 'predicted', label: 'Predicted Period', color: C.rose, swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0 border border-dashed" style={{ borderColor: `${C.rose}88`, backgroundColor: `${C.rose}18` }} /> },
+            { key: 'fertile',   label: 'Fertile Window',   color: C.amber, swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0 border" style={{ backgroundColor: `${C.amber}30`, borderColor: `${C.amber}40` }} /> },
+            { key: 'ovulation', label: 'Ovulation',        color: C.amber, swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: `${C.amber}55` }} /> },
+            { key: 'symptoms',  label: 'Symptoms',         color: C.lav,   swatch: <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: C.lav }} /> },
+          ].map(t => (
+            <button key={t.key} onClick={() => toggleOverlay(t.key)}
+              className={`flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium font-montserrat cursor-pointer transition-all border ${
+                overlays[t.key]
+                  ? 'border-salve-border2 bg-salve-card2 text-salve-text'
+                  : 'border-transparent bg-transparent text-salve-textFaint line-through opacity-50'
+              }`}
+              aria-label={`${overlays[t.key] ? 'Hide' : 'Show'} ${t.label}`}
+              aria-pressed={overlays[t.key]}
+            >
+              {t.swatch}
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {/* Day headers */}
@@ -333,29 +341,31 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             const hasSymptom = entries.some(e => e.type === 'symptom');
             const hasOvulation = entries.some(e => e.type === 'ovulation');
             const hasFertility = entries.some(e => e.type === 'fertility_marker');
-            const isPredicted = !hasPeriod && predictedDays.has(dk);
-            const isFertile = !hasOvulation && fertileDays.has(dk);
+            const isPredicted = overlays.predicted && !hasPeriod && predictedDays.has(dk);
+            const isFertile = overlays.fertile && !hasOvulation && fertileDays.has(dk);
+            const showOvulation = overlays.ovulation && hasOvulation;
+            const showSymptom = overlays.symptoms && hasSymptom;
             const isToday = dk === today;
 
             let bg = 'transparent';
             let border = 'transparent';
             if (hasPeriod) bg = `${C.rose}55`;
             else if (isPredicted) { bg = `${C.rose}18`; border = `${C.rose}88`; }
-            else if (hasOvulation) bg = `${C.amber}55`;
+            else if (showOvulation) bg = `${C.amber}55`;
             else if (isFertile) { bg = `${C.amber}30`; border = `${C.amber}40`; }
 
             return (
               <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
                 style={{ backgroundColor: bg, borderWidth: (isPredicted || isToday || isFertile) ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
-                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${hasSymptom ? ', symptom logged' : ''}${hasOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}`}
+                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${showSymptom ? ', symptom logged' : ''}${showOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}`}
               >
                 <span className={isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}>{day}</span>
                 {/* Dot indicators */}
                 <div className="flex gap-0.5 mt-0.5 h-1">
                   {hasPeriod && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.rose }} />}
-                  {hasSymptom && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.lav }} />}
-                  {(hasOvulation || hasFertility) && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.amber }} />}
+                  {showSymptom && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.lav }} />}
+                  {(showOvulation || (overlays.fertile && hasFertility)) && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.amber }} />}
                 </div>
               </button>
             );
