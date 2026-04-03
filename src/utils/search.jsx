@@ -182,7 +182,7 @@ export const ENTITY_CONFIG = {
     label: 'Activities',
     icon: Activity,
     color: C.sage,
-    tab: 'vitals',
+    tab: 'activities',
     fields: ['type', 'notes', 'date', 'source'],
     primary: a => a.type || 'Activity',
     secondary: a => [a.duration_minutes ? `${a.duration_minutes} min` : '', a.date].filter(Boolean).join(' · '),

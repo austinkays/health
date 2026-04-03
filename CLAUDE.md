@@ -122,7 +122,7 @@ health/
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages)
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
-│   │   └── sections/             # One file per app section (25 total)
+│   │   └── sections/             # One file per app section (26 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
@@ -144,6 +144,7 @@ health/
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
 │   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar view (period days=rose, fertile window=amber, ovulation=sage, predicted=dashed), stats card (current day, avg length, days until next), quick-log (tap calendar day), filter pills (all/period/symptom/ovulation/fertility), cycle phase detection (menstrual/follicular/ovulatory/luteal), predictions (next period, fertile window), Flo GDPR import with dedup, deep-link + highlight support
+│   │       ├── Activities.jsx     # Workouts + daily activity: weekly summary stats, filter pills (All/Workouts/Daily), type-colored cards, duration/calories/distance/HR details, manual entry form, Apple Health import data home
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
@@ -203,7 +204,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 25 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 26 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -407,7 +408,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 25 sections render without errors (including Auth screen)
+- [ ] All 26 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
 - [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
@@ -462,7 +463,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 25 sections reachable via Quick Access (6+ primary tiles, expandable up to all 19, + 5 in bottom nav)
+- [ ] All 26 sections reachable via Quick Access (6+ primary tiles, expandable up to all 20, + 6 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (Playfair Display for headings, Montserrat for body)

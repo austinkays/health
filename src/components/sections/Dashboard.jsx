@@ -102,6 +102,7 @@ const ALL_LINKS = [
   { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       color: C.sage },
   { id: 'cycles',       label: 'Cycles',       icon: Heart,           color: C.rose },
   { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     color: C.lav },
+  { id: 'activities',   label: 'Activities',   icon: Activity,        color: C.sage },
   { id: 'genetics',     label: 'Genetics',     icon: Dna,             color: C.lav },
   { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];

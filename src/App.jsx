@@ -55,6 +55,7 @@ const Search = lazyWithRetry(() => import('./components/sections/Search'));
 const CycleTracker = lazyWithRetry(() => import('./components/sections/CycleTracker'));
 const Todos = lazyWithRetry(() => import('./components/sections/Todos'));
 const Genetics = lazyWithRetry(() => import('./components/sections/Genetics'));
+const Activities = lazyWithRetry(() => import('./components/sections/Activities'));
 
 export default function App() {
   return (
@@ -238,6 +239,7 @@ function AppContent() {
       case 'cycles':     return <CycleTracker {...shared} quickLog={navOpts?.quickLog} />;
       case 'todos':      return <Todos {...shared} />;
       case 'genetics':   return <Genetics {...shared} />;
+      case 'activities': return <Activities {...shared} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
