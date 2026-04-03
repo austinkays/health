@@ -28,6 +28,8 @@ const TAB_LABELS = {
   genetics: 'Genetics',
   activities: 'Activities',
   oura: 'Oura Ring',
+  apple_health: 'Apple Health',
+  flo: 'Flo',
   summary: 'Health Summary',
 };
 
@@ -58,6 +60,8 @@ const TAB_DECOR = {
   genetics:      ['✧', '✦', '·'],
   activities:    ['♡', '·', '✧'],
   oura:          ['◉', '·', '✧'],
+  apple_health:  ['✿', '·', '✧'],
+  flo:           ['♀', '·', '☽'],
   summary:       ['☽', '✧', '✿'],
 };
 

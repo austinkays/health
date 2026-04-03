@@ -4,7 +4,7 @@ import {
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare, Dna, Zap,
+  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare, Dna, Zap, Smartphone, Watch,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -104,7 +104,9 @@ const ALL_LINKS = [
   { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     color: C.lav },
   { id: 'activities',   label: 'Activities',   icon: Activity,        color: C.sage },
   { id: 'genetics',     label: 'Genetics',     icon: Dna,             color: C.lav },
-  { id: 'oura',         label: 'Oura Ring',    icon: Activity,        color: C.sage },
+  { id: 'oura',         label: 'Oura Ring',    icon: Watch,           color: C.sage },
+  { id: 'apple_health', label: 'Apple Health', icon: Smartphone,      color: C.lav },
+  { id: 'flo',          label: 'Flo',          icon: Heart,           color: C.rose },
   { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];
 

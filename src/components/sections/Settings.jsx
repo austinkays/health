@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Watch, Loader, Unlink, RefreshCw } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Watch, Loader, Unlink, RefreshCw, Smartphone, Heart } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -405,105 +405,163 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
         />
       </Card>
 
-      <SectionTitle>Claude Health Sync</SectionTitle>
-      <Card>
-        <div className="space-y-3 mb-4">
-          <p className="text-[13px] text-salve-text font-medium leading-relaxed">
-            Sync health records from your connected providers directly into Salve using Claude.
-          </p>
-          <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal pl-5">
-            <li>Download the sync artifact below</li>
-            <li>Open <strong className="text-salve-text">Claude.ai</strong>, start a new conversation</li>
-            <li>Attach the file and paste the prompt below</li>
-            <li>Click <strong className="text-salve-text">"Pull Health Records"</strong> in the rendered tool</li>
-            <li>Download the sync file, import it in <strong className="text-salve-text">Data&nbsp;Management</strong></li>
-          </ol>
-        </div>
-        <a
-          href="/salve-sync.jsx"
-          download="salve-sync.jsx"
-          className="btn-magic btn-magic-lav w-full py-3.5 rounded-xl font-semibold text-sm no-underline
-            bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
-            border border-salve-lav/30 text-salve-lav
-            flex items-center justify-center gap-2.5
-            hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
-        >
-          <Sparkles size={18} className="animate-pulse" />
-          Download Claude Sync Artifact
-          <Sparkles size={14} className="opacity-50" />
-        </a>
-        <CopyPromptButton />
-      </Card>
+      <SectionTitle>Connected Sources</SectionTitle>
 
-      <SectionTitle>Apple Health</SectionTitle>
-      <AppleHealthImport data={data} reloadData={reloadData} />
-
-      <SectionTitle>Oura Ring</SectionTitle>
-      <Card>
-        {ouraConnected ? (
-          <>
-            <div className="flex items-center gap-2 mb-3">
-              <Watch size={16} className="text-salve-sage" />
-              <span className="text-[13px] text-salve-sage font-medium">Connected</span>
-              <span className="text-[10px] text-salve-textFaint ml-auto">
-                {getOuraTokens()?.connected_at ? `Since ${new Date(getOuraTokens().connected_at).toLocaleDateString()}` : ''}
-              </span>
+      {/* ── Source cards: compact connected-status tiles ── */}
+      <div className="space-y-2 mb-4">
+        {/* Oura Ring */}
+        <Card>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ouraConnected ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
+                <Watch size={16} className={ouraConnected ? 'text-salve-sage' : 'text-salve-textFaint'} />
+              </div>
+              <div>
+                <span className="text-[13px] text-salve-text font-medium block">Oura Ring</span>
+                <span className="text-[10px] text-salve-textFaint">
+                  {ouraConnected
+                    ? `Connected${getOuraTokens()?.connected_at ? ` · ${new Date(getOuraTokens().connected_at).toLocaleDateString()}` : ''}`
+                    : 'Sleep, readiness, temperature, workouts'}
+                </span>
+              </div>
             </div>
-
-            <Field
-              label="BBT Baseline (°F)"
-              value={ouraBaseline}
-              onChange={saveOuraBaseline}
-              placeholder="97.7"
-              type="number"
-            />
-            <p className="text-[10px] text-salve-textFaint italic mb-3 -mt-1 leading-relaxed">
-              Oura measures temperature deviation from your personal baseline. Average waking BBT is ~97.7°F. Adjust if you know your baseline.
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleOuraSync}
-                disabled={ouraSyncing}
-                className="flex-1 py-2.5 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat
-                  flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50"
-              >
-                {ouraSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                {ouraSyncing ? 'Syncing...' : 'Sync All Data'}
-              </button>
-              <button
-                onClick={disconnectOura}
-                className="py-2.5 px-4 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat
-                  flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
-              >
-                <Unlink size={12} /> Disconnect
-              </button>
+            <div className="flex items-center gap-1.5">
+              {ouraConnected && (
+                <button
+                  onClick={() => onNav('oura')}
+                  className="text-[10px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline"
+                >View →</button>
+              )}
+              <span className={`w-2 h-2 rounded-full ${ouraConnected ? 'bg-salve-sage' : 'bg-salve-textFaint/30'}`} />
             </div>
-          </>
-        ) : (
-          <>
-            <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
-              Connect your Oura Ring to automatically import nightly temperature data as BBT readings for cycle tracking.
-            </p>
+          </div>
+
+          {ouraConnected ? (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              <Field
+                label="BBT Baseline (°F)"
+                value={ouraBaseline}
+                onChange={saveOuraBaseline}
+                placeholder="97.7"
+                type="number"
+              />
+              <p className="text-[10px] text-salve-textFaint italic mb-3 -mt-1 leading-relaxed">
+                Oura measures temperature deviation from your personal baseline. Average waking BBT is ~97.7°F.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleOuraSync}
+                  disabled={ouraSyncing}
+                  className="flex-1 py-2 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat
+                    flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {ouraSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                  {ouraSyncing ? 'Syncing...' : 'Sync All Data'}
+                </button>
+                <button
+                  onClick={disconnectOura}
+                  className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat
+                    flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                >
+                  <Unlink size={12} /> Disconnect
+                </button>
+              </div>
+            </div>
+          ) : (
             <button
               onClick={connectOura}
               disabled={ouraLoading}
-              className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat
+              className="w-full mt-3 py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat
                 hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {ouraLoading ? <Loader size={16} className="animate-spin" /> : <Watch size={16} />}
               {ouraLoading ? 'Connecting...' : 'Connect Oura Ring'}
             </button>
-          </>
-        )}
+          )}
 
-        {ouraError && (
-          <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{ouraError}</div>
-        )}
-        {ouraSuccess && (
-          <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{ouraSuccess}</div>
-        )}
-      </Card>
+          {ouraError && (
+            <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{ouraError}</div>
+          )}
+          {ouraSuccess && (
+            <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs whitespace-pre-line">{ouraSuccess}</div>
+          )}
+        </Card>
+
+        {/* Apple Health */}
+        <Card>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
+                <Smartphone size={16} className="text-salve-lav" />
+              </div>
+              <div>
+                <span className="text-[13px] text-salve-text font-medium block">Apple Health</span>
+                <span className="text-[10px] text-salve-textFaint">Vitals, workouts, labs from iPhone</span>
+              </div>
+            </div>
+            <button
+              onClick={() => onNav('apple_health')}
+              className="text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline"
+            >View →</button>
+          </div>
+          <AppleHealthImport data={data} reloadData={reloadData} />
+        </Card>
+
+        {/* Flo */}
+        <Card>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
+                <Heart size={16} className="text-salve-rose" />
+              </div>
+              <div>
+                <span className="text-[13px] text-salve-text font-medium block">Flo</span>
+                <span className="text-[10px] text-salve-textFaint">Cycle data via GDPR export</span>
+              </div>
+            </div>
+            <button
+              onClick={() => onNav('flo')}
+              className="text-[10px] text-salve-rose font-montserrat bg-transparent border-none cursor-pointer hover:underline"
+            >View →</button>
+          </div>
+          <p className="text-[11px] text-salve-textFaint mt-2 leading-relaxed">
+            Import Flo data in the Cycle Tracker — tap the import button on the cycle calendar.
+          </p>
+        </Card>
+
+        {/* Claude Health Sync */}
+        <Card>
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
+              <Sparkles size={16} className="text-salve-lav" />
+            </div>
+            <div>
+              <span className="text-[13px] text-salve-text font-medium block">Claude Health Sync</span>
+              <span className="text-[10px] text-salve-textFaint">Pull records from MCP providers</span>
+            </div>
+          </div>
+          <ol className="text-[11px] text-salve-textMid space-y-1 leading-relaxed list-decimal pl-5 mb-3">
+            <li>Download the sync artifact</li>
+            <li>Open <strong className="text-salve-text">Claude.ai</strong> and attach it</li>
+            <li>Paste the prompt and pull records</li>
+            <li>Import the sync file in Data Management</li>
+          </ol>
+          <a
+            href="/salve-sync.jsx"
+            download="salve-sync.jsx"
+            className="btn-magic btn-magic-lav w-full py-3 rounded-xl font-semibold text-sm no-underline
+              bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
+              border border-salve-lav/30 text-salve-lav
+              flex items-center justify-center gap-2.5
+              hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
+          >
+            <Sparkles size={18} className="animate-pulse" />
+            Download Sync Artifact
+            <Sparkles size={14} className="opacity-50" />
+          </a>
+          <CopyPromptButton />
+        </Card>
+      </div>
 
       <SectionTitle
         action={
