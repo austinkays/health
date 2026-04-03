@@ -37,7 +37,7 @@ function loadOverlays() {
   catch { return { ...DEFAULT_OVERLAYS }; }
 }
 
-export default function CycleTracker({ data, addItem, updateItem, removeItem, highlightId, quickLog }) {
+export default function CycleTracker({ data, addItem, addItemSilent, updateItem, removeItem, highlightId, quickLog }) {
   const [subView, setSubView] = useState(null);      // null | 'form' | 'import'
   const [form, setForm] = useState({ ...EMPTY_CYCLE });
   const [editId, setEditId] = useState(null);
@@ -214,9 +214,10 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
       // Dedupe against existing
       const existingKeys = new Set(cycles.map(c => `${c.date}|${c.type}|${c.value}|${c.symptom}`));
       const newRecords = records.filter(r => !existingKeys.has(`${r.date}|${r.type}|${r.value}|${r.symptom}`));
+      const silentAdd = addItemSilent || addItem;
       let added = 0;
       for (const r of newRecords) {
-        await addItem('cycles', { ...r, notes: r.notes || 'Imported from Flo' });
+        await silentAdd('cycles', { ...r, notes: r.notes || 'Imported from Flo' });
         added++;
       }
       if (added > 0) localStorage.setItem('salve:flo-imported', '1');
@@ -349,7 +350,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
               setOuraSyncMsg(null);
               try {
                 const baseline = parseFloat(localStorage.getItem('salve:oura-baseline')) || 97.7;
-                const results = await syncAllOuraData({ cycles, vitals: [], activities: [] }, addItem, 30, baseline);
+                const results = await syncAllOuraData({ cycles, vitals: [], activities: [] }, addItemSilent || addItem, 30, baseline);
                 const tempResult = results.temperature || {};
                 setOuraSyncMsg(tempResult.added > 0 ? `+${tempResult.added} reading${tempResult.added !== 1 ? 's' : ''}` : 'Up to date');
                 setTimeout(() => setOuraSyncMsg(null), 3000);

@@ -41,7 +41,7 @@ function CopyPromptButton() {
   );
 }
 
-export default function Settings({ data, updateSettings, updateItem, addItem, eraseAll, reloadData, onNav }) {
+export default function Settings({ data, updateSettings, updateItem, addItem, addItemSilent, eraseAll, reloadData, onNav }) {
   const s = data.settings;
   const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
@@ -109,7 +109,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
     setOuraSuccess(null);
     try {
       const baseline = parseFloat(ouraBaseline) || 97.7;
-      const results = await syncAllOuraData(data, addItem, 30, baseline);
+      const results = await syncAllOuraData(data, addItemSilent, 30, baseline);
 
       // Build summary
       const parts = [];

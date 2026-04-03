@@ -236,7 +236,7 @@ function AppContent() {
   }
 
   const renderSection = () => {
-    const shared = { data, addItem: addItemT, updateItem: updateItemT, removeItem: removeItemT, highlightId };
+    const shared = { data, addItem: addItemT, addItemSilent: addItem, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
       case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
@@ -248,7 +248,7 @@ function AppContent() {
       case 'journal':     return <Journal {...shared} />;
       case 'ai':          return <AIPanel {...shared} updateSettings={updateSettings} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
-      case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} addItem={addItemT} eraseAll={eraseAll} reloadData={reloadData} onNav={onNav} />;
+      case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAll} reloadData={reloadData} onNav={onNav} />;
       // Comprehensive sections
       case 'labs':        return <Labs {...shared} />;
       case 'procedures':  return <Procedures {...shared} />;
@@ -263,7 +263,7 @@ function AppContent() {
       case 'todos':      return <Todos {...shared} />;
       case 'genetics':   return <Genetics {...shared} />;
       case 'activities': return <Activities {...shared} />;
-      case 'oura':         return <OuraRing data={data} addItem={addItemT} onNav={onNav} />;
+      case 'oura':         return <OuraRing data={data} addItem={addItem} onNav={onNav} />;
       case 'apple_health': return <AppleHealthPage data={data} onNav={onNav} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
