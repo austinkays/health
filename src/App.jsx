@@ -136,7 +136,12 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
-    if (code) {
+    const state = params.get('state');
+    if (code && state === 'salve-oura') {
+      // Oura OAuth callback — don't touch URL params, Settings will handle it
+      setTab('settings');
+      getSession().then(s => { setSession(s); setAuthLoading(false); });
+    } else if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (!error && data.session) {
           setSession(data.session);
