@@ -21,6 +21,7 @@ Personal health management app. Originally a Claude.ai React artifact (~2000+ li
 - **Offline cache:** localStorage (AES-GCM encrypted via `cache.js` + `crypto.js`)
 - **AI Backend:** Vercel serverless function proxying Anthropic API (auth-gated)
 - **Medical APIs:** RxNorm (NLM drug data), OpenFDA (drug labels), NPPES (NPI provider registry) — all via Vercel serverless proxies
+- **Wearables:** Oura Ring V2 API (OAuth2, daily temperature → BBT for cycle tracking) — via Vercel serverless proxy
 - **Maps:** Google Maps URL links (no API key, URL construction only)
 - **Deployment:** Vercel
 
@@ -45,6 +46,7 @@ health/
 ├── api/
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
+│   ├── oura.js                   # Vercel serverless: Oura Ring V2 API proxy (OAuth2 token exchange/refresh, temperature/sleep/readiness data, config)
 │   └── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
 ├── public/
 │   ├── manifest.json             # PWA manifest
@@ -96,7 +98,8 @@ health/
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
 │   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, daily aggregation (HR/steps/sleep/BP pairing), workout + FHIR lab parsing, deduplicateAgainst()
-│   │   └── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
+│   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
+│   │   └── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), bulk sync to cycles table (syncOuraTemperature), manual entry override protection
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
@@ -143,12 +146,12 @@ health/
 │   │       ├── Appeals.jsx       # Insurance appeals & disputes + deadline countdown badges
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
-│   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar with toggleable overlays (predicted period, fertile window, ovulation, symptoms, fertility % — all persisted in localStorage `salve:cycle-overlays`); fertility % shows per-day relative estimate with HPO axis zones (peak/fertile/buffer/relative/absolute); cervical mucus logging (4 clinical levels: dry/sticky/creamy/egg-white with inline fertility hints); BBT temperature logging (decimal °F input); detectBBTShift() confirms ovulation via 3-day sustained ≥0.3°F rise above prior 6 readings; buffer zones (2-day safety margin before fertile window); edge case alerts (short cycles <21 days, peak mucus detection, BBT shift confirmation/missing); stats card (current day, avg length, days until next); quick-log (tap calendar day); filter pills (all/period/mucus/BBT/symptoms/fertility); cycle phase detection; predictions (count-backward rule: avgLength - 14); Flo GDPR import with dedup; deep-link + highlight support
+│   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar with toggleable overlays (predicted period, fertile window, ovulation, symptoms, fertility % — all persisted in localStorage `salve:cycle-overlays`); fertility % shows per-day relative estimate with HPO axis zones (peak/fertile/buffer/relative/absolute); cervical mucus logging (4 clinical levels: dry/sticky/creamy/egg-white with inline fertility hints); BBT temperature logging (decimal °F input); detectBBTShift() confirms ovulation via 3-day sustained ≥0.3°F rise above prior 6 readings; buffer zones (2-day safety margin before fertile window); edge case alerts (short cycles <21 days, peak mucus detection, BBT shift confirmation/missing); stats card (current day, avg length, days until next); quick-log (tap calendar day); filter pills (all/period/mucus/BBT/symptoms/fertility); cycle phase detection; predictions (count-backward rule: avgLength - 14); Oura Ring sync button (syncs last 30 days of temperature data as BBT entries, respects manual override); Flo GDPR import with dedup; deep-link + highlight support
 │   │       ├── Activities.jsx     # Workouts + daily activity: weekly summary stats, filter pills (All/Workouts/Daily), type-colored cards, duration/calories/distance/HR details, manual entry form, Apple Health import data home
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
-│   │       └── Settings.jsx      # Profile, Sage mode, pharmacy, insurance, health bg, data mgmt, import/export, Claude sync artifact download + copyable prompt
+│   │       └── Settings.jsx      # Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
@@ -251,6 +254,17 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Client service:** `src/services/npi.js` — `searchProviders(name, state?)`, `lookupNPI(npi)`
 - Parses NPI results into `{npi, name, first_name, last_name, credential, specialty, other_specialties, address, phone, fax, organization, enumeration_type}` format
 
+**`api/oura.js`** — Oura Ring V2 API proxy:
+- **Actions:** `token` (exchange OAuth2 authorization code for access/refresh tokens, POST), `refresh` (refresh expired access token, POST), `data` (proxy GET to Oura V2 usercollection endpoints), `config` (return client_id + configured status)
+- **Allowed endpoints:** `daily_temperature`, `daily_sleep`, `daily_readiness`, `heartrate`, `daily_spo2`
+- **Rate limited:** 30 requests/minute per user
+- **OAuth2 flow:** Authorization code grant → `https://cloud.ouraring.com/oauth/authorize` (scope: `daily`) → callback with code → server exchanges for tokens (client_secret stays server-side)
+- **Client service:** `src/services/oura.js` — `getOuraAuthUrl()`, `exchangeOuraCode(code)`, `syncOuraTemperature(cycles, addItem, days, baseline)`, `fetchOuraTemperature(start, end)`, `ouraDeviationToBBT(deviationC, baselineF)`
+- **Temperature conversion:** Oura provides temperature as deviation from personal baseline in Celsius. `ouraDeviationToBBT()` converts to approximate Fahrenheit BBT using configurable baseline (default 97.7°F). Formula: `baselineF + (deviationC × 1.8)`
+- **Data hierarchy:** Manual BBT entries override Oura-sourced entries (checked by date before inserting)
+- **Token storage:** localStorage (`salve:oura`) with access_token, refresh_token, expires_at, connected_at. Auto-refresh when within 5 minutes of expiry
+- **BBT baseline:** User-configurable in Settings, stored in `localStorage` under `salve:oura-baseline` (default 97.7°F)
+
 **`src/utils/maps.js`** — Google Maps URL helper:
 - `mapsUrl(address)` returns `https://www.google.com/maps/search/?api=1&query=<encoded>` — no API key needed
 - Used in Providers (address + clinic), Appointments (location), Medications (pharmacy — skipped for non-physical values like OTC, N/A, none, self)
@@ -284,13 +298,14 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
   "functions": {
     "api/chat.js": { "maxDuration": 120 },
     "api/drug.js": { "maxDuration": 30 },
-    "api/provider.js": { "maxDuration": 30 }
+    "api/provider.js": { "maxDuration": 30 },
+    "api/oura.js": { "maxDuration": 30 }
   },
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self'" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://fonts.googleapis.com https://fonts.gstatic.com https://cloud.ouraring.com https://api.ouraring.com; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'; manifest-src 'self'" },
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "DENY" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
@@ -318,7 +333,8 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Import safety** | `importRestore()` creates in-memory backup before erasing; auto-restores on failure |
 | **Offline sync** | `setupOfflineSync()` wired up in App.jsx; flushes pending writes when connectivity returns |
 | **Data erase** | `eraseAll()` runs sequential per-table deletes with error handling; throws on partial failure |
-| **Secrets** | `ANTHROPIC_API_KEY` and `SUPABASE_SERVICE_ROLE_KEY` server-only; never exposed to client |
+| **Secrets** | `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `OURA_CLIENT_SECRET` server-only; never exposed to client |
+| **Oura OAuth** | OAuth2 authorization code flow; client_secret stays server-side in `api/oura.js`; tokens stored in localStorage with auto-refresh; Oura API calls proxied through Vercel (no direct client→Oura) |
 | **Resilient loading** | `loadAll()` uses `Promise.allSettled()` — individual table failures return empty defaults instead of crashing the app |
 
 ### Accessibility (WCAG 2.1 Level A)
@@ -566,6 +582,24 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 - [ ] AI profile: includes cycle stats (avg length, current day, common symptoms)
 - [ ] Search: cycle entries searchable by type, symptom, date, notes
 
+### Oura Ring Integration Tests
+- [ ] Settings: "Connect Oura Ring" button appears when not connected
+- [ ] Settings: Clicking connect redirects to Oura OAuth authorization page (requires OURA_CLIENT_ID/SECRET env vars)
+- [ ] Settings: OAuth callback exchanges code for tokens and shows "Connected" state
+- [ ] Settings: BBT baseline field defaults to 97.7°F and persists changes to localStorage
+- [ ] Settings: "Sync Temperature" fetches last 30 days and inserts new BBT entries
+- [ ] Settings: Sync skips dates that already have manual BBT entries (manual override)
+- [ ] Settings: "Disconnect" clears tokens and reverts to connect button
+- [ ] Settings: Expired token triggers auto-refresh; if refresh fails, disconnects gracefully
+- [ ] CycleTracker: "Oura Sync" button appears in action bar when connected
+- [ ] CycleTracker: Oura sync inserts temperature readings as BBT entries with Oura source note
+- [ ] CycleTracker: Oura-sourced BBT entries show deviation note in card
+- [ ] CycleTracker: BBT shift detection works with Oura-sourced temperatures
+- [ ] api/oura.js: Rejects unauthenticated requests (401)
+- [ ] api/oura.js: Rate limits at 30 req/min per user
+- [ ] api/oura.js: Only allows whitelisted endpoints (daily_temperature, daily_sleep, etc.)
+- [ ] api/oura.js: Returns 500 with "Oura not configured" when env vars missing
+
 ### Health To-Do Tests
 - [ ] Todos: CRUD works (add, edit, delete with confirmation)
 - [ ] Todos: filter tabs work (Active, All, Done, Overdue)
@@ -597,6 +631,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel env vars only | Server-side auth token verification |
 | `SUPABASE_URL` | Vercel env vars (fallback) | Fallback for api/chat.js if VITE_ prefix not available server-side |
 | `ALLOWED_ORIGIN` | Vercel env vars (optional) | Custom allowed CORS origin for api/chat.js (e.g. your production domain) |
+| `OURA_CLIENT_ID` | Vercel env vars only | Oura Ring OAuth2 client ID (from Oura Developer Portal) |
+| `OURA_CLIENT_SECRET` | Vercel env vars only | Oura Ring OAuth2 client secret (server-side only, never exposed to client) |
 
 ## Reference Docs
 

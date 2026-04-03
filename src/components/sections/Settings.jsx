@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Watch, Loader, Unlink, RefreshCw } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -8,6 +8,7 @@ import { exportAll, validateImport, importRestore, importMerge, encryptExport, d
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
+import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncOuraTemperature } from '../../services/oura';
 
 const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
 
@@ -39,13 +40,92 @@ function CopyPromptButton() {
   );
 }
 
-export default function Settings({ data, updateSettings, updateItem, eraseAll, reloadData, onNav }) {
+export default function Settings({ data, updateSettings, updateItem, addItem, eraseAll, reloadData, onNav }) {
   const s = data.settings;
   const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [dataExpanded, setDataExpanded] = useState(false);
+
+  // Oura state
+  const [ouraConnected, setOuraConnected] = useState(() => isOuraConnected());
+  const [ouraLoading, setOuraLoading] = useState(false);
+  const [ouraError, setOuraError] = useState(null);
+  const [ouraSuccess, setOuraSuccess] = useState(null);
+  const [ouraSyncing, setOuraSyncing] = useState(false);
+  const [ouraBaseline, setOuraBaseline] = useState(() => localStorage.getItem('salve:oura-baseline') || '97.7');
+
+  // Handle OAuth callback (code in URL)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state === 'salve-oura') {
+      // Clean URL
+      window.history.replaceState({}, '', window.location.pathname);
+      setOuraLoading(true);
+      exchangeOuraCode(code)
+        .then(() => {
+          setOuraConnected(true);
+          setOuraSuccess('Oura Ring connected successfully!');
+          setOuraError(null);
+        })
+        .catch(e => setOuraError(e.message))
+        .finally(() => setOuraLoading(false));
+    }
+  }, []);
+
+  async function connectOura() {
+    setOuraLoading(true);
+    setOuraError(null);
+    try {
+      const url = await getOuraAuthUrl();
+      if (!url) {
+        setOuraError('Oura integration is not configured. Add OURA_CLIENT_ID and OURA_CLIENT_SECRET to Vercel env vars.');
+        return;
+      }
+      window.location.href = url;
+    } catch (e) {
+      setOuraError(e.message);
+    } finally {
+      setOuraLoading(false);
+    }
+  }
+
+  function disconnectOura() {
+    clearOuraTokens();
+    setOuraConnected(false);
+    setOuraSuccess(null);
+  }
+
+  async function handleOuraSync() {
+    setOuraSyncing(true);
+    setOuraError(null);
+    setOuraSuccess(null);
+    try {
+      const baseline = parseFloat(ouraBaseline) || 97.7;
+      const result = await syncOuraTemperature(data.cycles || [], addItem, 30, baseline);
+      if (result.added > 0) {
+        setOuraSuccess(`Synced ${result.added} temperature reading${result.added !== 1 ? 's' : ''} from Oura (${result.skipped} skipped — already logged).`);
+        await reloadData();
+      } else {
+        setOuraSuccess(`No new readings to sync (${result.total} total, all already logged).`);
+      }
+    } catch (e) {
+      if (e.message.includes('expired') || e.message.includes('reconnect')) {
+        setOuraConnected(false);
+      }
+      setOuraError(e.message);
+    } finally {
+      setOuraSyncing(false);
+    }
+  }
+
+  function saveOuraBaseline(v) {
+    setOuraBaseline(v);
+    localStorage.setItem('salve:oura-baseline', v);
+  }
 
   // Import state
   const [importFile, setImportFile] = useState(null);
@@ -351,6 +431,73 @@ export default function Settings({ data, updateSettings, updateItem, eraseAll, r
 
       <SectionTitle>Apple Health</SectionTitle>
       <AppleHealthImport data={data} reloadData={reloadData} />
+
+      <SectionTitle>Oura Ring</SectionTitle>
+      <Card>
+        {ouraConnected ? (
+          <>
+            <div className="flex items-center gap-2 mb-3">
+              <Watch size={16} className="text-salve-sage" />
+              <span className="text-[13px] text-salve-sage font-medium">Connected</span>
+              <span className="text-[10px] text-salve-textFaint ml-auto">
+                {getOuraTokens()?.connected_at ? `Since ${new Date(getOuraTokens().connected_at).toLocaleDateString()}` : ''}
+              </span>
+            </div>
+
+            <Field
+              label="BBT Baseline (°F)"
+              value={ouraBaseline}
+              onChange={saveOuraBaseline}
+              placeholder="97.7"
+              type="number"
+            />
+            <p className="text-[10px] text-salve-textFaint italic mb-3 -mt-1 leading-relaxed">
+              Oura measures temperature deviation from your personal baseline. Average waking BBT is ~97.7°F. Adjust if you know your baseline.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleOuraSync}
+                disabled={ouraSyncing}
+                className="flex-1 py-2.5 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat
+                  flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {ouraSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                {ouraSyncing ? 'Syncing...' : 'Sync Temperature'}
+              </button>
+              <button
+                onClick={disconnectOura}
+                className="py-2.5 px-4 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat
+                  flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+              >
+                <Unlink size={12} /> Disconnect
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
+              Connect your Oura Ring to automatically import nightly temperature data as BBT readings for cycle tracking.
+            </p>
+            <button
+              onClick={connectOura}
+              disabled={ouraLoading}
+              className="w-full py-3 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat
+                hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {ouraLoading ? <Loader size={16} className="animate-spin" /> : <Watch size={16} />}
+              {ouraLoading ? 'Connecting...' : 'Connect Oura Ring'}
+            </button>
+          </>
+        )}
+
+        {ouraError && (
+          <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{ouraError}</div>
+        )}
+        {ouraSuccess && (
+          <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{ouraSuccess}</div>
+        )}
+      </Card>
 
       <SectionTitle
         action={

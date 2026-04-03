@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Plus, Check, Edit, Trash2, Heart, Calendar, ChevronLeft, ChevronRight, Upload } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Heart, Calendar, ChevronLeft, ChevronRight, Upload, Watch, Loader } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -13,6 +13,7 @@ import { C } from '../../constants/colors';
 import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS, FERTILITY_MARKERS } from '../../constants/defaults';
 import { detectFloFormat, parseFloExport } from '../../services/flo';
 import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility, getCycleAlerts } from '../../utils/cycles';
+import { isOuraConnected, syncOuraTemperature } from '../../services/oura';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -50,6 +51,8 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
     localStorage.setItem(OVERLAY_KEY, JSON.stringify(next));
     return next;
   });
+  const [ouraSyncing, setOuraSyncing] = useState(false);
+  const [ouraSyncMsg, setOuraSyncMsg] = useState(null);
   const fileRef = useRef(null);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -325,6 +328,27 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   return (
     <div className="mt-2">
       <div className="flex justify-end gap-1.5 mb-3">
+        {isOuraConnected() && (
+          <button
+            onClick={async () => {
+              setOuraSyncing(true);
+              setOuraSyncMsg(null);
+              try {
+                const baseline = parseFloat(localStorage.getItem('salve:oura-baseline')) || 97.7;
+                const result = await syncOuraTemperature(cycles, addItem, 30, baseline);
+                setOuraSyncMsg(result.added > 0 ? `+${result.added} reading${result.added !== 1 ? 's' : ''}` : 'Up to date');
+                setTimeout(() => setOuraSyncMsg(null), 3000);
+              } catch { setOuraSyncMsg('Sync failed'); setTimeout(() => setOuraSyncMsg(null), 3000); }
+              finally { setOuraSyncing(false); }
+            }}
+            disabled={ouraSyncing}
+            className="bg-salve-card2 border border-salve-border rounded-lg px-3 py-1.5 text-[11px] text-salve-sage font-montserrat
+              flex items-center gap-1.5 hover:border-salve-sage/40 transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {ouraSyncing ? <Loader size={11} className="animate-spin" /> : <Watch size={11} />}
+            {ouraSyncMsg || (ouraSyncing ? 'Syncing...' : 'Oura Sync')}
+          </button>
+        )}
         <Button variant="secondary" onClick={() => setSubView('import')} className="!py-1.5 !px-3 !text-xs"><Upload size={13} /> Import</Button>
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
       </div>
