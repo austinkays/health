@@ -56,14 +56,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
   const [ouraSyncing, setOuraSyncing] = useState(false);
   const [ouraBaseline, setOuraBaseline] = useState(() => localStorage.getItem('salve:oura-baseline') || '97.7');
 
-  // Handle OAuth callback (code in URL)
+  // Handle OAuth callback (code stashed by supabase.js before Supabase init)
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    if (code && state === 'salve-oura') {
-      // Clean URL
-      window.history.replaceState({}, '', window.location.pathname);
+    const code = window.__ouraCode;
+    if (code) {
+      delete window.__ouraCode;
       setOuraLoading(true);
       exchangeOuraCode(code)
         .then(() => {
