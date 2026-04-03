@@ -44,7 +44,20 @@ export default function AppleHealthImport({ data, reloadData }) {
         const xmlFile = allFiles.find(n => n.endsWith('/export.xml') || n === 'export.xml')
           || allFiles.find(n => n.endsWith('.xml') && !n.includes('cda'));
         if (!xmlFile) throw new Error('No export.xml found in ZIP. Make sure this is an Apple Health export.');
-        xmlText = await zip.files[xmlFile].async('string');
+
+        // Use arraybuffer + TextDecoder for large files (avoids string length limits)
+        setProgress(8);
+        const buf = await zip.files[xmlFile].async('arraybuffer');
+        setProgress(15);
+        const decoder = new TextDecoder('utf-8');
+        // Decode in 50MB chunks to avoid memory pressure
+        const CHUNK = 50 * 1024 * 1024;
+        const parts = [];
+        for (let i = 0; i < buf.byteLength; i += CHUNK) {
+          parts.push(decoder.decode(new Uint8Array(buf, i, Math.min(CHUNK, buf.byteLength - i)), { stream: i + CHUNK < buf.byteLength }));
+        }
+        xmlText = parts.join('');
+        setProgress(20);
 
         // Parse FHIR JSON files from clinical-records folder
         const clinicalFiles = allFiles.filter(n => n.includes('clinical-records') && n.endsWith('.json'));
