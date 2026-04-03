@@ -30,6 +30,7 @@ const CATEGORIES = [
   { value: 'follow_up',   label: 'Follow-up' },
   { value: 'insurance',   label: 'Insurance' },
   { value: 'lab',         label: 'Lab / Test' },
+  { value: 'research',    label: 'Research' },
 ];
 
 const RECURRING = [
