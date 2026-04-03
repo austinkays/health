@@ -302,7 +302,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             <span className="text-[11px] text-salve-textMid font-montserrat">Ovulation</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: `${C.amber}25` }} />
+            <span className="w-3 h-3 rounded shrink-0 border" style={{ backgroundColor: `${C.amber}30`, borderColor: `${C.amber}40` }} />
             <span className="text-[11px] text-salve-textMid font-montserrat">Fertile window</span>
           </div>
           <div className="flex items-center gap-2">
@@ -340,14 +340,14 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             let bg = 'transparent';
             let border = 'transparent';
             if (hasPeriod) bg = `${C.rose}55`;
-            else if (isPredicted) { bg = `${C.rose}15`; border = `${C.rose}88`; }
+            else if (isPredicted) { bg = `${C.rose}18`; border = `${C.rose}88`; }
             else if (hasOvulation) bg = `${C.amber}55`;
-            else if (isFertile) bg = `${C.amber}25`;
+            else if (isFertile) { bg = `${C.amber}30`; border = `${C.amber}40`; }
 
             return (
               <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
-                style={{ backgroundColor: bg, borderWidth: isPredicted || isToday ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
+                style={{ backgroundColor: bg, borderWidth: (isPredicted || isToday || isFertile) ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
                 aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${hasSymptom ? ', symptom logged' : ''}${hasOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}`}
               >
                 <span className={isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}>{day}</span>
