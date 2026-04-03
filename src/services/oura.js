@@ -53,7 +53,7 @@ export async function getOuraAuthUrl() {
     response_type: 'code',
     client_id,
     redirect_uri: getOuraRedirectUri(),
-    scope: 'daily',
+    scope: 'daily heartrate workout tag session spo2 personal email ring_configuration stress heart_health',
     state: 'salve-oura',
   });
   return `https://cloud.ouraring.com/oauth/authorize?${params}`;
