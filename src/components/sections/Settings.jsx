@@ -116,10 +116,10 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
       }
 
       if (parts.length > 0) {
-        setOuraSuccess(`Synced ${parts.join(', ')} from Oura.${errors.length ? ` (${errors.length} failed)` : ''}`);
+        setOuraSuccess(`Synced ${parts.join(', ')} from Oura.${errors.length ? '\nFailed: ' + errors.join('; ') : ''}`);
         await reloadData();
       } else {
-        setOuraSuccess(`Everything up to date.${errors.length ? ` (${errors.length} endpoints unavailable)` : ''}`);
+        setOuraSuccess(`Nothing new to sync.${errors.length ? '\nFailed: ' + errors.join('; ') : ''}`);
       }
     } catch (e) {
       if (e.message.includes('expired') || e.message.includes('reconnect')) {
