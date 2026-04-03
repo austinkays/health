@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Watch, Loader, Unlink, RefreshCw, Smartphone, Heart } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, Heart } from 'lucide-react';
 import Card from '../ui/Card';
+import { OuraIcon } from '../ui/OuraIcon';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
@@ -414,7 +415,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${ouraConnected ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
-                <Watch size={16} className={ouraConnected ? 'text-salve-sage' : 'text-salve-textFaint'} />
+                <OuraIcon size={16} className={ouraConnected ? 'text-salve-sage' : 'text-salve-textFaint'} />
               </div>
               <div>
                 <span className="text-[13px] text-salve-text font-medium block">Oura Ring</span>
@@ -474,7 +475,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
               className="w-full mt-3 py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat
                 hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {ouraLoading ? <Loader size={16} className="animate-spin" /> : <Watch size={16} />}
+              {ouraLoading ? <Loader size={16} className="animate-spin" /> : <OuraIcon size={16} />}
               {ouraLoading ? 'Connecting...' : 'Connect Oura Ring'}
             </button>
           )}
@@ -492,7 +493,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
-                <Smartphone size={16} className="text-salve-lav" />
+                <Apple size={16} className="text-salve-lav" />
               </div>
               <div>
                 <span className="text-[13px] text-salve-text font-medium block">Apple Health</span>

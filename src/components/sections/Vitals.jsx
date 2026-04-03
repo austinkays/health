@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader, Watch, Smartphone } from 'lucide-react';
+import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader, Apple } from 'lucide-react';
+import { OuraIcon } from '../ui/OuraIcon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -45,7 +46,7 @@ const flagStyle = (flag) => {
   return { color: C.amber, bg: 'rgba(232,200,138,0.15)' };
 };
 
-const SOURCE_ICON = { oura: Watch, apple_health: Smartphone };
+const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
 const SOURCE_COLOR = { oura: C.sage, apple_health: C.lav, manual: C.textFaint };
 

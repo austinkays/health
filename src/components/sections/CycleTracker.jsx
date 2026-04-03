@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Plus, Check, Edit, Trash2, Heart, Calendar, ChevronLeft, ChevronRight, Upload, Watch, Loader } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Heart, Calendar, ChevronLeft, ChevronRight, Upload, Loader } from 'lucide-react';
+import { OuraIcon } from '../ui/OuraIcon';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -346,7 +347,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             className="bg-salve-card2 border border-salve-border rounded-lg px-3 py-1.5 text-[11px] text-salve-sage font-montserrat
               flex items-center gap-1.5 hover:border-salve-sage/40 transition-colors cursor-pointer disabled:opacity-50"
           >
-            {ouraSyncing ? <Loader size={11} className="animate-spin" /> : <Watch size={11} />}
+            {ouraSyncing ? <Loader size={11} className="animate-spin" /> : <OuraIcon size={11} />}
             {ouraSyncMsg || (ouraSyncing ? 'Syncing...' : 'Oura Sync')}
           </button>
         )}

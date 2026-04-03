@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Smartphone, Heart, Activity, FlaskConical, Moon, Footprints, Zap, Scale, Thermometer, Droplets, Wind, TrendingUp } from 'lucide-react';
+import { Apple, Heart, Activity, FlaskConical, Moon, Footprints, Zap, Scale, Thermometer, Droplets, Wind, TrendingUp } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
@@ -121,7 +121,7 @@ export default function AppleHealthPage({ data, onNav }) {
   if (!hasData) {
     return (
       <div className="mt-2">
-        <EmptyState icon={Smartphone} text="No Apple Health data imported yet" motif="sparkle" />
+        <EmptyState icon={Apple} text="No Apple Health data imported yet" motif="sparkle" />
         <div className="text-center mt-3">
           <button
             onClick={() => onNav('settings')}
@@ -137,7 +137,7 @@ export default function AppleHealthPage({ data, onNav }) {
       {/* Source info bar */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <Smartphone size={11} className="text-salve-lav" />
+          <Apple size={11} className="text-salve-lav" />
           <span className="text-[10px] text-salve-textFaint font-montserrat">
             {totalRecords.toLocaleString()} records imported
           </span>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Watch, RefreshCw, Loader, Heart, Moon, Zap, Wind, Activity, Thermometer, Brain, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { RefreshCw, Loader, Heart, Moon, Zap, Wind, Activity, Thermometer, Brain, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import Card from '../ui/Card';
+import { OuraIcon } from '../ui/OuraIcon';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import { C } from '../../constants/colors';
@@ -171,7 +172,7 @@ export default function OuraRing({ data, addItem, onNav }) {
   if (!connected) {
     return (
       <div className="mt-2">
-        <EmptyState icon={Watch} text="Oura Ring not connected" motif="sparkle" />
+        <EmptyState icon={OuraIcon} text="Oura Ring not connected" motif="sparkle" />
         <div className="text-center mt-3">
           <button
             onClick={() => onNav('settings')}
@@ -206,7 +207,7 @@ export default function OuraRing({ data, addItem, onNav }) {
       {/* Sync bar */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
-          <Watch size={11} className="text-salve-sage" />
+          <OuraIcon size={11} className="text-salve-sage" />
           <span className="text-[10px] text-salve-textFaint font-montserrat">
             {lastSync ? `Synced ${lastSync.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Auto-syncing every 5 min'}
           </span>

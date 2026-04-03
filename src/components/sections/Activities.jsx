@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Watch, Smartphone } from 'lucide-react';
+import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Apple } from 'lucide-react';
+import { OuraIcon } from '../ui/OuraIcon';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -12,7 +13,7 @@ import { C } from '../../constants/colors';
 import { EMPTY_ACTIVITY, WORKOUT_TYPES } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 
-const SOURCE_ICON = { oura: Watch, apple_health: Smartphone };
+const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
 const SOURCE_COLOR = { oura: '#8fbfa0', apple_health: '#b8a9e8', manual: '#6e6a80' };
 
