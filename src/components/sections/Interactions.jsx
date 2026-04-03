@@ -4,7 +4,6 @@ import Card from '../ui/Card';
 import { SevBadge } from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import Motif from '../ui/Motif';
-import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { drugInteractions } from '../../services/drugs';
 
@@ -34,7 +33,6 @@ export default function Interactions({ interactions, meds }) {
 
   return (
     <div className="mt-2">
-      <SectionTitle>Drug Interaction Checker</SectionTitle>
 
       <Card className="!p-3.5 mb-4">
         <div className="text-xs text-salve-textMid mb-2">Active medications being checked:</div>

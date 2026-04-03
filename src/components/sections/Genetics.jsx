@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_GENETIC_RESULT } from '../../constants/defaults';
 import { PGX_GENES, PHENOTYPES, PGX_SOURCES, PGX_INTERACTIONS } from '../../constants/pgx';
@@ -203,22 +203,19 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between mb-3">
-        <SectionTitle>Genetics</SectionTitle>
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => setShowPaste(!showPaste)}
-            className={`flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-medium font-montserrat cursor-pointer transition-colors border ${
-              showPaste ? 'bg-salve-lav/10 border-salve-lav/30 text-salve-lav' : 'bg-salve-card2 border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav'
-            }`}
-            aria-label="Paste genetic results"
-          >
-            <Clipboard size={12} /> Paste
-          </button>
-          <Button variant="lavender" onClick={() => { setForm(EMPTY_GENETIC_RESULT); setEditId(null); setSubView('form'); }} className="!py-1.5 !px-3 !text-xs">
-            <Plus size={14} /> Add
-          </Button>
-        </div>
+      <div className="flex justify-end gap-1.5 mb-3">
+        <button
+          onClick={() => setShowPaste(!showPaste)}
+          className={`flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-medium font-montserrat cursor-pointer transition-colors border ${
+            showPaste ? 'bg-salve-lav/10 border-salve-lav/30 text-salve-lav' : 'bg-salve-card2 border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav'
+          }`}
+          aria-label="Paste genetic results"
+        >
+          <Clipboard size={12} /> Paste
+        </button>
+        <Button variant="lavender" onClick={() => { setForm(EMPTY_GENETIC_RESULT); setEditId(null); setSubView('form'); }} className="!py-1.5 !px-3 !text-xs">
+          <Plus size={14} /> Add
+        </Button>
       </div>
 
       {pasteError && (

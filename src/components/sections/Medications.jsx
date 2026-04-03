@@ -404,9 +404,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </>
       )}
 
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        My Medications
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
       <div className="flex gap-1.5 mb-3.5">
         {['active', 'inactive', 'all'].map(f => (

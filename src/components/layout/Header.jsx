@@ -6,7 +6,7 @@ const TAB_LABELS = {
   meds: 'Medications',
   vitals: 'Vitals',
   appts: 'Visits',
-  ai: 'Insight',
+  ai: 'Sage',
   conditions: 'Conditions',
   providers: 'Providers',
   allergies: 'Allergies',
@@ -22,7 +22,12 @@ const TAB_LABELS = {
   insurance: 'Insurance',
   interactions: 'Interactions',
   search: 'Search',
-  cycles: 'Cycles',
+  cycles: 'Cycle Tracker',
+  pharmacies: 'Pharmacies',
+  todos: "To-Do's",
+  genetics: 'Genetics',
+  activities: 'Activities',
+  summary: 'Health Summary',
 };
 
 const TAB_DECOR = {
@@ -47,9 +52,14 @@ const TAB_DECOR = {
   cycles:        ['♀', '☽', '·'],
   appts:         ['✿', '✦', '·'],
   search:        ['✦', '·', '✧'],
+  pharmacies:    ['✿', '·', '☽'],
+  todos:         ['✓', '·', '✧'],
+  genetics:      ['✧', '✦', '·'],
+  activities:    ['♡', '·', '✧'],
+  summary:       ['☽', '✧', '✿'],
 };
 
-export default function Header({ tab, name, onBack, onSearch }) {
+export default function Header({ tab, name, onBack, onSearch, action }) {
   const isDash = tab === 'dash';
   const isSearch = tab === 'search';
   const decor = TAB_DECOR[tab] || ['☽', '✧', '·'];
@@ -81,6 +91,7 @@ export default function Header({ tab, name, onBack, onSearch }) {
             </p>
           )}
         </div>
+        {action}
         {!isSearch && (
           <button onClick={onSearch} aria-label="Search" className="bg-transparent border-none text-salve-textMid hover:text-salve-lav cursor-pointer p-1.5 flex transition-colors">
             <Search size={18} />

@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 import Field from '../ui/Field';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { fetchImmunizationReview } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -74,9 +74,9 @@ export default function Immunizations({ data, addItem, updateItem, removeItem, h
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Immunizations
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
       {hasAIConsent() && (
         <div className="mb-3">

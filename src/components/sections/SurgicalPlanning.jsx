@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { mapsUrl } from '../../utils/maps';
 import { providerLookupUrl } from '../../utils/links';
@@ -105,9 +105,9 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => openForm()} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Surgical Planning
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => openForm()} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
 
       {data.surgical_planning.length === 0 ? <EmptyState icon={PlaneTakeoff} text="No surgical plans yet" motif="leaf" /> :

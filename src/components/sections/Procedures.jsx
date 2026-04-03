@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { mapsUrl } from '../../utils/maps';
@@ -65,9 +65,9 @@ export default function Procedures({ data, addItem, updateItem, removeItem, high
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Procedures
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
 
       {data.procedures.length === 0 ? <EmptyState icon={Syringe} text="No procedures recorded yet" motif="leaf" /> :

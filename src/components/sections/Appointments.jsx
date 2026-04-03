@@ -9,7 +9,7 @@ import Field from '../ui/Field';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import Motif, { Divider } from '../ui/Motif';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { EMPTY_APPOINTMENT } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
@@ -134,9 +134,9 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Appointments
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
       {data.appts.length === 0 ? <EmptyState icon={Calendar} text="No appointments yet" motif="moon" /> : (
         <>

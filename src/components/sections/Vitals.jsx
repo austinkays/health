@@ -117,9 +117,9 @@ export default function Vitals({ data, addItem, removeItem }) {
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>}>
-        Vitals
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
+      </div>
 
       <div className="flex gap-1.5 flex-wrap mb-3.5">
         {VITAL_TYPES.map(t => (

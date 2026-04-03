@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 import Field from '../ui/Field';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 
 const EMPTY = { condition: '', implication: '', action_required: '' };
@@ -61,9 +61,10 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem,
         </p>
       </div>
 
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        <span style={{ color: C.rose }}>⚠</span> Flags ({flags.length})
-      </SectionTitle>
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-sm text-salve-textMid font-montserrat"><span style={{ color: C.rose }}>⚠</span> {flags.length} flag{flags.length !== 1 ? 's' : ''}</span>
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
 
       {flags.length === 0 ? (

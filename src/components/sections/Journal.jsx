@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { EMPTY_JOURNAL, MOODS } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
@@ -116,9 +116,9 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="lavender" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Write</Button>}>
-        Symptom Journal
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="lavender" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Write</Button>
+      </div>
 
       {data.journal.length >= 3 && hasAIConsent() && (
         <div className="mb-3">

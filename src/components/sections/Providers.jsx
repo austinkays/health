@@ -6,7 +6,7 @@ import Button from '../ui/Button';
 import Field from '../ui/Field';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { EMPTY_PROVIDER } from '../../constants/defaults';
 import { searchProviders } from '../../services/npi';
 import { mapsUrl } from '../../utils/maps';
@@ -172,9 +172,9 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Providers
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
       {data.providers.length === 0 ? <EmptyState icon={User} text="No providers added" motif="leaf" /> :
         sortedProviders.map(p => {
           const isExpanded = expandedId === p.id;

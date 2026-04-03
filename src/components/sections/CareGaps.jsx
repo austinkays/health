@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { fetchCareGapSuggestions } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -97,9 +97,9 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Care Gaps
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
 
       {urgentCount > 0 && (
         <div className="mb-3 px-3 py-2.5 rounded-lg border text-[12px] font-medium"

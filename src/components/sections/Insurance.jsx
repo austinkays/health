@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 
@@ -149,9 +149,9 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
 
       {/* ── Plans Tab ── */}
       {tab === 'plans' && <>
-        <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-          Insurance & Coverage
-        </SectionTitle>
+        <div className="flex justify-end mb-3">
+          <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+        </div>
 
         {data.insurance.length === 0 ? <EmptyState icon={BadgeDollarSign} text="No insurance plans recorded" motif="leaf" /> :
           data.insurance.map(ins => {
@@ -197,9 +197,9 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
 
       {/* ── Claims Tab ── */}
       {tab === 'claims' && <>
-        <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('claimForm')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-          Claims
-        </SectionTitle>
+        <div className="flex justify-end mb-3">
+          <Button variant="secondary" onClick={() => setSubView('claimForm')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+        </div>
 
         {/* Totals banner */}
         {claims.length > 0 && (

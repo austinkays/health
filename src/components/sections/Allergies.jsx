@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { EMPTY_ALLERGY } from '../../constants/defaults';
 import { C } from '../../constants/colors';
 import { medlinePlusUrl } from '../../utils/links';
@@ -76,9 +76,9 @@ export default function Allergies({ data, addItem, updateItem, removeItem, highl
 
   return (
     <div className="mt-2">
-      <SectionTitle action={<Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>}>
-        Allergies & Sensitivities
-      </SectionTitle>
+      <div className="flex justify-end mb-3">
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
+      </div>
       {data.allergies.length === 0 ? <EmptyState icon={Shield} text="No allergies recorded" motif="star" /> :
         data.allergies.map(a => {
           const s = SEV[a.severity] || SEV.moderate;

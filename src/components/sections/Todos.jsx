@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_TODO } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
@@ -177,8 +177,7 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between mb-3">
-        <SectionTitle>To-Do&apos;s</SectionTitle>
+      <div className="flex justify-end mb-3">
         <Button variant="lavender" onClick={() => { setForm(EMPTY_TODO); setEditId(null); setSubView('form'); }} className="!py-1.5 !px-3 !text-xs">
           <Plus size={14} /> Add
         </Button>

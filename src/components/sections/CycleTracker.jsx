@@ -7,7 +7,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
-import FormWrap, { SectionTitle } from '../ui/FormWrap';
+import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS } from '../../constants/defaults';
@@ -246,14 +246,10 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   /* ── Main view ─────────────────────────────────────────── */
   return (
     <div className="mt-2">
-      <SectionTitle action={
-        <div className="flex gap-1.5">
-          <Button variant="secondary" onClick={() => setSubView('import')} className="!py-1.5 !px-3 !text-xs"><Upload size={13} /> Import</Button>
-          <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
-        </div>
-      }>
-        Cycle Tracker
-      </SectionTitle>
+      <div className="flex justify-end gap-1.5 mb-3">
+        <Button variant="secondary" onClick={() => setSubView('import')} className="!py-1.5 !px-3 !text-xs"><Upload size={13} /> Import</Button>
+        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
+      </div>
 
       {/* ── Stats card ───────────────────────────────────── */}
       {stats.lastPeriod && (
