@@ -109,7 +109,11 @@ export default function useHealthData(session) {
   }, []);
 
   const eraseAll = useCallback(async () => {
-    await db.eraseAll();
+    try {
+      await db.eraseAll();
+    } catch (err) {
+      console.warn('Erase had partial failures:', err.message);
+    }
     window.location.reload();
   }, []);
 
