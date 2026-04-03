@@ -92,7 +92,14 @@ export const CYCLE_SYMPTOMS = [
   'Acne', 'Mood swing', 'Nausea', 'Backache', 'Insomnia',
 ];
 
-export const FERTILITY_MARKERS = ['BBT', 'Cervical mucus', 'OPK positive', 'OPK negative'];
+export const CERVICAL_MUCUS_LEVELS = [
+  { value: 'dry', label: 'Dry / None', fertility: 'infertile' },
+  { value: 'sticky', label: 'Sticky / Tacky', fertility: 'low' },
+  { value: 'creamy', label: 'Creamy / Lotion-like', fertility: 'medium' },
+  { value: 'eggwhite', label: 'Clear / Stretchy (egg white)', fertility: 'peak' },
+];
+
+export const FERTILITY_MARKERS = ['OPK positive', 'OPK negative', 'Mittelschmerz'];
 
 export const EMPTY_TODO = {
   title: '', notes: '', due_date: '',

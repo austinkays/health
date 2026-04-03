@@ -10,9 +10,9 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS } from '../../constants/defaults';
+import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS, FERTILITY_MARKERS } from '../../constants/defaults';
 import { detectFloFormat, parseFloExport } from '../../services/flo';
-import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility } from '../../utils/cycles';
+import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility, getCycleAlerts } from '../../utils/cycles';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -78,6 +78,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   const dayOfCycle = useMemo(() => getDayOfCycle(stats), [stats]);
   const nextPeriod = useMemo(() => predictNextPeriod(stats), [stats]);
   const phase = useMemo(() => getCyclePhase(dayOfCycle, stats.avgLength), [dayOfCycle, stats.avgLength]);
+  const cycleAlerts = useMemo(() => getCycleAlerts(stats, cycles), [stats, cycles]);
 
   /* Date → records lookup for calendar */
   const dateMap = useMemo(() => {
@@ -215,9 +216,11 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
   if (subView === 'form') {
     const typeOptions = [
       { value: 'period', label: 'Period' },
+      { value: 'cervical_mucus', label: 'Cervical Mucus' },
+      { value: 'bbt', label: 'BBT (Temperature)' },
       { value: 'symptom', label: 'Symptom' },
       { value: 'ovulation', label: 'Ovulation' },
-      { value: 'fertility_marker', label: 'Fertility marker' },
+      { value: 'fertility_marker', label: 'Other Marker' },
     ];
 
     return (
@@ -228,6 +231,36 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
 
           {form.type === 'period' && (
             <Field label="Flow" value={form.value} onChange={v => sf('value', v)} options={['', ...FLOW_LEVELS]} />
+          )}
+
+          {form.type === 'cervical_mucus' && (
+            <>
+              <Field label="Mucus Type" value={form.value} onChange={v => sf('value', v)}
+                options={['', ...CERVICAL_MUCUS_LEVELS.map(l => l.value)]}
+                optionLabels={[{ value: '', label: 'Select...' }, ...CERVICAL_MUCUS_LEVELS]}
+              />
+              {form.value && (
+                <div className="text-[11px] font-montserrat px-1 -mt-1 mb-2" style={{
+                  color: form.value === 'eggwhite' ? C.amber : form.value === 'creamy' ? C.lav : form.value === 'sticky' ? C.textMid : C.sage
+                }}>
+                  {form.value === 'dry' && '→ Infertile — dense mucus blocks sperm'}
+                  {form.value === 'sticky' && '→ Low fertility — minimal sperm survival'}
+                  {form.value === 'creamy' && '→ Medium fertility — approaching ovulation'}
+                  {form.value === 'eggwhite' && '→ Peak fertility — ovulation likely within 1–2 days'}
+                </div>
+              )}
+            </>
+          )}
+
+          {form.type === 'bbt' && (
+            <>
+              <Field label="Temperature (°F)" value={form.value} onChange={v => sf('value', v)}
+                type="number" placeholder="e.g. 97.45"
+              />
+              <p className="text-[10px] text-salve-textFaint font-montserrat italic -mt-1 mb-2 px-1">
+                Take at the same time each morning before getting out of bed. A sustained rise of ~0.5°F for 3 days confirms ovulation.
+              </p>
+            </>
           )}
 
           {form.type === 'symptom' && (
@@ -283,6 +316,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
 
   /* ── Filter ────────────────────────────────────────────── */
   const filtered = filter === 'all' ? cycles
+    : filter === 'fertility' ? cycles.filter(c => ['cervical_mucus', 'bbt', 'fertility_marker', 'ovulation'].includes(c.type))
     : cycles.filter(c => c.type === filter);
 
   const today = new Date().toISOString().slice(0, 10);
@@ -321,6 +355,19 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             </div>
           </div>
         </Card>
+      )}
+
+      {/* ── Alerts (short cycle, BBT shift, peak mucus) ─── */}
+      {cycleAlerts.length > 0 && (
+        <div className="space-y-2 mb-3">
+          {cycleAlerts.map((a, i) => (
+            <Card key={i} className="!p-3" style={{
+              borderLeft: `3px solid ${a.severity === 'warning' ? C.amber : a.severity === 'success' ? C.sage : C.lav}`
+            }}>
+              <p className="text-xs text-salve-textMid font-montserrat leading-relaxed m-0">{a.message}</p>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* ── Calendar ─────────────────────────────────────── */}
@@ -373,6 +420,9 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             const hasSymptom = entries.some(e => e.type === 'symptom');
             const hasOvulation = entries.some(e => e.type === 'ovulation');
             const hasFertility = entries.some(e => e.type === 'fertility_marker');
+            const hasMucus = entries.some(e => e.type === 'cervical_mucus');
+            const hasBBT = entries.some(e => e.type === 'bbt');
+            const peakMucus = entries.some(e => e.type === 'cervical_mucus' && e.value === 'eggwhite');
             const isPredicted = overlays.predicted && !hasPeriod && predictedDays.has(dk);
             const isFertile = overlays.fertile && !hasOvulation && fertileDays.has(dk);
             const showOvulation = overlays.ovulation && hasOvulation;
@@ -394,15 +444,17 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
               if (fertZone === 'peak' || fertZone === 'fertile') {
                 const op = Math.round(fertPct * 0.35).toString(16).padStart(2, '0');
                 bg = `${C.amber}${op}`;
+              } else if (fertZone === 'buffer') {
+                bg = `${C.amber}10`;
               } else if (fertZone === 'absolute') {
                 bg = `${C.sage}12`;
               }
-              // 'relative' zone gets no tint — stays transparent
             }
 
             // Color for the % label
             const fertLabelColor = fertZone === 'peak' ? C.amber
               : fertZone === 'fertile' ? C.amber
+              : fertZone === 'buffer' ? C.amber
               : fertZone === 'absolute' ? C.sage
               : C.textFaint;
 
@@ -421,6 +473,9 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
                   <div className="flex gap-0.5 mt-0.5 h-1">
                     {hasPeriod && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.rose }} />}
                     {showSymptom && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.lav }} />}
+                    {peakMucus && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.amber }} />}
+                    {!peakMucus && hasMucus && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.sage }} />}
+                    {hasBBT && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.textMid }} />}
                     {(showOvulation || (overlays.fertile && hasFertility)) && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.amber }} />}
                   </div>
                 )}
@@ -444,6 +499,10 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
               <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Up to 5 days before through 1 day after ovulation. The cervix produces alkaline mucus that lets sperm survive up to 120 hours while awaiting the egg, which survives only 12–24 hours once released.</span>
             </div>
             <div className="flex items-start gap-2">
+              <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>BUFFER</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Safety margin 2 days before the fertile window. Ovulation can happen a couple of days early, so these days carry a small risk.</span>
+            </div>
+            <div className="flex items-start gap-2">
               <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.textFaint }}>RELATIVE</span>
               <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Pre-ovulatory. The cervix produces dense mucus that traps and destroys sperm. Labeled "relative" because the follicular phase length varies — in a short cycle, sperm from late in a period could survive long enough to meet an early ovulation.</span>
             </div>
@@ -463,9 +522,10 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
         {[
           { key: 'all', label: 'All' },
           { key: 'period', label: 'Period' },
+          { key: 'cervical_mucus', label: 'Mucus' },
+          { key: 'bbt', label: 'BBT' },
           { key: 'symptom', label: 'Symptoms' },
-          { key: 'ovulation', label: 'Ovulation' },
-          { key: 'fertility_marker', label: 'Fertility' },
+          { key: 'fertility', label: 'Fertility' },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
             className={`py-1.5 px-4 rounded-full text-xs font-medium border cursor-pointer font-montserrat ${
@@ -489,9 +549,19 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm font-montserrat text-salve-text capitalize">{c.type === 'fertility_marker' ? 'Fertility' : c.type}</span>
+                      <span className="font-medium text-sm font-montserrat text-salve-text">
+                        {c.type === 'fertility_marker' ? 'Marker' : c.type === 'cervical_mucus' ? 'Cervical Mucus' : c.type === 'bbt' ? 'BBT' : c.type.charAt(0).toUpperCase() + c.type.slice(1)}
+                      </span>
                       {c.type === 'period' && c.value && (
                         <Badge style={{ color: C.rose, backgroundColor: `${C.rose}22` }}>{c.value}</Badge>
+                      )}
+                      {c.type === 'cervical_mucus' && c.value && (
+                        <Badge style={{ color: c.value === 'eggwhite' ? C.amber : c.value === 'creamy' ? C.lav : C.sage, backgroundColor: `${c.value === 'eggwhite' ? C.amber : c.value === 'creamy' ? C.lav : C.sage}22` }}>
+                          {CERVICAL_MUCUS_LEVELS.find(l => l.value === c.value)?.label || c.value}
+                        </Badge>
+                      )}
+                      {c.type === 'bbt' && c.value && (
+                        <Badge style={{ color: C.lav, backgroundColor: `${C.lav}22` }}>{c.value}°F</Badge>
                       )}
                       {c.type === 'symptom' && c.symptom && (
                         <Badge style={{ color: C.lav, backgroundColor: `${C.lav}22` }}>{c.symptom}</Badge>

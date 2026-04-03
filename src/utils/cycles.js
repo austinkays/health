@@ -106,31 +106,123 @@ export function estimateFertility(dayOfCycle, avgLength) {
   const dist = dayOfCycle - ovDay; // negative = before ovulation, positive = after
 
   // ── POST-OVULATORY: absolute infertility ──
-  // Oocyte dead within 24h, P4 dominance, Type G mucus, cervix closed
   if (dist >= 2) return { pct: 0, zone: 'absolute' };
-  // Day after ovulation: oocyte may still be viable for ~12h
   if (dist === 1) return { pct: 8, zone: 'fertile' };
 
   // ── FERTILE WINDOW: Type E mucus, sperm-permeable cervix ──
-  // Peak: O-1 and O-day — LH surge, oocyte release, optimal timing
   if (dist === 0)  return { pct: 95, zone: 'peak' };
   if (dist === -1) return { pct: 95, zone: 'peak' };
   if (dist === -2) return { pct: 75, zone: 'fertile' };
   if (dist === -3) return { pct: 50, zone: 'fertile' };
-  // Outer edge: sperm deposited now must survive 4–5 days
   if (dist === -4) return { pct: 30, zone: 'fertile' };
   if (dist === -5) return { pct: 15, zone: 'fertile' };
 
+  // ── BUFFER ZONE: early-ovulation safety margin ──
+  // Ovulation can happen 2+ days early; flag these as "possible"
+  if (dist === -6) return { pct: 8, zone: 'buffer' };
+  if (dist === -7) return { pct: 5, zone: 'buffer' };
+
   // ── PRE-OVULATORY: relative infertility ──
-  // Type G mucus present but follicular phase length varies
-  // Closer to fertile window = higher risk from early ovulation
-  if (dist === -6) return { pct: 5, zone: 'relative' };
-  if (dist === -7) return { pct: 3, zone: 'relative' };
-
-  // Menstrual phase (days 1–5): very low but nonzero in short cycles
-  // Late menses + short follicular phase + 120h sperm viability = small risk
   if (dayOfCycle <= 5) return { pct: 2, zone: 'relative' };
-
-  // Early follicular, far from ovulation
   return { pct: 1, zone: 'relative' };
+}
+
+/**
+ * Detects BBT (Basal Body Temperature) thermal shift to confirm ovulation.
+ * Looks for a sustained rise of ≥0.3°F above the previous 6 readings,
+ * held for 3 consecutive days.
+ *
+ * Returns { confirmed: true, ovulationDate, shiftDay } or { confirmed: false, message }.
+ */
+export function detectBBTShift(cycles) {
+  const bbtEntries = cycles
+    .filter(c => c.type === 'bbt' && c.value)
+    .map(c => ({ date: c.date, temp: parseFloat(c.value) }))
+    .filter(c => !isNaN(c.temp))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (bbtEntries.length < 9) return { confirmed: false, message: 'Need at least 9 BBT readings to detect a shift.' };
+
+  // Sliding window: check if entries [i], [i+1], [i+2] are all ≥0.3°F above the avg of the prior 6
+  for (let i = 6; i <= bbtEntries.length - 3; i++) {
+    const baseline = bbtEntries.slice(i - 6, i);
+    const baseAvg = baseline.reduce((s, b) => s + b.temp, 0) / 6;
+    const threshold = baseAvg + 0.3;
+
+    const day1 = bbtEntries[i];
+    const day2 = bbtEntries[i + 1];
+    const day3 = bbtEntries[i + 2];
+
+    if (day1.temp >= threshold && day2.temp >= threshold && day3.temp >= threshold) {
+      // Ovulation happened the day before the first elevated reading
+      return {
+        confirmed: true,
+        ovulationDate: bbtEntries[i - 1]?.date || day1.date,
+        shiftDay: day1.date,
+        baselineAvg: Math.round(baseAvg * 100) / 100,
+        shiftTemp: Math.round(day1.temp * 100) / 100,
+      };
+    }
+  }
+
+  // No shift found
+  const dayCount = bbtEntries.length;
+  if (dayCount >= 20) {
+    return { confirmed: false, message: `No temperature shift detected in ${dayCount} readings. Ovulation may not have occurred this cycle.` };
+  }
+  return { confirmed: false, message: 'No temperature shift detected yet. Keep logging daily.' };
+}
+
+/**
+ * Analyzes cycle data for edge cases and returns alerts.
+ */
+export function getCycleAlerts(stats, cycles) {
+  const alerts = [];
+
+  // Short cycle detection
+  if (stats.periodStarts.length >= 2) {
+    const lastTwo = stats.periodStarts.slice(-2);
+    const lastLen = Math.round((new Date(lastTwo[1] + 'T00:00:00') - new Date(lastTwo[0] + 'T00:00:00')) / 86400000);
+    if (lastLen < 21) {
+      alerts.push({
+        type: 'short_cycle',
+        severity: 'warning',
+        message: `Your last cycle was ${lastLen} days. Short cycles can mean very early ovulation or an anovulatory cycle. Consider discussing with your provider.`,
+      });
+    }
+  }
+
+  // Check for egg-white cervical mucus as fertile confirmation
+  const recentMucus = cycles
+    .filter(c => c.type === 'cervical_mucus')
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const lastEggWhite = recentMucus.find(m => m.value === 'eggwhite');
+  if (lastEggWhite && stats.lastPeriod) {
+    const daysSinceEW = Math.floor((new Date() - new Date(lastEggWhite.date + 'T00:00:00')) / 86400000);
+    if (daysSinceEW <= 3) {
+      alerts.push({
+        type: 'peak_mucus',
+        severity: 'info',
+        message: `Peak cervical mucus (clear/stretchy) logged ${daysSinceEW === 0 ? 'today' : `${daysSinceEW} day${daysSinceEW > 1 ? 's' : ''} ago`}. Ovulation is likely imminent or just occurred.`,
+      });
+    }
+  }
+
+  // BBT shift detection
+  const bbtResult = detectBBTShift(cycles);
+  if (bbtResult.confirmed) {
+    alerts.push({
+      type: 'bbt_confirmed',
+      severity: 'success',
+      message: `Ovulation confirmed by BBT shift on ${bbtResult.shiftDay}. Baseline was ${bbtResult.baselineAvg}°F, shifted to ${bbtResult.shiftTemp}°F. You are now in the absolute infertile window.`,
+    });
+  } else if (bbtResult.message && cycles.some(c => c.type === 'bbt')) {
+    alerts.push({
+      type: 'bbt_status',
+      severity: 'info',
+      message: bbtResult.message,
+    });
+  }
+
+  return alerts;
 }
