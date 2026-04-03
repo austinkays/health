@@ -450,7 +450,7 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
     const dur = w.total_calories ? Math.round((w.end_datetime && w.start_datetime
       ? (new Date(w.end_datetime) - new Date(w.start_datetime)) / 60000
       : 0)) : null;
-    const durMin = dur || (w.duration ? Math.round(w.duration / 60) : '');
+    const durMin = dur || (w.duration ? Math.round(w.duration / 60) : null);
     const type = ouraTypeMap[w.activity?.toLowerCase()] || w.activity || 'Other';
     const key = `${day}|${type}|${durMin}`;
     if (existingKeys.has(key)) continue;
@@ -458,10 +458,10 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
     await addItem('activities', {
       date: day,
       type,
-      duration_minutes: String(durMin || ''),
-      distance: w.distance ? String(Math.round(w.distance) / 1000) : '',
-      calories: w.calories ? String(Math.round(w.calories)) : '',
-      heart_rate_avg: w.average_heart_rate ? String(w.average_heart_rate) : '',
+      duration_minutes: durMin || null,
+      distance: w.distance ? Math.round(w.distance) / 1000 : null,
+      calories: w.calories ? Math.round(w.calories) : null,
+      heart_rate_avg: w.average_heart_rate || null,
       source: 'oura',
       notes: `Oura Ring (intensity: ${w.intensity || '—'})`,
     });

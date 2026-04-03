@@ -171,7 +171,9 @@ export default async function handler(req, res) {
 
       if (!dataRes.ok) {
         if (dataRes.status === 401) return res.status(401).json({ error: 'Oura token expired' });
-        return res.status(dataRes.status).json({ error: 'Oura API error' });
+        let detail = '';
+        try { const b = await dataRes.json(); detail = b.detail || b.message || JSON.stringify(b); } catch {}
+        return res.status(dataRes.status).json({ error: `Oura API error (${dataRes.status}): ${detail || 'unknown'}` });
       }
 
       const data = await dataRes.json();
