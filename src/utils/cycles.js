@@ -174,6 +174,153 @@ export function detectBBTShift(cycles) {
 }
 
 /**
+ * Symptothermal Method analysis — combines BBT, cervical mucus, and calendar
+ * to determine fertility status using FAM (Fertility Awareness Method) rules.
+ *
+ * The Symptothermal Method cross-checks three independent biomarkers:
+ *  1. Calendar (count-backward prediction of fertile window)
+ *  2. Cervical mucus (real-time estrogen indicator — mucus pattern confirms approach of ovulation)
+ *  3. BBT (progesterone indicator — thermal shift confirms ovulation retroactively)
+ *
+ * Rules for confirming the post-ovulatory infertile phase:
+ *  - BBT rule: 3 consecutive temps ≥0.3°F above the previous 6 (standard cover-line rule)
+ *  - Mucus rule: 3 days past the last day of peak-type (eggwhite) mucus ("Peak + 3")
+ *  - Both must agree for full Symptothermal confirmation
+ *
+ * Returns: { status, confidence, details, rules }
+ *  status: 'infertile-post' | 'infertile-pre' | 'possibly-fertile' | 'fertile' | 'peak' | 'unknown'
+ *  confidence: 'high' | 'medium' | 'low'
+ */
+export function getSymptothermalStatus(cycles, stats) {
+  if (!stats?.lastPeriod) return { status: 'unknown', confidence: 'low', details: 'Not enough cycle data. Log your period to get started.', rules: {} };
+
+  const dayOfCycle = getDayOfCycle(stats);
+  if (dayOfCycle <= 0) return { status: 'unknown', confidence: 'low', details: 'Could not determine current cycle day.', rules: {} };
+
+  const ovDay = Math.round(stats.avgLength - 14);
+
+  // ── Gather indicators ──
+  const bbtShift = detectBBTShift(cycles);
+  const bbtEntries = cycles.filter(c => c.type === 'bbt' && c.value).sort((a, b) => b.date.localeCompare(a.date));
+
+  // Most recent mucus entries this cycle
+  const lastPeriodDate = new Date(stats.lastPeriod + 'T00:00:00');
+  const mucusThisCycle = cycles
+    .filter(c => c.type === 'cervical_mucus' && new Date(c.date + 'T00:00:00') >= lastPeriodDate)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const lastMucus = mucusThisCycle[0] || null;
+  const lastPeakMucus = mucusThisCycle.find(m => m.value === 'eggwhite');
+
+  // Days since last peak mucus ("Peak day")
+  const daysSincePeak = lastPeakMucus
+    ? Math.floor((new Date() - new Date(lastPeakMucus.date + 'T00:00:00')) / 86400000)
+    : null;
+
+  // Peak + 3 rule: 3 full evenings past the last day of peak mucus
+  const peakPlus3 = daysSincePeak !== null && daysSincePeak >= 4;
+
+  // Current mucus status
+  const mucusDrying = lastMucus && (lastMucus.value === 'dry' || lastMucus.value === 'sticky');
+
+  // Calendar-based estimate
+  const calFertility = estimateFertility(dayOfCycle, stats.avgLength);
+
+  const rules = {
+    bbtShiftConfirmed: bbtShift.confirmed,
+    bbtShiftDate: bbtShift.confirmed ? bbtShift.shiftDay : null,
+    bbtBaseline: bbtShift.confirmed ? bbtShift.baselineAvg : null,
+    peakPlus3,
+    daysSincePeak,
+    lastMucusType: lastMucus?.value || null,
+    mucusDrying,
+    calendarZone: calFertility.zone,
+    dayOfCycle,
+    ovulationDay: ovDay,
+    hasBBTData: bbtEntries.length > 0,
+    hasMucusData: mucusThisCycle.length > 0,
+  };
+
+  // ── POST-OVULATORY: Symptothermal confirmation ──
+  // Both BBT shift AND Peak + 3 mucus drying → highest confidence infertile
+  if (bbtShift.confirmed && peakPlus3 && mucusDrying) {
+    return {
+      status: 'infertile-post',
+      confidence: 'high',
+      details: `Ovulation confirmed by both BBT shift (${bbtShift.shiftDay}) and mucus drying (Peak + ${daysSincePeak} days). You are in the post-ovulatory infertile phase — the most reliable infertile window of your cycle.`,
+      rules,
+    };
+  }
+
+  // BBT shift only (no mucus data or not enough days past peak)
+  if (bbtShift.confirmed && calFertility.zone === 'absolute') {
+    return {
+      status: 'infertile-post',
+      confidence: rules.hasMucusData ? 'medium' : 'medium',
+      details: `BBT shift confirmed ovulation (${bbtShift.shiftDay}). ${peakPlus3 ? 'Peak + 3 mucus rule also met.' : mucusDrying ? 'Mucus is drying but hasn\'t been 3 full days past peak yet.' : 'Log cervical mucus for full Symptothermal cross-check.'}`,
+      rules,
+    };
+  }
+
+  // Peak + 3 only (no BBT data)
+  if (peakPlus3 && mucusDrying && calFertility.zone === 'absolute') {
+    return {
+      status: 'infertile-post',
+      confidence: 'medium',
+      details: `Mucus drying confirms ovulation has passed (Peak + ${daysSincePeak} days). Log BBT temperatures for full Symptothermal double-check.`,
+      rules,
+    };
+  }
+
+  // ── PEAK FERTILITY ──
+  if (lastMucus?.value === 'eggwhite' || (calFertility.zone === 'peak')) {
+    return {
+      status: 'peak',
+      confidence: lastMucus?.value === 'eggwhite' ? 'high' : 'medium',
+      details: `${lastMucus?.value === 'eggwhite' ? 'Egg-white cervical mucus detected — ovulation is likely imminent. ' : ''}Calendar estimates peak fertility (cycle day ${dayOfCycle}, expected ovulation ~day ${ovDay}).`,
+      rules,
+    };
+  }
+
+  // ── FERTILE WINDOW ──
+  if (calFertility.zone === 'fertile' || calFertility.zone === 'buffer' || lastMucus?.value === 'creamy') {
+    return {
+      status: 'fertile',
+      confidence: 'medium',
+      details: `Approaching the fertile window (cycle day ${dayOfCycle}). ${lastMucus?.value === 'creamy' ? 'Creamy mucus suggests rising estrogen. ' : ''}Estimated ovulation around day ${ovDay}.`,
+      rules,
+    };
+  }
+
+  // ── PRE-OVULATORY: relative infertility ──
+  if (dayOfCycle <= 5) {
+    return {
+      status: 'infertile-pre',
+      confidence: 'medium',
+      details: `Menstrual phase (day ${dayOfCycle}). Generally considered infertile, but in short cycles (<24 days), early ovulation is possible.`,
+      rules,
+    };
+  }
+
+  if (calFertility.zone === 'relative' && mucusDrying) {
+    return {
+      status: 'infertile-pre',
+      confidence: 'low',
+      details: `Pre-ovulatory phase with dry mucus (day ${dayOfCycle}). Calendar estimates low fertility, but this window is less predictable than post-ovulatory. Monitor mucus changes closely.`,
+      rules,
+    };
+  }
+
+  // ── POSSIBLY FERTILE (default) ──
+  return {
+    status: 'possibly-fertile',
+    confidence: 'low',
+    details: `Cycle day ${dayOfCycle}. ${!rules.hasBBTData && !rules.hasMucusData ? 'Log BBT and cervical mucus for Symptothermal analysis.' : !rules.hasBBTData ? 'Log daily BBT temperatures for thermal shift detection.' : !rules.hasMucusData ? 'Log cervical mucus for mucus pattern analysis.' : 'Waiting for more data this cycle.'}`,
+    rules,
+  };
+}
+
+/**
  * Analyzes cycle data for edge cases and returns alerts.
  */
 export function getCycleAlerts(stats, cycles) {
