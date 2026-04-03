@@ -77,6 +77,18 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
     }
   }, [quickLog]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /* Data source badges */
+  const cycleSources = useMemo(() => {
+    const sources = [];
+    const hasOura = cycles.some(c => c.notes?.includes('Oura'));
+    const hasFlo = cycles.some(c => c.notes?.includes('Flo')) || localStorage.getItem('salve:flo-imported') === '1';
+    const hasManual = cycles.some(c => !c.notes?.includes('Oura') && !c.notes?.includes('Flo'));
+    if (hasFlo) sources.push('Flo');
+    if (hasOura) sources.push('Oura');
+    if (hasManual) sources.push('Manual');
+    return sources;
+  }, [cycles]);
+
   /* Cycle statistics */
   const stats = useMemo(() => computeCycleStats(cycles), [cycles]);
   const dayOfCycle = useMemo(() => getDayOfCycle(stats), [stats]);
@@ -204,9 +216,10 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
       const newRecords = records.filter(r => !existingKeys.has(`${r.date}|${r.type}|${r.value}|${r.symptom}`));
       let added = 0;
       for (const r of newRecords) {
-        await addItem('cycles', r);
+        await addItem('cycles', { ...r, notes: r.notes || 'Imported from Flo' });
         added++;
       }
+      if (added > 0) localStorage.setItem('salve:flo-imported', '1');
       setImportResult({ success: true, total: records.length, added, skipped: records.length - added });
     } catch {
       setImportResult({ error: 'Could not parse file. Please upload a valid Flo JSON export.' });
@@ -359,7 +372,20 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
       {stats.lastPeriod && (
         <Card className="mb-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Cycle Overview</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Cycle Overview</span>
+              {cycleSources.length > 0 && (
+                <div className="flex items-center gap-1">
+                  {cycleSources.map(s => (
+                    <span key={s} className={`text-[8px] px-1.5 py-0.5 rounded-full font-montserrat ${
+                      s === 'Flo' ? 'bg-salve-rose/15 text-salve-rose' :
+                      s === 'Oura' ? 'bg-salve-sage/15 text-salve-sage' :
+                      'bg-salve-card2 text-salve-textFaint'
+                    }`}>{s}</span>
+                  ))}
+                </div>
+              )}
+            </div>
             {phase && (
               <Badge style={{ color: phase.color, backgroundColor: `${phase.color}22` }}>{phase.name} phase</Badge>
             )}

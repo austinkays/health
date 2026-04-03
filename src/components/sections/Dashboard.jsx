@@ -108,7 +108,6 @@ const ALL_LINKS = [
   { id: 'genetics',     label: 'Genetics',     icon: Dna,             color: C.lav },
   { id: 'oura',         label: 'Oura Ring',    icon: OuraIcon,        color: C.sage },
   { id: 'apple_health', label: 'Apple Health', icon: Apple,           color: C.lav },
-  { id: 'flo',          label: 'Flo',          icon: Heart,           color: C.rose },
   { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
 ];
 
@@ -117,7 +116,7 @@ const DASH_PRIMARY_KEY = 'salve:dash-primary';
 
 /* ── Component ───────────────────────────────────────────── */
 
-const CONDITIONAL_TILES = new Set(['oura', 'apple_health', 'flo']);
+const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
 export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
@@ -131,17 +130,15 @@ export default function Dashboard({ data, interactions, onNav }) {
   /* ── Conditional tile visibility (only show connected sources) ── */
   const hasAppleHealth = useMemo(() => (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
     || (data.activities || []).some(a => a.source === 'apple_health' || a.source === 'Apple Health'), [data.vitals, data.activities]);
-  const hasFloData = useMemo(() => (data.cycles || []).length > 0, [data.cycles]);
   const ouraConnected = isOuraConnected();
 
   const visibleLinks = useMemo(() => {
     return ALL_LINKS.filter(l => {
       if (l.id === 'oura') return ouraConnected;
       if (l.id === 'apple_health') return hasAppleHealth;
-      if (l.id === 'flo') return hasFloData;
       return true;
     });
-  }, [ouraConnected, hasAppleHealth, hasFloData]);
+  }, [ouraConnected, hasAppleHealth]);
 
   /* ── Customizable Quick Access state ──────── */
   const [primaryIds, setPrimaryIds] = useState(() => {

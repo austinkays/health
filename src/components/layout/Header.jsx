@@ -29,7 +29,6 @@ const TAB_LABELS = {
   activities: 'Activities',
   oura: 'Oura Ring',
   apple_health: 'Apple Health',
-  flo: 'Flo',
   summary: 'Health Summary',
 };
 
@@ -61,7 +60,6 @@ const TAB_DECOR = {
   activities:    ['♡', '·', '✧'],
   oura:          ['◉', '·', '✧'],
   apple_health:  ['✿', '·', '✧'],
-  flo:           ['♀', '·', '☽'],
   summary:       ['☽', '✧', '✿'],
 };
 

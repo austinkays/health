@@ -58,7 +58,6 @@ const Genetics = lazyWithRetry(() => import('./components/sections/Genetics'));
 const Activities = lazyWithRetry(() => import('./components/sections/Activities'));
 const OuraRing = lazyWithRetry(() => import('./components/sections/OuraRing'));
 const AppleHealthPage = lazyWithRetry(() => import('./components/sections/AppleHealthPage'));
-const FloPage = lazyWithRetry(() => import('./components/sections/FloPage'));
 
 export default function App() {
   return (
@@ -266,7 +265,6 @@ function AppContent() {
       case 'activities': return <Activities {...shared} />;
       case 'oura':         return <OuraRing data={data} addItem={addItemT} onNav={onNav} />;
       case 'apple_health': return <AppleHealthPage data={data} onNav={onNav} />;
-      case 'flo':          return <FloPage data={data} onNav={onNav} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;

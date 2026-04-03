@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, Heart } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple } from 'lucide-react';
 import Card from '../ui/Card';
 import { OuraIcon } from '../ui/OuraIcon';
 import Field from '../ui/Field';
@@ -54,7 +54,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
   // Source detection
   const hasAppleHealth = (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
     || (data.activities || []).some(a => a.source === 'apple_health' || a.source === 'Apple Health');
-  const hasFloData = (data.cycles || []).length > 0;
 
   // Oura state
   const [ouraConnected, setOuraConnected] = useState(() => isOuraConnected());
@@ -568,46 +567,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, er
                 </div>
               )}
               <AppleHealthImport data={data} reloadData={reloadData} />
-            </div>
-          )}
-        </Card>
-
-        {/* ── Flo ── */}
-        <Card>
-          <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-            <div className="flex items-center gap-2.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasFloData ? 'bg-salve-rose/15' : 'bg-salve-card2'}`}>
-                <Heart size={16} className={hasFloData ? 'text-salve-rose' : 'text-salve-textFaint'} />
-              </div>
-              <div className="text-left">
-                <span className="text-[13px] text-salve-text font-medium block">Flo</span>
-                <span className="text-[10px] text-salve-textFaint">
-                  {hasFloData ? 'Cycle data imported' : 'Cycle data via GDPR export'}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {hasFloData && <span className="w-2 h-2 rounded-full bg-salve-rose" />}
-              {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-            </div>
-          </button>
-          {expandedSource === 'flo' && (
-            <div className="mt-3 pt-3 border-t border-salve-border/50">
-              {hasFloData && (
-                <div className="flex justify-end mb-2">
-                  <button onClick={() => onNav('flo')} className="text-[10px] text-salve-rose font-montserrat bg-transparent border-none cursor-pointer hover:underline">View cycle data →</button>
-                </div>
-              )}
-              <p className="text-[11px] text-salve-textFaint leading-relaxed">
-                Import Flo data in the Cycle Tracker — tap the import button on the cycle calendar.
-              </p>
-              <button
-                onClick={() => onNav('cycles')}
-                className="w-full mt-2 py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-rose font-medium text-sm font-montserrat
-                  hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Heart size={14} /> Go to Cycle Tracker
-              </button>
             </div>
           )}
         </Card>
