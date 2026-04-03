@@ -160,10 +160,18 @@ export async function fetchOuraTemperature(startDate, endDate) {
 }
 
 /**
- * Fetch daily sleep data from Oura.
+ * Fetch daily sleep scores from Oura.
  */
-export async function fetchOuraSleep(startDate, endDate) {
+export async function fetchOuraDailySleep(startDate, endDate) {
   const data = await ouraGet('daily_sleep', startDate, endDate);
+  return data?.data || [];
+}
+
+/**
+ * Fetch sleep session data from Oura (has actual duration, HR, HRV).
+ */
+export async function fetchOuraSleepSessions(startDate, endDate) {
+  const data = await ouraGet('sleep', startDate, endDate);
   return data?.data || [];
 }
 
@@ -263,67 +271,74 @@ function existingDates(records, type) {
 }
 
 /**
- * Sync Oura sleep data → vitals (sleep hours).
+ * Sync Oura sleep data → vitals.
+ * Uses sleep sessions endpoint for actual duration, HR, and HRV.
+ * Groups by day (longest sleep per night = "primary" sleep).
  */
 export async function syncOuraSleep(existingVitals, addItem, days = 30) {
   const { startDate, endDate } = dateRange(days);
-  const sleepData = await fetchOuraSleep(startDate, endDate);
+  const sessions = await fetchOuraSleepSessions(startDate, endDate);
   const existing = existingDates(existingVitals, 'sleep');
 
+  // Group sessions by day, pick the longest (primary sleep)
+  const byDay = {};
+  for (const s of sessions) {
+    const day = s.day;
+    if (!day) continue;
+    const dur = s.total_sleep_duration || 0;
+    if (!byDay[day] || dur > (byDay[day].total_sleep_duration || 0)) {
+      byDay[day] = s;
+    }
+  }
+
   let added = 0;
-  for (const s of sleepData) {
-    if (!s.day || existing.has(s.day)) continue;
-    const totalHrs = s.total_sleep_duration ? Math.round((s.total_sleep_duration / 3600) * 10) / 10 : null;
-    if (totalHrs == null) continue;
+  for (const [day, s] of Object.entries(byDay)) {
+    if (existing.has(day)) continue;
+    const totalSec = s.total_sleep_duration;
+    if (!totalSec) continue;
+    const hrs = Math.round((totalSec / 3600) * 10) / 10;
     await addItem('vitals', {
-      date: s.day,
-      type: 'sleep',
-      value: String(totalHrs),
-      value2: '',
-      unit: 'hrs',
-      notes: `Oura Ring (score: ${s.score ?? '—'}, efficiency: ${s.efficiency ?? '—'}%)`,
+      date: day, type: 'sleep', value: String(hrs), value2: '', unit: 'hrs',
+      notes: `Oura Ring (efficiency: ${s.efficiency ?? '—'}%, latency: ${s.latency ? Math.round(s.latency / 60) + 'min' : '—'})`,
       source: 'oura',
     });
     added++;
   }
-  return { added, total: sleepData.length };
+  return { added, total: Object.keys(byDay).length };
 }
 
 /**
- * Sync Oura heart rate → vitals (resting HR from readiness data).
+ * Sync Oura heart rate → vitals (lowest/resting HR from sleep sessions).
  */
 export async function syncOuraHeartRate(existingVitals, addItem, days = 30) {
   const { startDate, endDate } = dateRange(days);
-  const readinessData = await fetchOuraReadiness(startDate, endDate);
+  const sessions = await fetchOuraSleepSessions(startDate, endDate);
   const existing = existingDates(existingVitals, 'hr');
 
-  let added = 0;
-  for (const r of readinessData) {
-    if (!r.day || existing.has(r.day)) continue;
-    const rhr = r.contributors?.resting_heart_rate;
-    if (rhr == null) continue;
-    // Readiness doesn't give absolute HR — use sleep data instead
-    // We'll get resting HR from the sleep endpoint
+  // Group by day, pick primary sleep
+  const byDay = {};
+  for (const s of sessions) {
+    const day = s.day;
+    if (!day) continue;
+    const dur = s.total_sleep_duration || 0;
+    if (!byDay[day] || dur > (byDay[day].total_sleep_duration || 0)) {
+      byDay[day] = s;
+    }
   }
 
-  // Fallback: use daily_sleep which has resting HR
-  const sleepData = await fetchOuraSleep(startDate, endDate);
-  for (const s of sleepData) {
-    if (!s.day || existing.has(s.day)) continue;
-    const rhr = s.lowest_heart_rate;
-    if (rhr == null) continue;
+  let added = 0;
+  for (const [day, s] of Object.entries(byDay)) {
+    if (existing.has(day)) continue;
+    const rhr = s.lowest_heart_rate || s.average_heart_rate;
+    if (!rhr) continue;
     await addItem('vitals', {
-      date: s.day,
-      type: 'hr',
-      value: String(rhr),
-      value2: '',
-      unit: 'bpm',
-      notes: `Oura Ring (resting HR, avg HRV: ${s.average_hrv ?? '—'}ms)`,
+      date: day, type: 'hr', value: String(rhr), value2: '', unit: 'bpm',
+      notes: `Oura Ring (resting HR${s.average_hrv ? ', avg HRV: ' + Math.round(s.average_hrv) + 'ms' : ''})`,
       source: 'oura',
     });
     added++;
   }
-  return { added, total: sleepData.length };
+  return { added, total: Object.keys(byDay).length };
 }
 
 /**
@@ -331,8 +346,11 @@ export async function syncOuraHeartRate(existingVitals, addItem, days = 30) {
  */
 export async function syncOuraSpO2(existingVitals, addItem, days = 30) {
   const { startDate, endDate } = dateRange(days);
-  const spo2Data = await ouraGet('daily_spo2', startDate, endDate);
-  const entries = spo2Data?.data || [];
+  let entries = [];
+  try {
+    const spo2Data = await ouraGet('daily_spo2', startDate, endDate);
+    entries = spo2Data?.data || [];
+  } catch { return { added: 0, total: 0 }; }
   const existing = existingDates(existingVitals, 'spo2');
 
   let added = 0;
@@ -341,13 +359,8 @@ export async function syncOuraSpO2(existingVitals, addItem, days = 30) {
     const avg = s.spo2_percentage?.average;
     if (avg == null) continue;
     await addItem('vitals', {
-      date: s.day,
-      type: 'spo2',
-      value: String(avg),
-      value2: '',
-      unit: '%',
-      notes: `Oura Ring`,
-      source: 'oura',
+      date: s.day, type: 'spo2', value: String(Math.round(avg)), value2: '', unit: '%',
+      notes: 'Oura Ring', source: 'oura',
     });
     added++;
   }
@@ -355,9 +368,9 @@ export async function syncOuraSpO2(existingVitals, addItem, days = 30) {
 }
 
 /**
- * Sync Oura readiness → vitals (as energy/readiness score out of 10).
+ * Sync Oura readiness → vitals (as energy score out of 10).
  */
-export async function syncOuraReadiness(existingVitals, addItem, days = 30) {
+export async function syncOuraReadinessVitals(existingVitals, addItem, days = 30) {
   const { startDate, endDate } = dateRange(days);
   const readinessData = await fetchOuraReadiness(startDate, endDate);
   const existing = existingDates(existingVitals, 'energy');
@@ -367,15 +380,10 @@ export async function syncOuraReadiness(existingVitals, addItem, days = 30) {
     if (!r.day || existing.has(r.day)) continue;
     const score = r.score;
     if (score == null) continue;
-    // Convert 0-100 readiness to 0-10 scale
     const val = Math.round(score / 10);
     await addItem('vitals', {
-      date: r.day,
-      type: 'energy',
-      value: String(val),
-      value2: '',
-      unit: '/10',
-      notes: `Oura Ring readiness (score: ${score}/100, temp trend: ${r.temperature_trend_deviation ?? '—'}°C)`,
+      date: r.day, type: 'energy', value: String(val), value2: '', unit: '/10',
+      notes: `Oura Ring readiness (score: ${score}/100)`,
       source: 'oura',
     });
     added++;
@@ -384,14 +392,17 @@ export async function syncOuraReadiness(existingVitals, addItem, days = 30) {
 }
 
 /**
- * Sync Oura stress data → vitals (as custom stress metric).
+ * Sync Oura stress data → vitals.
  */
 export async function syncOuraStress(existingVitals, addItem, days = 30) {
   const { startDate, endDate } = dateRange(days);
-  const stressData = await ouraGet('daily_stress', startDate, endDate);
-  const entries = stressData?.data || [];
+  let entries = [];
+  try {
+    const stressData = await ouraGet('daily_stress', startDate, endDate);
+    entries = stressData?.data || [];
+  } catch { return { added: 0, total: 0 }; }
   const existing = new Set(
-    existingVitals.filter(r => r.notes?.includes('Oura') && r.notes?.includes('stress')).map(r => r.date)
+    existingVitals.filter(r => r.source === 'oura' && r.notes?.includes('stress')).map(r => r.date)
   );
 
   let added = 0;
@@ -399,16 +410,9 @@ export async function syncOuraStress(existingVitals, addItem, days = 30) {
     if (!s.day || existing.has(s.day)) continue;
     const stressHigh = s.stress_high;
     if (stressHigh == null) continue;
-    // Store as pain type with stress context (no dedicated stress vital type yet)
-    // Convert stress_high (seconds of high stress) to a 0-10 scale
-    // Rough: 0 min = 0, 120+ min of high stress = 10
-    const stressVal = Math.min(10, Math.round((stressHigh / 60 / 12)));
+    const stressVal = Math.min(10, Math.round(stressHigh / 60 / 12));
     await addItem('vitals', {
-      date: s.day,
-      type: 'pain', // Using pain as proxy for stress until dedicated type added
-      value: String(stressVal),
-      value2: '',
-      unit: '/10',
+      date: s.day, type: 'pain', value: String(stressVal), value2: '', unit: '/10',
       notes: `Oura Ring stress (high: ${Math.round(stressHigh / 60)}min, recovery: ${s.recovery_high ? Math.round(s.recovery_high / 60) : '—'}min)`,
       source: 'oura',
     });
@@ -477,7 +481,7 @@ export async function syncAllOuraData(data, addItem, days = 30, baselineF = 97.7
   try { results.sleep = await syncOuraSleep(data.vitals || [], addItem, days); } catch (e) { results.sleep = { error: e.message }; }
   try { results.heartRate = await syncOuraHeartRate(data.vitals || [], addItem, days); } catch (e) { results.heartRate = { error: e.message }; }
   try { results.spo2 = await syncOuraSpO2(data.vitals || [], addItem, days); } catch (e) { results.spo2 = { error: e.message }; }
-  try { results.readiness = await syncOuraReadiness(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
+  try { results.readiness = await syncOuraReadinessVitals(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
   try { results.workouts = await syncOuraWorkouts(data.activities || [], addItem, days); } catch (e) { results.workouts = { error: e.message }; }
 
   return results;

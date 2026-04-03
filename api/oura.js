@@ -156,7 +156,7 @@ export default async function handler(req, res) {
       const { oura_token, endpoint, start_date, end_date } = req.query;
       if (!oura_token) return res.status(400).json({ error: 'Missing oura_token' });
 
-      const allowed = ['daily_temperature', 'daily_sleep', 'daily_readiness', 'heartrate', 'daily_spo2', 'daily_stress', 'workout', 'session', 'tag', 'daily_cardiovascular_age', 'daily_resilience'];
+      const allowed = ['daily_temperature', 'daily_sleep', 'daily_readiness', 'heartrate', 'daily_spo2', 'daily_stress', 'workout', 'session', 'sleep', 'tag', 'daily_cardiovascular_age', 'daily_resilience'];
       const ep = endpoint || 'daily_temperature';
       if (!allowed.includes(ep)) return res.status(400).json({ error: 'Invalid endpoint' });
 
