@@ -287,6 +287,34 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
           <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Next month"><ChevronRight size={18} className="text-salve-textMid" /></button>
         </div>
 
+        {/* Legend — above calendar so user understands the colors */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mb-3 px-1">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: `${C.rose}55` }} />
+            <span className="text-[11px] text-salve-textMid font-montserrat">Period (logged)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded shrink-0 border border-dashed" style={{ borderColor: `${C.rose}88`, backgroundColor: `${C.rose}15` }} />
+            <span className="text-[11px] text-salve-textMid font-montserrat">Predicted period</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: `${C.amber}55` }} />
+            <span className="text-[11px] text-salve-textMid font-montserrat">Ovulation</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded shrink-0" style={{ backgroundColor: `${C.amber}25` }} />
+            <span className="text-[11px] text-salve-textMid font-montserrat">Fertile window</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: C.lav }} />
+            <span className="text-[11px] text-salve-textMid font-montserrat">Symptom logged</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded shrink-0 border" style={{ borderColor: C.lav }} />
+            <span className="text-[11px] text-salve-textMid font-montserrat">Today</span>
+          </div>
+        </div>
+
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-0.5 mb-1">
           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
@@ -311,16 +339,16 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
 
             let bg = 'transparent';
             let border = 'transparent';
-            if (hasPeriod) bg = `${C.rose}33`;
-            else if (isPredicted) { bg = `${C.rose}15`; border = `${C.rose}44`; }
-            else if (hasOvulation) bg = `${C.amber}33`;
-            else if (isFertile) bg = `${C.amber}15`;
+            if (hasPeriod) bg = `${C.rose}55`;
+            else if (isPredicted) { bg = `${C.rose}15`; border = `${C.rose}88`; }
+            else if (hasOvulation) bg = `${C.amber}55`;
+            else if (isFertile) bg = `${C.amber}25`;
 
             return (
               <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
                 style={{ backgroundColor: bg, borderWidth: isPredicted || isToday ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
-                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${hasSymptom ? ', symptom logged' : ''}${hasOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}`}
+                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${hasSymptom ? ', symptom logged' : ''}${hasOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}`}
               >
                 <span className={isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}>{day}</span>
                 {/* Dot indicators */}
@@ -334,23 +362,10 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
           })}
         </div>
 
-        {/* Legend */}
-        <div className="flex flex-wrap gap-3 mt-3 pt-2 border-t border-salve-border">
-          {[
-            { color: C.rose, label: 'Period' },
-            { color: C.amber, label: 'Fertile / Ovulation' },
-            { color: C.lav, label: 'Symptom' },
-          ].map(l => (
-            <div key={l.label} className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: l.color }} />
-              <span className="text-[10px] text-salve-textFaint font-montserrat">{l.label}</span>
-            </div>
-          ))}
-          <div className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full border border-dashed" style={{ borderColor: C.rose }} />
-            <span className="text-[10px] text-salve-textFaint font-montserrat">Predicted</span>
-          </div>
-        </div>
+        {/* Explanation */}
+        <p className="text-[10px] text-salve-textFaint font-montserrat italic mt-2.5 leading-relaxed">
+          Predictions are based on your average cycle length ({stats.avgLength} days). Tap any date to log an entry.
+        </p>
       </Card>
 
       {/* ── Filter pills ────────────────────────────────── */}
