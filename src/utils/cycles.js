@@ -80,23 +80,25 @@ export function getCyclePhaseForDate(date, cycles) {
  * Estimates relative fertility for a given cycle day (1-based) and average cycle length.
  * Returns { pct: 0–100, zone: 'absolute'|'relative'|'fertile'|'peak' }.
  *
- * Based on the HPO axis model and gamete viability:
+ * The windows of fertility are dictated by gamete lifespans:
+ * - Sperm survive up to 120 hours (5 days) in cervical crypts when the cervix
+ *   produces alkaline Type E mucus under high estradiol.
+ * - The egg survives only 12–24 hours after release.
+ * - Maximum biological fertile window: 120h before ovulation to 24h after.
  *
- * FERTILE WINDOW [ovDay-5 → ovDay]:
- *   Sperm survive up to 120h in Type E (estrogenic) cervical mucus secreted
- *   under high estradiol. Peak is O-1 and O-day (E2 >200pg/mL sustained ~50h
- *   triggers LH surge → oocyte release). The oocyte survives only 12–24h.
+ * FERTILE [ovDay-5 → ovDay+1]:
+ *   The cervix is open, producing Type E mucus that actively assists sperm transport.
+ *   Peak is O-1 and O-day when the LH surge triggers egg release.
  *
- * POST-OVULATORY — ABSOLUTE INFERTILITY [ovDay+1 → cycle end]:
- *   Corpus luteum produces progesterone → cervical os constricts, mucus reverts
- *   to impenetrable Type G, oocyte undergoes apoptosis within 24h. The luteal
- *   phase is highly conserved at 12–14 days. Conception is biologically impossible.
+ * POST-OVULATORY — ABSOLUTE [ovDay+2 → cycle end]:
+ *   The egg is gone within 24h. Progesterone from the corpus luteum seals the
+ *   cervix and reverts mucus to impenetrable Type G. The luteal phase is rigidly
+ *   conserved at 12–14 days, making this the most predictable infertile window.
  *
- * PRE-OVULATORY — RELATIVE INFERTILITY [day 1 → ovDay-6]:
- *   Low E2 → Type G mucus blocks sperm. However, follicular phase length is
- *   variable — accelerated folliculogenesis can shorten it. In short cycles,
- *   spermatozoal viability (120h) from coitus during late menses can bridge to
- *   an early ovulation. "Relative" because the barrier exists but is not absolute.
+ * PRE-OVULATORY — RELATIVE [day 1 → ovDay-6]:
+ *   Dense Type G mucus traps and destroys sperm. Labeled "relative" because
+ *   follicular phase length varies — in a short cycle, sperm from late in a
+ *   period could survive long enough to meet an early ovulation.
  */
 export function estimateFertility(dayOfCycle, avgLength) {
   if (dayOfCycle <= 0) return { pct: 0, zone: 'relative' };

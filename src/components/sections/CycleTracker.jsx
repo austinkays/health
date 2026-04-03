@@ -437,22 +437,22 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
           <div className="mt-2 pt-2 border-t border-salve-border space-y-1.5">
             <div className="flex items-start gap-2">
               <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>PEAK</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">O-1 to O-day. LH surge, oocyte released. Optimal timing.</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">1–2 days before ovulation. The egg is about to be released and the cervix is fully open, actively assisting sperm transport.</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.amber }}>FERTILE</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">O-5 to O+1. Type E mucus allows sperm survival up to 120h.</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Up to 5 days before through 1 day after ovulation. The cervix produces alkaline mucus that lets sperm survive up to 120 hours while awaiting the egg, which survives only 12–24 hours once released.</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.textFaint }}>RELATIVE</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Pre-ovulatory. Type G mucus blocks sperm, but follicular phase length varies — not absolute.</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Pre-ovulatory. The cervix produces dense mucus that traps and destroys sperm. Labeled "relative" because the follicular phase length varies — in a short cycle, sperm from late in a period could survive long enough to meet an early ovulation.</span>
             </div>
             <div className="flex items-start gap-2">
               <span className="text-[9px] font-bold font-montserrat shrink-0 mt-px" style={{ color: C.sage }}>0%</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Post-ovulatory. Oocyte dead within 24h, progesterone seals cervix. Biologically infertile.</span>
+              <span className="text-[10px] text-salve-textFaint font-montserrat leading-snug">Post-ovulatory. The egg is gone within 24 hours, progesterone seals the cervix, and the mucus becomes impenetrable. The luteal phase is the most predictable part of the cycle (12–14 days), making this the absolute infertile window.</span>
             </div>
             <p className="text-[9px] text-salve-textFaint font-montserrat italic">
-              These are estimates based on standard HPO axis physiology, not medical advice. Consult your provider for family planning.
+              Estimates based on average cycle physiology, not medical advice. Consult your provider for family planning.
             </p>
           </div>
         )}
