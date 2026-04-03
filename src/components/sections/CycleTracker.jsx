@@ -12,7 +12,7 @@ import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, FERTILITY_MARKERS } from '../../constants/defaults';
 import { detectFloFormat, parseFloExport } from '../../services/flo';
-import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle } from '../../utils/cycles';
+import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility } from '../../utils/cycles';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -29,7 +29,7 @@ function dateKey(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
 /* ── Component ───────────────────────────────────────────── */
 
 const OVERLAY_KEY = 'salve:cycle-overlays';
-const DEFAULT_OVERLAYS = { predicted: true, fertile: true, ovulation: true, symptoms: true };
+const DEFAULT_OVERLAYS = { predicted: true, fertile: true, ovulation: true, symptoms: true, fertilityPct: false };
 function loadOverlays() {
   try { return { ...DEFAULT_OVERLAYS, ...JSON.parse(localStorage.getItem(OVERLAY_KEY)) }; }
   catch { return { ...DEFAULT_OVERLAYS }; }
@@ -124,6 +124,37 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
     }
     return s;
   }, [nextPeriod, stats.avgLength]);
+
+  /* Fertility % for each day of the displayed month */
+  const fertilityMap = useMemo(() => {
+    if (!stats.periodStarts.length) return {};
+    const map = {};
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dk = dateKey(calMonth.year, calMonth.month, day);
+      const target = new Date(dk + 'T00:00:00');
+      // Find the most recent period start on or before this date
+      let cycleStart = null;
+      for (let i = stats.periodStarts.length - 1; i >= 0; i--) {
+        const s = new Date(stats.periodStarts[i] + 'T00:00:00');
+        if (s <= target) { cycleStart = s; break; }
+      }
+      // For future dates past the last period, use projected cycle starts
+      if (!cycleStart && stats.lastPeriod) {
+        const last = new Date(stats.lastPeriod + 'T00:00:00');
+        while (last <= target) {
+          cycleStart = new Date(last);
+          last.setDate(last.getDate() + stats.avgLength);
+        }
+      }
+      if (cycleStart) {
+        const dayOfCyc = Math.floor((target - cycleStart) / 86400000) + 1;
+        if (dayOfCyc > 0 && dayOfCyc <= stats.avgLength * 2) {
+          map[dk] = estimateFertility(dayOfCyc, stats.avgLength);
+        }
+      }
+    }
+    return map;
+  }, [calMonth.year, calMonth.month, daysInMonth, stats]);
 
   /* Save handler */
   const [saveError, setSaveError] = useState(null);
@@ -307,6 +338,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             { key: 'fertile',   label: 'Fertile Window',   color: C.amber, swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0 border" style={{ backgroundColor: `${C.amber}30`, borderColor: `${C.amber}40` }} /> },
             { key: 'ovulation', label: 'Ovulation',        color: C.amber, swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: `${C.amber}55` }} /> },
             { key: 'symptoms',  label: 'Symptoms',         color: C.lav,   swatch: <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: C.lav }} /> },
+            { key: 'fertilityPct', label: 'Fertility %',   color: C.sage,  swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0 flex items-center justify-center text-[6px] font-bold" style={{ backgroundColor: `${C.sage}30`, color: C.sage }}>%</span> },
           ].map(t => (
             <button key={t.key} onClick={() => toggleOverlay(t.key)}
               className={`flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium font-montserrat cursor-pointer transition-all border ${
@@ -346,6 +378,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             const showOvulation = overlays.ovulation && hasOvulation;
             const showSymptom = overlays.symptoms && hasSymptom;
             const isToday = dk === today;
+            const fertPct = overlays.fertilityPct ? (fertilityMap[dk] ?? null) : null;
 
             let bg = 'transparent';
             let border = 'transparent';
@@ -354,19 +387,27 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
             else if (showOvulation) bg = `${C.amber}55`;
             else if (isFertile) { bg = `${C.amber}30`; border = `${C.amber}40`; }
 
+            // Fertility % tints the cell with a sage-to-amber gradient based on level
+            const fertColor = fertPct !== null && fertPct >= 20 ? C.amber : C.sage;
+            const fertBgOpacity = fertPct !== null ? Math.round(fertPct * 0.35).toString(16).padStart(2, '0') : '00';
+            if (fertPct !== null && bg === 'transparent') bg = `${fertColor}${fertBgOpacity}`;
+
             return (
               <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
                 style={{ backgroundColor: bg, borderWidth: (isPredicted || isToday || isFertile) ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
-                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${showSymptom ? ', symptom logged' : ''}${showOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}`}
+                aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${showSymptom ? ', symptom logged' : ''}${showOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}${fertPct !== null ? `, ~${fertPct}% fertility` : ''}`}
               >
-                <span className={isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}>{day}</span>
-                {/* Dot indicators */}
-                <div className="flex gap-0.5 mt-0.5 h-1">
-                  {hasPeriod && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.rose }} />}
-                  {showSymptom && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.lav }} />}
-                  {(showOvulation || (overlays.fertile && hasFertility)) && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.amber }} />}
-                </div>
+                <span className={`leading-none ${isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}`}>{day}</span>
+                {fertPct !== null ? (
+                  <span className="text-[7px] leading-none mt-0.5 font-medium" style={{ color: fertPct >= 50 ? C.amber : fertPct >= 15 ? C.sage : C.textFaint }}>{fertPct}%</span>
+                ) : (
+                  <div className="flex gap-0.5 mt-0.5 h-1">
+                    {hasPeriod && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.rose }} />}
+                    {showSymptom && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.lav }} />}
+                    {(showOvulation || (overlays.fertile && hasFertility)) && <span className="w-1 h-1 rounded-full" style={{ backgroundColor: C.amber }} />}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -375,6 +416,7 @@ export default function CycleTracker({ data, addItem, updateItem, removeItem, hi
         {/* Explanation */}
         <p className="text-[10px] text-salve-textFaint font-montserrat italic mt-2.5 leading-relaxed">
           Predictions are based on your average cycle length ({stats.avgLength} days). Tap any date to log an entry.
+          {overlays.fertilityPct && ' Fertility % is a relative estimate, not a medical probability — always consult your provider for family planning.'}
         </p>
       </Card>
 

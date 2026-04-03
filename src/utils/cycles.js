@@ -75,3 +75,38 @@ export function getCyclePhaseForDate(date, cycles) {
 
   return { phase: phase.name, dayOfCycle, color: phase.color };
 }
+
+/**
+ * Estimates relative fertility for a given cycle day (1-based) and average cycle length.
+ * Returns a value from 0–100 representing relative likelihood, NOT a medical probability.
+ *
+ * Based on the standard fertility window model:
+ * - Sperm survive up to 5 days; egg survives ~24 hours
+ * - Peak fertility is 1–2 days before ovulation
+ * - Ovulation estimated at avgLength - 14
+ * - Luteal phase and menstrual phase are lowest
+ */
+export function estimateFertility(dayOfCycle, avgLength) {
+  if (dayOfCycle <= 0) return 0;
+  const ovDay = Math.round(avgLength - 14);
+  const dist = dayOfCycle - ovDay; // negative = before ovulation, positive = after
+
+  // Fertility curve centered on ovulation day
+  // Peak: day before ovulation (dist = -1) and ovulation day (dist = 0)
+  if (dist === -1 || dist === 0) return 95;
+  if (dist === -2) return 80;
+  if (dist === 1) return 60;
+  if (dist === -3) return 55;
+  if (dist === -4) return 35;
+  if (dist === -5) return 20;
+  if (dist === 2) return 15;
+
+  // Menstrual phase (days 1–5): very low but not zero
+  if (dayOfCycle <= 5) return 5;
+
+  // Early follicular (approaching fertile window)
+  if (dist < -5 && dist >= -8) return 8;
+
+  // Late luteal / pre-menstrual
+  return 2;
+}
