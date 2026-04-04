@@ -24,6 +24,7 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 /* ── Rotating placeholder phrases ────────────────────────── */
 const SEARCH_PLACEHOLDERS = [
@@ -266,21 +267,36 @@ export default function Dashboard({ data, interactions, onNav }) {
     [data.journal]
   );
 
-  /* Vitals snapshot — latest reading per type, last 7 days */
+  /* Vitals snapshot — latest reading per type (last 7 days) + 14-day sparkline series */
   const vitalsSnapshot = useMemo(() => {
-    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-    const recent = (data.vitals || []).filter(v => v.date >= cutoff);
+    const today = Date.now();
+    const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
+    const sparkCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
+    const vitals = data.vitals || [];
+    if (!vitals.length) return null;
+    const recent = vitals.filter(v => v.date >= recentCutoff);
     if (!recent.length) return null;
     const byType = {};
     for (const v of recent) {
       if (!byType[v.type] || v.date > byType[v.type].date) byType[v.type] = v;
     }
-    // Priority order for display
     const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood'];
     const items = priority
       .filter(t => byType[t])
-      .map(t => byType[t])
-      .slice(0, 3);
+      .slice(0, 3)
+      .map(type => {
+        const latest = byType[type];
+        // Build sparkline series from last 14 days of this type, ascending by date
+        const series = vitals
+          .filter(v => v.type === type && v.date >= sparkCutoff)
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map(v => {
+            const n = type === 'bp' ? Number(v.value) : Number(v.value);
+            return { date: v.date, value: Number.isFinite(n) ? n : null };
+          })
+          .filter(p => p.value !== null);
+        return { ...latest, series };
+      });
     return items.length ? items : null;
   }, [data.vitals]);
 
@@ -451,7 +467,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               <span className="greeting-motif">
                 <Motif type={greeting.motif} size={16} color={C.sage} />
               </span>
-              <span className="font-playfair text-lg font-medium text-gradient-magic">{greeting.text}</span>
+              <span className="font-playfair text-lg font-medium text-salve-textMid">{greeting.text}</span>
             </div>
             <p className="text-[13px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
           </div>
@@ -735,22 +751,42 @@ export default function Dashboard({ data, interactions, onNav }) {
       {vitalsSnapshot && (
         <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
           <Card className="!bg-salve-lav/5 !border-salve-lav/10 !p-3.5 cursor-pointer" onClick={() => onNav('vitals')}>
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-2.5">
               <span className="text-[10px] text-salve-lav/70 font-montserrat tracking-wider uppercase">Recent Vitals</span>
               <ChevronRight size={12} className="text-salve-textFaint" />
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col gap-2">
               {vitalsSnapshot.map(v => {
                 const type = VITAL_TYPES.find(t => t.id === v.type);
                 const label = type?.label || v.type;
                 const unit = type?.unit || v.unit || '';
                 const displayVal = v.type === 'bp' && v.value2 ? `${v.value}/${v.value2}` : v.value;
+                const hasSpark = v.series && v.series.length >= 2;
                 return (
-                  <div key={v.type} className="text-center">
-                    <div className="text-[15px] font-medium text-salve-text font-montserrat">
-                      {displayVal}<span className="text-[10px] text-salve-textFaint ml-0.5">{unit}</span>
+                  <div key={v.type} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</div>
+                      <div className="text-[16px] font-medium text-salve-text font-montserrat leading-tight">
+                        {displayVal}<span className="text-[10px] text-salve-textFaint ml-1">{unit}</span>
+                      </div>
                     </div>
-                    <div className="text-[9px] text-salve-textFaint font-montserrat">{label}</div>
+                    {hasSpark && (
+                      <div className="w-[110px] h-[32px] flex-shrink-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={v.series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke={C.lav}
+                              strokeWidth={1.5}
+                              strokeOpacity={0.7}
+                              dot={false}
+                              isAnimationActive={false}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </div>
                 );
               })}

@@ -1,5 +1,4 @@
 import { ChevronLeft, Search } from 'lucide-react';
-import Motif from '../ui/Motif';
 
 const TAB_LABELS = {
   dash: 'Home',
@@ -40,56 +39,15 @@ const TAB_LABELS = {
   legal: 'Legal',
 };
 
-const TAB_DECOR = {
-  dash:          ['☽', '✧', '·'],
-  ai:            ['✦', '☽', '·'],
-  meds:          ['✿', '✧', '·'],
-  vitals:        ['✧', '·', '☽'],
-  journal:       ['☽', '✦', '✿'],
-  conditions:    ['✿', '·', '✧'],
-  allergies:     ['✦', '✧', '·'],
-  settings:      ['✧', '·', '☽'],
-  labs:          ['✿', '✦', '·'],
-  procedures:    ['☽', '·', '✧'],
-  immunizations: ['✦', '✧', '·'],
-  care_gaps:     ['✿', '·', '✧'],
-  anesthesia:    ['☽', '✦', '·'],
-  appeals:       ['✧', '·', '✿'],
-  surgical:      ['✦', '☽', '·'],
-  insurance:     ['✿', '·', '☽'],
-  interactions:  ['✧', '✦', '·'],
-  providers:     ['☽', '·', '✧'],
-  cycles:        ['♀', '☽', '·'],
-  appts:         ['✿', '✦', '·'],
-  search:        ['✦', '·', '✧'],
-  pharmacies:    ['✿', '·', '☽'],
-  todos:         ['✓', '·', '✧'],
-  genetics:      ['✧', '✦', '·'],
-  activities:    ['♡', '·', '✧'],
-  sleep:         ['☽', '✧', '·'],
-  hub_records:   ['✦', '·', '✧'],
-  hub_care:      ['✿', '·', '✧'],
-  hub_tracking:  ['♡', '·', '✧'],
-  hub_safety:    ['✧', '·', '✦'],
-  hub_plans:     ['✓', '·', '✧'],
-  hub_devices:   ['◉', '·', '✧'],
-  oura:          ['◉', '·', '✧'],
-  apple_health:  ['✿', '·', '✧'],
-  summary:       ['☽', '✧', '✿'],
-  legal:         ['✧', '·', '☽'],
-};
-
 export default function Header({ tab, name, onBack, onSearch, action }) {
   const isDash = tab === 'dash';
   const isSearch = tab === 'search';
-  const decor = TAB_DECOR[tab] || ['☽', '✧', '·'];
 
   return (
     <header className="px-6 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] pb-5 relative overflow-hidden">
-      {/* Decorative constellation — per-section glyphs */}
-      <div className="absolute top-2 right-16 opacity-[0.10] text-[52px] select-none pointer-events-none leading-none text-salve-lav">{decor[0]}</div>
-      <div className="absolute top-14 right-24 opacity-[0.08] text-base text-salve-lav select-none pointer-events-none">{decor[1]}</div>
-      <div className="absolute top-6 right-20 opacity-[0.06] text-[10px] text-salve-sage select-none pointer-events-none">{decor[2]}</div>
+      {/* Consistent sage-leaf branding mark */}
+      <div className="absolute top-2 right-6 opacity-[0.10] text-[52px] select-none pointer-events-none leading-none">🌿</div>
+      <div className="absolute top-16 right-14 opacity-[0.08] text-[10px] text-salve-sage select-none pointer-events-none">·</div>
 
       <div className="flex items-center gap-2.5">
         {!isDash && (
@@ -100,7 +58,7 @@ export default function Header({ tab, name, onBack, onSearch, action }) {
         <div className="flex-1">
           <h1 className={`font-playfair font-semibold m-0 text-salve-text ${isDash ? 'text-2xl' : 'text-xl'}`}>
             {isDash ? (
-              <>Hello, {name || 'there'} <Motif type="sparkle" size={16} color="#8fbfa0" style={{ marginLeft: 4 }} /></>
+              <>Hello, <span className="text-gradient-magic">{name || 'there'}</span></>
             ) : (
               TAB_LABELS[tab] || tab
             )}
