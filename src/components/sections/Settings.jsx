@@ -409,7 +409,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-sage/15 text-salve-sage font-medium">Free</span>
               </div>
               <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                Auto-routes Flash-Lite · Flash · Pro by task complexity
+                Automatically matches speed and depth to each task
               </p>
             </div>
           </button>
@@ -433,7 +433,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
               <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
                 {userTier === 'premium'
-                  ? 'Auto-routes Haiku · Sonnet · Opus by task complexity'
+                  ? 'Premium models, automatically matched to each task'
                   : 'Upgrade to premium to use Claude'}
               </p>
             </div>
