@@ -323,9 +323,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <SectionTitle>Appearance</SectionTitle>
       <Card>
         <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
-        <div className="grid grid-cols-2 gap-2">
-          {Object.values(allThemes).map(t => {
-            const currentType = allThemes[themeId]?.type || 'dark';
+        {(() => {
+          const currentType = allThemes[themeId]?.type || 'dark';
+          const core = Object.values(allThemes).filter(t => !t.experimental);
+          const experimental = Object.values(allThemes).filter(t => t.experimental);
+          const renderTile = (t) => {
             const isCrossover = currentType === 'dark' && t.type === 'light';
             return (
               <button
@@ -339,11 +341,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               >
                 <div className="flex justify-center gap-1 mb-2">
                   {['lav', 'sage', 'amber', 'rose'].map(key => (
-                    <span
-                      key={key}
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: t.colors[key] }}
-                    />
+                    <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
                   ))}
                 </div>
                 <span className="text-xs text-salve-text font-medium block">{t.label}</span>
@@ -353,8 +351,38 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 )}
               </button>
             );
-          })}
-        </div>
+          };
+          return (
+            <>
+              <div className="grid grid-cols-2 gap-2">{core.map(renderTile)}</div>
+              {experimental.length > 0 && (
+                <details className="mt-3">
+                  <summary className="text-[10px] text-salve-textFaint font-montserrat cursor-pointer select-none flex items-center gap-1">
+                    <Sparkles size={10} className="text-salve-lav" />
+                    <span>Experimental themes</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav ml-1">Premium</span>
+                  </summary>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {userTier === 'premium'
+                      ? experimental.map(renderTile)
+                      : experimental.map(t => (
+                          <div key={t.id} className="p-3 rounded-xl border border-salve-border bg-salve-card2 opacity-50 font-montserrat text-center">
+                            <div className="flex justify-center gap-1 mb-2">
+                              {['lav', 'sage', 'amber', 'rose'].map(key => (
+                                <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
+                              ))}
+                            </div>
+                            <span className="text-xs text-salve-text font-medium block">{t.label}</span>
+                            <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
+                          </div>
+                        ))
+                    }
+                  </div>
+                </details>
+              )}
+            </>
+          );
+        })()}
         {pendingTheme && (
           <div className="mt-2 p-3 rounded-xl border border-salve-amber/30 bg-salve-amber/5">
             <p className="text-xs text-salve-text font-montserrat mb-2">

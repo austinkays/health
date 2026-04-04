@@ -37,28 +37,28 @@ html.theme-transitioned body {
 /* ── Theme CSS variable defaults (Midnight) ──── */
 /* Overridden by ThemeProvider JS on mount        */
 :root {
-  --salve-bg: 26 26 46;
-  --salve-card: 34 34 58;
-  --salve-card2: 42 42 68;
-  --salve-border: 51 51 90;
-  --salve-border2: 61 61 102;
-  --salve-text: 232 228 240;
-  --salve-textMid: 168 164 184;
-  --salve-textFaint: 110 106 128;
-  --salve-lav: 184 169 232;
-  --salve-lavDim: 152 136 204;
-  --salve-sage: 143 191 160;
-  --salve-sageDim: 106 153 120;
-  --salve-amber: 232 200 138;
-  --salve-amberDim: 196 160 96;
-  --salve-rose: 232 138 154;
-  --salve-roseDim: 204 104 120;
+  --salve-bg: 19 17 28;
+  --salve-card: 28 24 40;
+  --salve-card2: 36 31 50;
+  --salve-border: 51 45 72;
+  --salve-border2: 62 55 88;
+  --salve-text: 230 224 240;
+  --salve-textMid: 164 156 180;
+  --salve-textFaint: 107 99 128;
+  --salve-lav: 164 142 212;
+  --salve-lavDim: 134 114 184;
+  --salve-sage: 122 171 127;
+  --salve-sageDim: 94 140 99;
+  --salve-amber: 212 184 122;
+  --salve-amberDim: 184 154 92;
+  --salve-rose: 200 122 136;
+  --salve-roseDim: 168 96 110;
 
   /* Ambiance RGB (comma-separated for rgba()) — set per-theme by JS */
-  --ambiance-morning: 143, 191, 160;
-  --ambiance-day: 184, 169, 232;
-  --ambiance-evening: 232, 200, 138;
-  --ambiance-night: 152, 136, 204;
+  --ambiance-morning: 122, 171, 127;
+  --ambiance-day: 164, 142, 212;
+  --ambiance-evening: 212, 184, 122;
+  --ambiance-night: 134, 114, 184;
 }
 
 /* ── Time-aware ambiance ─────────────────────── */
