@@ -131,7 +131,7 @@ html.theme-aurora body::after {
   pointer-events: none;
   z-index: 0;
   background-image:
-    /* Scattered neon stars */
+    /* Scattered neon stars — dense field across the viewport */
     radial-gradient(circle 2px at 8% 12%, rgba(255, 255, 255, 0.85), transparent 70%),
     radial-gradient(circle 2px at 22% 38%, rgba(112, 204, 232, 0.8), transparent 70%),
     radial-gradient(circle 2px at 38% 8%, rgba(255, 255, 255, 0.8), transparent 70%),
@@ -141,8 +141,43 @@ html.theme-aurora body::after {
     radial-gradient(circle 3px at 92% 62%, rgba(255, 255, 255, 0.7), transparent 70%),
     radial-gradient(circle 2px at 14% 72%, rgba(180, 162, 236, 0.8), transparent 70%),
     radial-gradient(circle 2px at 45% 88%, rgba(255, 255, 255, 0.75), transparent 70%),
-    radial-gradient(circle 2px at 72% 80%, rgba(132, 220, 180, 0.7), transparent 70%);
+    radial-gradient(circle 2px at 72% 80%, rgba(132, 220, 180, 0.7), transparent 70%),
+    radial-gradient(circle 2px at 4% 48%, rgba(255, 255, 255, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 18% 94%, rgba(112, 204, 232, 0.75), transparent 70%),
+    radial-gradient(circle 3px at 30% 58%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(circle 2px at 42% 30%, rgba(180, 162, 236, 0.7), transparent 70%),
+    radial-gradient(circle 2px at 52% 68%, rgba(112, 204, 232, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 62% 4%, rgba(255, 255, 255, 0.75), transparent 70%),
+    radial-gradient(circle 3px at 74% 34%, rgba(132, 220, 180, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 86% 84%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(circle 2px at 96% 32%, rgba(112, 204, 232, 0.75), transparent 70%),
+    radial-gradient(circle 2px at 28% 20%, rgba(255, 255, 255, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 58% 94%, rgba(180, 162, 236, 0.75), transparent 70%),
+    radial-gradient(circle 2px at 78% 6%, rgba(255, 255, 255, 0.85), transparent 70%);
   animation: aurora-stars 6s ease-in-out infinite;
+}
+/* Aurora shooting streak — cyan/green meteor via html pseudo-element */
+html.theme-aurora::before {
+  content: '';
+  position: fixed;
+  top: -18vh;
+  left: -32vw;
+  width: 32vw;
+  height: 2px;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    90deg,
+    rgba(112, 204, 232, 0) 0%,
+    rgba(112, 204, 232, 0) 55%,
+    rgba(132, 220, 180, 0.5) 80%,
+    rgba(230, 255, 245, 0.9) 98%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  border-radius: 2px;
+  filter: blur(0.5px);
+  transform: rotate(18deg) translate(0, 0);
+  animation: aurora-meteor 26s linear infinite;
 }
 @keyframes aurora-shimmer {
   0% { transform: translate(0, 0) scaleY(1); opacity: 0.9; }
@@ -153,6 +188,12 @@ html.theme-aurora body::after {
 @keyframes aurora-stars {
   0%, 100% { opacity: 0.85; }
   50% { opacity: 0.4; }
+}
+@keyframes aurora-meteor {
+  0%, 95%  { transform: rotate(18deg) translate(0, 0); opacity: 0; }
+  95.5%    { transform: rotate(18deg) translate(0, 0); opacity: 0.85; }
+  99.5%    { transform: rotate(18deg) translate(170vw, 70vh); opacity: 0.85; }
+  100%     { transform: rotate(18deg) translate(170vw, 70vh); opacity: 0; }
 }
 html.theme-aurora h1,
 html.theme-aurora h2,

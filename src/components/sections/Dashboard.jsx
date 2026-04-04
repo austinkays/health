@@ -803,7 +803,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         const fArrow = f.direction === 'up' ? '↑' : f.direction === 'down' ? '↓' : '→';
         return (
           <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
-            <Card className="!bg-salve-lav/15 !border-salve-lav/25 !p-4 cursor-pointer" onClick={() => onNav('vitals')}>
+            <Card className="!p-4 cursor-pointer" onClick={() => onNav('vitals')}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-baseline gap-2">
                   <span className="text-[10px] text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
@@ -853,7 +853,7 @@ export default function Dashboard({ data, interactions, onNav }) {
 
               {/* Supporting chips */}
               {vitalsSnapshot.chips.length > 0 && (
-                <div className="pt-3 border-t border-salve-lav/15 flex items-center gap-3 flex-wrap">
+                <div className="pt-3 border-t border-salve-border flex items-center gap-3 flex-wrap">
                   {vitalsSnapshot.chips.map(c => {
                     const cType = VITAL_TYPES.find(t => t.id === c.type);
                     const cLabel = cType?.label || c.type;
