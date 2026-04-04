@@ -81,8 +81,15 @@ function AppContent() {
   const [highlightId, setHighlightId] = useState(null);
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
+  const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
   const showToast = useToast();
+
+  useEffect(() => {
+    const onChange = () => setLayoutAlign(localStorage.getItem('salve:align') || 'center');
+    window.addEventListener('salve:align-change', onChange);
+    return () => window.removeEventListener('salve:align-change', onChange);
+  }, []);
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
@@ -285,13 +292,6 @@ function AppContent() {
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
     }
   };
-
-  const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
-  useEffect(() => {
-    const onChange = () => setLayoutAlign(localStorage.getItem('salve:align') || 'center');
-    window.addEventListener('salve:align-change', onChange);
-    return () => window.removeEventListener('salve:align-change', onChange);
-  }, []);
 
   return (
     <div className="min-h-screen bg-salve-bg overflow-hidden">
