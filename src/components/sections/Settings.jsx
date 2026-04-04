@@ -62,6 +62,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
 
   const [userEmail, setUserEmail] = useState('');
+  const [locationStatus, setLocationStatus] = useState(null); // null | 'detecting' | 'error' | 'success'
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user?.email) setUserEmail(data.user.email);
@@ -589,21 +590,39 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
           <button
             onClick={() => {
-              if (!navigator.geolocation) return;
-              navigator.geolocation.getCurrentPosition(async (pos) => {
-                try {
-                  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-                  const data = await res.json();
-                  const city = data.address?.city || data.address?.town || data.address?.village || '';
-                  const state = data.address?.state || '';
-                  if (city || state) set('location', [city, state].filter(Boolean).join(', '));
-                } catch { /* silent */ }
-              });
+              if (!navigator.geolocation) {
+                setLocationStatus('error');
+                return;
+              }
+              setLocationStatus('detecting');
+              navigator.geolocation.getCurrentPosition(
+                async (pos) => {
+                  try {
+                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+                    const data = await res.json();
+                    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
+                    const state = data.address?.state || '';
+                    if (city || state) {
+                      set('location', [city, state].filter(Boolean).join(', '));
+                      setLocationStatus('success');
+                      setTimeout(() => setLocationStatus(null), 2000);
+                    } else {
+                      setLocationStatus('error');
+                    }
+                  } catch {
+                    setLocationStatus('error');
+                  }
+                },
+                () => setLocationStatus('error'),
+                { timeout: 10000 }
+              );
             }}
-            className="absolute right-2 top-6 text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline flex items-center gap-0.5"
+            disabled={locationStatus === 'detecting'}
+            className="absolute right-2 top-6 text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline flex items-center gap-0.5 disabled:opacity-50"
             aria-label="Detect location"
           >
-            <MapPin size={10} /> Detect
+            {locationStatus === 'detecting' ? <Loader size={10} className="animate-spin" /> : <MapPin size={10} />}
+            {locationStatus === 'detecting' ? 'Detecting...' : locationStatus === 'success' ? 'Done' : locationStatus === 'error' ? 'Failed' : 'Detect'}
           </button>
         </div>
       </Card>
