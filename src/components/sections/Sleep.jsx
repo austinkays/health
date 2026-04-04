@@ -18,7 +18,7 @@ import { isOuraConnected, fetchOuraSleepSessions, fetchOuraDailySleep } from '..
 
 const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
-const SOURCE_COLOR = { oura: '#8fbfa0', apple_health: '#b8a9e8', manual: '#6e6a80' };
+const sourceColor = () => ({ oura: C.sage, apple_health: C.lav, manual: C.textFaint });
 const FILTER_PILLS = ['All', 'Oura', 'Apple Health', 'Manual'];
 const FILTER_KEY = { All: null, Oura: 'oura', 'Apple Health': 'apple_health', Manual: 'manual' };
 
@@ -33,9 +33,9 @@ const secToMin = (s) => (s ? Math.round(s / 60) : 0);
 const msToMin = (s) => (s ? Math.round(s / 60000) : 0);
 
 const qualityLabel = (hrs) => {
-  if (hrs < 6) return { text: 'Poor', color: C.rose };
-  if (hrs <= 9) return { text: 'Good', color: C.sage };
-  return { text: 'Long', color: C.amber };
+  if (hrs < 6) return { text: 'Poor', color: C.lavDim };
+  if (hrs <= 9) return { text: 'Good', color: C.lav };
+  return { text: 'Long', color: C.lavDim };
 };
 
 const dayAbbr = (dateStr) => {
@@ -44,9 +44,8 @@ const dayAbbr = (dateStr) => {
 };
 
 const barColor = (hrs) => {
-  if (hrs < 6) return C.rose;
-  if (hrs <= 9) return C.lav;
-  return C.amber;
+  if (hrs < 6) return C.lavDim;
+  return C.lav;
 };
 
 /* ── sub-components ── */
@@ -92,7 +91,8 @@ function InfoCard({ title, body }) {
 function SourceBadge({ source }) {
   const Icon = SOURCE_ICON[source];
   const label = SOURCE_LABEL[source] || 'Manual';
-  const color = SOURCE_COLOR[source] || SOURCE_COLOR.manual;
+  const colors = sourceColor();
+  const color = colors[source] || colors.manual;
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-montserrat rounded-full px-1.5 py-0.5 bg-salve-card2" style={{ color }}>
       {Icon ? <Icon size={10} /> : <BedDouble size={10} />}
@@ -368,13 +368,13 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
             <div className="flex items-center gap-1.5 text-xs font-montserrat">
               {weeklyStats.debt > 0 ? (
                 <>
-                  <TrendingDown size={12} className="text-salve-rose" />
-                  <span className="text-salve-rose">{weeklyStats.debt.toFixed(1)} hrs behind</span>
+                  <TrendingDown size={12} className="text-salve-lavDim" />
+                  <span className="text-salve-textMid">{weeklyStats.debt.toFixed(1)} hrs behind</span>
                 </>
               ) : (
                 <>
-                  <TrendingUp size={12} className="text-salve-sage" />
-                  <span className="text-salve-sage">Caught up!</span>
+                  <TrendingUp size={12} className="text-salve-lav" />
+                  <span className="text-salve-lav">Caught up!</span>
                 </>
               )}
             </div>
