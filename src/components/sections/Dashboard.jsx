@@ -106,6 +106,7 @@ const ALL_LINKS = [
   { id: 'cycles',       label: 'Cycles',       icon: Heart,           color: C.rose },
   { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     color: C.lav },
   { id: 'activities',   label: 'Activities',   icon: Activity,        color: C.sage },
+  { id: 'sleep',        label: 'Sleep',        icon: Moon,            color: C.lav },
   { id: 'genetics',     label: 'Genetics',     icon: Dna,             color: C.lav },
   { id: 'oura',         label: 'Oura Ring',    icon: OuraIcon,        color: C.sage },
   { id: 'apple_health', label: 'Apple Health', icon: Apple,           color: C.lav },
