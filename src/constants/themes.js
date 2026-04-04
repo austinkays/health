@@ -12,6 +12,37 @@ export function hexToRgbTriplet(hex) {
 }
 
 export const themes = {
+  noir: {
+    id: 'noir',
+    label: 'Noir',
+    description: 'Pure black, minimal & modern',
+    type: 'dark',
+    colors: {
+      bg:        '#0a0a0a',
+      card:      '#141414',
+      card2:     '#1c1c1c',
+      border:    '#2a2a2a',
+      border2:   '#363636',
+      text:      '#ebebeb',
+      textMid:   '#999999',
+      textFaint: '#5c5c5c',
+      lav:       '#a0a0a0',
+      lavDim:    '#787878',
+      sage:      '#8c9a8c',
+      sageDim:   '#6b7a6b',
+      amber:     '#bfb09a',
+      amberDim:  '#998a74',
+      rose:      '#b89090',
+      roseDim:   '#997070',
+    },
+    ambiance: {
+      morning: '140, 154, 140',
+      day:     '160, 160, 160',
+      evening: '191, 176, 154',
+      night:   '120, 120, 120',
+    },
+  },
+
   midnight: {
     id: 'midnight',
     label: 'Midnight',
