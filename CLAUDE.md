@@ -19,7 +19,7 @@ Personal health management app. Originally a Claude.ai React artifact (~2000+ li
 - **Database:** Supabase (PostgreSQL with Row Level Security)
 - **Auth:** Supabase Auth (magic link / OTP email; session expiry detection; OTP 10-min countdown)
 - **Offline cache:** localStorage (AES-GCM encrypted via `cache.js` + `crypto.js`)
-- **AI Backend:** Vercel serverless function proxying Anthropic API (auth-gated)
+- **AI Backend:** Tiered provider system — Gemini (free tier) + Anthropic Claude (premium tier) via Vercel serverless proxies; smart model routing per feature complexity
 - **Medical APIs:** RxNorm (NLM drug data), OpenFDA (drug labels), NPPES (NPI provider registry) — all via Vercel serverless proxies
 - **Wearables:** Oura Ring V2 API (OAuth2, daily temperature → BBT for cycle tracking) — via Vercel serverless proxy
 - **Maps:** Google Maps URL links (no API key, URL construction only)
@@ -44,7 +44,9 @@ health/
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
 ├── api/
-│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy
+│   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
+│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier)
+│   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier)
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
 │   ├── oura.js                   # Vercel serverless: Oura Ring V2 API proxy (OAuth2 token exchange/refresh, temperature/sleep/readiness data, config)
 │   └── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
@@ -72,13 +74,16 @@ health/
 │       ├── 012_insurance_claims.sql           # Insurance claims tracking with amounts and status
 │       ├── 015_cycles.sql                     # Cycle tracking: period, ovulation, symptom, fertility_marker entries with RLS
 │       ├── 016_activities.sql                 # Activities/workouts table for Apple Health import with RLS
-│       └── 017_genetic_results.sql            # Pharmacogenomic results table with RLS
+│       ├── 017_genetic_results.sql            # Pharmacogenomic results table with RLS
+│       ├── 018_api_usage.sql                  # API usage tracking table + check_rate_limit() SQL function
+│       └── 019_user_tier.sql                  # Add tier column (free/premium) to profiles
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
-│   ├── index.css                 # Tailwind directives + Google Fonts import + custom utilities + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + time-aware ambiance CSS variables + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s)
+│   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, ThemeProvider wrapper, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s)
 │   ├── constants/
-│   │   ├── colors.js             # Color palette (C object) as Tailwind-compatible tokens
+│   │   ├── colors.js             # Color palette: Proxy C object that reads active theme's hex colors at access time (backward-compatible with all 28+ importers)
+│   │   ├── themes.js             # Theme presets (single source of truth): 4 themes (midnight/ember/dawnlight/frost), each with 16 hex colors + ambiance RGB values; hexToRgbTriplet() utility
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
 │   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
 │   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods, EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS (4-level: dry/sticky/creamy/eggwhite with fertility labels), FERTILITY_MARKERS
@@ -90,7 +95,7 @@ health/
 │   │   ├── db.js                 # Generic CRUD factory + table-specific services + loadAll (allSettled) + eraseAll
 │   │   ├── cache.js              # Encrypted offline localStorage cache + pending write queue + sync
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
-│   │   ├── ai.js                 # Anthropic API calls via /api/chat proxy (auth-gated, requires consent, 120s timeout, empty response validation); sendChatWithTools() agentic loop for tool-use data control (10 iteration cap)
+│   │   ├── ai.js                 # Tiered AI service: provider routing (Gemini free / Anthropic premium via getAIProvider/setAIProvider), smart model selection per feature (getModel: lite/flash/pro tiers), feature gating (isFeatureLocked blocks Pro features on free tier), daily limit error handling; sendChatWithTools() agentic loop for tool-use data control (10 iteration cap)
 │   │   ├── token.js              # Shared auth token cache (5s TTL, concurrent-call dedup, clearTokenCache on sign-out)
 │   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
@@ -103,6 +108,7 @@ health/
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
+│   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies CSS variables to :root), useTheme() hook (themeId, setTheme, C, themes), getActiveC() standalone getter for non-React contexts
 │   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 10s interval, random no-repeat, fade animation)
 │   ├── components/
 │   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit)
@@ -137,7 +143,7 @@ health/
 │   │       ├── Journal.jsx       # Health journal entries + add/edit + tag filter pills
 │   │       ├── Interactions.jsx  # Drug interaction checker (static + live NLM RxNorm)
 │   │       ├── Pharmacies.jsx    # Pharmacy directory + auto-discovers pharmacies from medications + preferred flag + hours/website + meds per pharmacy + upcoming refills + pharmacy filter + "Save & Add Details" promote flow for discovered pharmacies
-│   │       ├── AIPanel.jsx       # AI Insight panel: rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard + save/bookmark button; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; **universal save/bookmark** for all 5 result types via `useSavedInsights` hook (localStorage `salve:saved-insights`); SaveInsightButton in ResultHeader; SavedInsightsSection collapsible on main menu; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu; Saved Insights collapsible section on main menu; **FeatureLoading** breathe meditation loader (10s deep breathing cycle with star bloom 0.6→1.6x, expanding rings starting invisible, card glow pulse, "Breathe with me" + wellness messages); three-phase loading: loading→ready→revealed; "Your insight is ready" button with 2.5s fade-in + shimmer sweep; **AI prose reveal**: paragraphs fade in sequentially via `reveal` prop on AIMarkdown; ChatThinking with cycling wellness messages; **AI-powered data control**: chat uses Anthropic tool-use API to add/update/remove health records via natural language; ToolExecutionCard shows live status (pending/running/success/error/cancelled); destructive tools require inline Confirm/Cancel before execution; tool results persist in chat message history
+│   │       ├── AIPanel.jsx       # AI Insight panel: provider badge ("via Gemini"/"via Claude") on chat responses; premium feature gating with lock badges and upsell messages on Pro-tier features; daily limit error handling; rich card-based results with accent borders (insight=lavender, connections=sage, news=amber, resources=rose, costs=sage); ResultHeader with icon badge + copy-to-clipboard + save/bookmark button; InsightResult, ConnectionsResult, NewsResult (per-story parsing with headline/body/source extraction, inline article source links, bookmark/save toggle per story via localStorage `salve:saved-news`, preamble filtering in splitSections, unbookmark confirmation), ResourcesResult, CostResult; **universal save/bookmark** for all 5 result types via `useSavedInsights` hook (localStorage `salve:saved-insights`); SaveInsightButton in ResultHeader; SavedInsightsSection collapsible on main menu; chat with per-message copy buttons + persistence (load/save/new chat); SourcesBadges collapsible source list for web search; styled Disclaimer component; "What AI Sees" preview button at bottom of main menu; Saved News collapsible section on main menu; Saved Insights collapsible section on main menu; **FeatureLoading** breathe meditation loader (10s deep breathing cycle with star bloom 0.6→1.6x, expanding rings starting invisible, card glow pulse, "Breathe with me" + wellness messages); three-phase loading: loading→ready→revealed; "Your insight is ready" button with 2.5s fade-in + shimmer sweep; **AI prose reveal**: paragraphs fade in sequentially via `reveal` prop on AIMarkdown; ChatThinking with cycling wellness messages; **AI-powered data control**: chat uses Anthropic tool-use API to add/update/remove health records via natural language; ToolExecutionCard shows live status (pending/running/success/error/cancelled); destructive tools require inline Confirm/Cancel before execution; tool results persist in chat message history
 │   │       ├── Labs.jsx          # Lab results + flag-based filtering + AI interpretation + auto reference ranges
 │   │       ├── Procedures.jsx    # Medical procedures + outcome tracking
 │   │       ├── Immunizations.jsx # Vaccination records
@@ -152,7 +158,8 @@ health/
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view
-│   │       └── Settings.jsx      # Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt
+│   │       ├── Legal.jsx          # Privacy Policy, Terms of Service, HIPAA Notice (tabbed interface)
+│   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers
@@ -171,7 +178,8 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 
 | Table | Key Fields | Notes |
 |-------|-----------|-------|
-| `profiles` | id (= auth.users.id), name, location, pharmacy, insurance_*, health_background, ai_mode | 1:1 with user, auto-created on signup via trigger |
+| `profiles` | id (= auth.users.id), name, location, pharmacy, insurance_*, health_background, ai_mode, tier (free/premium) | 1:1 with user, auto-created on signup via trigger; tier gates access to Anthropic Claude AI |
+| `api_usage` | user_id, endpoint, tokens_in, tokens_out, created_at | API call tracking for rate limiting + analytics; check_rate_limit() SQL function for persistent rate limits |
 │ `pharmacies` | name, address, phone, fax, hours, website, is_preferred, notes | Preferred pharmacy badge; cross-linked with medications |
 | `medications` | name, display_name, dose, frequency, route, prescriber, pharmacy, purpose, start_date, refill_date, active, notes, rxcui, fda_data | rxcui links to RxNorm drug database; display_name is optional user-friendly casual name; fda_data (JSONB) stores OpenFDA label info (auto-populated on RxCUI link); pharmacy links to pharmacies table by name |
 | `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
@@ -221,20 +229,44 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `setupOfflineSync()` is initialized in `App.jsx` on mount with a flush callback that replays pending operations through `db.js`; cleans up on unmount
 - `crypto.js` provides `encrypt()`, `decrypt()`, and `clearKeyCache()` used by both cache and export encryption
 
-### API Proxy
+### AI API Proxies (Tiered Provider System)
 
-`api/chat.js` is a Vercel serverless function:
-- **Verifies Supabase auth token** via `Authorization: Bearer <token>` header
-- Validates token against Supabase Auth API using `SUPABASE_SERVICE_ROLE_KEY`
-- **Rate limited:** In-memory sliding window — 20 requests/minute per user ID (resets on cold start)
-- **CORS restricted** to allowlisted origins: `VERCEL_URL`, `ALLOWED_ORIGIN` env var, and `localhost:5173` (dev)
-- Accepts POST with `{ messages, system, max_tokens?, use_web_search? }`
-- Forwards to `https://api.anthropic.com/v1/messages` with model `claude-sonnet-4-20250514`
-- **Fetch timeout:** 115-second AbortController timeout (under Vercel's 120s function limit); returns 504 on timeout
-- Optionally includes Anthropic web search tool when `use_web_search` is true
-- Returns the response JSON
-- 120-second timeout configured in vercel.json
-- Client-side (`ai.js`) **fails early** if no auth token — never sends unauthenticated requests
+The app uses a **tiered AI provider system** with smart model routing per feature complexity:
+
+**Free tier (Gemini)** — `api/gemini.js`:
+- Translates Anthropic-format requests ↔ Gemini API format (messages, tools, responses, web search)
+- **Model routing:** `model` param from client selects: `gemini-2.0-flash-lite` (simple), `gemini-2.5-flash` (general), `gemini-2.5-pro-preview-06-05` (complex)
+- **Rate limited:** 15 req/min per user (in-memory + persistent via `_rateLimit.js`)
+- **Daily limit:** 10 calls/day per user (queries `api_usage` table, resets midnight PT)
+- **Feature gating:** Pro-tier features (connections, care gaps, etc.) blocked client-side via `isFeatureLocked()`
+- **Web search:** Gemini's `googleSearch` tool; grounding metadata translated to `web_search_tool_result` blocks for source extraction
+- **Tool-use:** Function calling with Anthropic↔Gemini format translation (tool_use ↔ functionCall, tool_result ↔ functionResponse)
+- Endpoint: `POST https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+
+**Premium tier (Anthropic Claude)** — `api/chat.js`:
+- **Tier gate:** Checks `profiles.tier = 'premium'` before allowing requests; returns 403 for free users
+- **Model routing:** `model` param selects: `claude-haiku-4-5-20251001` (simple), `claude-sonnet-4-6` (general), `claude-opus-4-6` (complex)
+- **Rate limited:** 20 req/min per user (in-memory + persistent)
+- No daily limit for premium users
+- Forwards to `https://api.anthropic.com/v1/messages`
+
+**Smart model routing** (client-side in `ai.js`):
+| Tier | Features | Gemini Model | Claude Model |
+|------|----------|-------------|-------------|
+| Lite | insight, labInterpret, vitalsTrend, geneticExplanation, crossReactivity | Flash-Lite | Haiku |
+| Flash | chat, news, appointmentPrep, everything else | Flash | Sonnet |
+| Pro | connections, careGapDetect, journalPatterns, cyclePatterns, appealDraft, costOptimization, immunizationSchedule | Pro | Opus |
+
+**Shared infrastructure** (`api/_rateLimit.js`):
+- `checkPersistentRateLimit(userId, endpoint, max, windowSec)` — cross-instance rate limiting via Supabase `check_rate_limit()` SQL function
+- `logUsage(userId, endpoint, { tokens_in, tokens_out })` — fire-and-forget usage tracking to `api_usage` table
+- Both endpoints verify Supabase auth token, enforce CORS, and log usage
+
+**Provider selection** (client-side):
+- `getAIProvider()` / `setAIProvider()` — reads/writes `localStorage` key `salve:ai-provider` (default: `'gemini'`)
+- `getModel(feature)` — returns `{ endpoint, model }` based on provider + feature tier
+- `isFeatureLocked(feature)` — returns true if feature requires premium and user is on free tier
+- Settings UI: AI Provider selector with Gemini (free) / Claude (premium) toggle
 
 ### Medical API Proxies
 
@@ -356,30 +388,38 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 
 ## Design System
 
-### Color Palette
+### Color Palette & Theme System
 
-The app uses a warm, calming aesthetic. Preserve these exact colors:
+The app uses an **extensible theme system** with CSS custom properties. All 16 color keys are defined as CSS variables (RGB triplets) consumed by Tailwind's `<alpha-value>` pattern, and as hex strings via the `C` Proxy object for Recharts/dynamic styles.
 
-```
-bg:       #1a1a2e    (deep navy background)
-card:     #22223a    (card surface)
-card2:    #2a2a44    (elevated card / input bg)
-border:   #33335a    (subtle borders)
-border2:  #3d3d66    (stronger borders)
-text:     #e8e4f0    (primary text)
-textMid:  #a8a4b8    (secondary text)
-textFaint:#6e6a80    (disabled/hint text)
-lav:      #b8a9e8    (lavender accent - primary)
-lavDim:   #9888cc    (lavender muted)
-sage:     #8fbfa0    (sage green - secondary)
-sageDim:  #6a9978    (sage muted)
-amber:    #e8c88a    (warm amber - tertiary)
-amberDim: #c4a060    (amber muted)
-rose:     #e88a9a    (rose - alerts/warnings)
-roseDim:  #cc6878    (rose muted)
-```
+**Architecture:**
+- **Single source of truth:** `src/constants/themes.js` — each theme is a plain object with 16 hex colors + ambiance values
+- **CSS variables:** `--salve-bg`, `--salve-card`, `--salve-lav`, etc. (set by `ThemeProvider` on `document.documentElement`)
+- **Tailwind:** `tailwind.config.js` maps `salve.*` to `rgb(var(--salve-*) / <alpha-value>)` — all opacity modifiers work
+- **Recharts/JS:** `import { C } from 'constants/colors'` returns a Proxy reading active theme hex values
+- **Persistence:** `localStorage` key `salve:theme` (default: `'midnight'`)
+- **FODT prevention:** Inline `<script>` in `index.html` applies saved theme background before React hydrates
+- **To add a new theme:** Add one object to `themes.js`. Nothing else changes.
 
-Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.colors.salve`.
+**4 Themes:**
+
+| Theme | Type | Background | Accents |
+|-------|------|-----------|---------|
+| **Midnight** (default) | Dark | `#1a1a2e` navy | Lavender, sage, amber, rose |
+| **Ember** | Dark | `#1c1714` charcoal | Copper, gold, coral, terracotta |
+| **Dawnlight** | Light | `#faf7f2` cream | Deep lavender, forest green, dark amber, berry rose |
+| **Frost** | Dark | `#161b22` slate | Ice blue, mint, soft violet, pale rose |
+
+Each theme also defines **ambiance values** (morning/day/evening/night RGB) so the time-aware hover glow adapts to the active theme's accent palette.
+
+**Color key roles (16 keys, same across all themes):**
+- `bg`, `card`, `card2` — background surfaces (darkest → lightest for dark themes, reversed for light)
+- `border`, `border2` — subtle/stronger borders
+- `text`, `textMid`, `textFaint` — primary/secondary/disabled text
+- `lav`, `lavDim` — primary accent (actions, focus, highlights)
+- `sage`, `sageDim` — secondary accent (success, health, positive)
+- `amber`, `amberDim` — tertiary accent (warnings, fertility, attention)
+- `rose`, `roseDim` — alert accent (errors, urgency, danger)
 
 ### Typography
 
@@ -409,8 +449,8 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 
 ## Key Design Decisions
 
-1. **Preserve the visual design precisely.** The warm dark theme with lavender/sage/amber accents is intentional and personal. When converting inline styles to Tailwind, match colors and spacing exactly.
-2. **Every inline style `style={{...}}` becomes Tailwind classes.** Use arbitrary values `[#1a1a2e]` for custom colors only if the color isn't mapped in the config. All palette colors should be mapped.
+1. **Use the theme system for all colors.** Never hardcode hex values — use Tailwind classes (`bg-salve-card`, `text-salve-lav/20`) or the `C` object for dynamic styles. All colors flow through CSS variables set by the active theme. Adding `style={{ color: '#b8a9e8' }}` will break theming.
+2. **Every inline style `style={{...}}` becomes Tailwind classes.** Use the `salve-*` color classes, never arbitrary hex values. For Recharts and dynamic computations, use `C.lav`, `C.sage`, etc. from `constants/colors`.
 3. **The drug interaction database is static and ships client-side** as a baseline. Additionally, the Interactions view can fetch **live interactions from NLM RxNorm** when medications have linked RxCUI values.
 4. **AI features must include medical disclaimers.** Every AI response surface shows "AI suggestions are not medical advice. Always consult your healthcare providers." This is non-negotiable. The disclaimer is appended in `ai.js`.
 8. **AI features require explicit data-sharing consent.** `AIConsentGate` wraps all AI surfaces (AIPanel, Dashboard insight). Users must acknowledge that health data is sent to Anthropic before any AI call is made. Consent is stored in `localStorage` under `salve:ai-consent` and can be revoked in Settings.
@@ -632,6 +672,7 @@ Map these to Tailwind custom colors in `tailwind.config.js` under `theme.extend.
 | `SUPABASE_SERVICE_ROLE_KEY` | Vercel env vars only | Server-side auth token verification |
 | `SUPABASE_URL` | Vercel env vars (fallback) | Fallback for api/chat.js if VITE_ prefix not available server-side |
 | `ALLOWED_ORIGIN` | Vercel env vars (optional) | Custom allowed CORS origin for api/chat.js (e.g. your production domain) |
+| `GEMINI_API_KEY` | Vercel env vars only | Google Gemini API key (free tier AI) |
 | `OURA_CLIENT_ID` | Vercel env vars only | Oura Ring OAuth2 client ID (from Oura Developer Portal) |
 | `OURA_CLIENT_SECRET` | Vercel env vars only | Oura Ring OAuth2 client secret (server-side only, never exposed to client) |
 
