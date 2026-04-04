@@ -57,6 +57,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const userTier = s?.tier || 'free';
   const { themeId, setTheme, themes: allThemes } = useTheme();
   const [pendingTheme, setPendingTheme] = useState(null);
+  const [lockedTheme, setLockedTheme] = useState(null);
   const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
@@ -389,7 +390,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     {userTier === 'premium'
                       ? experimental.map(renderTile)
                       : experimental.map(t => (
-                          <div key={t.id} className="p-3 rounded-xl border border-salve-border bg-salve-card2 opacity-50 font-montserrat text-center">
+                          <button
+                            key={t.id}
+                            onClick={() => setLockedTheme(t.id)}
+                            className="relative p-3 rounded-xl border border-salve-border bg-salve-card2 hover:border-salve-lav/30 cursor-pointer font-montserrat text-center transition-colors"
+                          >
+                            <div className="absolute top-1.5 right-1.5 text-[9px] text-salve-lav/70" aria-hidden="true">🔒</div>
                             <div className="flex justify-center gap-1 mb-2">
                               {['lav', 'sage', 'amber', 'rose'].map(key => (
                                 <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
@@ -397,7 +403,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                             </div>
                             <span className="text-xs text-salve-text font-medium block">{t.label}</span>
                             <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
-                          </div>
+                          </button>
                         ))
                     }
                   </div>
@@ -406,6 +412,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </>
           );
         })()}
+        {lockedTheme && (
+          <div className="mt-2 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5">
+            <p className="text-xs text-salve-text font-montserrat mb-2">
+              <strong className="text-salve-lav">{allThemes[lockedTheme]?.label}</strong> is a premium theme. Upgrade to apply it.
+            </p>
+            <button
+              onClick={() => setLockedTheme(null)}
+              className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat"
+            >
+              Got it
+            </button>
+          </div>
+        )}
         {pendingTheme && (
           <div className="mt-2 p-3 rounded-xl border border-salve-amber/30 bg-salve-amber/5">
             <p className="text-xs text-salve-text font-montserrat mb-2">
