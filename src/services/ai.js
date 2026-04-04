@@ -338,7 +338,7 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
     loopCount++;
 
     const body = {
-      messages: currentMessages,
+      messages: currentMessages.map(({ toolExecutions, ...rest }) => rest),
       system,
       max_tokens: maxTokens,
       tools,

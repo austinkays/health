@@ -376,6 +376,19 @@ export const HEALTH_TOOLS = [
     },
   },
   {
+    name: 'bulk_remove',
+    description: 'Remove multiple records at once from a single table. Use this when the user wants to delete many records (e.g. "remove all 2025 data", "delete all cycle entries"). Requires user confirmation. First use list_records or search_records to find the IDs.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        table: { type: 'string', description: 'The database table name (e.g. "cycles", "activities", "vitals")' },
+        ids: { type: 'array', items: { type: 'string' }, description: 'Array of record IDs (UUIDs) to remove' },
+        reason: { type: 'string', description: 'Brief description of what is being removed (shown to user for confirmation)' },
+      },
+      required: ['table', 'ids', 'reason'],
+    },
+  },
+  {
     name: 'search_records',
     description: 'Search across all health records for matching entries. Use this to find records by name or description before updating or removing them.',
     input_schema: {
@@ -409,6 +422,7 @@ export const DESTRUCTIVE_TOOLS = new Set([
   'remove_provider',
   'remove_cycle_entry',
   'remove_todo',
+  'bulk_remove',
 ]);
 
 // Map tool name → { table (db service name), operation }
@@ -437,6 +451,7 @@ export const TOOL_TABLE_MAP = {
   add_activity:        { table: 'activities', operation: 'add' },
   add_genetic_result:  { table: 'genetic_results', operation: 'add' },
   update_settings:     { table: 'profile', operation: 'update' },
+  bulk_remove:         { table: null, operation: 'bulk_remove' },
   search_records:      { table: null, operation: 'search' },
   list_records:        { table: null, operation: 'list' },
 };

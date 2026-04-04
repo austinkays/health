@@ -111,6 +111,36 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
         return { tool_use_id, content: `${records.length} record(s) in ${stateKey}:\n${summarizeRecords(records, tableName)}` };
       }
 
+      // ── Bulk Remove ──
+      if (operation === 'bulk_remove') {
+        const { ids, reason } = input;
+        const tableName = input.table;
+        if (!tableName || !ids?.length) {
+          return { tool_use_id, content: 'table and ids[] are required for bulk_remove', is_error: true };
+        }
+        // Map state key to db table if needed
+        const dbTable = STATE_KEY_TO_TABLE[tableName] || tableName;
+        const stateKey = TABLE_TO_STATE_KEY[dbTable] || tableName;
+        const records = data[stateKey] || [];
+        const validIds = ids.filter(id => records.some(r => r.id === id));
+        if (!validIds.length) {
+          return { tool_use_id, content: `No matching records found in ${tableName} for the provided IDs.`, is_error: true };
+        }
+        let removed = 0;
+        const errors = [];
+        for (const id of validIds) {
+          try {
+            await removeItem(dbTable, id);
+            removed++;
+          } catch (e) {
+            errors.push(`${id}: ${e.message}`);
+          }
+        }
+        const msg = `Removed ${removed} of ${validIds.length} record(s) from ${tableName}.${reason ? ' (' + reason + ')' : ''}`;
+        if (errors.length) return { tool_use_id, content: `${msg}\nErrors: ${errors.join('; ')}` };
+        return { tool_use_id, content: msg };
+      }
+
       // ── Add ──
       if (operation === 'add') {
         const cleaned = sanitizeInput(input, 'add');
