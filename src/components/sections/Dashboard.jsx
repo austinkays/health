@@ -24,7 +24,14 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+
+/* Vital direction: which way is "good" for color-coded trend signal */
+const VITAL_POLARITY = {
+  sleep: 'up', hr: 'down', bp: 'down', steps: 'up',
+  energy: 'up', pain: 'down', mood: 'up',
+  weight: null, temp: null, glucose: null,
+};
 
 /* ── Rotating placeholder phrases ────────────────────────── */
 const SEARCH_PLACEHOLDERS = [
@@ -267,11 +274,11 @@ export default function Dashboard({ data, interactions, onNav }) {
     [data.journal]
   );
 
-  /* Vitals snapshot — latest reading per type (last 7 days) + 14-day sparkline series */
+  /* Vitals snapshot — latest value, 14-day series, 7-day avg, trend vs previous 7 days */
   const vitalsSnapshot = useMemo(() => {
     const today = Date.now();
     const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
-    const sparkCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
+    const prevCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
     const vitals = data.vitals || [];
     if (!vitals.length) return null;
     const recent = vitals.filter(v => v.date >= recentCutoff);
@@ -281,21 +288,37 @@ export default function Dashboard({ data, interactions, onNav }) {
       if (!byType[v.type] || v.date > byType[v.type].date) byType[v.type] = v;
     }
     const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood'];
+    const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const items = priority
       .filter(t => byType[t])
       .slice(0, 3)
       .map(type => {
         const latest = byType[type];
-        // Build sparkline series from last 14 days of this type, ascending by date
+        // 14-day series, ascending by date, numeric values only
         const series = vitals
-          .filter(v => v.type === type && v.date >= sparkCutoff)
+          .filter(v => v.type === type && v.date >= prevCutoff)
           .sort((a, b) => a.date.localeCompare(b.date))
           .map(v => {
-            const n = type === 'bp' ? Number(v.value) : Number(v.value);
+            const n = Number(v.value);
             return { date: v.date, value: Number.isFinite(n) ? n : null };
           })
           .filter(p => p.value !== null);
-        return { ...latest, series };
+        // Split into recent 7 + previous 7 for trend comparison
+        const recent7 = series.filter(p => p.date >= recentCutoff).map(p => p.value);
+        const prev7 = series.filter(p => p.date < recentCutoff).map(p => p.value);
+        const recentAvg = mean(recent7);
+        const prevAvg = mean(prev7);
+        let delta = null, direction = 'flat', signal = 'neutral';
+        if (recentAvg !== null && prevAvg !== null) {
+          delta = recentAvg - prevAvg;
+          const relThresh = Math.max(Math.abs(prevAvg) * 0.03, 0.1);
+          direction = delta > relThresh ? 'up' : delta < -relThresh ? 'down' : 'flat';
+          const polarity = VITAL_POLARITY[type];
+          if (polarity && direction !== 'flat') {
+            signal = (polarity === direction) ? 'good' : 'watch';
+          }
+        }
+        return { ...latest, series, recentAvg, delta, direction, signal };
       });
     return items.length ? items : null;
   }, [data.vitals]);
@@ -750,40 +773,76 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* ── Vitals Snapshot ──────────────────────── */}
       {vitalsSnapshot && (
         <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
-          <Card className="!bg-salve-lav/10 !border-salve-lav/20 !p-3.5 cursor-pointer" onClick={() => onNav('vitals')}>
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[10px] text-salve-lav/70 font-montserrat tracking-wider uppercase">Recent Vitals</span>
+          <Card className="!bg-salve-lav/10 !border-salve-lav/20 !p-4 cursor-pointer" onClick={() => onNav('vitals')}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-baseline gap-2">
+                <span className="text-[10px] text-salve-lav/80 font-montserrat tracking-wider uppercase">Recent Vitals</span>
+                <span className="text-[9px] text-salve-textFaint font-montserrat">last 14 days</span>
+              </div>
               <ChevronRight size={12} className="text-salve-textFaint" />
             </div>
-            <div className="flex flex-col gap-2">
-              {vitalsSnapshot.map(v => {
+            <div className="flex flex-col">
+              {vitalsSnapshot.map((v, i) => {
                 const type = VITAL_TYPES.find(t => t.id === v.type);
                 const label = type?.label || v.type;
                 const unit = type?.unit || v.unit || '';
                 const displayVal = v.type === 'bp' && v.value2 ? `${v.value}/${v.value2}` : v.value;
                 const hasSpark = v.series && v.series.length >= 2;
+                const fmt = (n) => {
+                  if (n === null || n === undefined) return '—';
+                  const abs = Math.abs(n);
+                  return abs >= 10 ? Math.round(n).toString() : n.toFixed(1);
+                };
+                const signalColor = v.signal === 'good' ? C.sage : v.signal === 'watch' ? C.amber : C.lav;
+                const arrow = v.direction === 'up' ? '↑' : v.direction === 'down' ? '↓' : '→';
+                const gradientId = `spark-grad-${v.type}`;
                 return (
-                  <div key={v.type} className="flex items-center gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</div>
-                      <div className="text-[16px] font-medium text-salve-text font-montserrat leading-tight">
-                        {displayVal}<span className="text-[10px] text-salve-textFaint ml-1">{unit}</span>
+                  <div
+                    key={v.type}
+                    className={`flex items-end justify-between gap-3 py-2.5 ${i < vitalsSnapshot.length - 1 ? 'border-b border-salve-lav/10' : ''}`}
+                  >
+                    <div className="min-w-0 flex-shrink-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
+                        {v.delta !== null && (
+                          <span
+                            className="text-[9px] font-montserrat font-medium inline-flex items-center gap-0.5 px-1.5 py-[1px] rounded-full"
+                            style={{ color: signalColor, backgroundColor: `${signalColor}1f` }}
+                          >
+                            <span>{arrow}</span>
+                            {v.direction !== 'flat' && <span>{fmt(Math.abs(v.delta))}</span>}
+                          </span>
+                        )}
                       </div>
+                      <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none">
+                        {displayVal}<span className="text-[11px] text-salve-textFaint ml-1 font-normal">{unit}</span>
+                      </div>
+                      {v.recentAvg !== null && (
+                        <div className="text-[9px] text-salve-textFaint font-montserrat mt-1">
+                          7-day avg {fmt(v.recentAvg)}{unit ? ` ${unit}` : ''}
+                        </div>
+                      )}
                     </div>
                     {hasSpark && (
-                      <div className="w-[110px] h-[32px] flex-shrink-0">
+                      <div className="w-[130px] h-[46px] flex-shrink-0">
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={v.series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-                            <Line
+                          <AreaChart data={v.series} margin={{ top: 4, right: 2, bottom: 2, left: 2 }}>
+                            <defs>
+                              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={signalColor} stopOpacity={0.35} />
+                                <stop offset="100%" stopColor={signalColor} stopOpacity={0} />
+                              </linearGradient>
+                            </defs>
+                            <Area
                               type="monotone"
                               dataKey="value"
-                              stroke={C.lav}
-                              strokeWidth={1.5}
-                              strokeOpacity={0.7}
+                              stroke={signalColor}
+                              strokeWidth={1.75}
+                              fill={`url(#${gradientId})`}
                               dot={false}
                               isAnimationActive={false}
                             />
-                          </LineChart>
+                          </AreaChart>
                         </ResponsiveContainer>
                       </div>
                     )}
