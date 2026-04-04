@@ -95,76 +95,108 @@ html.theme-neon .font-playfair {
   text-shadow: 0 0 8px rgba(255, 77, 184, 0.3), 0 0 16px rgba(77, 216, 255, 0.15);
 }
 
-/* ── Monarch: floating gold particles ── */
+/* ── Monarch: glowing orbs drifting across screen ── */
 html.theme-monarch body::before {
   background-image:
-    radial-gradient(2px 2px at 20% 30%, rgba(244, 192, 96, 0.5) 0%, transparent 50%),
-    radial-gradient(2px 2px at 70% 60%, rgba(216, 160, 64, 0.4) 0%, transparent 50%),
-    radial-gradient(1px 1px at 40% 80%, rgba(232, 108, 40, 0.5) 0%, transparent 50%),
-    radial-gradient(1px 1px at 85% 15%, rgba(244, 192, 96, 0.4) 0%, transparent 50%),
-    radial-gradient(2px 2px at 10% 90%, rgba(168, 92, 200, 0.3) 0%, transparent 50%);
+    radial-gradient(circle 120px at 15% 20%, rgba(255, 154, 77, 0.18), transparent 50%),
+    radial-gradient(circle 100px at 85% 40%, rgba(168, 92, 200, 0.2), transparent 50%),
+    radial-gradient(circle 150px at 50% 75%, rgba(244, 192, 96, 0.15), transparent 50%),
+    radial-gradient(circle 90px at 20% 90%, rgba(232, 108, 40, 0.18), transparent 50%),
+    radial-gradient(circle 110px at 75% 10%, rgba(168, 92, 200, 0.15), transparent 50%);
   background-size: 100% 100%;
   opacity: 1;
-  animation: monarch-float 24s ease-in-out infinite;
+  animation: monarch-drift 18s ease-in-out infinite alternate;
 }
-@keyframes monarch-float {
-  0%, 100% { transform: translateY(0) translateX(0); }
-  25% { transform: translateY(-10px) translateX(5px); }
-  50% { transform: translateY(-5px) translateX(-5px); }
-  75% { transform: translateY(-15px) translateX(3px); }
+@keyframes monarch-drift {
+  0% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(20px, -15px) scale(1.05); }
+  66% { transform: translate(-15px, 20px) scale(0.95); }
+  100% { transform: translate(10px, -10px) scale(1.02); }
 }
 
 /* ── Ocean: rising bubbles ── */
 html.theme-ocean body::before {
   background-image:
-    radial-gradient(circle 3px at 15% 110%, rgba(96, 212, 164, 0.4) 0%, transparent 100%),
-    radial-gradient(circle 2px at 45% 110%, rgba(76, 196, 192, 0.3) 0%, transparent 100%),
-    radial-gradient(circle 4px at 75% 110%, rgba(96, 212, 164, 0.3) 0%, transparent 100%),
-    radial-gradient(circle 2px at 30% 110%, rgba(76, 196, 192, 0.4) 0%, transparent 100%),
-    radial-gradient(circle 3px at 90% 110%, rgba(96, 212, 164, 0.35) 0%, transparent 100%);
-  background-size: 100% 100%;
+    radial-gradient(circle 6px at 10% 100%, rgba(96, 212, 164, 0.7), transparent 70%),
+    radial-gradient(circle 4px at 25% 100%, rgba(76, 196, 192, 0.6), transparent 70%),
+    radial-gradient(circle 8px at 45% 100%, rgba(96, 212, 164, 0.65), transparent 70%),
+    radial-gradient(circle 5px at 65% 100%, rgba(76, 196, 192, 0.7), transparent 70%),
+    radial-gradient(circle 7px at 80% 100%, rgba(96, 212, 164, 0.6), transparent 70%),
+    radial-gradient(circle 4px at 92% 100%, rgba(76, 196, 192, 0.65), transparent 70%);
+  background-size: 100% 400vh;
+  background-repeat: repeat-y;
   opacity: 1;
-  animation: ocean-bubbles 15s linear infinite;
+  animation: ocean-bubbles 12s linear infinite;
 }
 @keyframes ocean-bubbles {
-  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
-  to {
-    background-position:
-      0 -400vh,
-      0 -350vh,
-      0 -500vh,
-      0 -300vh,
-      0 -450vh;
-  }
+  from { background-position: 0 0; }
+  to { background-position: 0 -400vh; }
 }
 
-/* ── Ember: warm ember glow flicker ── */
+/* ── Ember: flickering firelight glow + floating sparks ── */
 html.theme-ember body::before {
-  background: radial-gradient(ellipse 80% 40% at 50% 100%, rgba(232, 144, 112, 0.08) 0%, transparent 70%);
+  background-image:
+    radial-gradient(ellipse 120% 60% at 50% 110%, rgba(255, 106, 26, 0.25), transparent 70%),
+    radial-gradient(ellipse 80% 30% at 50% 110%, rgba(255, 210, 77, 0.15), transparent 60%);
   opacity: 1;
-  animation: ember-flicker 4s ease-in-out infinite;
+  animation: ember-flicker 3s ease-in-out infinite;
+}
+html.theme-ember body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle 3px at 15% 90%, rgba(255, 154, 77, 0.9), transparent 70%),
+    radial-gradient(circle 2px at 35% 85%, rgba(255, 210, 77, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 60% 92%, rgba(255, 106, 26, 0.9), transparent 70%),
+    radial-gradient(circle 3px at 85% 88%, rgba(255, 210, 77, 0.8), transparent 70%);
+  background-size: 100% 100vh;
+  animation: ember-sparks 6s linear infinite;
 }
 @keyframes ember-flicker {
-  0%, 100% { opacity: 1; }
-  25% { opacity: 0.7; }
-  50% { opacity: 0.9; }
-  75% { opacity: 0.6; }
+  0%, 100% { opacity: 1; transform: scaleY(1); }
+  25% { opacity: 0.75; transform: scaleY(0.95); }
+  50% { opacity: 0.9; transform: scaleY(1.05); }
+  75% { opacity: 0.8; transform: scaleY(0.98); }
+}
+@keyframes ember-sparks {
+  from { background-position: 0 0; }
+  to { background-position: 0 -100vh; }
 }
 
-/* ── Frost: soft crystal shimmer ── */
+/* ── Frost: icy shimmer + drifting snow ── */
 html.theme-frost body::before {
   background-image:
-    radial-gradient(1px 1px at 25% 20%, rgba(124, 196, 232, 0.5) 0%, transparent 50%),
-    radial-gradient(1px 1px at 60% 40%, rgba(110, 231, 183, 0.4) 0%, transparent 50%),
-    radial-gradient(2px 2px at 80% 70%, rgba(196, 181, 253, 0.3) 0%, transparent 50%),
-    radial-gradient(1px 1px at 35% 85%, rgba(124, 196, 232, 0.4) 0%, transparent 50%);
-  background-size: 100% 100%;
+    radial-gradient(circle 100px at 20% 30%, rgba(45, 212, 191, 0.12), transparent 60%),
+    radial-gradient(circle 120px at 70% 60%, rgba(103, 232, 249, 0.12), transparent 60%),
+    radial-gradient(circle 80px at 50% 15%, rgba(94, 234, 212, 0.15), transparent 60%);
   opacity: 1;
-  animation: frost-shimmer 12s ease-in-out infinite;
+  animation: frost-shimmer 8s ease-in-out infinite;
+}
+html.theme-frost body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle 2px at 10% 0%, rgba(255, 255, 255, 0.7), transparent 70%),
+    radial-gradient(circle 3px at 30% 0%, rgba(167, 243, 208, 0.7), transparent 70%),
+    radial-gradient(circle 2px at 50% 0%, rgba(255, 255, 255, 0.8), transparent 70%),
+    radial-gradient(circle 3px at 70% 0%, rgba(103, 232, 249, 0.7), transparent 70%),
+    radial-gradient(circle 2px at 90% 0%, rgba(255, 255, 255, 0.7), transparent 70%);
+  background-size: 100% 100vh;
+  animation: frost-snow 14s linear infinite;
 }
 @keyframes frost-shimmer {
-  0%, 100% { opacity: 0.6; }
+  0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
+}
+@keyframes frost-snow {
+  from { background-position: 0 0; }
+  to { background-position: 0 100vh; }
 }
 
 /* Keep content above the effect layer */
