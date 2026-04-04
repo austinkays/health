@@ -129,18 +129,21 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [showDismissMenu, setShowDismissMenu] = useState(false);
   const alertsDismissed = alertDismissal !== null;
 
-  /* ── Conditional tile visibility (only show connected sources) ── */
+  /* ── Conditional tile visibility (connected OR has existing data) ── */
   const hasAppleHealth = useMemo(() => (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
     || (data.activities || []).some(a => a.source === 'apple_health' || a.source === 'Apple Health'), [data.vitals, data.activities]);
-  const ouraConnected = isOuraConnected();
+  const hasOura = useMemo(() => isOuraConnected()
+    || (data.vitals || []).some(v => v.source === 'oura')
+    || (data.cycles || []).some(c => c.notes?.includes('Oura'))
+    || (data.activities || []).some(a => a.source === 'oura'), [data.vitals, data.cycles, data.activities]);
 
   const visibleLinks = useMemo(() => {
     return ALL_LINKS.filter(l => {
-      if (l.id === 'oura') return ouraConnected;
+      if (l.id === 'oura') return hasOura;
       if (l.id === 'apple_health') return hasAppleHealth;
       return true;
     });
-  }, [ouraConnected, hasAppleHealth]);
+  }, [hasOura, hasAppleHealth]);
 
   /* ── Customizable Quick Access state ──────── */
   const [primaryIds, setPrimaryIds] = useState(() => {
