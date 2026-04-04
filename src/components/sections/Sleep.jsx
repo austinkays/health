@@ -136,13 +136,26 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
     if (!isOuraConnected()) return;
     setOuraLoading(true);
     const end = todayISO();
-    const start = new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10);
+    const start = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     Promise.all([
       fetchOuraSleepSessions(start, end).catch(() => []),
       fetchOuraDailySleep(start, end).catch(() => []),
     ]).then(([sessions, daily]) => {
-      if (sessions?.length) setOuraSession(sessions[sessions.length - 1]);
-      if (daily?.length) setOuraScore(daily[daily.length - 1]);
+      // Pick the most recent session by day, preferring longest duration per day
+      if (sessions?.length) {
+        const byDay = {};
+        for (const s of sessions) {
+          if (!s.day) continue;
+          const dur = s.total_sleep_duration || 0;
+          if (!byDay[s.day] || dur > (byDay[s.day].total_sleep_duration || 0)) byDay[s.day] = s;
+        }
+        const days = Object.keys(byDay).sort().reverse();
+        if (days.length) setOuraSession(byDay[days[0]]);
+      }
+      if (daily?.length) {
+        const sorted = [...daily].sort((a, b) => (b.day || '').localeCompare(a.day || ''));
+        if (sorted.length) setOuraScore(sorted[0]);
+      }
     }).finally(() => setOuraLoading(false));
   }, []);
 
@@ -184,7 +197,7 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
     return { avg: avg.toFixed(1), best: best.toFixed(1), worst: worst.toFixed(1), consistency, debt };
   }, [chartData]);
 
-  /* Oura stage breakdown */
+  /* Oura stage breakdown (live data) */
   const stageBreakdown = useMemo(() => {
     if (!ouraSession) return null;
     const total = (ouraSession.total_sleep_duration || 0) + (ouraSession.awake_time || 0);
@@ -199,6 +212,19 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
       latency: msToMin(ouraSession.latency),
     };
   }, [ouraSession]);
+
+  /* Fallback metrics from stored notes (e.g. "Oura Ring (efficiency: 85%, latency: 15min)") */
+  const storedMetrics = useMemo(() => {
+    if (stageBreakdown) return null; // live data takes priority
+    if (!lastNight?.notes) return null;
+    const effMatch = lastNight.notes.match(/efficiency:\s*(\d+)%/);
+    const latMatch = lastNight.notes.match(/latency:\s*(\d+)min/);
+    if (!effMatch && !latMatch) return null;
+    return {
+      efficiency: effMatch ? parseInt(effMatch[1]) : null,
+      latency: latMatch ? parseInt(latMatch[1]) : null,
+    };
+  }, [lastNight, stageBreakdown]);
 
   /* form handlers */
   const resetForm = () => { setForm({ date: todayISO(), hours: '', notes: '' }); setSubView(null); };
@@ -315,6 +341,18 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
         </div>
       )}
 
+      {/* Stored metrics fallback (from notes when live Oura unavailable) */}
+      {storedMetrics && (
+        <div className="grid grid-cols-2 gap-2">
+          {storedMetrics.efficiency != null && (
+            <MetricBox label="Efficiency" value={storedMetrics.efficiency} unit="%" icon={Sunrise} color={C.lav} />
+          )}
+          {storedMetrics.latency != null && (
+            <MetricBox label="Fell Asleep In" value={storedMetrics.latency} unit="min" icon={Clock} color={C.lav} />
+          )}
+        </div>
+      )}
+
       {/* 7-day trend chart */}
       {chartData.some(d => d.hrs > 0) && (
         <Card>
@@ -327,9 +365,17 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
                 <YAxis domain={[0, 12]} tick={{ fill: C.textFaint, fontSize: 10, fontFamily: 'Montserrat' }} axisLine={false} tickLine={false} />
                 <ReferenceLine y={8} stroke={C.lav} strokeDasharray="4 4" strokeOpacity={0.5} />
                 <Tooltip
-                  contentStyle={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 11, fontFamily: 'Montserrat' }}
-                  labelStyle={{ color: C.textMid }}
-                  formatter={(v) => [`${v} hrs`, 'Sleep']}
+                  cursor={{ fill: C.lav + '08' }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.[0]?.payload?.hrs) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 10px', fontSize: 11, fontFamily: 'Montserrat' }}>
+                        <span style={{ color: C.textMid }}>{fmtDate(d.date)}</span>
+                        <span style={{ color: C.text, fontWeight: 500, marginLeft: 8 }}>{d.hrs} hrs</span>
+                      </div>
+                    );
+                  }}
                 />
                 <Bar dataKey="hrs" radius={[4, 4, 0, 0]} maxBarSize={28}>
                   {chartData.map((entry, i) => (
