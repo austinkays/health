@@ -203,6 +203,7 @@ export const themes = {
     label: 'Aurora',
     description: 'Northern lights over dark sky',
     type: 'dark',
+    experimental: true,
     colors: {
       bg:        '#141a26',
       card:      '#1e2634',

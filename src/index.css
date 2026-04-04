@@ -128,6 +128,57 @@ html.theme-monarch body::before {
   100% { transform: translate(10px, -10px) scale(1.02); }
 }
 
+/* ── Aurora: drifting northern-lights curtains + neon stars ── */
+html.theme-aurora body::before {
+  background-image:
+    /* Aurora curtain 1 — green sheet, upper left */
+    radial-gradient(ellipse 90% 28% at 20% 22%, rgba(132, 220, 180, 0.28), transparent 65%),
+    /* Aurora curtain 2 — cyan sheet, upper right */
+    radial-gradient(ellipse 80% 24% at 75% 30%, rgba(112, 204, 232, 0.24), transparent 65%),
+    /* Aurora curtain 3 — violet tail, mid */
+    radial-gradient(ellipse 70% 22% at 45% 48%, rgba(180, 162, 236, 0.20), transparent 65%),
+    /* Ambient low glow along horizon */
+    radial-gradient(ellipse 120% 18% at 50% 70%, rgba(132, 220, 180, 0.14), transparent 70%);
+  opacity: 1;
+  filter: blur(36px);
+  animation: aurora-shimmer 22s ease-in-out infinite alternate;
+}
+html.theme-aurora body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    /* Scattered neon stars */
+    radial-gradient(circle 2px at 8% 12%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(circle 2px at 22% 38%, rgba(112, 204, 232, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 38% 8%, rgba(255, 255, 255, 0.8), transparent 70%),
+    radial-gradient(circle 3px at 55% 22%, rgba(132, 220, 180, 0.7), transparent 70%),
+    radial-gradient(circle 2px at 68% 52%, rgba(255, 255, 255, 0.85), transparent 70%),
+    radial-gradient(circle 2px at 82% 18%, rgba(112, 204, 232, 0.75), transparent 70%),
+    radial-gradient(circle 3px at 92% 62%, rgba(255, 255, 255, 0.7), transparent 70%),
+    radial-gradient(circle 2px at 14% 72%, rgba(180, 162, 236, 0.8), transparent 70%),
+    radial-gradient(circle 2px at 45% 88%, rgba(255, 255, 255, 0.75), transparent 70%),
+    radial-gradient(circle 2px at 72% 80%, rgba(132, 220, 180, 0.7), transparent 70%);
+  animation: aurora-stars 6s ease-in-out infinite;
+}
+@keyframes aurora-shimmer {
+  0% { transform: translate(0, 0) scaleY(1); opacity: 0.9; }
+  33% { transform: translate(18px, -8px) scaleY(1.08); opacity: 1; }
+  66% { transform: translate(-14px, 6px) scaleY(0.94); opacity: 0.85; }
+  100% { transform: translate(8px, -4px) scaleY(1.04); opacity: 0.95; }
+}
+@keyframes aurora-stars {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.4; }
+}
+html.theme-aurora h1,
+html.theme-aurora h2,
+html.theme-aurora .font-playfair {
+  text-shadow: 0 0 12px rgba(132, 220, 180, 0.35), 0 0 24px rgba(112, 204, 232, 0.22);
+}
+
 /* ── Ocean: continuous stream of rising bubbles at staggered heights ── */
 html.theme-ocean body::before {
   background-image:
@@ -282,7 +333,8 @@ html.theme-neon .bg-salve-card,
 html.theme-monarch .bg-salve-card,
 html.theme-ocean .bg-salve-card,
 html.theme-ember .bg-salve-card,
-html.theme-frost .bg-salve-card {
+html.theme-frost .bg-salve-card,
+html.theme-aurora .bg-salve-card {
   background-color: rgb(var(--salve-card) / 0.72);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -291,8 +343,26 @@ html.theme-neon .bg-salve-card\/5,
 html.theme-monarch .bg-salve-card\/5,
 html.theme-ocean .bg-salve-card\/5,
 html.theme-ember .bg-salve-card\/5,
-html.theme-frost .bg-salve-card\/5 {
+html.theme-frost .bg-salve-card\/5,
+html.theme-aurora .bg-salve-card\/5 {
   background-color: rgb(var(--salve-card) / 0.55);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+/* Frost the lavender-tinted accent cards (e.g. Recent Vitals) on experimental themes */
+html.theme-neon .bg-salve-lav\/5,
+html.theme-monarch .bg-salve-lav\/5,
+html.theme-ocean .bg-salve-lav\/5,
+html.theme-ember .bg-salve-lav\/5,
+html.theme-frost .bg-salve-lav\/5,
+html.theme-aurora .bg-salve-lav\/5,
+html.theme-neon .bg-salve-lav\/10,
+html.theme-monarch .bg-salve-lav\/10,
+html.theme-ocean .bg-salve-lav\/10,
+html.theme-ember .bg-salve-lav\/10,
+html.theme-frost .bg-salve-lav\/10,
+html.theme-aurora .bg-salve-lav\/10 {
+  background-color: rgb(var(--salve-lav) / 0.12);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
 }
@@ -301,7 +371,8 @@ html.theme-neon .border-salve-border,
 html.theme-monarch .border-salve-border,
 html.theme-ocean .border-salve-border,
 html.theme-ember .border-salve-border,
-html.theme-frost .border-salve-border {
+html.theme-frost .border-salve-border,
+html.theme-aurora .border-salve-border {
   border-color: rgb(var(--salve-border2) / 0.8);
 }
 
