@@ -5,7 +5,6 @@ import {
   BadgeDollarSign, AlertTriangle, Scale, PlaneTakeoff, Star, Phone,
   MapPin, ExternalLink,
 } from 'lucide-react';
-import FormWrap from '../ui/FormWrap';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { C } from '../../constants/colors';
@@ -192,7 +191,7 @@ export default function HealthSummary({ data, onNav }) {
   }
 
   return (
-    <FormWrap title="Health Summary" onBack={() => onNav('dash')}>
+    <div className="mt-2">
 
       {/* ── Profile Header ─────────────────────── */}
       <Card className="!mb-3">
@@ -573,6 +572,6 @@ export default function HealthSummary({ data, onNav }) {
       <p className="text-center text-salve-textFaint text-[11px] mt-4 mb-2">
         Tap any row to view details · Tap "View All" to manage
       </p>
-    </FormWrap>
+    </div>
   );
 }
