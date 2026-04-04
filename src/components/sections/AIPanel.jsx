@@ -8,7 +8,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools, getAIProvider } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -1009,6 +1009,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
                     <Leaf size={9} className="text-salve-sage" />
                   </div>
                   <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat ml-auto">via {getAIProvider() === 'anthropic' ? 'Claude' : 'Gemini'}</span>
                 </div>
                 <AIMarkdown compact>{stripDisclaimer(m.content)}</AIMarkdown>
                 {m.toolExecutions?.length > 0 && (

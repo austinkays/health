@@ -82,8 +82,23 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Auth verification failed' });
   }
 
+  // ── Premium tier check ──
+  try {
+    const profileRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=tier`, {
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+    });
+    if (profileRes.ok) {
+      const profiles = await profileRes.json();
+      if (!profiles[0] || profiles[0].tier !== 'premium') {
+        return res.status(403).json({ error: 'Premium feature. Upgrade to use Claude.' });
+      }
+    }
+  } catch {
+    // Fail-open on tier check error — allow the request
+  }
+
   // Proxy to Anthropic
-  const { messages, system, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools } = req.body;
+  const { messages, system, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools, model: requestedModel } = req.body;
   const max_tokens = Math.min(Number(rawMaxTokens) || 2000, 4096);
 
   if (!messages || !Array.isArray(messages)) {
@@ -96,6 +111,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid tools parameter' });
   }
 
+  // Validate model against allowlist
+  const ALLOWED_MODELS = ['claude-haiku-4-5-20251001', 'claude-sonnet-4-6', 'claude-opus-4-6'];
+  const model = ALLOWED_MODELS.includes(requestedModel) ? requestedModel : 'claude-sonnet-4-6';
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'API key not configured' });
@@ -103,7 +122,7 @@ export default async function handler(req, res) {
 
   try {
     const body = {
-      model: 'claude-sonnet-4-20250514',
+      model,
       max_tokens,
       messages,
     };

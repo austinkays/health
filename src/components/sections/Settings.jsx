@@ -7,6 +7,7 @@ import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
+import { getAIProvider, setAIProvider } from '../../services/ai';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
@@ -47,6 +48,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const set = (k, v) => updateSettings({ [k]: v });
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
+  const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
+  const userTier = s?.tier || 'free';
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
@@ -355,6 +358,56 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           Want to make a change? Chat with Sage →
         </button>
       </div>
+
+      <SectionTitle>AI Provider</SectionTitle>
+      <Card>
+        <div className="space-y-2">
+          <button
+            onClick={() => { setAIProvider('gemini'); setAiProviderLocal('gemini'); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all cursor-pointer font-montserrat text-left ${
+              aiProvider === 'gemini'
+                ? 'border-salve-sage/50 bg-salve-sage/10'
+                : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${aiProvider === 'gemini' ? 'bg-salve-sage' : 'bg-salve-textFaint/40'}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-salve-text font-medium">Gemini</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-sage/15 text-salve-sage font-medium">Free</span>
+              </div>
+              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
+                Auto-routes Flash-Lite · Flash · Pro by task complexity
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={() => {
+              if (userTier === 'premium') { setAIProvider('anthropic'); setAiProviderLocal('anthropic'); }
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all font-montserrat text-left ${
+              aiProvider === 'anthropic' && userTier === 'premium'
+                ? 'border-salve-lav/50 bg-salve-lav/10 cursor-pointer'
+                : userTier === 'premium'
+                  ? 'border-salve-border bg-salve-card2 hover:border-salve-border2 cursor-pointer'
+                  : 'border-salve-border bg-salve-card2 opacity-50 cursor-not-allowed'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${aiProvider === 'anthropic' && userTier === 'premium' ? 'bg-salve-lav' : 'bg-salve-textFaint/40'}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-salve-text font-medium">Claude</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium">Premium</span>
+              </div>
+              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
+                {userTier === 'premium'
+                  ? 'Auto-routes Haiku · Sonnet · Opus by task complexity'
+                  : 'Upgrade to premium to use Claude'}
+              </p>
+            </div>
+          </button>
+        </div>
+      </Card>
 
       <SectionTitle>Pharmacy</SectionTitle>
       <Card>

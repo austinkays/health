@@ -11,6 +11,9 @@
     },
     "api/oura.js": {
       "maxDuration": 30
+    },
+    "api/gemini.js": {
+      "maxDuration": 120
     }
   },
   "rewrites": [

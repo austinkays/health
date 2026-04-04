@@ -1,6 +1,33 @@
 import { getAuthToken } from './token';
 import { HEALTH_TOOLS } from '../constants/tools';
 
+// ── AI Provider + Model Routing ──
+
+const PROVIDER_KEY = 'salve:ai-provider';
+
+export function getAIProvider() {
+  try { return localStorage.getItem(PROVIDER_KEY) || 'gemini'; } catch { return 'gemini'; }
+}
+
+export function setAIProvider(provider) {
+  localStorage.setItem(PROVIDER_KEY, provider);
+}
+
+const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
+const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
+
+function getModel(feature) {
+  const provider = getAIProvider();
+  const tier = LITE_FEATURES.has(feature) ? 'lite' : PRO_FEATURES.has(feature) ? 'pro' : 'flash';
+
+  if (provider === 'anthropic') {
+    const models = { lite: 'claude-haiku-4-5-20251001', flash: 'claude-sonnet-4-6', pro: 'claude-opus-4-6' };
+    return { endpoint: '/api/chat', model: models[tier] };
+  }
+  const models = { lite: 'gemini-2.0-flash-lite', flash: 'gemini-2.5-flash-preview-05-20', pro: 'gemini-2.5-pro-preview-05-06' };
+  return { endpoint: '/api/gemini', model: models[tier] };
+}
+
 // AI system prompts
 export const PROMPTS = {
   insight:
@@ -100,21 +127,22 @@ function extractSources(data) {
   return sources;
 }
 
-async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false) {
+async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false, feature = 'chat') {
   const token = await getAuthToken();
 
   if (!token) {
     throw new Error('You must be signed in to use AI features.');
   }
 
-  const body = { messages, system, max_tokens: maxTokens };
+  const { endpoint, model } = getModel(feature);
+  const body = { messages, system, max_tokens: maxTokens, model };
   if (useWebSearch) body.use_web_search = true;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 120000);
 
   try {
-    const res = await fetch('/api/chat', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -160,14 +188,16 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false)
 export async function fetchInsight(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Based on my health profile, give me today\'s insight.' }],
-    PROMPTS.insight + '\n\n' + profileText
+    PROMPTS.insight + '\n\n' + profileText,
+    2000, false, 'insight'
   );
 }
 
 export async function fetchConnections(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my health profile for connections and patterns.' }],
-    PROMPTS.connections + '\n\n' + profileText
+    PROMPTS.connections + '\n\n' + profileText,
+    2000, false, 'connections'
   );
 }
 
@@ -176,8 +206,7 @@ export async function fetchNews(profileText) {
   return callAPI(
     [{ role: 'user', content: `Find the most recent health news relevant to my conditions. Today is ${today}. Only include news from the past 6 months.` }],
     PROMPTS.news.replace('{DATE}', today) + '\n\n' + profileText,
-    3000,
-    true
+    3000, true, 'news'
   );
 }
 
@@ -186,15 +215,15 @@ export async function fetchResources(profileText) {
   return callAPI(
     [{ role: 'user', content: `Find disability resources and assistance programs for me. Today is ${today}.` }],
     PROMPTS.resources.replace('{DATE}', today) + '\n\n' + profileText,
-    3000,
-    true
+    3000, true, 'resources'
   );
 }
 
 export async function sendChat(messages, profileText) {
   return callAPI(
     messages,
-    PROMPTS.ask + '\n\n' + profileText
+    PROMPTS.ask + '\n\n' + profileText,
+    2000, false, 'chat'
   );
 }
 
@@ -203,7 +232,7 @@ export async function fetchLabInterpretation(lab, profileText) {
   return callAPI(
     [{ role: 'user', content: `Explain this lab result in context of my health: ${labDesc}` }],
     PROMPTS.labInterpret + '\n\n' + profileText,
-    1000
+    1000, false, 'labInterpret'
   );
 }
 
@@ -212,7 +241,7 @@ export async function fetchVitalsTrend(vitalsData, profileText) {
   return callAPI(
     [{ role: 'user', content: `Analyze these vitals trends:\n${desc}` }],
     PROMPTS.vitalsTrend + '\n\n' + profileText,
-    1200
+    1200, false, 'vitalsTrend'
   );
 }
 
@@ -221,7 +250,7 @@ export async function fetchAppointmentPrep(appointment, profileText) {
   return callAPI(
     [{ role: 'user', content: `Help me prepare for this appointment: ${desc}` }],
     PROMPTS.appointmentPrep + '\n\n' + profileText,
-    1200
+    1200, false, 'appointmentPrep'
   );
 }
 
@@ -229,7 +258,7 @@ export async function fetchCareGapSuggestions(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Based on my health profile, what preventive screenings or follow-ups might I be missing?' }],
     PROMPTS.careGapDetect + '\n\n' + profileText,
-    1500
+    1500, false, 'careGapDetect'
   );
 }
 
@@ -238,7 +267,7 @@ export async function fetchJournalPatterns(entries, profileText) {
   return callAPI(
     [{ role: 'user', content: `Analyze patterns in my journal entries:\n${desc}` }],
     PROMPTS.journalPatterns + '\n\n' + profileText,
-    1500
+    1500, false, 'journalPatterns'
   );
 }
 
@@ -246,7 +275,7 @@ export async function fetchImmunizationReview(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Review my immunization records and tell me if any vaccines are due or recommended for my conditions.' }],
     PROMPTS.immunizationSchedule + '\n\n' + profileText,
-    1500
+    1500, false, 'immunizationSchedule'
   );
 }
 
@@ -255,7 +284,7 @@ export async function fetchAppealDraft(appeal, profileText) {
   return callAPI(
     [{ role: 'user', content: `Draft an appeal letter for: ${desc}` }],
     PROMPTS.appealDraft + '\n\n' + profileText,
-    2000
+    2000, false, 'appealDraft'
   );
 }
 
@@ -263,8 +292,7 @@ export async function fetchCostOptimization(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my medication costs and suggest ways to save money. Include generic alternatives, patient assistance programs, and discount options.' }],
     PROMPTS.costOptimization + '\n\n' + profileText,
-    2000,
-    true
+    2000, true, 'costOptimization'
   );
 }
 
@@ -273,7 +301,7 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
   return callAPI(
     [{ role: 'user', content: `I'm adding the medication "${medName}". My allergies: ${allergyDesc}. Is there a cross-reactivity risk?` }],
     PROMPTS.crossReactivity + '\n\n' + profileText,
-    800
+    800, false, 'crossReactivity'
   );
 }
 
@@ -294,7 +322,8 @@ Use markdown formatting. Be specific with numbers. If data is insufficient for a
 IMPORTANT: You are not a doctor. Include the disclaimer: "This analysis is based on self-reported data patterns. Always discuss cycle-related health concerns with your healthcare provider."
 
 Patient cycle data:
-${cycleProfileText}`
+${cycleProfileText}`,
+    2000, false, 'cyclePatterns'
   );
 }
 
@@ -307,7 +336,7 @@ export async function fetchGeneticExplanation(gene, variant, phenotype, affected
   return callAPI(
     [{ role: 'user', content: `Explain my ${gene} result: variant ${variant || 'unknown'}, phenotype: ${phenotype}. ${drugList} ${medContext}` }],
     PROMPTS.geneticExplanation,
-    800
+    800, false, 'geneticExplanation'
   );
 }
 
@@ -330,6 +359,7 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
   const token = await getAuthToken();
   if (!token) throw new Error('You must be signed in to use AI features.');
 
+  const { endpoint, model } = getModel('chat');
   let currentMessages = [...messages];
   let loopCount = 0;
   let finalText = '';
@@ -342,6 +372,7 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
       system,
       max_tokens: maxTokens,
       tools,
+      model,
     };
 
     const controller = new AbortController();
@@ -349,7 +380,7 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
 
     let data;
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
