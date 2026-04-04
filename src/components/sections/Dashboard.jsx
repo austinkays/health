@@ -1,16 +1,14 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
-  Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
-  PlaneTakeoff, BadgeDollarSign, Activity, Settings as SettingsIcon,
-  Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare, Dna, Zap, Apple,
+  Sparkles, ChevronRight, Calendar, AlertTriangle, AlertOctagon,
+  User, Shield, FlaskConical, Activity, Settings as SettingsIcon,
+  Sun, Moon, Sunrise, Sunset, ClipboardList, Search, X,
+  TrendingUp, ShieldAlert, Heart, Leaf, CheckSquare, Zap,
   Copy, Bookmark, RefreshCw,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Motif, { Divider } from '../ui/Motif';
-import { OuraIcon } from '../ui/OuraIcon';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
@@ -88,44 +86,15 @@ function getAlertDismissal() {
 
 /* ── Quick Access config (static — outside component) ──── */
 
-// All links use unified lav color for a cohesive look
-const ALL_LINKS = [
-  // Records
-  { id: 'summary',      label: 'Summary',      icon: ClipboardList,   group: 'Records' },
-  { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,     group: 'Records' },
-  { id: 'allergies',    label: 'Allergies',    icon: Shield,          group: 'Records' },
-  { id: 'labs',         label: 'Labs',         icon: FlaskConical,    group: 'Records' },
-  { id: 'procedures',   label: 'Procedures',   icon: Syringe,         group: 'Records' },
-  { id: 'immunizations',label: 'Vaccines',     icon: ShieldCheck,     group: 'Records' },
-  { id: 'genetics',     label: 'Genetics',     icon: Dna,             group: 'Records' },
-  // Care Team
-  { id: 'providers',    label: 'Providers',    icon: User,            group: 'Care Team' },
-  { id: 'appts',        label: 'Appointments', icon: Calendar,        group: 'Care Team' },
-  { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       group: 'Care Team' },
-  { id: 'insurance',    label: 'Insurance',    icon: BadgeDollarSign, group: 'Care Team' },
-  { id: 'appeals',      label: 'Appeals',      icon: Scale,           group: 'Care Team' },
-  // Tracking
-  { id: 'sleep',        label: 'Sleep',        icon: Moon,            group: 'Tracking' },
-  { id: 'activities',   label: 'Activities',   icon: Activity,        group: 'Tracking' },
-  { id: 'cycles',       label: 'Cycles',       icon: Heart,           group: 'Tracking' },
-  // Safety
-  { id: 'interactions', label: 'Interactions', icon: AlertTriangle,   group: 'Safety' },
-  { id: 'care_gaps',    label: 'Care Gaps',    icon: AlertTriangle,   group: 'Safety' },
-  { id: 'anesthesia',   label: 'Anesthesia',   icon: AlertOctagon,    group: 'Safety' },
-  // Plans
-  { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     group: 'Plans' },
-  { id: 'surgical',     label: 'Surgery Plan', icon: PlaneTakeoff,    group: 'Plans' },
-  // Devices (conditional)
-  { id: 'oura',         label: 'Oura Ring',    icon: OuraIcon,        group: 'Devices' },
-  { id: 'apple_health', label: 'Apple Health', icon: Apple,           group: 'Devices' },
-  // Meta
-  { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    group: 'Other' },
-].map(l => ({ ...l, color: C.lav }));
-
-const GROUP_ORDER = ['Records', 'Care Team', 'Tracking', 'Safety', 'Plans', 'Devices', 'Other'];
-
-const DEFAULT_PRIMARY_IDS = ['summary', 'conditions', 'providers', 'appts', 'labs', 'todos'];
-const DASH_PRIMARY_KEY = 'salve:dash-primary';
+// Hub tiles — always 6 (or 5 when no devices). Tappable → category page.
+const HUB_TILES = [
+  { id: 'records',  navId: 'hub_records',  label: 'Records',   icon: ClipboardList },
+  { id: 'care',     navId: 'hub_care',     label: 'Care Team', icon: User },
+  { id: 'tracking', navId: 'hub_tracking', label: 'Tracking',  icon: Activity },
+  { id: 'safety',   navId: 'hub_safety',   label: 'Safety',    icon: Shield },
+  { id: 'plans',    navId: 'hub_plans',    label: 'Plans',     icon: CheckSquare },
+  { id: 'devices',  navId: 'hub_devices',  label: 'Devices',   icon: SettingsIcon, conditional: true },
+];
 
 /* ── Component ───────────────────────────────────────────── */
 
@@ -135,7 +104,6 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const wellness = useWellnessMessage();
-  const [showMore, setShowMore] = useState(() => localStorage.getItem('salve:dash-more') === '1');
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
   const alertsDismissed = alertDismissal !== null;
@@ -148,32 +116,13 @@ export default function Dashboard({ data, interactions, onNav }) {
     || (data.cycles || []).some(c => c.notes?.includes('Oura'))
     || (data.activities || []).some(a => a.source === 'oura'), [data.vitals, data.cycles, data.activities]);
 
-  const visibleLinks = useMemo(() => {
-    return ALL_LINKS.filter(l => {
-      if (l.id === 'oura') return hasOura;
-      if (l.id === 'apple_health') return hasAppleHealth;
+  /* ── Hub tiles (with conditional devices) ── */
+  const hubTiles = useMemo(() => {
+    return HUB_TILES.filter(t => {
+      if (t.conditional && t.id === 'devices') return hasOura || hasAppleHealth;
       return true;
     });
   }, [hasOura, hasAppleHealth]);
-
-  /* ── Customizable Quick Access state ──────── */
-  const [primaryIds, setPrimaryIds] = useState(() => {
-    try {
-      const raw = localStorage.getItem(DASH_PRIMARY_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length >= 1 && parsed.length <= ALL_LINKS.length && parsed.every(id => ALL_LINKS.some(l => l.id === id)))
-          return parsed;
-      }
-    } catch { /* ignore corrupt data */ }
-    return DEFAULT_PRIMARY_IDS;
-  });
-  const [editing, setEditing] = useState(false);
-  const [replacingIndex, setReplacingIndex] = useState(null);
-  const [addingMode, setAddingMode] = useState(false);
-
-  const primaryLinks = useMemo(() => primaryIds.map(id => visibleLinks.find(l => l.id === id)).filter(Boolean), [primaryIds, visibleLinks]);
-  const moreLinks = useMemo(() => visibleLinks.filter(l => !primaryIds.includes(l.id)), [primaryIds, visibleLinks]);
 
   /* ── Search state ───────────────────────────── */
   const [searchQuery, setSearchQuery] = useState('');
@@ -437,41 +386,6 @@ export default function Dashboard({ data, interactions, onNav }) {
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
-  const toggleMore = () => {
-    const next = !showMore;
-    setShowMore(next);
-    localStorage.setItem('salve:dash-more', next ? '1' : '0');
-  };
-
-  const handleSwap = (newId) => {
-    if (replacingIndex === null) return;
-    const next = [...primaryIds];
-    next[replacingIndex] = newId;
-    setPrimaryIds(next);
-    localStorage.setItem(DASH_PRIMARY_KEY, JSON.stringify(next));
-    setReplacingIndex(null);
-  };
-
-  const handleAdd = (id) => {
-    const next = [...primaryIds, id];
-    setPrimaryIds(next);
-    localStorage.setItem(DASH_PRIMARY_KEY, JSON.stringify(next));
-    setAddingMode(false);
-  };
-
-  const handleRemove = (index) => {
-    if (primaryIds.length <= 1) return;
-    const next = primaryIds.filter((_, i) => i !== index);
-    setPrimaryIds(next);
-    localStorage.setItem(DASH_PRIMARY_KEY, JSON.stringify(next));
-    if (replacingIndex === index) setReplacingIndex(null);
-  };
-
-  const finishEditing = () => {
-    setEditing(false);
-    setReplacingIndex(null);
-    setAddingMode(false);
-  };
 
   const dismissAlerts = (duration) => {
     const val = { until: duration === 'forever' ? 'forever' : Date.now() + duration };
@@ -804,161 +718,20 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       <Divider />
 
-      {/* ── Quick Access (customizable primary + expandable) ── */}
+      {/* ── Quick Access (hub tiles) ───────────── */}
       <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
-        {/* Edit / Done header */}
-        <div className="flex justify-end mb-1">
-          <button
-            onClick={() => editing ? finishEditing() : setEditing(true)}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-montserrat opacity-60 hover:opacity-100 transition-opacity"
-            style={{ color: editing ? C.sage : C.textFaint }}
-            aria-label={editing ? 'Done editing' : 'Edit quick access'}
-          >
-            {editing ? <Check size={11} /> : <Pencil size={11} />}
-            {editing ? 'Done' : 'Edit'}
-          </button>
-        </div>
-
-        {/* Primary tiles */}
-        <div className="grid grid-cols-3 gap-2 mb-2">
-          {primaryLinks.map((l, i) => (
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          {hubTiles.map(h => (
             <button
-              key={l.id}
-              onClick={() => editing ? setReplacingIndex(replacingIndex === i ? null : i) : onNav(l.id)}
-              className={`relative bg-salve-card border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all ${
-                editing
-                  ? replacingIndex === i
-                    ? 'border-salve-lav ring-1 ring-salve-lav'
-                    : 'border-dashed border-salve-border2'
-                  : 'border-salve-border'
-              }`}
+              key={h.id}
+              onClick={() => onNav(h.navId)}
+              className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
             >
-              {/* Remove button (edit mode, min 1 tile) */}
-              {editing && primaryIds.length > 1 && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => { e.stopPropagation(); handleRemove(i); }}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); handleRemove(i); } }}
-                  className="absolute top-1 right-1 z-10 w-4.5 h-4.5 rounded-full bg-salve-rose/90 flex items-center justify-center cursor-pointer hover:bg-salve-rose transition-colors shadow-sm"
-                  aria-label={`Remove ${l.label}`}
-                >
-                  <X size={10} className="text-salve-bg" />
-                </span>
-              )}
-              <l.icon size={20} color={l.color} strokeWidth={1.5} />
-              <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-              {editing && <ArrowLeftRight size={10} className="text-salve-textFaint" />}
+              <h.icon size={20} color={C.lav} strokeWidth={1.5} />
+              <span className="text-[11px] text-salve-textMid font-montserrat">{h.label}</span>
             </button>
           ))}
-
-          {/* Add tile (edit mode, when more tiles are available) */}
-          {editing && moreLinks.length > 0 && (
-            <button
-              onClick={() => { setAddingMode(true); setReplacingIndex(null); }}
-              className="bg-salve-card border border-dashed border-salve-border2 rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all hover:border-salve-sage"
-              aria-label="Add a section"
-            >
-              <Plus size={20} color={C.sage} strokeWidth={1.5} />
-              <span className="text-[11px] text-salve-sage font-montserrat">Add</span>
-            </button>
-          )}
         </div>
-
-        {/* Bottom sheet: Swap mode (replacing a tile) */}
-        {editing && replacingIndex !== null && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setReplacingIndex(null)}>
-            <div className="absolute inset-0 bg-black/50" />
-            <div
-              className="relative w-full max-w-[480px] bg-salve-card border-t border-salve-border rounded-t-2xl p-4 pb-8"
-              onClick={e => e.stopPropagation()}
-            >
-              <p className="text-xs text-salve-textMid font-montserrat mb-3 text-center">
-                Replace <strong className="text-salve-text">{primaryLinks[replacingIndex]?.label}</strong> with:
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {moreLinks.map(l => (
-                  <button
-                    key={l.id}
-                    onClick={() => handleSwap(l.id)}
-                    className="bg-salve-card2 border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
-                  >
-                    <l.icon size={20} color={l.color} strokeWidth={1.5} />
-                    <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bottom sheet: Add mode (adding a new tile) */}
-        {editing && addingMode && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setAddingMode(false)}>
-            <div className="absolute inset-0 bg-black/50" />
-            <div
-              className="relative w-full max-w-[480px] bg-salve-card border-t border-salve-border rounded-t-2xl p-4 pb-8"
-              onClick={e => e.stopPropagation()}
-            >
-              <p className="text-xs text-salve-textMid font-montserrat mb-3 text-center">
-                Add a section:
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {moreLinks.map(l => (
-                  <button
-                    key={l.id}
-                    onClick={() => handleAdd(l.id)}
-                    className="bg-salve-card2 border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
-                  >
-                    <l.icon size={20} color={l.color} strokeWidth={1.5} />
-                    <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* More sections toggle (hidden during edit or when all tiles are promoted) */}
-        {!editing && moreLinks.length > 0 && (
-          <>
-            <button
-              onClick={toggleMore}
-              className="w-full flex items-center justify-center gap-1.5 py-2 mb-2 bg-transparent border border-salve-border rounded-xl cursor-pointer tile-magic"
-            >
-              <Grid size={13} className="text-salve-textFaint" />
-              <span className="text-[11px] text-salve-textFaint font-montserrat">
-                {showMore ? 'Show less' : 'More sections'}
-              </span>
-            </button>
-
-            {showMore && (
-              <div className="mb-4 dash-stagger" style={{ animationDelay: '0s', animationDuration: '0.3s' }}>
-                {GROUP_ORDER.map(groupName => {
-                  const groupLinks = moreLinks.filter(l => l.group === groupName);
-                  if (!groupLinks.length) return null;
-                  return (
-                    <div key={groupName} className="mb-3">
-                      <p className="text-[9px] text-salve-textFaint/80 font-montserrat tracking-widest uppercase mb-1.5 px-1">{groupName}</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {groupLinks.map(l => (
-                          <button
-                            key={l.id}
-                            onClick={() => onNav(l.id)}
-                            className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
-                          >
-                            <l.icon size={20} color={l.color} strokeWidth={1.5} />
-                            <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </>
-        )}
       </section>
     </div>
   );

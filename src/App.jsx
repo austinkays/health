@@ -58,6 +58,7 @@ const Todos = lazyWithRetry(() => import('./components/sections/Todos'));
 const Genetics = lazyWithRetry(() => import('./components/sections/Genetics'));
 const Activities = lazyWithRetry(() => import('./components/sections/Activities'));
 const Sleep = lazyWithRetry(() => import('./components/sections/Sleep'));
+const Hub = lazyWithRetry(() => import('./components/sections/Hub'));
 const OuraRing = lazyWithRetry(() => import('./components/sections/OuraRing'));
 const AppleHealthPage = lazyWithRetry(() => import('./components/sections/AppleHealthPage'));
 const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
@@ -269,6 +270,13 @@ function AppContent() {
       case 'genetics':   return <Genetics {...shared} />;
       case 'activities': return <Activities {...shared} />;
       case 'sleep':      return <Sleep {...shared} />;
+      // Hub category pages
+      case 'hub_records':  return <Hub hubId="records" data={data} onNav={onNav} />;
+      case 'hub_care':     return <Hub hubId="care" data={data} onNav={onNav} />;
+      case 'hub_tracking': return <Hub hubId="tracking" data={data} onNav={onNav} />;
+      case 'hub_safety':   return <Hub hubId="safety" data={data} onNav={onNav} />;
+      case 'hub_plans':    return <Hub hubId="plans" data={data} onNav={onNav} />;
+      case 'hub_devices':  return <Hub hubId="devices" data={data} onNav={onNav} />;
       case 'oura':         return <OuraRing data={data} addItem={addItem} onNav={onNav} />;
       case 'apple_health': return <AppleHealthPage data={data} onNav={onNav} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
