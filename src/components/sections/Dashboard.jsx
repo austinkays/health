@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
   Sparkles, ChevronRight, Calendar, Pill, AlertTriangle, AlertOctagon,
   Stethoscope, User, Shield, FlaskConical, Syringe, ShieldCheck, Scale,
-  PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
+  PlaneTakeoff, BadgeDollarSign, Activity, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
   TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare, Dna, Zap, Apple,
   Copy, Bookmark, RefreshCw,
@@ -14,6 +14,7 @@ import { OuraIcon } from '../ui/OuraIcon';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { VITAL_TYPES } from '../../constants/defaults';
 import { fetchInsight } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
@@ -87,33 +88,43 @@ function getAlertDismissal() {
 
 /* ── Quick Access config (static — outside component) ──── */
 
+// All links use unified lav color for a cohesive look
 const ALL_LINKS = [
-  { id: 'summary',      label: 'Summary',      icon: ClipboardList,   color: C.lav },
-  { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,     color: C.lav },
-  { id: 'providers',    label: 'Providers',    icon: User,            color: C.sage },
-  { id: 'allergies',    label: 'Allergies',    icon: Shield,          color: C.amber },
-  { id: 'appts',        label: 'Appointments', icon: Calendar,        color: C.rose },
-  { id: 'labs',         label: 'Labs',         icon: FlaskConical,    color: C.lav },
-  { id: 'insurance',    label: 'Insurance',    icon: BadgeDollarSign, color: C.sage },
-  { id: 'procedures',   label: 'Procedures',   icon: Syringe,         color: C.sage },
-  { id: 'immunizations',label: 'Vaccines',     icon: ShieldCheck,     color: C.sage },
-  { id: 'care_gaps',    label: 'Care Gaps',    icon: AlertTriangle,   color: C.amber },
-  { id: 'anesthesia',   label: 'Anesthesia',   icon: AlertOctagon,    color: C.rose },
-  { id: 'appeals',      label: 'Appeals',      icon: Scale,           color: C.amber },
-  { id: 'surgical',     label: 'Surgery Plan', icon: PlaneTakeoff,    color: C.lav },
-  { id: 'interactions', label: 'Interactions', icon: AlertTriangle,   color: C.amber },
-  { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       color: C.sage },
-  { id: 'cycles',       label: 'Cycles',       icon: Heart,           color: C.rose },
-  { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     color: C.lav },
-  { id: 'activities',   label: 'Activities',   icon: Activity,        color: C.sage },
-  { id: 'sleep',        label: 'Sleep',        icon: Moon,            color: C.lav },
-  { id: 'genetics',     label: 'Genetics',     icon: Dna,             color: C.lav },
-  { id: 'oura',         label: 'Oura Ring',    icon: OuraIcon,        color: C.sage },
-  { id: 'apple_health', label: 'Apple Health', icon: Apple,           color: C.lav },
-  { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    color: C.textMid },
-];
+  // Records
+  { id: 'summary',      label: 'Summary',      icon: ClipboardList,   group: 'Records' },
+  { id: 'conditions',   label: 'Conditions',   icon: Stethoscope,     group: 'Records' },
+  { id: 'allergies',    label: 'Allergies',    icon: Shield,          group: 'Records' },
+  { id: 'labs',         label: 'Labs',         icon: FlaskConical,    group: 'Records' },
+  { id: 'procedures',   label: 'Procedures',   icon: Syringe,         group: 'Records' },
+  { id: 'immunizations',label: 'Vaccines',     icon: ShieldCheck,     group: 'Records' },
+  { id: 'genetics',     label: 'Genetics',     icon: Dna,             group: 'Records' },
+  // Care Team
+  { id: 'providers',    label: 'Providers',    icon: User,            group: 'Care Team' },
+  { id: 'appts',        label: 'Appointments', icon: Calendar,        group: 'Care Team' },
+  { id: 'pharmacies',   label: 'Pharmacies',   icon: Building2,       group: 'Care Team' },
+  { id: 'insurance',    label: 'Insurance',    icon: BadgeDollarSign, group: 'Care Team' },
+  { id: 'appeals',      label: 'Appeals',      icon: Scale,           group: 'Care Team' },
+  // Tracking
+  { id: 'sleep',        label: 'Sleep',        icon: Moon,            group: 'Tracking' },
+  { id: 'activities',   label: 'Activities',   icon: Activity,        group: 'Tracking' },
+  { id: 'cycles',       label: 'Cycles',       icon: Heart,           group: 'Tracking' },
+  // Safety
+  { id: 'interactions', label: 'Interactions', icon: AlertTriangle,   group: 'Safety' },
+  { id: 'care_gaps',    label: 'Care Gaps',    icon: AlertTriangle,   group: 'Safety' },
+  { id: 'anesthesia',   label: 'Anesthesia',   icon: AlertOctagon,    group: 'Safety' },
+  // Plans
+  { id: 'todos',        label: "To-Do's",      icon: CheckSquare,     group: 'Plans' },
+  { id: 'surgical',     label: 'Surgery Plan', icon: PlaneTakeoff,    group: 'Plans' },
+  // Devices (conditional)
+  { id: 'oura',         label: 'Oura Ring',    icon: OuraIcon,        group: 'Devices' },
+  { id: 'apple_health', label: 'Apple Health', icon: Apple,           group: 'Devices' },
+  // Meta
+  { id: 'settings',     label: 'Settings',     icon: SettingsIcon,    group: 'Other' },
+].map(l => ({ ...l, color: C.lav }));
 
-const DEFAULT_PRIMARY_IDS = ['summary', 'conditions', 'providers', 'allergies', 'appts', 'labs'];
+const GROUP_ORDER = ['Records', 'Care Team', 'Tracking', 'Safety', 'Plans', 'Devices', 'Other'];
+
+const DEFAULT_PRIMARY_IDS = ['summary', 'conditions', 'providers', 'appts', 'labs', 'todos'];
 const DASH_PRIMARY_KEY = 'salve:dash-primary';
 
 /* ── Component ───────────────────────────────────────────── */
@@ -263,6 +274,24 @@ export default function Dashboard({ data, interactions, onNav }) {
     [data.journal]
   );
 
+  /* Vitals snapshot — latest reading per type, last 7 days */
+  const vitalsSnapshot = useMemo(() => {
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const recent = (data.vitals || []).filter(v => v.date >= cutoff);
+    if (!recent.length) return null;
+    const byType = {};
+    for (const v of recent) {
+      if (!byType[v.type] || v.date > byType[v.type].date) byType[v.type] = v;
+    }
+    // Priority order for display
+    const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood'];
+    const items = priority
+      .filter(t => byType[t])
+      .map(t => byType[t])
+      .slice(0, 3);
+    return items.length ? items : null;
+  }, [data.vitals]);
+
   const urgentGaps = useMemo(
     () => (data.care_gaps || []).filter(g => g.urgency === 'urgent').length,
     [data.care_gaps]
@@ -277,15 +306,6 @@ export default function Dashboard({ data, interactions, onNav }) {
   );
 
   /* Appointments within 48 hours for prep nudge */
-  const prepAppts = useMemo(() => {
-    const now = new Date();
-    const cutoff = new Date(now.getTime() + 48 * 60 * 60 * 1000);
-    return data.appts.filter(a => {
-      const d = new Date(a.date + (a.time ? `T${a.time}` : ''));
-      return d >= now && d <= cutoff;
-    });
-  }, [data.appts]);
-
   /* ── AI Insight ─────────────────────────────── */
   const loadInsight = async () => {
     setInsightLoading(true);
@@ -398,8 +418,21 @@ export default function Dashboard({ data, interactions, onNav }) {
         }
       }
     }
+    // Upcoming appointments within 48hr
+    const nowTime = new Date();
+    const cutoff = new Date(nowTime.getTime() + 48 * 60 * 60 * 1000);
+    const prep = (data.appts || []).filter(a => {
+      const d = new Date(a.date + (a.time ? `T${a.time}` : ''));
+      return d >= nowTime && d <= cutoff;
+    });
+    for (const a of prep) {
+      const when = new Date(a.date + (a.time ? `T${a.time}` : ''));
+      const hrs = Math.round((when - nowTime) / 3600000);
+      const timeLabel = hrs < 24 ? `in ${hrs}h` : 'tomorrow';
+      items.push({ id: `appt-${a.id}`, icon: Calendar, color: C.rose, text: `Appointment with ${a.provider || 'provider'} ${timeLabel}`, nav: 'appts', highlightId: a.id });
+    }
     return items;
-  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, activeMeds]);
+  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, data.appts, activeMeds]);
 
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
@@ -600,7 +633,7 @@ export default function Dashboard({ data, interactions, onNav }) {
             {alerts.map((a, i) => (
               <button
                 key={a.id}
-                onClick={() => onNav(a.nav)}
+                onClick={() => onNav(a.nav, a.highlightId ? { highlightId: a.highlightId } : undefined)}
                 className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
               >
                 <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
@@ -610,6 +643,20 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             ))}
           </Card>
+        </section>
+      )}
+
+      {/* ── AI Insight teaser (when no insight loaded, consented) ── */}
+      {hasAIConsent() && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0 && (
+        <section aria-label="Get insight from Sage" className="dash-stagger dash-stagger-3 mb-4">
+          <button
+            onClick={loadInsight}
+            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-salve-sage/5 border border-salve-sage/15 cursor-pointer hover:bg-salve-sage/10 hover:border-salve-sage/25 transition-all font-montserrat text-left"
+          >
+            <Leaf size={13} className="text-salve-sage/70 flex-shrink-0" />
+            <span className="text-[12px] text-salve-sageDim/80 flex-1">Get today's insight from Sage</span>
+            <ChevronRight size={12} className="text-salve-sage/40 flex-shrink-0" />
+          </button>
         </section>
       )}
 
@@ -671,28 +718,6 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
-      {/* ── Appointment Prep Nudge (within 48 hrs) ──── */}
-      {prepAppts.length > 0 && (
-        <section aria-label="Upcoming appointment prep" className="dash-stagger dash-stagger-4 mb-2">
-          {prepAppts.map(a => (
-            <Card key={a.id} className="!bg-salve-rose/5 !border-salve-rose/20 cursor-pointer" onClick={() => onNav('appts', { highlightId: a.id })}>
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5 w-8 h-8 rounded-full bg-salve-rose/15 flex items-center justify-center flex-shrink-0">
-                  <Calendar size={14} color={C.rose} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[11px] font-semibold text-salve-rose tracking-wide mb-0.5">PREPARE FOR YOUR VISIT</div>
-                  <div className="text-[13px] font-medium text-salve-text truncate">{a.reason || 'Appointment'}{a.provider ? ` with ${a.provider}` : ''}</div>
-                  <div className="text-[11px] text-salve-textFaint mt-0.5">{daysUntil(a.date)}{a.time ? ` at ${a.time}` : ''}{a.location ? ` · ${a.location}` : ''}</div>
-                  {!a.questions && <div className="text-[11px] text-salve-rose/80 mt-1 italic">Tap to add questions for your provider</div>}
-                </div>
-                <ChevronRight size={14} className="text-salve-rose/50 mt-2 flex-shrink-0" />
-              </div>
-            </Card>
-          ))}
-        </section>
-      )}
-
       {/* ── Coming Up (unified timeline) ──────────── */}
       {timeline.length > 0 && (
         <section aria-label="Coming up" className="dash-stagger dash-stagger-4 mb-2">
@@ -749,21 +774,29 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
-      {/* ── Latest Journal (subtle) ──────────────── */}
-      {latestJournal && (
-        <section aria-label="Latest journal entry" className="dash-stagger dash-stagger-4 mb-2">
-          <Card className="!bg-salve-lav/5 !border-salve-lav/10 !p-3.5 cursor-pointer" onClick={() => onNav('journal')}>
-            <div className="flex items-start gap-2.5">
-              {latestJournal.mood && (
-                <span className="text-lg leading-none mt-0.5">{latestJournal.mood.split(' ')[0]}</span>
-              )}
-              <div className="flex-1 min-w-0">
-                <div className="text-[12px] text-salve-text font-medium truncate">
-                  {latestJournal.title || fmtDate(latestJournal.date)}
-                </div>
-                <div className="text-[11px] text-salve-textMid leading-relaxed line-clamp-1 mt-0.5">{latestJournal.content}</div>
-              </div>
-              <BookOpen size={13} className="text-salve-textFaint flex-shrink-0 mt-1" />
+      {/* ── Vitals Snapshot ──────────────────────── */}
+      {vitalsSnapshot && (
+        <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
+          <Card className="!bg-salve-lav/5 !border-salve-lav/10 !p-3.5 cursor-pointer" onClick={() => onNav('vitals')}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-salve-lav/70 font-montserrat tracking-wider uppercase">Recent Vitals</span>
+              <ChevronRight size={12} className="text-salve-textFaint" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {vitalsSnapshot.map(v => {
+                const type = VITAL_TYPES.find(t => t.id === v.type);
+                const label = type?.label || v.type;
+                const unit = type?.unit || v.unit || '';
+                const displayVal = v.type === 'bp' && v.value2 ? `${v.value}/${v.value2}` : v.value;
+                return (
+                  <div key={v.type} className="text-center">
+                    <div className="text-[15px] font-medium text-salve-text font-montserrat">
+                      {displayVal}<span className="text-[10px] text-salve-textFaint ml-0.5">{unit}</span>
+                    </div>
+                    <div className="text-[9px] text-salve-textFaint font-montserrat">{label}</div>
+                  </div>
+                );
+              })}
             </div>
           </Card>
         </section>
@@ -900,17 +933,28 @@ export default function Dashboard({ data, interactions, onNav }) {
             </button>
 
             {showMore && (
-              <div className="grid grid-cols-3 gap-2 mb-4 dash-stagger" style={{ animationDelay: '0s', animationDuration: '0.3s' }}>
-                {moreLinks.map(l => (
-                  <button
-                    key={l.id}
-                    onClick={() => onNav(l.id)}
-                    className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
-                  >
-                    <l.icon size={20} color={l.color} strokeWidth={1.5} />
-                    <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
-                  </button>
-                ))}
+              <div className="mb-4 dash-stagger" style={{ animationDelay: '0s', animationDuration: '0.3s' }}>
+                {GROUP_ORDER.map(groupName => {
+                  const groupLinks = moreLinks.filter(l => l.group === groupName);
+                  if (!groupLinks.length) return null;
+                  return (
+                    <div key={groupName} className="mb-3">
+                      <p className="text-[9px] text-salve-textFaint/80 font-montserrat tracking-widest uppercase mb-1.5 px-1">{groupName}</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {groupLinks.map(l => (
+                          <button
+                            key={l.id}
+                            onClick={() => onNav(l.id)}
+                            className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic"
+                          >
+                            <l.icon size={20} color={l.color} strokeWidth={1.5} />
+                            <span className="text-[11px] text-salve-textMid font-montserrat">{l.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </>
