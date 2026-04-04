@@ -41,9 +41,8 @@ function getVitalFlag(type, value, value2) {
 
 const flagStyle = (flag) => {
   if (!flag) return {};
-  if (flag.level === 'critical') return { color: C.rose, bg: 'rgba(232,138,154,0.15)' };
-  if (flag.level === 'high') return { color: C.amber, bg: 'rgba(232,200,138,0.15)' };
-  return { color: C.amber, bg: 'rgba(232,200,138,0.15)' };
+  if (flag.level === 'critical') return { color: 'rgb(var(--salve-rose))', bg: 'rgb(var(--salve-rose) / 0.15)' };
+  return { color: 'rgb(var(--salve-amber))', bg: 'rgb(var(--salve-amber) / 0.15)' };
 };
 
 const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
