@@ -91,8 +91,14 @@ export default function useHealthData(session) {
   }, []);
 
   const updateSettings = useCallback(async (changes) => {
-    const saved = await db.profile.update(changes);
-    setData(prev => ({ ...prev, settings: saved }));
+    // Optimistic local update — instant UI response
+    setData(prev => ({ ...prev, settings: { ...prev.settings, ...changes } }));
+    // Fire the network save in the background
+    try {
+      await db.profile.update(changes);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    }
   }, []);
 
   const reloadData = useCallback(async () => {
