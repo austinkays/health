@@ -55,9 +55,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
   const userTier = s?.tier || 'free';
-  const { themeId, setTheme, themes: allThemes } = useTheme();
-  const [pendingTheme, setPendingTheme] = useState(null);
-  const [lockedTheme, setLockedTheme] = useState(null);
+  const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
   const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
@@ -348,34 +346,33 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <Card>
         <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
         {(() => {
-          const currentType = allThemes[themeId]?.type || 'dark';
           const core = Object.values(allThemes).filter(t => !t.experimental);
           const experimental = Object.values(allThemes).filter(t => t.experimental);
-          const renderTile = (t) => {
-            const isCrossover = currentType === 'dark' && t.type === 'light';
-            return (
-              <button
-                key={t.id}
-                onClick={() => isCrossover && themeId !== t.id ? setPendingTheme(t.id) : setTheme(t.id)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-center ${
-                  themeId === t.id
-                    ? 'border-salve-lav/50 bg-salve-lav/10'
-                    : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
-                }`}
-              >
-                <div className="flex justify-center gap-1 mb-2">
-                  {['lav', 'sage', 'amber', 'rose'].map(key => (
-                    <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
-                  ))}
-                </div>
-                <span className="text-xs text-salve-text font-medium block">{t.label}</span>
-                <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
-                {t.type === 'light' && themeId !== t.id && (
-                  <span className="text-[8px] text-salve-amber mt-1 block">☀ Light theme</span>
-                )}
-              </button>
-            );
-          };
+          const renderTile = (t) => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`relative p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-center ${
+                themeId === t.id
+                  ? 'border-salve-lav/50 bg-salve-lav/10'
+                  : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
+              }`}
+            >
+              {t.experimental && userTier !== 'premium' && (
+                <div className="absolute top-1.5 right-1.5 text-[9px] text-salve-lav/70" aria-hidden="true">🔒</div>
+              )}
+              <div className="flex justify-center gap-1 mb-2">
+                {['lav', 'sage', 'amber', 'rose'].map(key => (
+                  <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
+                ))}
+              </div>
+              <span className="text-xs text-salve-text font-medium block">{t.label}</span>
+              <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
+              {t.type === 'light' && (
+                <span className="text-[8px] text-salve-amber mt-1 block">☀ Light theme</span>
+              )}
+            </button>
+          );
           return (
             <>
               <div className="grid grid-cols-2 gap-2">{core.map(renderTile)}</div>
@@ -387,65 +384,46 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav ml-1">Premium</span>
                   </summary>
                   <div className="grid grid-cols-2 gap-2 mt-2">
-                    {userTier === 'premium'
-                      ? experimental.map(renderTile)
-                      : experimental.map(t => (
-                          <button
-                            key={t.id}
-                            onClick={() => setLockedTheme(t.id)}
-                            className="relative p-3 rounded-xl border border-salve-border bg-salve-card2 hover:border-salve-lav/30 cursor-pointer font-montserrat text-center transition-colors"
-                          >
-                            <div className="absolute top-1.5 right-1.5 text-[9px] text-salve-lav/70" aria-hidden="true">🔒</div>
-                            <div className="flex justify-center gap-1 mb-2">
-                              {['lav', 'sage', 'amber', 'rose'].map(key => (
-                                <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
-                              ))}
-                            </div>
-                            <span className="text-xs text-salve-text font-medium block">{t.label}</span>
-                            <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
-                          </button>
-                        ))
-                    }
+                    {experimental.map(renderTile)}
                   </div>
                 </details>
               )}
             </>
           );
         })()}
-        {lockedTheme && (
-          <div className="mt-2 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5">
-            <p className="text-xs text-salve-text font-montserrat mb-2">
-              <strong className="text-salve-lav">{allThemes[lockedTheme]?.label}</strong> is a premium theme. Upgrade to apply it.
-            </p>
-            <button
-              onClick={() => setLockedTheme(null)}
-              className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat"
-            >
-              Got it
-            </button>
-          </div>
-        )}
-        {pendingTheme && (
-          <div className="mt-2 p-3 rounded-xl border border-salve-amber/30 bg-salve-amber/5">
-            <p className="text-xs text-salve-text font-montserrat mb-2">
-              Heads up — this is a light theme. It'll be a big brightness change.
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => { setTheme(pendingTheme); setPendingTheme(null); }}
-                className="text-xs font-medium text-salve-amber bg-salve-amber/15 px-3 py-1.5 rounded-lg border border-salve-amber/30 cursor-pointer font-montserrat"
-              >
-                Switch anyway
-              </button>
-              <button
-                onClick={() => setPendingTheme(null)}
-                className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat"
-              >
-                Never mind
-              </button>
+        {/* Save/Revert bar — appears when the previewed theme differs from saved */}
+        {hasUnsavedChanges && (() => {
+          const previewed = allThemes[themeId];
+          const isPremiumOnly = previewed?.experimental && userTier !== 'premium';
+          return (
+            <div className="mt-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5">
+              <p className="text-xs text-salve-text font-montserrat mb-2">
+                Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
+                {isPremiumOnly && <span className="text-salve-textFaint"> (premium only)</span>}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => !isPremiumOnly && saveTheme()}
+                  disabled={isPremiumOnly}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border font-montserrat transition-colors ${
+                    isPremiumOnly
+                      ? 'text-salve-textFaint bg-transparent border-salve-border cursor-not-allowed'
+                      : 'text-salve-lav bg-salve-lav/15 border-salve-lav/30 cursor-pointer hover:bg-salve-lav/25'
+                  }`}
+                  title={isPremiumOnly ? 'Upgrade to premium to save this theme' : 'Save this theme'}
+                >
+                  {isPremiumOnly ? '🔒 Save (Premium)' : 'Save changes'}
+                </button>
+                <button
+                  onClick={revertTheme}
+                  className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat"
+                >
+                  Revert
+                </button>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Card>
 
       <Card className="!mt-2">

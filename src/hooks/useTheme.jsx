@@ -18,30 +18,32 @@ function applyThemeVariables(themeId) {
   }
 }
 
+function readCommitted() {
+  try { return localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; }
+}
+
 export function ThemeProvider({ children }) {
-  const [themeId, setThemeId] = useState(() => {
-    try { return localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; }
-  });
+  const initial = readCommitted();
+  const [committedThemeId, setCommittedThemeId] = useState(initial);
+  // Preview/active theme — what's currently displayed. May differ from committed.
+  const [themeId, setThemeIdInternal] = useState(initial);
 
   const isFirstRender = useRef(true);
 
   useEffect(() => {
     if (isFirstRender.current) {
-      // First render — apply immediately, no fade
       isFirstRender.current = false;
       applyThemeVariables(themeId);
-      try { localStorage.setItem(THEME_STORAGE_KEY, themeId); } catch { /* ignore */ }
       return;
     }
 
-    // Subsequent theme changes — fade out, swap, fade in
+    // Fade out → swap variables → fade in
     const root = document.documentElement;
     root.classList.remove('theme-transitioned');
     root.classList.add('theme-transitioning');
 
     const applyTimer = setTimeout(() => {
       applyThemeVariables(themeId);
-      try { localStorage.setItem(THEME_STORAGE_KEY, themeId); } catch { /* ignore */ }
       root.classList.remove('theme-transitioning');
       root.classList.add('theme-transitioned');
     }, 250);
@@ -53,6 +55,22 @@ export function ThemeProvider({ children }) {
     return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
   }, [themeId]);
 
+  // setTheme only previews (applies to DOM). Use saveTheme to persist.
+  const setTheme = useCallback((id) => setThemeIdInternal(id), []);
+
+  const saveTheme = useCallback((id) => {
+    const target = id || themeId;
+    try { localStorage.setItem(THEME_STORAGE_KEY, target); } catch { /* ignore */ }
+    setCommittedThemeId(target);
+    if (target !== themeId) setThemeIdInternal(target);
+  }, [themeId]);
+
+  const revertTheme = useCallback(() => {
+    setThemeIdInternal(committedThemeId);
+  }, [committedThemeId]);
+
+  const hasUnsavedChanges = themeId !== committedThemeId;
+
   const C = useMemo(() => {
     const theme = themes[themeId] || themes[DEFAULT_THEME];
     return { ...theme.colors };
@@ -60,11 +78,15 @@ export function ThemeProvider({ children }) {
 
   const value = useMemo(() => ({
     themeId,
-    setTheme: setThemeId,
+    committedThemeId,
+    setTheme,
+    saveTheme,
+    revertTheme,
+    hasUnsavedChanges,
     theme: themes[themeId] || themes[DEFAULT_THEME],
     C,
     themes,
-  }), [themeId, C]);
+  }), [themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, C]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
