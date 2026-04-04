@@ -773,7 +773,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* ── Vitals Snapshot ──────────────────────── */}
       {vitalsSnapshot && (
         <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
-          <Card className="!bg-salve-lav/10 !border-salve-lav/20 !p-4 cursor-pointer" onClick={() => onNav('vitals')}>
+          <Card className="!bg-salve-lav/15 !border-salve-lav/25 !p-4 cursor-pointer" onClick={() => onNav('vitals')}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-baseline gap-2">
                 <span className="text-[10px] text-salve-lav/80 font-montserrat tracking-wider uppercase">Recent Vitals</span>

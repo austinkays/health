@@ -631,10 +631,19 @@ html.theme-cherry .bg-salve-lav\/10,
 html.theme-sunbeam .bg-salve-lav\/10,
 html.theme-galactic .bg-salve-lav\/10,
 html.theme-prismatic .bg-salve-lav\/10,
-html.theme-crystal .bg-salve-lav\/10 {
-  background-color: rgb(var(--salve-lav) / 0.12);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+html.theme-crystal .bg-salve-lav\/10,
+html.theme-neon .bg-salve-lav\/15,
+html.theme-ember .bg-salve-lav\/15,
+html.theme-aurora .bg-salve-lav\/15,
+html.theme-blaze .bg-salve-lav\/15,
+html.theme-cherry .bg-salve-lav\/15,
+html.theme-sunbeam .bg-salve-lav\/15,
+html.theme-galactic .bg-salve-lav\/15,
+html.theme-prismatic .bg-salve-lav\/15,
+html.theme-crystal .bg-salve-lav\/15 {
+  background-color: rgb(var(--salve-lav) / 0.28);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
 }
 /* Slightly brighter borders on glass cards for definition */
 html.theme-neon .border-salve-border,
