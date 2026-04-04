@@ -128,23 +128,47 @@ html.theme-monarch body::before {
   100% { transform: translate(10px, -10px) scale(1.02); }
 }
 
-/* ── Ocean: rising bubbles ── */
+/* ── Ocean: continuous stream of rising bubbles at staggered heights ── */
 html.theme-ocean body::before {
   background-image:
-    radial-gradient(circle 6px at 10% 100%, rgba(96, 212, 164, 0.7), transparent 70%),
-    radial-gradient(circle 4px at 25% 100%, rgba(76, 196, 192, 0.6), transparent 70%),
-    radial-gradient(circle 8px at 45% 100%, rgba(96, 212, 164, 0.65), transparent 70%),
-    radial-gradient(circle 5px at 65% 100%, rgba(76, 196, 192, 0.7), transparent 70%),
-    radial-gradient(circle 7px at 80% 100%, rgba(96, 212, 164, 0.6), transparent 70%),
-    radial-gradient(circle 4px at 92% 100%, rgba(76, 196, 192, 0.65), transparent 70%);
-  background-size: 100% 400vh;
+    radial-gradient(circle 6px at 8% 95%, rgba(96, 212, 164, 0.7), transparent 70%),
+    radial-gradient(circle 4px at 22% 82%, rgba(76, 196, 192, 0.6), transparent 70%),
+    radial-gradient(circle 8px at 50% 68%, rgba(96, 212, 164, 0.65), transparent 70%),
+    radial-gradient(circle 5px at 14% 55%, rgba(76, 196, 192, 0.7), transparent 70%),
+    radial-gradient(circle 7px at 78% 44%, rgba(96, 212, 164, 0.6), transparent 70%),
+    radial-gradient(circle 3px at 38% 32%, rgba(76, 196, 192, 0.65), transparent 70%),
+    radial-gradient(circle 5px at 92% 20%, rgba(96, 212, 164, 0.7), transparent 70%),
+    radial-gradient(circle 4px at 62% 8%, rgba(76, 196, 192, 0.6), transparent 70%);
+  background-size: 100% 250vh;
   background-repeat: repeat-y;
   opacity: 1;
-  animation: ocean-bubbles 12s linear infinite;
+  animation: ocean-bubbles 16s linear infinite;
+}
+html.theme-ocean body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(circle 5px at 30% 88%, rgba(96, 212, 164, 0.55), transparent 70%),
+    radial-gradient(circle 7px at 72% 75%, rgba(76, 196, 192, 0.55), transparent 70%),
+    radial-gradient(circle 3px at 45% 60%, rgba(96, 212, 164, 0.6), transparent 70%),
+    radial-gradient(circle 4px at 88% 48%, rgba(76, 196, 192, 0.5), transparent 70%),
+    radial-gradient(circle 6px at 18% 35%, rgba(96, 212, 164, 0.55), transparent 70%),
+    radial-gradient(circle 5px at 56% 22%, rgba(76, 196, 192, 0.6), transparent 70%),
+    radial-gradient(circle 3px at 82% 10%, rgba(96, 212, 164, 0.55), transparent 70%);
+  background-size: 100% 220vh;
+  background-repeat: repeat-y;
+  animation: ocean-bubbles-slow 22s linear infinite;
 }
 @keyframes ocean-bubbles {
   from { background-position: 0 0; }
-  to { background-position: 0 -400vh; }
+  to { background-position: 0 -250vh; }
+}
+@keyframes ocean-bubbles-slow {
+  from { background-position: 0 0; }
+  to { background-position: 0 -220vh; }
 }
 
 /* ── Ember: flickering firelight glow + floating sparks ── */
