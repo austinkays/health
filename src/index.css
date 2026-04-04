@@ -15,11 +15,23 @@
     color: rgb(var(--salve-text));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.6s ease, color 0.4s ease;
   }
 
   * {
     box-sizing: border-box;
   }
+}
+
+/* ── Theme transition ──────────────────────────── */
+/* Smooth crossfade when switching themes           */
+html.theme-transitioning body {
+  opacity: 0;
+  transition: opacity 0.25s ease-out;
+}
+html.theme-transitioned body {
+  opacity: 1;
+  transition: opacity 0.35s ease-in;
 }
 
 /* ── Theme CSS variable defaults (Midnight) ──── */

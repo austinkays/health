@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { themes, DEFAULT_THEME, THEME_STORAGE_KEY, hexToRgbTriplet } from '../constants/themes';
 
 const ThemeContext = createContext();
@@ -23,9 +23,34 @@ export function ThemeProvider({ children }) {
     try { return localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; }
   });
 
+  const isFirstRender = useRef(true);
+
   useEffect(() => {
-    applyThemeVariables(themeId);
-    try { localStorage.setItem(THEME_STORAGE_KEY, themeId); } catch { /* ignore */ }
+    if (isFirstRender.current) {
+      // First render — apply immediately, no fade
+      isFirstRender.current = false;
+      applyThemeVariables(themeId);
+      try { localStorage.setItem(THEME_STORAGE_KEY, themeId); } catch { /* ignore */ }
+      return;
+    }
+
+    // Subsequent theme changes — fade out, swap, fade in
+    const root = document.documentElement;
+    root.classList.remove('theme-transitioned');
+    root.classList.add('theme-transitioning');
+
+    const applyTimer = setTimeout(() => {
+      applyThemeVariables(themeId);
+      try { localStorage.setItem(THEME_STORAGE_KEY, themeId); } catch { /* ignore */ }
+      root.classList.remove('theme-transitioning');
+      root.classList.add('theme-transitioned');
+    }, 250);
+
+    const cleanupTimer = setTimeout(() => {
+      root.classList.remove('theme-transitioned');
+    }, 650);
+
+    return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
   }, [themeId]);
 
   const C = useMemo(() => {

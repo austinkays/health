@@ -16,6 +16,7 @@ export const themes = {
     id: 'midnight',
     label: 'Midnight',
     description: 'Navy with lavender & sage',
+    type: 'dark',
     colors: {
       bg:        '#1a1a2e',
       card:      '#22223a',
@@ -46,6 +47,7 @@ export const themes = {
     id: 'ember',
     label: 'Ember',
     description: 'Charcoal with copper & gold',
+    type: 'dark',
     colors: {
       bg:        '#1c1714',
       card:      '#2a2220',
@@ -76,6 +78,7 @@ export const themes = {
     id: 'dawnlight',
     label: 'Dawnlight',
     description: 'Warm cream, light & airy',
+    type: 'light',
     colors: {
       bg:        '#faf7f2',
       card:      '#ffffff',
@@ -106,6 +109,7 @@ export const themes = {
     id: 'frost',
     label: 'Frost',
     description: 'Slate with ice blue & mint',
+    type: 'dark',
     colors: {
       bg:        '#161b22',
       card:      '#1e2630',

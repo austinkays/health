@@ -52,6 +52,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
   const userTier = s?.tier || 'free';
   const { themeId, setTheme, themes: allThemes } = useTheme();
+  const [pendingTheme, setPendingTheme] = useState(null);
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
@@ -321,30 +322,58 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <Card>
         <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
         <div className="grid grid-cols-2 gap-2">
-          {Object.values(allThemes).map(t => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={`p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-center ${
-                themeId === t.id
-                  ? 'border-salve-lav/50 bg-salve-lav/10'
-                  : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
-              }`}
-            >
-              <div className="flex justify-center gap-1 mb-2">
-                {['lav', 'sage', 'amber', 'rose'].map(key => (
-                  <span
-                    key={key}
-                    className="w-3 h-3 rounded-full"
-                    style={{ backgroundColor: t.colors[key] }}
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-salve-text font-medium block">{t.label}</span>
-              <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
-            </button>
-          ))}
+          {Object.values(allThemes).map(t => {
+            const currentType = allThemes[themeId]?.type || 'dark';
+            const isCrossover = currentType === 'dark' && t.type === 'light';
+            return (
+              <button
+                key={t.id}
+                onClick={() => isCrossover && themeId !== t.id ? setPendingTheme(t.id) : setTheme(t.id)}
+                className={`p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-center ${
+                  themeId === t.id
+                    ? 'border-salve-lav/50 bg-salve-lav/10'
+                    : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
+                }`}
+              >
+                <div className="flex justify-center gap-1 mb-2">
+                  {['lav', 'sage', 'amber', 'rose'].map(key => (
+                    <span
+                      key={key}
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: t.colors[key] }}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs text-salve-text font-medium block">{t.label}</span>
+                <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
+                {t.type === 'light' && themeId !== t.id && (
+                  <span className="text-[8px] text-salve-amber mt-1 block">☀ Light theme</span>
+                )}
+              </button>
+            );
+          })}
         </div>
+        {pendingTheme && (
+          <div className="mt-2 p-3 rounded-xl border border-salve-amber/30 bg-salve-amber/5">
+            <p className="text-xs text-salve-text font-montserrat mb-2">
+              Heads up — this is a light theme. It'll be a big brightness change.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setTheme(pendingTheme); setPendingTheme(null); }}
+                className="text-xs font-medium text-salve-amber bg-salve-amber/15 px-3 py-1.5 rounded-lg border border-salve-amber/30 cursor-pointer font-montserrat"
+              >
+                Switch anyway
+              </button>
+              <button
+                onClick={() => setPendingTheme(null)}
+                className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat"
+              >
+                Never mind
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
       <SectionTitle>Sage</SectionTitle>
