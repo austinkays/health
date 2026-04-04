@@ -12,6 +12,37 @@ export function hexToRgbTriplet(hex) {
 }
 
 export const themes = {
+  lilac: {
+    id: 'lilac',
+    label: 'Lilac',
+    description: 'Soft pastel lavender',
+    type: 'light',
+    colors: {
+      bg:        '#f5f0f8',
+      card:      '#fbf7fd',
+      card2:     '#eee5f3',
+      border:    '#ddd0e6',
+      border2:   '#c8b8d4',
+      text:      '#2e2340',
+      textMid:   '#6e5a82',
+      textFaint: '#9e8ab0',
+      lav:       '#8866b8',
+      lavDim:    '#a088cc',
+      sage:      '#5a9078',
+      sageDim:   '#78ac96',
+      amber:     '#c48850',
+      amberDim:  '#d4a070',
+      rose:      '#c06a8c',
+      roseDim:   '#d488a8',
+    },
+    ambiance: {
+      morning: '90, 144, 120',
+      day:     '136, 102, 184',
+      evening: '196, 136, 80',
+      night:   '160, 136, 204',
+    },
+  },
+
   noir: {
     id: 'noir',
     label: 'Noir',
@@ -133,37 +164,6 @@ export const themes = {
       day:     '124, 106, 170',
       evening: '184, 134, 11',
       night:   '149, 128, 196',
-    },
-  },
-
-  lilac: {
-    id: 'lilac',
-    label: 'Lilac',
-    description: 'Soft pastel lavender',
-    type: 'light',
-    colors: {
-      bg:        '#f5f0f8',
-      card:      '#fbf7fd',
-      card2:     '#eee5f3',
-      border:    '#ddd0e6',
-      border2:   '#c8b8d4',
-      text:      '#2e2340',
-      textMid:   '#6e5a82',
-      textFaint: '#9e8ab0',
-      lav:       '#8866b8',
-      lavDim:    '#a088cc',
-      sage:      '#5a9078',
-      sageDim:   '#78ac96',
-      amber:     '#c48850',
-      amberDim:  '#d4a070',
-      rose:      '#c06a8c',
-      roseDim:   '#d488a8',
-    },
-    ambiance: {
-      morning: '90, 144, 120',
-      day:     '136, 102, 184',
-      evening: '196, 136, 80',
-      night:   '160, 136, 204',
     },
   },
 
