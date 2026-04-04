@@ -10,7 +10,7 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { fetchAppealDraft } from '../../services/ai';
+import { fetchAppealDraft, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -147,7 +147,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
                       className="mt-2 bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
                     >
                       {draftLoading === a.id ? <Loader size={11} className="animate-spin" /> : <FileText size={11} />}
-                      {draftLoading === a.id ? 'Drafting...' : 'Draft Appeal Letter'}
+                      {draftLoading === a.id ? 'Drafting...' : isFeatureLocked('appealDraft') ? 'Draft Appeal (Premium)' : 'Draft Appeal Letter'}
                     </button>
                   )}
                   {draftResult[a.id] && (

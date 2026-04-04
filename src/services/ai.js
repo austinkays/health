@@ -15,6 +15,11 @@ export function setAIProvider(provider) {
 
 const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
 const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
+const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources']);
+
+export function isFeatureLocked(feature) {
+  return getAIProvider() !== 'anthropic' && FREE_BLOCKED_FEATURES.has(feature);
+}
 
 function getModel(feature) {
   const provider = getAIProvider();
@@ -134,6 +139,11 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false,
     throw new Error('You must be signed in to use AI features.');
   }
 
+  // Block premium-only features on free tier (client-side fast-fail)
+  if (isFeatureLocked(feature)) {
+    throw new Error('Premium feature. Upgrade to Claude for advanced analysis.');
+  }
+
   const { endpoint, model } = getModel(feature);
   const body = { messages, system, max_tokens: maxTokens, model };
   if (useWebSearch) body.use_web_search = true;
@@ -203,10 +213,12 @@ export async function fetchConnections(profileText) {
 
 export async function fetchNews(profileText) {
   const today = new Date().toISOString().split('T')[0];
+  const isFree = getAIProvider() !== 'anthropic';
+  const countInstruction = isFree ? '\n\nIMPORTANT: Provide exactly 3 items. Be concise.' : '';
   return callAPI(
     [{ role: 'user', content: `Find the most recent health news relevant to my conditions. Today is ${today}. Only include news from the past 6 months.` }],
-    PROMPTS.news.replace('{DATE}', today) + '\n\n' + profileText,
-    3000, true, 'news'
+    PROMPTS.news.replace('{DATE}', today) + countInstruction + '\n\n' + profileText,
+    isFree ? 2000 : 3000, true, 'news'
   );
 }
 

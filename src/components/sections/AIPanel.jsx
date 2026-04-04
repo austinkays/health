@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Lock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
@@ -8,7 +8,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools, getAIProvider } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -17,13 +17,16 @@ import { DESTRUCTIVE_TOOLS } from '../../constants/tools';
 import { createToolExecutor } from '../../services/toolExecutor';
 import { computeCycleStats, getCyclePhaseForDate } from '../../utils/cycles';
 
+// Feature ID → ai.js feature name for lock checking
+const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns' };
+
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
-  { id: 'connections', label: 'Health Connections', desc: 'Patterns across your health data', icon: Link, color: C.sage },
+  { id: 'connections', label: 'Health Connections', desc: 'Patterns across your health data', icon: Link, color: C.sage, premium: true },
   { id: 'news', label: 'Health News', desc: 'Recent news for your conditions', icon: Newspaper, color: C.amber },
-  { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose },
-  { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage },
-  { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose },
+  { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose, premium: true },
+  { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage, premium: true },
+  { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose, premium: true },
 ];
 
 const INSIGHTS_SAVE_KEY = 'salve:saved-insights';
@@ -941,7 +944,14 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         setResult(r);
       }
     } catch (e) {
-      setResult({ text: 'Error: ' + e.message, sources: [] });
+      const isDailyLimit = e.message?.includes('Daily AI limit');
+      const isPremium = e.message?.includes('Premium feature');
+      const msg = isDailyLimit
+        ? '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for unlimited access.'
+        : isPremium
+          ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis.\n\nGo to **Settings → AI Provider** to upgrade.'
+          : 'Error: ' + e.message;
+      setResult({ text: msg, sources: [] });
     } finally {
       setLoading(false);
     }
@@ -969,7 +979,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         saveConversation(updated);
       }
     } catch (e) {
-      const updated = [...msgs, { role: 'assistant', content: 'Error: ' + e.message }];
+      const isDailyLimit = e.message?.includes('Daily AI limit');
+      const errMsg = isDailyLimit
+        ? '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT. Upgrade to Claude Premium in Settings for unlimited access.'
+        : 'Error: ' + e.message;
+      const updated = [...msgs, { role: 'assistant', content: errMsg }];
       setChatMessages(updated);
     } finally {
       setLoading(false);
@@ -1096,17 +1110,34 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
-      {FEATURES.map(f => (
-          <button
-            key={f.id}
-            onClick={() => runFeature(f.id)}
-            className="bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer hover:border-salve-border2 transition-colors"
-          >
-            <f.icon size={22} color={f.color} strokeWidth={1.5} />
-            <div className="text-[13px] font-semibold text-salve-text mt-2.5 font-montserrat">{f.label}</div>
-            <div className="text-[11px] text-salve-textFaint mt-0.5 leading-relaxed">{f.desc}</div>
-          </button>
-        ))}
+      {FEATURES.map(f => {
+          const locked = f.premium && isFeatureLocked(FEATURE_TO_AI[f.id] || f.id);
+          return (
+            <button
+              key={f.id}
+              onClick={() => {
+                if (locked) {
+                  setResult({ text: '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.' });
+                  setMode(f.id);
+                  return;
+                }
+                runFeature(f.id);
+              }}
+              className={`bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer transition-colors ${locked ? 'opacity-50' : 'hover:border-salve-border2'}`}
+            >
+              <div className="flex items-center justify-between">
+                <f.icon size={22} color={locked ? C.textFaint : f.color} strokeWidth={1.5} />
+                {locked && (
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium font-montserrat flex items-center gap-0.5">
+                    <Lock size={8} /> Premium
+                  </span>
+                )}
+              </div>
+              <div className="text-[13px] font-semibold text-salve-text mt-2.5 font-montserrat">{f.label}</div>
+              <div className="text-[11px] text-salve-textFaint mt-0.5 leading-relaxed">{f.desc}</div>
+            </button>
+          );
+        })}
       </div>
 
       <Button variant="lavender" onClick={() => setMode('ask')} className="w-full justify-center">

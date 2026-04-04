@@ -9,7 +9,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchCareGapSuggestions } from '../../services/ai';
+import { fetchCareGapSuggestions, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -116,7 +116,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
             disabled={aiLoading}
             className="!text-xs w-full !justify-center"
           >
-            {aiLoading ? <><Loader size={13} className="animate-spin" /> Analyzing your profile...</> : <><Sparkles size={13} /> Suggest Care Gaps with Sage</>}
+            {aiLoading ? <><Loader size={13} className="animate-spin" /> Analyzing your profile...</> : isFeatureLocked('careGapDetect') ? <><Sparkles size={13} /> Suggest Care Gaps (Premium)</> : <><Sparkles size={13} /> Suggest Care Gaps with Sage</>}
           </Button>
           {aiSuggestions && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">

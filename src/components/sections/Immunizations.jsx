@@ -8,7 +8,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
-import { fetchImmunizationReview } from '../../services/ai';
+import { fetchImmunizationReview, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -86,7 +86,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem, h
             disabled={scheduleLoading}
             className="!text-xs w-full !justify-center"
           >
-            {scheduleLoading ? <><Loader size={13} className="animate-spin" /> Reviewing schedule...</> : <><Sparkles size={13} /> Review Schedule with Sage</>}
+            {scheduleLoading ? <><Loader size={13} className="animate-spin" /> Reviewing schedule...</> : isFeatureLocked('immunizationSchedule') ? <><Sparkles size={13} /> Review Schedule (Premium)</> : <><Sparkles size={13} /> Review Schedule with Sage</>}
           </Button>
           {scheduleAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">

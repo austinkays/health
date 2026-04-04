@@ -290,7 +290,8 @@ export default function Dashboard({ data, interactions, onNav }) {
       const result = await fetchInsight(profile);
       setInsight(result);
     } catch (e) {
-      setInsight('Unable to load insight. ' + e.message);
+      const isDailyLimit = e.message?.includes('Daily AI limit');
+      setInsight(isDailyLimit ? 'Daily insight limit reached. Resets at midnight PT.' : 'Unable to load insight. ' + e.message);
     } finally {
       setInsightLoading(false);
     }

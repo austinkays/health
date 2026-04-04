@@ -24,6 +24,49 @@ setInterval(() => {
   }
 }, 5 * 60_000);
 
+// ── Daily call limit (free tier) ──
+const DAILY_LIMIT = 10;
+
+async function checkDailyLimit(userId, supabaseUrl, serviceKey) {
+  try {
+    // Midnight Pacific Time today
+    const now = new Date();
+    const pt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
+    pt.setHours(0, 0, 0, 0);
+    // Convert back to UTC ISO string for query
+    const midnightPT = new Date(now.getTime() - (now - pt) + (pt - new Date(pt.toISOString().slice(0, 19)))).toISOString();
+    // Simpler: just compute PT midnight as offset
+    const ptOffset = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: false });
+    const ptNow = new Date(ptOffset);
+    const ptMidnight = new Date(ptNow);
+    ptMidnight.setHours(0, 0, 0, 0);
+    const diffMs = ptNow - ptMidnight;
+    const utcMidnightPT = new Date(Date.now() - diffMs).toISOString();
+
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/api_usage?select=id&user_id=eq.${userId}&endpoint=eq.gemini&created_at=gte.${encodeURIComponent(utcMidnightPT)}`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Prefer: 'count=exact',
+          'Range-Unit': 'items',
+          Range: '0-0',
+        },
+      }
+    );
+    // Count from content-range header: "0-0/42" → 42
+    const range = res.headers.get('content-range');
+    if (range) {
+      const total = parseInt(range.split('/')[1], 10);
+      if (!isNaN(total) && total >= DAILY_LIMIT) return false;
+    }
+    return true;
+  } catch {
+    return true; // fail-open
+  }
+}
+
 // ── Allowed Gemini models ──
 const ALLOWED_MODELS = new Set([
   'gemini-2.0-flash-lite',
@@ -261,6 +304,14 @@ export default async function handler(req, res) {
     }
     if (userId && !(await checkPersistentRateLimit(userId, 'gemini', RATE_LIMIT_MAX, 60))) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
+    }
+
+    // Daily call limit for free tier (10 calls/day, resets midnight PT)
+    if (userId) {
+      const dailyAllowed = await checkDailyLimit(userId, supabaseUrl, serviceKey);
+      if (!dailyAllowed) {
+        return res.status(429).json({ error: 'Daily AI limit reached (10/day on free tier). Resets at midnight PT.', daily_limit: true });
+      }
     }
   } catch {
     return res.status(500).json({ error: 'Auth verification failed' });
