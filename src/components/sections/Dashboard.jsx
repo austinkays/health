@@ -299,7 +299,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   };
 
   useEffect(() => {
-    if (data.settings.ai_mode === 'alwaysOn' && activeMeds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
+    if (data.settings.ai_mode === 'alwaysOn' && data.settings.tier === 'premium' && activeMeds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
       loadInsight();
     }
   }, [data.settings.ai_mode, activeMeds.length, data.conditions.length]); // eslint-disable-line react-hooks/exhaustive-deps

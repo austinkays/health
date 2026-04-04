@@ -430,17 +430,51 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       {/* ══════════════ 3. Sage & AI ══════════════ */}
       <SectionTitle>Sage & AI</SectionTitle>
       <Card>
-        <Field
-          label="Sage Mode"
-          value={s.ai_mode || 'onDemand'}
-          onChange={v => set('ai_mode', v)}
-          options={[
-            { value: 'alwaysOn', label: '✨ Always On' },
-            { value: 'onDemand', label: '☽ On Demand' },
-            { value: 'off', label: '✧ Off — tracker only' },
-          ]}
-        />
-        <p className="text-xs text-salve-textFaint italic leading-relaxed mt-1">
+        <label className="block text-xs font-medium text-salve-textMid mb-1.5 font-montserrat">Sage Mode</label>
+        <div className="space-y-2">
+          <button
+            onClick={() => set('ai_mode', 'onDemand')}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all cursor-pointer font-montserrat text-left ${
+              (s.ai_mode || 'onDemand') === 'onDemand'
+                ? 'border-salve-sage/50 bg-salve-sage/10'
+                : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${(s.ai_mode || 'onDemand') === 'onDemand' ? 'bg-salve-sage' : 'bg-salve-textFaint/40'}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-salve-text font-medium">☽ On Demand</span>
+              </div>
+              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
+                Sage responds only when you ask
+              </p>
+            </div>
+          </button>
+          <button
+            onClick={() => { if (userTier === 'premium') set('ai_mode', 'alwaysOn'); }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all font-montserrat text-left ${
+              s.ai_mode === 'alwaysOn' && userTier === 'premium'
+                ? 'border-salve-lav/50 bg-salve-lav/10 cursor-pointer'
+                : userTier === 'premium'
+                  ? 'border-salve-border bg-salve-card2 hover:border-salve-border2 cursor-pointer'
+                  : 'border-salve-border bg-salve-card2 opacity-50 cursor-not-allowed'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${s.ai_mode === 'alwaysOn' && userTier === 'premium' ? 'bg-salve-lav' : 'bg-salve-textFaint/40'}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-salve-text font-medium">✨ Always On</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium">Premium</span>
+              </div>
+              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
+                {userTier === 'premium'
+                  ? 'Sage proactively surfaces insights throughout the app'
+                  : 'Upgrade to premium for proactive insights'}
+              </p>
+            </div>
+          </button>
+        </div>
+        <p className="text-xs text-salve-textFaint italic leading-relaxed mt-2">
           Sage uses your health profile for personalized insights.
         </p>
 
