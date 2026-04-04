@@ -8,6 +8,7 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import { getAIProvider, setAIProvider } from '../../services/ai';
+import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
@@ -50,6 +51,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
   const userTier = s?.tier || 'free';
+  const { themeId, setTheme, themes: allThemes } = useTheme();
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
@@ -313,6 +315,36 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <Card>
         <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
         <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
+      </Card>
+
+      <SectionTitle>Appearance</SectionTitle>
+      <Card>
+        <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
+        <div className="grid grid-cols-3 gap-2">
+          {Object.values(allThemes).map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={`p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-center ${
+                themeId === t.id
+                  ? 'border-salve-lav/50 bg-salve-lav/10'
+                  : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
+              }`}
+            >
+              <div className="flex justify-center gap-1 mb-2">
+                {['lav', 'sage', 'amber', 'rose'].map(key => (
+                  <span
+                    key={key}
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: t.colors[key] }}
+                  />
+                ))}
+              </div>
+              <span className="text-xs text-salve-text font-medium block">{t.label}</span>
+              <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
+            </button>
+          ))}
+        </div>
       </Card>
 
       <SectionTitle>Sage</SectionTitle>

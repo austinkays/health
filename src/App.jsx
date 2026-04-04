@@ -11,6 +11,7 @@ import { checkInteractions } from './utils/interactions';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { ToastProvider, useToast } from './components/ui/Toast';
+import { ThemeProvider } from './hooks/useTheme';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -62,9 +63,11 @@ const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AppContent />
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }
 
