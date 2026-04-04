@@ -5,6 +5,7 @@ import {
   PlaneTakeoff, BadgeDollarSign, Activity, BookOpen, Settings as SettingsIcon,
   Grid, Sun, Moon, Sunrise, Sunset, Building2, ClipboardList, Search, X,
   TrendingUp, ShieldAlert, ArrowRight, Pencil, Check, ArrowLeftRight, Plus, Heart, Leaf, CheckSquare, Dna, Zap, Apple,
+  Copy, Bookmark, RefreshCw,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -626,9 +627,38 @@ export default function Dashboard({ data, interactions, onNav }) {
             </Card>
           ) : insight && (
             <Card className="!bg-salve-sage/5 !border-salve-sage/15 insight-glow">
-              <div className="flex items-center gap-2 mb-2.5">
-                <Leaf size={14} className="text-salve-sage" />
-                <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
+              <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center gap-2">
+                  <Leaf size={14} className="text-salve-sage" />
+                  <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => {
+                      const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim();
+                      const key = 'salve:saved-insights';
+                      try {
+                        const arr = JSON.parse(localStorage.getItem(key) || '[]');
+                        if (!arr.some(s => s.type === 'insight' && s.text === clean)) {
+                          arr.push({ type: 'insight', label: 'Health Insight', text: clean, savedAt: new Date().toISOString() });
+                          localStorage.setItem(key, JSON.stringify(arr));
+                        }
+                      } catch {}
+                    }}
+                    className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
+                    aria-label="Save insight"
+                  ><Bookmark size={12} /></button>
+                  <button
+                    onClick={() => { const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim(); navigator.clipboard.writeText(clean); }}
+                    className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
+                    aria-label="Copy insight"
+                  ><Copy size={12} /></button>
+                  <button
+                    onClick={() => { setInsight(null); loadInsight(); }}
+                    className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
+                    aria-label="New insight"
+                  ><RefreshCw size={12} /></button>
+                </div>
               </div>
               <AIMarkdown compact>{insight}</AIMarkdown>
             </Card>
