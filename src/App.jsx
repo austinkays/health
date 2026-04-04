@@ -287,7 +287,7 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-salve-bg overflow-hidden">
+    <div className="min-h-screen overflow-hidden relative">
       <div className="max-w-[480px] mx-auto pb-24 relative">
         <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} />
         <main className="px-4">
