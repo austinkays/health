@@ -219,6 +219,35 @@ html[class*="theme-"] body > * {
   z-index: 1;
 }
 
+/* ── Glassmorphism for themes with backdrop effects ── */
+/* Cards become frosted glass over the animated backdrop       */
+html.theme-neon .bg-salve-card,
+html.theme-monarch .bg-salve-card,
+html.theme-ocean .bg-salve-card,
+html.theme-ember .bg-salve-card,
+html.theme-frost .bg-salve-card {
+  background-color: rgb(var(--salve-card) / 0.72);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+html.theme-neon .bg-salve-card\/5,
+html.theme-monarch .bg-salve-card\/5,
+html.theme-ocean .bg-salve-card\/5,
+html.theme-ember .bg-salve-card\/5,
+html.theme-frost .bg-salve-card\/5 {
+  background-color: rgb(var(--salve-card) / 0.55);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+}
+/* Slightly brighter borders on glass cards for definition */
+html.theme-neon .border-salve-border,
+html.theme-monarch .border-salve-border,
+html.theme-ocean .border-salve-border,
+html.theme-ember .border-salve-border,
+html.theme-frost .border-salve-border {
+  border-color: rgb(var(--salve-border2) / 0.8);
+}
+
 /* ── Time-aware ambiance ─────────────────────── */
 /* Subtle accent glow shifts throughout the day   */
 :root {
