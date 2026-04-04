@@ -255,7 +255,7 @@ html.theme-blaze body::before {
     /* Top heat haze bleed */
     radial-gradient(ellipse 200% 25% at 50% 0%, rgba(255, 61, 0, 0.18), transparent 70%);
   opacity: 1;
-  animation: blaze-flicker 2.8s ease-in-out infinite, blaze-hue 9s linear infinite;
+  animation: blaze-breathe 7s ease-in-out infinite;
 }
 html.theme-blaze body::after {
   content: '';
@@ -283,14 +283,12 @@ html.theme-blaze body::after {
   background-repeat: repeat-y;
   animation: blaze-sparks 5s linear infinite;
 }
-@keyframes blaze-flicker {
-  0%, 100% { opacity: 0.96; filter: brightness(1.15) saturate(1.35); }
-  35%      { opacity: 1;    filter: brightness(1.28) saturate(1.5); }
-  65%      { opacity: 0.92; filter: brightness(1.1)  saturate(1.3); }
-}
-@keyframes blaze-hue {
-  0%, 100% { filter: hue-rotate(0deg); }
-  50% { filter: hue-rotate(-12deg); }
+@keyframes blaze-breathe {
+  0%   { opacity: 0.96; filter: brightness(1.18) saturate(1.4)  hue-rotate(0deg); }
+  20%  { opacity: 1;    filter: brightness(1.28) saturate(1.55) hue-rotate(-18deg); }
+  45%  { opacity: 0.92; filter: brightness(1.12) saturate(1.3)  hue-rotate(10deg); }
+  70%  { opacity: 0.98; filter: brightness(1.24) saturate(1.5)  hue-rotate(-8deg); }
+  100% { opacity: 0.96; filter: brightness(1.18) saturate(1.4)  hue-rotate(0deg); }
 }
 @keyframes blaze-sparks {
   from { background-position: 0 0; }
