@@ -72,6 +72,36 @@ export const themes = {
     },
   },
 
+  dawnlight: {
+    id: 'dawnlight',
+    label: 'Dawnlight',
+    description: 'Warm cream, light & airy',
+    colors: {
+      bg:        '#faf7f2',
+      card:      '#ffffff',
+      card2:     '#f3efe8',
+      border:    '#e0d8cc',
+      border2:   '#cdc4b6',
+      text:      '#2c2520',
+      textMid:   '#6b5e52',
+      textFaint: '#9e9286',
+      lav:       '#7c6aaa',
+      lavDim:    '#9580c4',
+      sage:      '#3d8a5c',
+      sageDim:   '#5aa87a',
+      amber:     '#b8860b',
+      amberDim:  '#d4a030',
+      rose:      '#c45060',
+      roseDim:   '#d8788a',
+    },
+    ambiance: {
+      morning: '61, 138, 92',
+      day:     '124, 106, 170',
+      evening: '184, 134, 11',
+      night:   '149, 128, 196',
+    },
+  },
+
   frost: {
     id: 'frost',
     label: 'Frost',
