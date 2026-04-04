@@ -323,7 +323,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <SectionTitle>Appearance</SectionTitle>
       <Card>
         <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {Object.values(allThemes).map(t => {
             const currentType = allThemes[themeId]?.type || 'dark';
             const isCrossover = currentType === 'dark' && t.type === 'light';
