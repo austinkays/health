@@ -24,7 +24,7 @@ function getModel(feature) {
     const models = { lite: 'claude-haiku-4-5-20251001', flash: 'claude-sonnet-4-6', pro: 'claude-opus-4-6' };
     return { endpoint: '/api/chat', model: models[tier] };
   }
-  const models = { lite: 'gemini-2.0-flash-lite', flash: 'gemini-2.5-flash-preview-05-20', pro: 'gemini-2.5-pro-preview-05-06' };
+  const models = { lite: 'gemini-2.0-flash-lite', flash: 'gemini-2.5-flash', pro: 'gemini-2.5-pro-preview-06-05' };
   return { endpoint: '/api/gemini', model: models[tier] };
 }
 
