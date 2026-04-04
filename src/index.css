@@ -174,8 +174,9 @@ html.theme-ocean body::after {
 /* ── Ember: flickering firelight glow + floating sparks ── */
 html.theme-ember body::before {
   background-image:
-    radial-gradient(ellipse 120% 60% at 50% 110%, rgba(255, 106, 26, 0.25), transparent 70%),
-    radial-gradient(ellipse 80% 30% at 50% 110%, rgba(255, 210, 77, 0.15), transparent 60%);
+    radial-gradient(ellipse 140% 55% at 50% 115%, rgba(255, 106, 26, 0.28), transparent 70%),
+    radial-gradient(ellipse 100% 35% at 50% 112%, rgba(255, 210, 77, 0.18), transparent 60%),
+    radial-gradient(ellipse 60% 20% at 50% 108%, rgba(255, 154, 77, 0.22), transparent 55%);
   opacity: 1;
   animation: ember-flicker 3s ease-in-out infinite;
 }
@@ -186,22 +187,28 @@ html.theme-ember body::after {
   pointer-events: none;
   z-index: 0;
   background-image:
-    radial-gradient(circle 3px at 15% 90%, rgba(255, 154, 77, 0.9), transparent 70%),
-    radial-gradient(circle 2px at 35% 85%, rgba(255, 210, 77, 0.8), transparent 70%),
-    radial-gradient(circle 2px at 60% 92%, rgba(255, 106, 26, 0.9), transparent 70%),
-    radial-gradient(circle 3px at 85% 88%, rgba(255, 210, 77, 0.8), transparent 70%);
-  background-size: 100% 100vh;
-  animation: ember-sparks 6s linear infinite;
+    radial-gradient(circle 3px at 12% 94%, rgba(255, 154, 77, 0.95), transparent 70%),
+    radial-gradient(circle 2px at 28% 78%, rgba(255, 210, 77, 0.85), transparent 70%),
+    radial-gradient(circle 3px at 55% 62%, rgba(255, 106, 26, 0.9), transparent 70%),
+    radial-gradient(circle 2px at 38% 46%, rgba(255, 154, 77, 0.8), transparent 70%),
+    radial-gradient(circle 3px at 78% 38%, rgba(255, 210, 77, 0.85), transparent 70%),
+    radial-gradient(circle 2px at 20% 28%, rgba(255, 106, 26, 0.75), transparent 70%),
+    radial-gradient(circle 2px at 92% 18%, rgba(255, 154, 77, 0.9), transparent 70%),
+    radial-gradient(circle 3px at 48% 8%, rgba(255, 210, 77, 0.8), transparent 70%);
+  background-size: 100% 200vh;
+  background-repeat: repeat-y;
+  animation: ember-sparks 14s linear infinite;
 }
 @keyframes ember-flicker {
-  0%, 100% { opacity: 1; transform: scaleY(1); }
-  25% { opacity: 0.75; transform: scaleY(0.95); }
-  50% { opacity: 0.9; transform: scaleY(1.05); }
-  75% { opacity: 0.8; transform: scaleY(0.98); }
+  0%, 100% { opacity: 1; }
+  20% { opacity: 0.7; }
+  40% { opacity: 0.95; }
+  60% { opacity: 0.8; }
+  80% { opacity: 0.92; }
 }
 @keyframes ember-sparks {
   from { background-position: 0 0; }
-  to { background-position: 0 -100vh; }
+  to { background-position: 0 -200vh; }
 }
 
 /* ── Frost: icy shimmer + drifting snow ── */
