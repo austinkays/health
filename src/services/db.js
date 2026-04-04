@@ -11,8 +11,18 @@ function cleanAll(rows) {
   return (rows || []).map(clean);
 }
 
+// ── Dedup key definitions ──
+// Tables that should prevent duplicate inserts based on matching columns.
+const DEDUP_COLUMNS = {
+  vitals:     ['date', 'type', 'value'],
+  cycles:     ['date', 'type', 'value'],
+  activities: ['date', 'type', 'duration_minutes'],
+};
+
 // ── Generic CRUD factory ──
 function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
+  const dedupCols = DEDUP_COLUMNS[table];
+
   return {
     async list() {
       const { data, error } = await supabase
@@ -25,9 +35,22 @@ function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
 
     async add(item) {
       const { data: { user } } = await supabase.auth.getUser();
+      const uid = user.id;
+
+      // Dedup check: query Supabase for an existing row with matching key columns
+      if (dedupCols) {
+        let query = supabase.from(table).select('id').eq('user_id', uid);
+        for (const col of dedupCols) {
+          if (item[col] != null) query = query.eq(col, item[col]);
+          else query = query.is(col, null);
+        }
+        const { data: existing } = await query.limit(1);
+        if (existing?.length) return clean(existing[0]); // already exists — skip silently
+      }
+
       const { data, error } = await supabase
         .from(table)
-        .insert({ ...item, user_id: user.id })
+        .insert({ ...item, user_id: uid })
         .select()
         .single();
       if (error) throw error;
@@ -211,6 +234,45 @@ export const db = {
       console.error('Partial erase — some tables failed:', errors);
       throw new Error(`Erase incomplete: ${errors.map(e => e.table).join(', ')} failed. Some data may remain.`);
     }
+  },
+
+  /**
+   * Remove duplicate records from tables that have dedup keys.
+   * Keeps the oldest record (earliest created_at) for each unique key combo.
+   * Returns { table, removed } counts.
+   */
+  async removeDuplicates() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const uid = user.id;
+    const results = [];
+
+    for (const [table, cols] of Object.entries(DEDUP_COLUMNS)) {
+      const { data: rows, error } = await supabase
+        .from(table)
+        .select(['id', 'created_at', ...cols].join(','))
+        .eq('user_id', uid)
+        .order('created_at', { ascending: true });
+
+      if (error || !rows?.length) continue;
+
+      const seen = new Set();
+      const dupeIds = [];
+      for (const row of rows) {
+        const key = cols.map(c => row[c] ?? '').join('|');
+        if (seen.has(key)) dupeIds.push(row.id);
+        else seen.add(key);
+      }
+
+      if (dupeIds.length) {
+        // Delete in batches of 100
+        for (let i = 0; i < dupeIds.length; i += 100) {
+          const batch = dupeIds.slice(i, i + 100);
+          await supabase.from(table).delete().in('id', batch);
+        }
+        results.push({ table, removed: dupeIds.length });
+      }
+    }
+    return results;
   },
 };
 

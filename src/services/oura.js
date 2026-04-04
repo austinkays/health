@@ -472,17 +472,23 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
 
 /**
  * Full Oura sync — all data types at once.
+ * Guarded against concurrent execution (duplicate prevention).
  * Returns summary of what was synced.
  */
+let _syncing = false;
 export async function syncAllOuraData(data, addItem, days = 30, baselineF = 97.7) {
-  const results = {};
-
-  try { results.temperature = await syncOuraTemperature(data.cycles || [], addItem, days, baselineF); } catch (e) { results.temperature = { error: e.message }; }
-  try { results.sleep = await syncOuraSleep(data.vitals || [], addItem, days); } catch (e) { results.sleep = { error: e.message }; }
-  try { results.heartRate = await syncOuraHeartRate(data.vitals || [], addItem, days); } catch (e) { results.heartRate = { error: e.message }; }
-  try { results.spo2 = await syncOuraSpO2(data.vitals || [], addItem, days); } catch (e) { results.spo2 = { error: e.message }; }
-  try { results.readiness = await syncOuraReadinessVitals(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
-  try { results.workouts = await syncOuraWorkouts(data.activities || [], addItem, days); } catch (e) { results.workouts = { error: e.message }; }
-
-  return results;
+  if (_syncing) return { skipped: 'sync already in progress' };
+  _syncing = true;
+  try {
+    const results = {};
+    try { results.temperature = await syncOuraTemperature(data.cycles || [], addItem, days, baselineF); } catch (e) { results.temperature = { error: e.message }; }
+    try { results.sleep = await syncOuraSleep(data.vitals || [], addItem, days); } catch (e) { results.sleep = { error: e.message }; }
+    try { results.heartRate = await syncOuraHeartRate(data.vitals || [], addItem, days); } catch (e) { results.heartRate = { error: e.message }; }
+    try { results.spo2 = await syncOuraSpO2(data.vitals || [], addItem, days); } catch (e) { results.spo2 = { error: e.message }; }
+    try { results.readiness = await syncOuraReadinessVitals(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
+    try { results.workouts = await syncOuraWorkouts(data.activities || [], addItem, days); } catch (e) { results.workouts = { error: e.message }; }
+    return results;
+  } finally {
+    _syncing = false;
+  }
 }

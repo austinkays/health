@@ -12,6 +12,7 @@ import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
+import { db } from '../../services/db';
 
 const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
 
@@ -48,6 +49,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
+  const [dedupStatus, setDedupStatus] = useState(null); // null | 'running' | { results }
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
   const userTier = s?.tier || 'free';
@@ -876,6 +878,35 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <div className="mt-3 p-3 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-sm">
                 {importResult}
               </div>
+            )}
+          </div>
+
+          {/* ── Remove Duplicates ── */}
+          <div className="mt-4">
+            <p className="text-[11px] text-salve-textFaint mb-2 font-montserrat">
+              Duplicate entries can appear when wearable data syncs multiple times.
+            </p>
+            <button
+              onClick={async () => {
+                setDedupStatus('running');
+                try {
+                  const results = await db.removeDuplicates();
+                  setDedupStatus({ results });
+                  if (results.some(r => r.removed > 0)) reloadData();
+                } catch { setDedupStatus({ results: [] }); }
+              }}
+              disabled={dedupStatus === 'running'}
+              className="flex items-center gap-1.5 text-xs text-salve-lav font-montserrat bg-transparent border border-salve-lav/30 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-lav/10 disabled:opacity-50 transition-colors"
+            >
+              {dedupStatus === 'running' ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              {dedupStatus === 'running' ? 'Scanning...' : 'Remove Duplicates'}
+            </button>
+            {dedupStatus && dedupStatus !== 'running' && (
+              <p className="text-[11px] text-salve-textMid mt-1.5 font-montserrat">
+                {dedupStatus.results.length > 0
+                  ? dedupStatus.results.map(r => `${r.removed} duplicate${r.removed > 1 ? 's' : ''} removed from ${r.table}`).join('. ') + '.'
+                  : 'No duplicates found.'}
+              </p>
             )}
           </div>
 
