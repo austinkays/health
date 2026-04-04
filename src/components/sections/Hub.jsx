@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import {
-  ChevronRight, ClipboardList, User, Activity, Shield, CheckSquare, Link2,
+  ChevronRight, ClipboardList, User, Activity, Shield, CheckSquare, Link2, Star,
   Stethoscope, ShieldAlert, Calendar, FlaskConical, Syringe, ShieldCheck, Dna,
   Building2, BadgeDollarSign, Scale, Heart, Moon, TrendingUp, AlertTriangle,
   AlertOctagon, PlaneTakeoff, Apple, Thermometer,
@@ -10,6 +10,7 @@ import Card from '../ui/Card';
 import { C } from '../../constants/colors';
 import { fmtDate } from '../../utils/dates';
 import { isOuraConnected } from '../../services/oura';
+import { getStarred, toggleStar, STAR_MAX } from '../../utils/starred';
 
 /* ── Hub definitions ─────────────────────────────── */
 export const HUBS = {
@@ -219,11 +220,18 @@ function isVisible(id, data) {
 /* ── Component ───────────────────────────────────── */
 export default function Hub({ hubId, data, onNav }) {
   const hub = HUBS[hubId];
+  const [starred, setStarredState] = useState(() => getStarred());
 
   const visibleSections = useMemo(() => {
     if (!hub) return [];
     return hub.sections.filter(id => isVisible(id, data));
   }, [hub, data]);
+
+  const handleToggleStar = useCallback((id, e) => {
+    e.stopPropagation();
+    const next = toggleStar(id);
+    setStarredState(next);
+  }, []);
 
   if (!hub) {
     return (
@@ -236,7 +244,9 @@ export default function Hub({ hubId, data, onNav }) {
   return (
     <div className="mt-2">
       {/* Hub description */}
-      <p className="text-[12px] text-salve-textFaint font-montserrat italic mb-3 px-1">{hub.description}</p>
+      <p className="text-[12px] text-salve-textFaint font-montserrat italic mb-3 px-1">
+        {hub.description} · <span className="text-salve-textFaint/70">Tap ★ to pin to home</span>
+      </p>
 
       {/* Section rows */}
       <div className="space-y-2">
@@ -245,6 +255,8 @@ export default function Hub({ hubId, data, onNav }) {
           if (!section) return null;
           const Icon = section.icon;
           const stat = getStat(id, data);
+          const isStarred = starred.includes(id);
+          const atMax = starred.length >= STAR_MAX && !isStarred;
           return (
             <Card
               key={id}
@@ -259,6 +271,19 @@ export default function Hub({ hubId, data, onNav }) {
                   <div className="text-[13px] font-medium text-salve-text font-montserrat">{section.label}</div>
                   <div className="text-[11px] text-salve-textFaint font-montserrat truncate">{stat}</div>
                 </div>
+                <button
+                  onClick={(e) => handleToggleStar(id, e)}
+                  disabled={atMax}
+                  className="p-1.5 -mr-1 rounded-md bg-transparent border-none cursor-pointer transition-colors disabled:opacity-30 disabled:cursor-not-allowed hover:bg-salve-lav/10"
+                  aria-label={isStarred ? `Unpin ${section.label} from home` : `Pin ${section.label} to home`}
+                  title={atMax ? `Maximum ${STAR_MAX} pinned` : (isStarred ? 'Pinned to home' : 'Pin to home')}
+                >
+                  <Star
+                    size={14}
+                    className={isStarred ? 'text-salve-amber fill-salve-amber' : 'text-salve-textFaint'}
+                    strokeWidth={1.5}
+                  />
+                </button>
                 <ChevronRight size={14} className="text-salve-textFaint flex-shrink-0" />
               </div>
             </Card>

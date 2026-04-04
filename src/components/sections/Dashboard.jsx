@@ -4,8 +4,10 @@ import {
   User, Shield, FlaskConical, Activity, Settings as SettingsIcon,
   Sun, Moon, Sunrise, Sunset, ClipboardList, Search, X,
   TrendingUp, ShieldAlert, Heart, Leaf, CheckSquare, Zap,
-  Copy, Bookmark, RefreshCw,
+  Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
+  Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
 } from 'lucide-react';
+import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Motif, { Divider } from '../ui/Motif';
@@ -21,6 +23,7 @@ import { searchEntities, highlightMatch } from '../../utils/search.jsx';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
+import { getStarred } from '../../utils/starred';
 
 /* ── Rotating placeholder phrases ────────────────────────── */
 const SEARCH_PLACEHOLDERS = [
@@ -86,6 +89,35 @@ function getAlertDismissal() {
 
 /* ── Quick Access config (static — outside component) ──── */
 
+// Icon + label lookup for starred section tiles
+const STARRED_META = {
+  summary:       { label: 'Summary',      icon: ClipboardList },
+  conditions:    { label: 'Conditions',   icon: Stethoscope },
+  allergies:     { label: 'Allergies',    icon: ShieldAlert },
+  labs:          { label: 'Labs',         icon: FlaskConical },
+  procedures:    { label: 'Procedures',   icon: Syringe },
+  immunizations: { label: 'Vaccines',     icon: ShieldCheck },
+  genetics:      { label: 'Genetics',     icon: Dna },
+  providers:     { label: 'Providers',    icon: User },
+  appts:         { label: 'Visits',       icon: Calendar },
+  pharmacies:    { label: 'Pharmacies',   icon: Building2 },
+  insurance:     { label: 'Insurance',    icon: BadgeDollarSign },
+  appeals:       { label: 'Appeals',      icon: Scale },
+  vitals:        { label: 'Vitals',       icon: TrendingUp },
+  sleep:         { label: 'Sleep',        icon: Moon },
+  activities:    { label: 'Activities',   icon: Activity },
+  cycles:        { label: 'Cycles',       icon: Heart },
+  interactions:  { label: 'Interactions', icon: AlertTriangle },
+  care_gaps:     { label: 'Care Gaps',    icon: AlertTriangle },
+  anesthesia:    { label: 'Anesthesia',   icon: AlertOctagon },
+  todos:         { label: "To-Do's",      icon: CheckSquare },
+  surgical:      { label: 'Surgery',      icon: PlaneTakeoff },
+  oura:          { label: 'Oura',         icon: OuraIcon },
+  apple_health:  { label: 'Apple Health', icon: Apple },
+  meds:          { label: 'Meds',         icon: Pill },
+  journal:       { label: 'Journal',      icon: BookOpen },
+};
+
 // Hub tiles — always 6 (or 5 when no devices). Tappable → category page.
 const HUB_TILES = [
   { id: 'records',  navId: 'hub_records',  label: 'Records',   icon: ClipboardList },
@@ -93,7 +125,7 @@ const HUB_TILES = [
   { id: 'tracking', navId: 'hub_tracking', label: 'Tracking',  icon: Activity },
   { id: 'safety',   navId: 'hub_safety',   label: 'Safety',    icon: Shield },
   { id: 'plans',    navId: 'hub_plans',    label: 'Plans',     icon: CheckSquare },
-  { id: 'devices',  navId: 'hub_devices',  label: 'Devices',   icon: SettingsIcon, conditional: true },
+  { id: 'devices',  navId: 'hub_devices',  label: 'Devices',   icon: Zap, conditional: true },
 ];
 
 /* ── Component ───────────────────────────────────────────── */
@@ -123,6 +155,17 @@ export default function Dashboard({ data, interactions, onNav }) {
       return true;
     });
   }, [hasOura, hasAppleHealth]);
+
+  /* ── Starred sections (user-pinned favorites) ── */
+  const [starredIds, setStarredIds] = useState(() => getStarred());
+  useEffect(() => {
+    const onChange = () => setStarredIds(getStarred());
+    window.addEventListener('salve:starred-change', onChange);
+    return () => window.removeEventListener('salve:starred-change', onChange);
+  }, []);
+  const starredTiles = useMemo(() =>
+    starredIds.map(id => ({ id, ...STARRED_META[id] })).filter(t => t.icon),
+  [starredIds]);
 
   /* ── Search state ───────────────────────────── */
   const [searchQuery, setSearchQuery] = useState('');
@@ -718,8 +761,32 @@ export default function Dashboard({ data, interactions, onNav }) {
 
       <Divider />
 
+      {/* ── Pinned shortcuts (user-starred) ─────── */}
+      {starredTiles.length > 0 && (
+        <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-3">
+          <div className="grid grid-cols-3 gap-2">
+            {starredTiles.map(t => (
+              <button
+                key={t.id}
+                onClick={() => onNav(t.id)}
+                className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all relative"
+              >
+                <div className="absolute top-1.5 right-1.5">
+                  <span className="text-salve-amber text-[8px]">★</span>
+                </div>
+                <t.icon size={20} color={C.lav} strokeWidth={1.5} />
+                <span className="text-[11px] text-salve-textMid font-montserrat">{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* ── Quick Access (hub tiles) ───────────── */}
       <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
+        {starredTiles.length > 0 && (
+          <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
+        )}
         <div className="grid grid-cols-3 gap-2 mb-4">
           {hubTiles.map(h => (
             <button
