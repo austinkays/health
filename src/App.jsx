@@ -84,16 +84,6 @@ function AppContent() {
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
   const showToast = useToast();
 
-  useEffect(() => {
-    const applyAlign = () => {
-      const val = localStorage.getItem('salve:align') || 'center';
-      document.documentElement.setAttribute('data-align', val);
-    };
-    applyAlign();
-    window.addEventListener('salve:align-change', applyAlign);
-    return () => window.removeEventListener('salve:align-change', applyAlign);
-  }, []);
-
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
   // CRUD wrappers that show toast confirmations

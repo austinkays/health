@@ -61,35 +61,6 @@ html.theme-transitioned body {
   --ambiance-night: 150, 128, 200;
 }
 
-/* ── Layout alignment (centered vs left) ───── */
-/* When data-align="center" on html, center most content */
-html[data-align="center"] main {
-  text-align: center;
-}
-/* Center all wrapping pill rows */
-html[data-align="center"] main .flex.flex-wrap {
-  justify-content: center;
-}
-/* Center non-filled grids (pinned + hub tiles) */
-html[data-align="center"] section[aria-label="Pinned shortcuts"] > div,
-html[data-align="center"] section[aria-label="Quick access"] > div.grid {
-  justify-content: center;
-  grid-template-columns: repeat(3, minmax(0, 110px));
-}
-/* Preserve left alignment for label+value rows and title+action bars */
-html[data-align="center"] main .flex.justify-between,
-html[data-align="center"] main .flex.items-start,
-html[data-align="center"] main .flex.items-center:not(.flex-wrap) {
-  text-align: left;
-}
-/* Keep form fields readable */
-html[data-align="center"] main label,
-html[data-align="center"] main input,
-html[data-align="center"] main textarea,
-html[data-align="center"] main select {
-  text-align: left;
-}
-
 /* ── Time-aware ambiance ─────────────────────── */
 /* Subtle accent glow shifts throughout the day   */
 :root {
