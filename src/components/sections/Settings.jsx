@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart } from 'lucide-react';
 import Card from '../ui/Card';
 import { OuraIcon } from '../ui/OuraIcon';
 import Field from '../ui/Field';
@@ -13,6 +13,8 @@ import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { db } from '../../services/db';
+import { signOut } from '../../services/auth';
+import { supabase } from '../../services/supabase';
 
 const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
 
@@ -58,6 +60,13 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
+
+  const [userEmail, setUserEmail] = useState('');
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user?.email) setUserEmail(data.user.email);
+    });
+  }, []);
 
   // Source detection
   const hasAppleHealth = (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
@@ -314,12 +323,24 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
   return (
     <div className="mt-2">
-      <SectionTitle>Profile</SectionTitle>
+      {/* ══════════════ 1. Account ══════════════ */}
+      <SectionTitle>Account</SectionTitle>
       <Card>
-        <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
-        <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-salve-text font-medium font-montserrat">{s.name || 'No name set'}</p>
+            <p className="text-[11px] text-salve-textFaint font-montserrat">{userEmail || 'Loading...'}</p>
+          </div>
+          <button
+            onClick={async () => { await signOut(); window.location.reload(); }}
+            className="flex items-center gap-1.5 text-xs text-salve-rose/70 hover:text-salve-rose font-montserrat bg-transparent border border-salve-rose/20 hover:border-salve-rose/40 rounded-lg px-3 py-1.5 cursor-pointer transition-colors"
+          >
+            <LogOut size={12} /> Sign out
+          </button>
+        </div>
       </Card>
 
+      {/* ══════════════ 2. Appearance ══════════════ */}
       <SectionTitle>Appearance</SectionTitle>
       <Card>
         <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
@@ -406,7 +427,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         )}
       </Card>
 
-      <SectionTitle>Sage</SectionTitle>
+      {/* ══════════════ 3. Sage & AI ══════════════ */}
+      <SectionTitle>Sage & AI</SectionTitle>
       <Card>
         <Field
           label="Sage Mode"
@@ -421,37 +443,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <p className="text-xs text-salve-textFaint italic leading-relaxed mt-1">
           Sage uses your health profile for personalized insights.
         </p>
-      </Card>
 
-      {aiConsent && (
-        <Card className="!mt-2">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield size={14} className="text-salve-sage" />
-              <span className="text-[13px] text-salve-textMid">Sage data sharing enabled</span>
-            </div>
-            <button
-              onClick={() => { revokeAIConsent(); setAiConsent(false); }}
-              className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
-            >
-              Revoke
-            </button>
-          </div>
-        </Card>
-      )}
+        <div className="my-3 border-t border-salve-border/50" />
 
-      <div className="flex flex-col items-center gap-1.5 my-1">
-        <AIProfilePreview data={data} />
-        <button
-          onClick={() => onNav('ai')}
-          className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
-        >
-          Want to make a change? Chat with Sage →
-        </button>
-      </div>
-
-      <SectionTitle>AI Provider</SectionTitle>
-      <Card>
         <div className="space-y-2">
           <button
             onClick={() => { setAIProvider('gemini'); setAiProviderLocal('gemini'); }}
@@ -498,10 +492,89 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           </button>
         </div>
+
+        {aiConsent && (
+          <>
+            <div className="my-3 border-t border-salve-border/50" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield size={14} className="text-salve-sage" />
+                <span className="text-[13px] text-salve-textMid">Sage data sharing enabled</span>
+              </div>
+              <button
+                onClick={() => { revokeAIConsent(); setAiConsent(false); }}
+                className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+              >
+                Revoke
+              </button>
+            </div>
+          </>
+        )}
       </Card>
 
-      <SectionTitle>Pharmacy</SectionTitle>
+      <div className="flex flex-col items-center gap-1.5 my-1">
+        <AIProfilePreview data={data} />
+        <button
+          onClick={() => onNav('ai')}
+          className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+        >
+          Want to make a change? Chat with Sage →
+        </button>
+      </div>
+
+      {/* ══════════════ 4. Premium ══════════════ */}
+      <SectionTitle>Premium</SectionTitle>
       <Card>
+        <div className="flex items-center gap-2.5 mb-2">
+          <Crown size={16} className={userTier === 'premium' ? 'text-salve-amber' : 'text-salve-textFaint'} />
+          <div>
+            <span className="text-sm text-salve-text font-medium font-montserrat">{userTier === 'premium' ? 'Premium' : 'Free Plan'}</span>
+            <span className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full font-medium ${userTier === 'premium' ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-card2 text-salve-textFaint'}`}>
+              {userTier === 'premium' ? 'Active' : 'Current'}
+            </span>
+          </div>
+        </div>
+        {userTier !== 'premium' && (
+          <div className="space-y-1.5 mt-2">
+            <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">Premium includes:</p>
+            <ul className="text-[11px] text-salve-textMid font-montserrat space-y-1 pl-4 list-disc">
+              <li>Claude AI models (Haiku, Sonnet, Opus)</li>
+              <li>Advanced features: connections, care gaps, cost savings, cycle patterns</li>
+              <li>Experimental themes</li>
+              <li>No daily AI limit</li>
+            </ul>
+          </div>
+        )}
+      </Card>
+
+      {/* ══════════════ 5. Health Info ══════════════ */}
+      <SectionTitle>Health Info</SectionTitle>
+      <Card>
+        <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
+        <div className="relative">
+          <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
+          <button
+            onClick={() => {
+              if (!navigator.geolocation) return;
+              navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
+                  const data = await res.json();
+                  const city = data.address?.city || data.address?.town || data.address?.village || '';
+                  const state = data.address?.state || '';
+                  if (city || state) set('location', [city, state].filter(Boolean).join(', '));
+                } catch { /* silent */ }
+              });
+            }}
+            className="absolute right-2 top-6 text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline flex items-center gap-0.5"
+            aria-label="Detect location"
+          >
+            <MapPin size={10} /> Detect
+          </button>
+        </div>
+      </Card>
+
+      <Card className="!mt-2">
         {pharmacies.length > 0 ? (
           <>
             <label className="block text-xs font-medium text-salve-textMid mb-1.5 font-montserrat">Preferred Pharmacy</label>
@@ -534,28 +607,25 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         )}
       </Card>
 
-      <SectionTitle>Insurance</SectionTitle>
-      <Card>
+      <Card className="!mt-2">
         <Field label="Plan" value={s.insurance_plan || ''} onChange={v => set('insurance_plan', v)} placeholder="e.g. Kaiser HMO" />
         <Field label="Member ID" value={s.insurance_id || ''} onChange={v => set('insurance_id', v)} placeholder="Member ID" />
         <Field label="Group #" value={s.insurance_group || ''} onChange={v => set('insurance_group', v)} placeholder="Group number" />
         <Field label="Member Services" value={s.insurance_phone || ''} onChange={v => set('insurance_phone', v)} type="tel" placeholder="Phone" />
       </Card>
 
-      <SectionTitle>Health Background</SectionTitle>
-      <Card>
-        <p className="text-xs text-salve-textMid mb-2.5 leading-relaxed italic">
-          Add context about your health history. Sage includes this when analyzing your profile.
-        </p>
+      <Card className="!mt-2">
         <Field
-          label="Background & Context"
+          label="Health Background"
           value={s.health_background || ''}
           onChange={v => set('health_background', v)}
           textarea
-          placeholder="e.g. I've had chronic fatigue since 2019, my pain flares are worst in cold weather..."
+          placeholder="Context for Sage — e.g. chronic fatigue since 2019, pain flares in cold weather..."
         />
+        <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
       </Card>
 
+      {/* ══════════════ 6. Connected Sources ══════════════ */}
       <SectionTitle>Connected Sources</SectionTitle>
 
       <div className="space-y-2 mb-4">
@@ -714,8 +784,38 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           )}
         </Card>
+
+        {/* ── Flo ── */}
+        <Card>
+          <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
+                <Heart size={16} className="text-salve-rose" />
+              </div>
+              <div className="text-left">
+                <span className="text-[13px] text-salve-text font-medium block">Flo</span>
+                <span className="text-[10px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
+              </div>
+            </div>
+            {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          </button>
+          {expandedSource === 'flo' && (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mb-2">
+                Import your cycle history from Flo. Go to Flo → Profile → Settings → Request My Data, then upload the JSON file in the Cycle Tracker section.
+              </p>
+              <button
+                onClick={() => onNav('cycles')}
+                className="text-xs text-salve-rose font-montserrat bg-transparent border border-salve-rose/30 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-rose/10 transition-colors"
+              >
+                Go to Cycle Tracker →
+              </button>
+            </div>
+          )}
+        </Card>
       </div>
 
+      {/* ══════════════ 7. Data & Privacy ══════════════ */}
       <SectionTitle
         action={
           <button
@@ -729,7 +829,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
         }
       >
-        Data Management
+        Data & Privacy
       </SectionTitle>
 
       {!dataExpanded && (
@@ -967,6 +1067,34 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </Card>
       )}
 
+      {/* ══════════════ 8. Support ══════════════ */}
+      <SectionTitle>Support</SectionTitle>
+      <Card>
+        <div className="space-y-3">
+          <a
+            href="https://github.com/austinkays/health/issues/new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat no-underline hover:text-salve-lav transition-colors"
+          >
+            <Bug size={14} className="text-salve-textFaint" />
+            Report a Bug
+          </a>
+          <a
+            href="mailto:support@salve.today"
+            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat no-underline hover:text-salve-lav transition-colors"
+          >
+            <MessageCircle size={14} className="text-salve-textFaint" />
+            Contact Developer
+          </a>
+          <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
+            <Info size={14} />
+            Salve v1.0
+          </div>
+        </div>
+      </Card>
+
+      {/* ══════════════ 9. Footer ══════════════ */}
       <div className="text-center mt-6 mb-2">
         <button
           onClick={() => onNav('legal')}
