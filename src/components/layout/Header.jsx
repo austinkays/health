@@ -58,7 +58,7 @@ export default function Header({ tab, name, onBack, onSearch, action }) {
         <div className="flex-1">
           <h1 className={`font-playfair font-semibold m-0 text-salve-text ${isDash ? 'text-2xl' : 'text-xl'}`}>
             {isDash ? (
-              <>Hello, <span className="text-gradient-magic">{name || 'there'}</span></>
+              <span className="text-gradient-magic">Hello, {name || 'there'}</span>
             ) : (
               TAB_LABELS[tab] || tab
             )}
