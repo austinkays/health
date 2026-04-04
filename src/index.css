@@ -262,6 +262,75 @@ html.theme-ember body::after {
   to { background-position: 0 -200vh; }
 }
 
+/* ── Blaze: ember cranked to eleven — raging inferno ── */
+html.theme-blaze body::before {
+  background-image:
+    /* White-hot core at the bottom */
+    radial-gradient(ellipse 180% 70% at 50% 118%, rgba(255, 234, 0, 0.55), transparent 72%),
+    /* Intense orange blaze */
+    radial-gradient(ellipse 160% 60% at 50% 115%, rgba(255, 61, 0, 0.60), transparent 68%),
+    /* Licking flame curl, left */
+    radial-gradient(ellipse 70% 45% at 18% 88%, rgba(255, 23, 68, 0.42), transparent 65%),
+    /* Licking flame curl, right */
+    radial-gradient(ellipse 70% 45% at 82% 86%, rgba(255, 122, 0, 0.48), transparent 65%),
+    /* Top heat haze bleed */
+    radial-gradient(ellipse 200% 25% at 50% 0%, rgba(255, 61, 0, 0.18), transparent 70%);
+  opacity: 1;
+  animation: blaze-flicker 0.9s ease-in-out infinite, blaze-hue 6s linear infinite;
+}
+html.theme-blaze body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    /* Storm of flying embers — denser, brighter, whiter-hot than ember */
+    radial-gradient(circle 4px at 6% 96%, rgba(255, 255, 255, 1), transparent 60%),
+    radial-gradient(circle 3px at 18% 82%, rgba(255, 234, 0, 0.98), transparent 65%),
+    radial-gradient(circle 5px at 30% 70%, rgba(255, 61, 0, 1), transparent 60%),
+    radial-gradient(circle 2px at 42% 58%, rgba(255, 255, 255, 0.95), transparent 65%),
+    radial-gradient(circle 4px at 54% 48%, rgba(255, 122, 0, 1), transparent 60%),
+    radial-gradient(circle 3px at 66% 38%, rgba(255, 234, 0, 0.95), transparent 65%),
+    radial-gradient(circle 5px at 78% 28%, rgba(255, 61, 0, 1), transparent 60%),
+    radial-gradient(circle 2px at 88% 18%, rgba(255, 255, 255, 0.95), transparent 65%),
+    radial-gradient(circle 4px at 12% 62%, rgba(255, 23, 68, 1), transparent 60%),
+    radial-gradient(circle 3px at 38% 34%, rgba(255, 122, 0, 0.95), transparent 65%),
+    radial-gradient(circle 4px at 62% 76%, rgba(255, 234, 0, 1), transparent 60%),
+    radial-gradient(circle 3px at 86% 54%, rgba(255, 61, 0, 0.95), transparent 65%),
+    radial-gradient(circle 2px at 22% 22%, rgba(255, 255, 255, 0.9), transparent 65%),
+    radial-gradient(circle 5px at 72% 8%, rgba(255, 122, 0, 1), transparent 60%);
+  background-size: 100% 160vh;
+  background-repeat: repeat-y;
+  animation: blaze-sparks 5s linear infinite;
+}
+@keyframes blaze-flicker {
+  0%   { opacity: 0.92; filter: brightness(1.15) saturate(1.3); }
+  12%  { opacity: 1;    filter: brightness(1.45) saturate(1.55); }
+  28%  { opacity: 0.78; filter: brightness(1.0)  saturate(1.2); }
+  44%  { opacity: 1;    filter: brightness(1.35) saturate(1.5); }
+  60%  { opacity: 0.85; filter: brightness(1.1)  saturate(1.3); }
+  76%  { opacity: 1;    filter: brightness(1.5)  saturate(1.6); }
+  92%  { opacity: 0.9;  filter: brightness(1.2)  saturate(1.35); }
+  100% { opacity: 0.95; filter: brightness(1.25) saturate(1.4); }
+}
+@keyframes blaze-hue {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(-12deg); }
+}
+@keyframes blaze-sparks {
+  from { background-position: 0 0; }
+  to { background-position: 0 -160vh; }
+}
+html.theme-blaze h1,
+html.theme-blaze h2,
+html.theme-blaze .font-playfair {
+  text-shadow:
+    0 0 8px rgba(255, 234, 0, 0.7),
+    0 0 18px rgba(255, 61, 0, 0.5),
+    0 0 36px rgba(255, 23, 68, 0.35);
+}
+
 /* ── Frost: icy shimmer + drifting snow of many sizes ── */
 html.theme-frost body::before {
   background-image:
@@ -334,7 +403,8 @@ html.theme-monarch .bg-salve-card,
 html.theme-ocean .bg-salve-card,
 html.theme-ember .bg-salve-card,
 html.theme-frost .bg-salve-card,
-html.theme-aurora .bg-salve-card {
+html.theme-aurora .bg-salve-card,
+html.theme-blaze .bg-salve-card {
   background-color: rgb(var(--salve-card) / 0.72);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -344,7 +414,8 @@ html.theme-monarch .bg-salve-card\/5,
 html.theme-ocean .bg-salve-card\/5,
 html.theme-ember .bg-salve-card\/5,
 html.theme-frost .bg-salve-card\/5,
-html.theme-aurora .bg-salve-card\/5 {
+html.theme-aurora .bg-salve-card\/5,
+html.theme-blaze .bg-salve-card\/5 {
   background-color: rgb(var(--salve-card) / 0.55);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -356,12 +427,14 @@ html.theme-ocean .bg-salve-lav\/5,
 html.theme-ember .bg-salve-lav\/5,
 html.theme-frost .bg-salve-lav\/5,
 html.theme-aurora .bg-salve-lav\/5,
+html.theme-blaze .bg-salve-lav\/5,
 html.theme-neon .bg-salve-lav\/10,
 html.theme-monarch .bg-salve-lav\/10,
 html.theme-ocean .bg-salve-lav\/10,
 html.theme-ember .bg-salve-lav\/10,
 html.theme-frost .bg-salve-lav\/10,
-html.theme-aurora .bg-salve-lav\/10 {
+html.theme-aurora .bg-salve-lav\/10,
+html.theme-blaze .bg-salve-lav\/10 {
   background-color: rgb(var(--salve-lav) / 0.12);
   backdrop-filter: blur(14px) saturate(1.2);
   -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -372,7 +445,8 @@ html.theme-monarch .border-salve-border,
 html.theme-ocean .border-salve-border,
 html.theme-ember .border-salve-border,
 html.theme-frost .border-salve-border,
-html.theme-aurora .border-salve-border {
+html.theme-aurora .border-salve-border,
+html.theme-blaze .border-salve-border {
   border-color: rgb(var(--salve-border2) / 0.8);
 }
 

@@ -327,6 +327,38 @@ export const themes = {
     },
   },
 
+  blaze: {
+    id: 'blaze',
+    label: 'Blaze',
+    description: 'Ember cranked to eleven — raging inferno',
+    type: 'dark',
+    experimental: true,
+    colors: {
+      bg:        '#0d0808',
+      card:      '#1c0f0a',
+      card2:     '#2a1612',
+      border:    '#4a2014',
+      border2:   '#7a2e18',
+      text:      '#fff4e8',
+      textMid:   '#ffb884',
+      textFaint: '#a86a4a',
+      lav:       '#ff3d00',
+      lavDim:    '#d42800',
+      sage:      '#ffea00',
+      sageDim:   '#e6c800',
+      amber:     '#ff7a00',
+      amberDim:  '#e65a00',
+      rose:      '#ff1744',
+      roseDim:   '#d4002e',
+    },
+    ambiance: {
+      morning: '255, 234, 0',
+      day:     '255, 61, 0',
+      evening: '255, 122, 0',
+      night:   '255, 23, 68',
+    },
+  },
+
   ember: {
     id: 'ember',
     label: 'Ember',
