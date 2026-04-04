@@ -6,6 +6,8 @@
 //   refresh  — refresh an expired access token (POST)
 //   data     — proxy GET requests to Oura V2 API (GET)
 
+import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+
 const EXTERNAL_TIMEOUT_MS = 15_000;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
@@ -20,7 +22,7 @@ function fetchWithTimeout(url, opts = {}) {
   return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-function checkRateLimit(userId) {
+function checkMemoryRateLimit(userId) {
   const now = Date.now();
   const bucket = rateBuckets.get(userId);
   if (!bucket || now > bucket.resetAt) {
@@ -76,7 +78,11 @@ export default async function handler(req, res) {
   // Auth
   const userId = await verifyAuth(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  if (!checkRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
+  // Fast in-memory check first, then persistent check
+  if (!checkMemoryRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
+  if (!(await checkPersistentRateLimit(userId, 'oura', RATE_LIMIT_MAX, 60))) {
+    return res.status(429).json({ error: 'Rate limit exceeded' });
+  }
 
   const clientId = process.env.OURA_CLIENT_ID;
   const clientSecret = process.env.OURA_CLIENT_SECRET;
@@ -109,6 +115,7 @@ export default async function handler(req, res) {
       }
 
       const tokens = await tokenRes.json();
+      logUsage(userId, 'oura');
       // Return access_token, refresh_token, expires_in — client stores encrypted
       return res.json({
         access_token: tokens.access_token,
@@ -142,6 +149,7 @@ export default async function handler(req, res) {
       }
 
       const tokens = await refreshRes.json();
+      logUsage(userId, 'oura');
       return res.json({
         access_token: tokens.access_token,
         refresh_token: tokens.refresh_token,
@@ -177,6 +185,7 @@ export default async function handler(req, res) {
       }
 
       const data = await dataRes.json();
+      logUsage(userId, 'oura');
       return res.json(data);
     }
 

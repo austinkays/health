@@ -5,6 +5,8 @@
 //   search — find providers by name (+ optional state)
 //   lookup — get full details by NPI number
 
+import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
 const rateBuckets = new Map();
@@ -16,7 +18,7 @@ function fetchWithTimeout(url, opts = {}) {
   return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-function checkRateLimit(userId) {
+function checkMemoryRateLimit(userId) {
   const now = Date.now();
   const bucket = rateBuckets.get(userId);
   if (!bucket || now > bucket.resetAt) {
@@ -192,7 +194,11 @@ export default async function handler(req, res) {
 
   const userId = await verifyAuth(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  if (!checkRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
+  // Fast in-memory check first, then persistent check
+  if (!checkMemoryRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
+  if (!(await checkPersistentRateLimit(userId, 'provider', RATE_LIMIT_MAX, 60))) {
+    return res.status(429).json({ error: 'Rate limit exceeded' });
+  }
 
   const { action, q, npi, state } = req.query;
 
@@ -202,11 +208,13 @@ export default async function handler(req, res) {
         if (!q || q.length < 2) return res.json([]);
         const key = `npi:${q.toLowerCase()}:${(state || '').toLowerCase()}`;
         const results = await cached(key, () => npiSearch(q, state));
+        logUsage(userId, 'provider');
         return res.json(results);
       }
       case 'lookup': {
         if (!npi || !/^\d{10}$/.test(npi)) return res.status(400).json({ error: 'Valid 10-digit NPI required' });
         const result = await cached(`npi:${npi}`, () => npiLookup(npi));
+        logUsage(userId, 'provider');
         return res.json(result || { error: 'NPI not found' });
       }
       default:

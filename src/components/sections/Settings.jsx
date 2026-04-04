@@ -794,6 +794,15 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </Card>
       )}
 
+      <div className="text-center mt-6 mb-2">
+        <button
+          onClick={() => onNav('legal')}
+          className="text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors underline underline-offset-2"
+        >
+          Privacy, Terms & HIPAA Notice
+        </button>
+      </div>
+
       <div className="text-center py-8">
         <div className="flex items-center justify-center gap-1.5 mb-1.5">
           <Motif type="sparkle" size={10} color="#6e6a80" />

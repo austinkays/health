@@ -1,9 +1,11 @@
-// ── In-memory rate limiter (per serverless instance) ──
+import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+
+// ── In-memory rate limiter (fast first-pass, per serverless instance) ──
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX = 20; // max requests per window per user
 const rateBuckets = new Map(); // userId → { count, resetAt }
 
-function checkRateLimit(userId) {
+function checkMemoryRateLimit(userId) {
   const now = Date.now();
   const bucket = rateBuckets.get(userId);
   if (!bucket || now > bucket.resetAt) {
@@ -55,6 +57,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Server configuration error' });
   }
 
+  let userId;
   try {
     const verifyRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: {
@@ -67,8 +70,12 @@ export default async function handler(req, res) {
     }
     // Extract user ID for rate limiting
     const userData = await verifyRes.json();
-    const userId = userData.id;
-    if (userId && !checkRateLimit(userId)) {
+    userId = userData.id;
+    // Fast in-memory check first, then persistent check
+    if (userId && !checkMemoryRateLimit(userId)) {
+      return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
+    }
+    if (userId && !(await checkPersistentRateLimit(userId, 'chat', RATE_LIMIT_MAX, 60))) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
     }
   } catch {
@@ -125,6 +132,15 @@ export default async function handler(req, res) {
 
     clearTimeout(timer);
     const data = await response.json();
+
+    // Log usage with token counts (fire-and-forget)
+    if (userId && response.status === 200) {
+      logUsage(userId, 'chat', {
+        tokens_in: data?.usage?.input_tokens ?? null,
+        tokens_out: data?.usage?.output_tokens ?? null,
+      });
+    }
+
     return res.status(response.status).json(data);
   } catch (err) {
     if (err.name === 'AbortError') {

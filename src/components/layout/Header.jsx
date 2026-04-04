@@ -30,6 +30,7 @@ const TAB_LABELS = {
   oura: 'Oura Ring',
   apple_health: 'Apple Health',
   summary: 'Health Summary',
+  legal: 'Legal',
 };
 
 const TAB_DECOR = {
@@ -61,6 +62,7 @@ const TAB_DECOR = {
   oura:          ['◉', '·', '✧'],
   apple_health:  ['✿', '·', '✧'],
   summary:       ['☽', '✧', '✿'],
+  legal:         ['✧', '·', '☽'],
 };
 
 export default function Header({ tab, name, onBack, onSearch, action }) {

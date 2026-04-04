@@ -7,7 +7,9 @@
 //   interactions — multi-drug interaction check via RxNorm
 //   price        — NADAC wholesale price via RxCUI → NDC → CMS DKAN
 
-// ── In-memory rate limiter (shared pattern with chat.js) ──
+import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+
+// ── In-memory rate limiter (fast first-pass, per serverless instance) ──
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 40; // higher than chat — these are lightweight lookups
 const rateBuckets = new Map();
@@ -19,7 +21,7 @@ function fetchWithTimeout(url, opts = {}) {
   return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
 }
 
-function checkRateLimit(userId) {
+function checkMemoryRateLimit(userId) {
   const now = Date.now();
   const bucket = rateBuckets.get(userId);
   if (!bucket || now > bucket.resetAt) {
@@ -358,35 +360,45 @@ export default async function handler(req, res) {
   // Auth
   const userId = await verifyAuth(req);
   if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-  if (!checkRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
+  // Fast in-memory check first, then persistent check
+  if (!checkMemoryRateLimit(userId)) return res.status(429).json({ error: 'Rate limit exceeded' });
+  if (!(await checkPersistentRateLimit(userId, 'drug', RATE_LIMIT_MAX, 60))) {
+    return res.status(429).json({ error: 'Rate limit exceeded' });
+  }
 
   const { action, q, rxcuis, name } = req.query;
 
   try {
+    let result;
     switch (action) {
       case 'autocomplete': {
         if (!q || q.length < 2) return res.json([]);
-        const results = await cached(`ac:${q.toLowerCase()}`, () => rxAutocomplete(q));
-        return res.json(results);
+        result = await cached(`ac:${q.toLowerCase()}`, () => rxAutocomplete(q));
+        // Log usage after successful response (fire-and-forget)
+        logUsage(userId, 'drug');
+        return res.json(result);
       }
       case 'details': {
         if (!q) return res.status(400).json({ error: 'q parameter required' });
         const cacheKey = `det:${q.toLowerCase()}:${(name || '').toLowerCase()}`;
-        const label = await cached(cacheKey, () => fdaDrugLabel(q, name));
-        return res.json(label || { error: 'No label data found' });
+        result = await cached(cacheKey, () => fdaDrugLabel(q, name));
+        logUsage(userId, 'drug');
+        return res.json(result || { error: 'No label data found' });
       }
       case 'interactions': {
         if (!rxcuis) return res.status(400).json({ error: 'rxcuis parameter required' });
         const ids = rxcuis.split(',').filter(Boolean);
         if (ids.length < 2) return res.json([]);
-        const results = await cached(`ix:${ids.sort().join(',')}`, () => rxInteractions(ids));
-        return res.json(results);
+        result = await cached(`ix:${ids.sort().join(',')}`, () => rxInteractions(ids));
+        logUsage(userId, 'drug');
+        return res.json(result);
       }
       case 'price': {
         const rxcui = req.query.rxcui;
         if (!rxcui) return res.status(400).json({ error: 'rxcui parameter required' });
-        const priceData = await cached(`price:${rxcui}`, () => lookupPrice(rxcui));
-        return res.json(priceData);
+        result = await cached(`price:${rxcui}`, () => lookupPrice(rxcui));
+        logUsage(userId, 'drug');
+        return res.json(result);
       }
       default:
         return res.status(400).json({ error: 'Invalid action. Use: autocomplete, details, interactions, price' });
