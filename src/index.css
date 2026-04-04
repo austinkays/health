@@ -61,6 +61,20 @@ html.theme-transitioned body {
   --ambiance-night: 150, 128, 200;
 }
 
+/* ── Layout alignment (centered vs left) ───── */
+/* When data-align="center" on html, center key content blocks */
+html[data-align="center"] section[aria-label="Greeting"] {
+  text-align: center;
+}
+html[data-align="center"] section[aria-label="Greeting"] > div {
+  justify-content: center;
+}
+html[data-align="center"] section[aria-label="Pinned shortcuts"] > div,
+html[data-align="center"] section[aria-label="Quick access"] > div.grid {
+  justify-content: center;
+  grid-template-columns: repeat(3, minmax(0, 110px));
+}
+
 /* ── Time-aware ambiance ─────────────────────── */
 /* Subtle accent glow shifts throughout the day   */
 :root {

@@ -81,14 +81,17 @@ function AppContent() {
   const [highlightId, setHighlightId] = useState(null);
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
-  const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
   const showToast = useToast();
 
   useEffect(() => {
-    const onChange = () => setLayoutAlign(localStorage.getItem('salve:align') || 'center');
-    window.addEventListener('salve:align-change', onChange);
-    return () => window.removeEventListener('salve:align-change', onChange);
+    const applyAlign = () => {
+      const val = localStorage.getItem('salve:align') || 'center';
+      document.documentElement.setAttribute('data-align', val);
+    };
+    applyAlign();
+    window.addEventListener('salve:align-change', applyAlign);
+    return () => window.removeEventListener('salve:align-change', applyAlign);
   }, []);
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
@@ -295,7 +298,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-salve-bg overflow-hidden">
-      <div className={`max-w-[480px] pb-24 relative ${layoutAlign === 'left' ? 'ml-0' : 'mx-auto'}`}>
+      <div className="max-w-[480px] mx-auto pb-24 relative">
         <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} />
         <main className="px-4">
           <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
