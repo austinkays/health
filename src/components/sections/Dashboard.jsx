@@ -274,11 +274,11 @@ export default function Dashboard({ data, interactions, onNav }) {
     [data.journal]
   );
 
-  /* Vitals snapshot — latest value, 14-day series, 7-day avg, trend vs previous 7 days */
+  /* Vitals snapshot — one featured vital (with 14-day chart) + compact supporting chips */
   const vitalsSnapshot = useMemo(() => {
     const today = Date.now();
     const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
-    const prevCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
+    const sparkCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
     const vitals = data.vitals || [];
     if (!vitals.length) return null;
     const recent = vitals.filter(v => v.date >= recentCutoff);
@@ -289,38 +289,47 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
     const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood'];
     const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-    const items = priority
-      .filter(t => byType[t])
-      .slice(0, 3)
-      .map(type => {
-        const latest = byType[type];
-        // 14-day series, ascending by date, numeric values only
-        const series = vitals
-          .filter(v => v.type === type && v.date >= prevCutoff)
-          .sort((a, b) => a.date.localeCompare(b.date))
-          .map(v => {
-            const n = Number(v.value);
-            return { date: v.date, value: Number.isFinite(n) ? n : null };
-          })
-          .filter(p => p.value !== null);
-        // Split into recent 7 + previous 7 for trend comparison
-        const recent7 = series.filter(p => p.date >= recentCutoff).map(p => p.value);
-        const prev7 = series.filter(p => p.date < recentCutoff).map(p => p.value);
-        const recentAvg = mean(recent7);
-        const prevAvg = mean(prev7);
-        let delta = null, direction = 'flat', signal = 'neutral';
-        if (recentAvg !== null && prevAvg !== null) {
-          delta = recentAvg - prevAvg;
-          const relThresh = Math.max(Math.abs(prevAvg) * 0.03, 0.1);
-          direction = delta > relThresh ? 'up' : delta < -relThresh ? 'down' : 'flat';
-          const polarity = VITAL_POLARITY[type];
-          if (polarity && direction !== 'flat') {
-            signal = (polarity === direction) ? 'good' : 'watch';
-          }
+    const buildItem = (type) => {
+      const latest = byType[type];
+      if (!latest) return null;
+      const series = vitals
+        .filter(v => v.type === type && v.date >= sparkCutoff)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map(v => {
+          const n = Number(v.value);
+          return { date: v.date, value: Number.isFinite(n) ? n : null };
+        })
+        .filter(p => p.value !== null);
+      const recent7 = series.filter(p => p.date >= recentCutoff).map(p => p.value);
+      const recentAvg = mean(recent7);
+      const latestNum = Number(latest.value);
+      let delta = null, direction = 'flat', signal = 'neutral';
+      // Compare the LATEST reading to the 7-day average
+      if (recentAvg !== null && Number.isFinite(latestNum)) {
+        delta = latestNum - recentAvg;
+        const relThresh = Math.max(Math.abs(recentAvg) * 0.03, 0.1);
+        direction = delta > relThresh ? 'up' : delta < -relThresh ? 'down' : 'flat';
+        const polarity = VITAL_POLARITY[type];
+        if (polarity && direction !== 'flat') {
+          signal = (polarity === direction) ? 'good' : 'watch';
         }
-        return { ...latest, series, recentAvg, delta, direction, signal };
-      });
-    return items.length ? items : null;
+      }
+      return { ...latest, series, recentAvg, delta, direction, signal };
+    };
+    const available = priority.filter(t => byType[t]);
+    if (!available.length) return null;
+    // Featured: top priority vital that also has at least 2 readings for a chart
+    const featuredType = available.find(t => {
+      const s = vitals.filter(v => v.type === t && v.date >= sparkCutoff);
+      return s.length >= 2;
+    }) || available[0];
+    const featured = buildItem(featuredType);
+    const chips = available
+      .filter(t => t !== featuredType)
+      .slice(0, 3)
+      .map(buildItem)
+      .filter(Boolean);
+    return { featured, chips };
   }, [data.vitals]);
 
   const urgentGaps = useMemo(
@@ -771,88 +780,107 @@ export default function Dashboard({ data, interactions, onNav }) {
       )}
 
       {/* ── Vitals Snapshot ──────────────────────── */}
-      {vitalsSnapshot && (
-        <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
-          <Card className="!bg-salve-lav/15 !border-salve-lav/25 !p-4 cursor-pointer" onClick={() => onNav('vitals')}>
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-baseline gap-2">
-                <span className="text-[10px] text-salve-lav/80 font-montserrat tracking-wider uppercase">Recent Vitals</span>
-                <span className="text-[9px] text-salve-textFaint font-montserrat">last 14 days</span>
+      {vitalsSnapshot && vitalsSnapshot.featured && (() => {
+        const f = vitalsSnapshot.featured;
+        const fType = VITAL_TYPES.find(t => t.id === f.type);
+        const fLabel = fType?.label || f.type;
+        const fUnit = fType?.unit || f.unit || '';
+        const fDisplay = f.type === 'bp' && f.value2 ? `${f.value}/${f.value2}` : f.value;
+        const fHasChart = f.series && f.series.length >= 2;
+        const fmtNum = (n) => {
+          if (n === null || n === undefined) return '—';
+          return Math.abs(n) >= 10 ? Math.round(n).toString() : n.toFixed(1);
+        };
+        // Natural-language trend caption
+        const captionText = (() => {
+          if (f.delta === null || f.recentAvg === null) return null;
+          if (f.direction === 'flat') return 'In line with your 7-day average';
+          const absDelta = Math.abs(f.delta);
+          const dir = f.direction === 'up' ? 'above' : 'below';
+          return `${fmtNum(absDelta)}${fUnit ? ` ${fUnit}` : ''} ${dir} your 7-day average`;
+        })();
+        const fSignalColor = f.signal === 'good' ? C.sage : f.signal === 'watch' ? C.amber : C.textMid;
+        const fArrow = f.direction === 'up' ? '↑' : f.direction === 'down' ? '↓' : '→';
+        return (
+          <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
+            <Card className="!bg-salve-lav/15 !border-salve-lav/25 !p-4 cursor-pointer" onClick={() => onNav('vitals')}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[10px] text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat">last 14 days</span>
+                </div>
+                <ChevronRight size={12} className="text-salve-textFaint" />
               </div>
-              <ChevronRight size={12} className="text-salve-textFaint" />
-            </div>
-            <div className="flex flex-col">
-              {vitalsSnapshot.map((v, i) => {
-                const type = VITAL_TYPES.find(t => t.id === v.type);
-                const label = type?.label || v.type;
-                const unit = type?.unit || v.unit || '';
-                const displayVal = v.type === 'bp' && v.value2 ? `${v.value}/${v.value2}` : v.value;
-                const hasSpark = v.series && v.series.length >= 2;
-                const fmt = (n) => {
-                  if (n === null || n === undefined) return '—';
-                  const abs = Math.abs(n);
-                  return abs >= 10 ? Math.round(n).toString() : n.toFixed(1);
-                };
-                const signalColor = v.signal === 'good' ? C.sage : v.signal === 'watch' ? C.amber : C.lav;
-                const arrow = v.direction === 'up' ? '↑' : v.direction === 'down' ? '↓' : '→';
-                const gradientId = `spark-grad-${v.type}`;
-                return (
-                  <div
-                    key={v.type}
-                    className={`flex items-end justify-between gap-3 py-2.5 ${i < vitalsSnapshot.length - 1 ? 'border-b border-salve-lav/10' : ''}`}
-                  >
-                    <div className="min-w-0 flex-shrink-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
-                        {v.delta !== null && (
-                          <span
-                            className="text-[9px] font-montserrat font-medium inline-flex items-center gap-0.5 px-1.5 py-[1px] rounded-full"
-                            style={{ color: signalColor, backgroundColor: `${signalColor}1f` }}
-                          >
-                            <span>{arrow}</span>
-                            {v.direction !== 'flat' && <span>{fmt(Math.abs(v.delta))}</span>}
+
+              {/* Featured vital — hero row */}
+              <div className="mb-3">
+                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1">{fLabel}</div>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <div className="text-[32px] font-medium text-salve-text font-montserrat leading-none">{fDisplay}</div>
+                  <div className="text-[12px] text-salve-textMid font-montserrat">{fUnit}</div>
+                </div>
+                {fHasChart && (
+                  <div className="w-full h-[56px] -mx-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={f.series} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>
+                        <defs>
+                          <linearGradient id="vitals-hero-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={C.lav} stopOpacity={0.22} />
+                            <stop offset="100%" stopColor={C.lav} stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <Area
+                          type="monotone"
+                          dataKey="value"
+                          stroke={C.textMid}
+                          strokeWidth={1.5}
+                          strokeOpacity={0.55}
+                          fill="url(#vitals-hero-grad)"
+                          dot={false}
+                          isAnimationActive={false}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                {captionText && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-montserrat mt-1" style={{ color: fSignalColor }}>
+                    <span className="text-[12px]" aria-hidden="true">{fArrow}</span>
+                    <span>{captionText}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Supporting chips */}
+              {vitalsSnapshot.chips.length > 0 && (
+                <div className="pt-3 border-t border-salve-lav/15 flex items-center gap-3 flex-wrap">
+                  {vitalsSnapshot.chips.map(c => {
+                    const cType = VITAL_TYPES.find(t => t.id === c.type);
+                    const cLabel = cType?.label || c.type;
+                    const cUnit = cType?.unit || c.unit || '';
+                    const cDisplay = c.type === 'bp' && c.value2 ? `${c.value}/${c.value2}` : c.value;
+                    const cSignalColor = c.signal === 'good' ? C.sage : c.signal === 'watch' ? C.amber : C.textFaint;
+                    const cArrow = c.direction === 'up' ? '↑' : c.direction === 'down' ? '↓' : '→';
+                    return (
+                      <div key={c.type} className="flex items-baseline gap-1.5 min-w-0">
+                        <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">{cLabel}</span>
+                        <span className="text-[13px] font-medium text-salve-text font-montserrat">
+                          {cDisplay}<span className="text-[9px] text-salve-textFaint ml-0.5">{cUnit}</span>
+                        </span>
+                        {c.delta !== null && (
+                          <span className="text-[11px] font-montserrat leading-none" style={{ color: cSignalColor }} aria-hidden="true">
+                            {cArrow}
                           </span>
                         )}
                       </div>
-                      <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none">
-                        {displayVal}<span className="text-[11px] text-salve-textFaint ml-1 font-normal">{unit}</span>
-                      </div>
-                      {v.recentAvg !== null && (
-                        <div className="text-[9px] text-salve-textFaint font-montserrat mt-1">
-                          7-day avg {fmt(v.recentAvg)}{unit ? ` ${unit}` : ''}
-                        </div>
-                      )}
-                    </div>
-                    {hasSpark && (
-                      <div className="w-[130px] h-[46px] flex-shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={v.series} margin={{ top: 4, right: 2, bottom: 2, left: 2 }}>
-                            <defs>
-                              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={signalColor} stopOpacity={0.35} />
-                                <stop offset="100%" stopColor={signalColor} stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <Area
-                              type="monotone"
-                              dataKey="value"
-                              stroke={signalColor}
-                              strokeWidth={1.75}
-                              fill={`url(#${gradientId})`}
-                              dot={false}
-                              isAnimationActive={false}
-                            />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-        </section>
-      )}
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </section>
+        );
+      })()}
 
       <Divider />
 
