@@ -57,6 +57,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const userTier = s?.tier || 'free';
   const { themeId, setTheme, themes: allThemes } = useTheme();
   const [pendingTheme, setPendingTheme] = useState(null);
+  const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
@@ -426,6 +427,41 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           </div>
         )}
+      </Card>
+
+      <Card className="!mt-2">
+        <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Layout</label>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { id: 'center', label: 'Centered', description: 'Content centered on screen' },
+            { id: 'left', label: 'Left-aligned', description: 'Content pinned to the left' },
+          ].map(opt => {
+            const active = layoutAlign === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => {
+                  localStorage.setItem('salve:align', opt.id);
+                  setLayoutAlign(opt.id);
+                  window.dispatchEvent(new CustomEvent('salve:align-change'));
+                }}
+                className={`p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-left ${
+                  active
+                    ? 'border-salve-lav/50 bg-salve-lav/10'
+                    : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <div className={`w-6 h-3 rounded border border-salve-border2 flex items-center ${opt.id === 'left' ? 'justify-start' : 'justify-center'}`}>
+                    <div className="w-2 h-1.5 rounded-sm bg-salve-lav/60" />
+                  </div>
+                  <span className="text-xs text-salve-text font-medium">{opt.label}</span>
+                </div>
+                <span className="text-[9px] text-salve-textFaint block leading-tight">{opt.description}</span>
+              </button>
+            );
+          })}
+        </div>
       </Card>
 
       {/* ══════════════ 3. Sage & AI ══════════════ */}

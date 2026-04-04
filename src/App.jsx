@@ -286,9 +286,16 @@ function AppContent() {
     }
   };
 
+  const [layoutAlign, setLayoutAlign] = useState(() => localStorage.getItem('salve:align') || 'center');
+  useEffect(() => {
+    const onChange = () => setLayoutAlign(localStorage.getItem('salve:align') || 'center');
+    window.addEventListener('salve:align-change', onChange);
+    return () => window.removeEventListener('salve:align-change', onChange);
+  }, []);
+
   return (
     <div className="min-h-screen bg-salve-bg overflow-hidden">
-      <div className="max-w-[480px] mx-auto pb-24 relative">
+      <div className={`max-w-[480px] pb-24 relative ${layoutAlign === 'left' ? 'ml-0' : 'mx-auto'}`}>
         <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} />
         <main className="px-4">
           <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
