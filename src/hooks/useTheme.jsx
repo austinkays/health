@@ -16,6 +16,13 @@ function applyThemeVariables(themeId) {
   for (const [period, rgb] of Object.entries(theme.ambiance)) {
     root.style.setProperty(`--ambiance-${period}`, rgb);
   }
+
+  // Set theme-specific class on <html> for per-theme CSS effects
+  // Remove any existing theme-* class first
+  for (const cls of Array.from(root.classList)) {
+    if (cls.startsWith('theme-')) root.classList.remove(cls);
+  }
+  root.classList.add(`theme-${theme.id}`);
 }
 
 function readCommitted() {

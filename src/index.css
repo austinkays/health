@@ -34,31 +34,143 @@ html.theme-transitioned body {
   transition: opacity 0.35s ease-in;
 }
 
-/* ── Theme CSS variable defaults (Midnight) ──── */
+/* ── Theme CSS variable defaults (Lilac) ───── */
 /* Overridden by ThemeProvider JS on mount        */
 :root {
-  --salve-bg: 29 26 42;
-  --salve-card: 39 34 56;
-  --salve-card2: 50 44 70;
-  --salve-border: 66 58 90;
-  --salve-border2: 82 72 110;
-  --salve-text: 237 230 245;
-  --salve-textMid: 184 172 200;
-  --salve-textFaint: 126 116 148;
-  --salve-lav: 180 156 222;
-  --salve-lavDim: 150 128 200;
-  --salve-sage: 143 194 154;
-  --salve-sageDim: 112 164 122;
-  --salve-amber: 220 192 136;
-  --salve-amberDim: 192 162 108;
-  --salve-rose: 212 140 154;
-  --salve-roseDim: 182 110 128;
+  --salve-bg: 245 240 248;
+  --salve-card: 251 247 253;
+  --salve-card2: 238 229 243;
+  --salve-border: 221 208 230;
+  --salve-border2: 200 184 212;
+  --salve-text: 46 35 64;
+  --salve-textMid: 110 90 130;
+  --salve-textFaint: 158 138 176;
+  --salve-lav: 136 102 184;
+  --salve-lavDim: 160 136 204;
+  --salve-sage: 90 144 120;
+  --salve-sageDim: 120 172 150;
+  --salve-amber: 196 136 80;
+  --salve-amberDim: 212 160 112;
+  --salve-rose: 192 106 140;
+  --salve-roseDim: 212 136 168;
 
   /* Ambiance RGB (comma-separated for rgba()) — set per-theme by JS */
-  --ambiance-morning: 143, 194, 154;
-  --ambiance-day: 180, 156, 222;
-  --ambiance-evening: 220, 192, 136;
-  --ambiance-night: 150, 128, 200;
+  --ambiance-morning: 90, 144, 120;
+  --ambiance-day: 136, 102, 184;
+  --ambiance-evening: 196, 136, 80;
+  --ambiance-night: 160, 136, 204;
+}
+
+/* ══════════════════════════════════════════════════ */
+/* ── Theme-specific signature effects ───────────── */
+/* ══════════════════════════════════════════════════ */
+
+/* Shared: a pseudo-element layer behind content for particle effects */
+html[class*="theme-"] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* ── Neon: pulsing grid backdrop + text glow ── */
+html.theme-neon body::before {
+  background-image:
+    linear-gradient(rgba(255, 77, 184, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(77, 216, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  opacity: 1;
+  animation: neon-drift 20s linear infinite;
+}
+@keyframes neon-drift {
+  from { background-position: 0 0, 0 0; }
+  to { background-position: 32px 32px, -32px 32px; }
+}
+html.theme-neon h1,
+html.theme-neon h2,
+html.theme-neon .font-playfair {
+  text-shadow: 0 0 8px rgba(255, 77, 184, 0.3), 0 0 16px rgba(77, 216, 255, 0.15);
+}
+
+/* ── Monarch: floating gold particles ── */
+html.theme-monarch body::before {
+  background-image:
+    radial-gradient(2px 2px at 20% 30%, rgba(244, 192, 96, 0.5) 0%, transparent 50%),
+    radial-gradient(2px 2px at 70% 60%, rgba(216, 160, 64, 0.4) 0%, transparent 50%),
+    radial-gradient(1px 1px at 40% 80%, rgba(232, 108, 40, 0.5) 0%, transparent 50%),
+    radial-gradient(1px 1px at 85% 15%, rgba(244, 192, 96, 0.4) 0%, transparent 50%),
+    radial-gradient(2px 2px at 10% 90%, rgba(168, 92, 200, 0.3) 0%, transparent 50%);
+  background-size: 100% 100%;
+  opacity: 1;
+  animation: monarch-float 24s ease-in-out infinite;
+}
+@keyframes monarch-float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-10px) translateX(5px); }
+  50% { transform: translateY(-5px) translateX(-5px); }
+  75% { transform: translateY(-15px) translateX(3px); }
+}
+
+/* ── Ocean: rising bubbles ── */
+html.theme-ocean body::before {
+  background-image:
+    radial-gradient(circle 3px at 15% 110%, rgba(96, 212, 164, 0.4) 0%, transparent 100%),
+    radial-gradient(circle 2px at 45% 110%, rgba(76, 196, 192, 0.3) 0%, transparent 100%),
+    radial-gradient(circle 4px at 75% 110%, rgba(96, 212, 164, 0.3) 0%, transparent 100%),
+    radial-gradient(circle 2px at 30% 110%, rgba(76, 196, 192, 0.4) 0%, transparent 100%),
+    radial-gradient(circle 3px at 90% 110%, rgba(96, 212, 164, 0.35) 0%, transparent 100%);
+  background-size: 100% 100%;
+  opacity: 1;
+  animation: ocean-bubbles 15s linear infinite;
+}
+@keyframes ocean-bubbles {
+  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
+  to {
+    background-position:
+      0 -400vh,
+      0 -350vh,
+      0 -500vh,
+      0 -300vh,
+      0 -450vh;
+  }
+}
+
+/* ── Ember: warm ember glow flicker ── */
+html.theme-ember body::before {
+  background: radial-gradient(ellipse 80% 40% at 50% 100%, rgba(232, 144, 112, 0.08) 0%, transparent 70%);
+  opacity: 1;
+  animation: ember-flicker 4s ease-in-out infinite;
+}
+@keyframes ember-flicker {
+  0%, 100% { opacity: 1; }
+  25% { opacity: 0.7; }
+  50% { opacity: 0.9; }
+  75% { opacity: 0.6; }
+}
+
+/* ── Frost: soft crystal shimmer ── */
+html.theme-frost body::before {
+  background-image:
+    radial-gradient(1px 1px at 25% 20%, rgba(124, 196, 232, 0.5) 0%, transparent 50%),
+    radial-gradient(1px 1px at 60% 40%, rgba(110, 231, 183, 0.4) 0%, transparent 50%),
+    radial-gradient(2px 2px at 80% 70%, rgba(196, 181, 253, 0.3) 0%, transparent 50%),
+    radial-gradient(1px 1px at 35% 85%, rgba(124, 196, 232, 0.4) 0%, transparent 50%);
+  background-size: 100% 100%;
+  opacity: 1;
+  animation: frost-shimmer 12s ease-in-out infinite;
+}
+@keyframes frost-shimmer {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* Keep content above the effect layer */
+html[class*="theme-"] body > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Time-aware ambiance ─────────────────────── */

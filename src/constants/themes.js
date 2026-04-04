@@ -2,7 +2,7 @@
 // To add a new theme: add one more entry to the `themes` object. Nothing else changes.
 
 export const THEME_STORAGE_KEY = 'salve:theme';
-export const DEFAULT_THEME = 'midnight';
+export const DEFAULT_THEME = 'lilac';
 
 export function hexToRgbTriplet(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
