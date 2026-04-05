@@ -29,7 +29,7 @@ export function buildDemoData() {
   const settings = {
     id: 'demo-user',
     name: 'Jordan',
-    location: 'Portland, OR',
+    location: 'Seattle, WA',
     pharmacy: 'Walgreens',
     insurance_plan: 'Regence BlueShield',
     insurance_id: '',
@@ -63,9 +63,9 @@ export function buildDemoData() {
   ];
 
   const providers = [
-    { id: did(), name: 'Dr. Priya Patel', specialty: 'Primary Care', clinic: 'Portland Family Medicine', phone: '(503) 555-0142', fax: '', portal_url: 'https://mychart.example.com', notes: 'Been seeing since 2021', npi: '', address: '2345 SW Main St, Portland, OR 97205' },
-    { id: did(), name: 'Dr. Marcus Chen', specialty: 'Gastroenterology', clinic: 'Pacific GI Associates', phone: '(503) 555-0167', fax: '', portal_url: '', notes: '', npi: '', address: '890 NE Broadway, Portland, OR 97232' },
-    { id: did(), name: 'Sarah Rivera, LCSW', specialty: 'Therapy / Mental Health', clinic: 'Private Practice', phone: '(503) 555-0199', fax: '', portal_url: '', notes: 'Weekly sessions Thursdays 4pm', npi: '', address: '' },
+    { id: did(), name: 'Dr. Priya Patel', specialty: 'Primary Care', clinic: 'Capitol Hill Family Medicine', phone: '(206) 555-0142', fax: '', portal_url: 'https://mychart.example.com', notes: 'Been seeing since 2021', npi: '', address: '1520 E Pine St, Seattle, WA 98122' },
+    { id: did(), name: 'Dr. Marcus Chen', specialty: 'Gastroenterology', clinic: 'Puget Sound GI Associates', phone: '(206) 555-0167', fax: '', portal_url: '', notes: '', npi: '', address: '1229 Madison St, Seattle, WA 98104' },
+    { id: did(), name: 'Sarah Rivera, LCSW', specialty: 'Therapy / Mental Health', clinic: 'Private Practice', phone: '(206) 555-0199', fax: '', portal_url: '', notes: 'Weekly sessions Thursdays 4pm', npi: '', address: '' },
   ];
 
   const vitals = [];
@@ -83,9 +83,9 @@ export function buildDemoData() {
   }
 
   const appts = [
-    { id: did(), date: daysFromNow(12), time: '10:30 AM', provider: 'Dr. Priya Patel', location: 'Portland Family Medicine', reason: 'Annual physical + medication review', questions: 'Ask about bumping Adderall IR for evening focus. Discuss vitamin D levels.', post_notes: '', video_call_url: '' },
+    { id: did(), date: daysFromNow(12), time: '10:30 AM', provider: 'Dr. Priya Patel', location: 'Capitol Hill Family Medicine', reason: 'Annual physical + medication review', questions: 'Ask about bumping Adderall IR for evening focus. Discuss vitamin D levels.', post_notes: '', video_call_url: '' },
     { id: did(), date: daysFromNow(3), time: '4:00 PM', provider: 'Sarah Rivera, LCSW', location: '', reason: 'Weekly therapy session', questions: '', post_notes: '', video_call_url: 'https://zoom.us/j/example' },
-    { id: did(), date: daysAgo(18), time: '2:15 PM', provider: 'Dr. Marcus Chen', location: 'Pacific GI Associates', reason: 'IBS follow-up', questions: '', post_notes: 'Recommended staying on dicyclomine as-needed. Try eliminating gluten for 4 weeks to test sensitivity.', video_call_url: '' },
+    { id: did(), date: daysAgo(18), time: '2:15 PM', provider: 'Dr. Marcus Chen', location: 'Puget Sound GI Associates', reason: 'IBS follow-up', questions: '', post_notes: 'Recommended staying on dicyclomine as-needed. Try eliminating gluten for 4 weeks to test sensitivity.', video_call_url: '' },
   ];
 
   const journal = [
@@ -111,8 +111,8 @@ export function buildDemoData() {
   ];
 
   const pharmacies = [
-    { id: did(), name: 'Walgreens', address: '1234 W Burnside St, Portland, OR 97205', phone: '(503) 555-0100', fax: '', hours: 'Mon-Fri 8am-10pm, Sat-Sun 9am-9pm', website: 'https://walgreens.com', is_preferred: true, notes: '' },
-    { id: did(), name: 'Costco', address: '4315 NE 122nd Ave, Portland, OR 97230', phone: '(503) 555-0155', fax: '', hours: 'Mon-Fri 10am-8:30pm', website: 'https://costco.com', is_preferred: false, notes: 'Member pharmacy — cheaper for supplements' },
+    { id: did(), name: 'Walgreens', address: '1531 Broadway, Seattle, WA 98122', phone: '(206) 555-0100', fax: '', hours: 'Mon-Fri 8am-10pm, Sat-Sun 9am-9pm', website: 'https://walgreens.com', is_preferred: true, notes: '' },
+    { id: did(), name: 'Costco', address: '4401 4th Ave S, Seattle, WA 98134', phone: '(206) 555-0155', fax: '', hours: 'Mon-Fri 10am-8:30pm', website: 'https://costco.com', is_preferred: false, notes: 'Member pharmacy — cheaper for supplements' },
   ];
 
   const activities = [
