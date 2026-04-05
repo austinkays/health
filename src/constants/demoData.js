@@ -52,11 +52,66 @@ export function buildDemoData() {
   };
 
   const meds = [
-    { id: did(), name: 'Adderall XR', display_name: 'Adderall XR', dose: '20mg', frequency: 'Once daily (morning)', route: 'Oral', prescriber: 'Dr. Priya Patel', pharmacy: 'Walgreens', purpose: 'ADHD', start_date: daysAgo(400), refill_date: daysFromNow(5), notes: 'Take with food to reduce appetite suppression', active: true },
-    { id: did(), name: 'Dicyclomine', display_name: 'Bentyl', dose: '10mg', frequency: 'As needed (up to 4x daily)', route: 'Oral', prescriber: 'Dr. Marcus Chen', pharmacy: 'Walgreens', purpose: 'IBS cramping', start_date: daysAgo(180), refill_date: daysFromNow(22), notes: 'Use during flares only', active: true },
-    { id: did(), name: 'Cetirizine', display_name: 'Zyrtec', dose: '10mg', frequency: 'Once daily', route: 'Oral', prescriber: 'Dr. Priya Patel', pharmacy: 'Walgreens', purpose: 'Seasonal allergies', start_date: daysAgo(300), refill_date: daysFromNow(15), notes: '', active: true },
-    { id: did(), name: 'Magnesium glycinate', display_name: 'Magnesium', dose: '400mg', frequency: 'Nightly', route: 'Oral', prescriber: 'Self-directed', pharmacy: 'Costco', purpose: 'Sleep + leg cramps', start_date: daysAgo(120), refill_date: daysFromNow(30), notes: 'Helps falling asleep', active: true },
-    { id: did(), name: 'Vitamin D3', display_name: 'Vitamin D3', dose: '2000 IU', frequency: 'Once daily', route: 'Oral', prescriber: 'Dr. Priya Patel', pharmacy: 'Costco', purpose: 'Low vitamin D (from labs)', start_date: daysAgo(220), refill_date: daysFromNow(45), notes: '', active: true },
+    {
+      id: did(), name: 'Adderall XR', display_name: 'Adderall XR', dose: '20mg',
+      frequency: 'Once daily (morning)', route: 'Oral', prescriber: 'Dr. Priya Patel',
+      pharmacy: 'Walgreens', purpose: 'ADHD', start_date: daysAgo(400),
+      refill_date: daysFromNow(5), notes: 'Take with food to reduce appetite suppression',
+      active: true, rxcui: '849418',
+      fda_data: {
+        brand_name: 'Adderall XR',
+        generic_name: 'Amphetamine / Dextroamphetamine (mixed salts)',
+        manufacturer: 'Takeda Pharmaceuticals',
+        pharm_class: ['Central Nervous System Stimulant [EPC]'],
+        pharm_class_moa: ['Norepinephrine Reuptake Inhibitors [MoA]', 'Dopamine Uptake Inhibitors [MoA]'],
+        boxed_warning: ['WARNING: ABUSE, MISUSE, AND ADDICTION\n\nCNS stimulants, including Adderall XR, have a high potential for abuse and misuse, which can lead to the development of a substance use disorder, including addiction. Assess each patient\'s risk for abuse, misuse, and addiction prior to prescribing. Monitor patients for signs and symptoms of abuse, misuse, and addiction during treatment.'],
+        indications: ['Adderall XR is a central nervous system stimulant prescription medicine used for the treatment of Attention Deficit Hyperactivity Disorder (ADHD) in adults and children 6 years and older.'],
+        spl_set_id: 'fc5f15cd-3a7e-4d8e-a0c1-8c7b7f0b4e2a',
+      },
+    },
+    {
+      id: did(), name: 'Dicyclomine', display_name: 'Bentyl', dose: '10mg',
+      frequency: 'As needed (up to 4x daily)', route: 'Oral', prescriber: 'Dr. Marcus Chen',
+      pharmacy: 'Walgreens', purpose: 'IBS cramping', start_date: daysAgo(180),
+      refill_date: daysFromNow(22), notes: 'Use during flares only', active: true,
+      rxcui: '3443',
+      fda_data: {
+        brand_name: 'Bentyl',
+        generic_name: 'Dicyclomine hydrochloride',
+        pharm_class: ['Anticholinergic [EPC]'],
+        indications: ['Bentyl is indicated for the treatment of functional bowel/irritable bowel syndrome.'],
+      },
+    },
+    {
+      id: did(), name: 'Cetirizine', display_name: 'Zyrtec', dose: '10mg',
+      frequency: 'Once daily', route: 'Oral', prescriber: 'Dr. Priya Patel',
+      pharmacy: 'Walgreens', purpose: 'Seasonal allergies', start_date: daysAgo(300),
+      refill_date: daysFromNow(15), notes: '', active: true, rxcui: '20610',
+      fda_data: {
+        brand_name: 'Zyrtec',
+        generic_name: 'Cetirizine hydrochloride',
+        pharm_class: ['Histamine H1 Receptor Antagonists [MoA]'],
+        indications: ['For the temporary relief of symptoms due to hay fever or other upper respiratory allergies: runny nose, sneezing, itchy/watery eyes, itching of the nose or throat.'],
+      },
+    },
+    {
+      id: did(), name: 'Magnesium glycinate', display_name: 'Magnesium', dose: '400mg',
+      frequency: 'Nightly', route: 'Oral', prescriber: 'Self-directed', pharmacy: 'Costco',
+      purpose: 'Sleep + leg cramps', start_date: daysAgo(120), refill_date: daysFromNow(30),
+      notes: 'Helps falling asleep', active: true,
+    },
+    {
+      id: did(), name: 'Vitamin D3', display_name: 'Vitamin D3', dose: '2000 IU',
+      frequency: 'Once daily', route: 'Oral', prescriber: 'Dr. Priya Patel',
+      pharmacy: 'Costco', purpose: 'Low vitamin D (from labs)', start_date: daysAgo(220),
+      refill_date: daysFromNow(45), notes: '', active: true, rxcui: '316675',
+      fda_data: {
+        brand_name: 'Vitamin D3',
+        generic_name: 'Cholecalciferol',
+        pharm_class: ['Vitamin D Analog [EPC]'],
+        indications: ['Dietary supplement for vitamin D insufficiency or deficiency.'],
+      },
+    },
   ];
 
   const conditions = [
@@ -86,8 +141,9 @@ export function buildDemoData() {
   const energyValues = [6, 7, 4, 8, 5, 7, 6, 4, 7, 8, 5, 6, 7, 5];
   for (let i = 0; i < 14; i++) {
     const date = daysAgo(13 - i);
-    vitals.push({ id: did(), date, type: 'sleep', value: sleepValues[i], unit: 'hrs', notes: '', source: 'manual' });
-    vitals.push({ id: did(), date, type: 'hr', value: hrValues[i], unit: 'bpm', notes: '', source: 'manual' });
+    // Sleep + HR synced from Oura Ring, mood + energy logged manually
+    vitals.push({ id: did(), date, type: 'sleep', value: sleepValues[i], unit: 'hrs', notes: '', source: 'oura' });
+    vitals.push({ id: did(), date, type: 'hr', value: hrValues[i], unit: 'bpm', notes: '', source: 'oura' });
     vitals.push({ id: did(), date, type: 'mood', value: moodValues[i], unit: '/10', notes: '', source: 'manual' });
     vitals.push({ id: did(), date, type: 'energy', value: energyValues[i], unit: '/10', notes: '', source: 'manual' });
   }
@@ -99,11 +155,11 @@ export function buildDemoData() {
   ];
 
   const journal = [
-    { id: did(), date: daysAgo(1), title: 'Good focus day', mood: 8, severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night — noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity' },
-    { id: did(), date: daysAgo(3), title: 'IBS flare', mood: 4, severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday — probably contributed.', tags: 'ibs,flare,stress' },
-    { id: did(), date: daysAgo(6), title: 'Therapy insight', mood: 7, severity: 3, content: 'Sarah helped me see the connection between perfectionism at work and my IBS flares. Going to try setting earlier stop times this week.', tags: 'anxiety,therapy,insight' },
-    { id: did(), date: daysAgo(9), title: 'Afternoon crash', mood: 5, severity: 4, content: 'Meds wore off around 2pm today and I just couldn\'t focus. Ate lunch late (3pm). Need to be better about lunch timing.', tags: 'adhd,meds' },
-    { id: did(), date: daysAgo(12), title: 'First good run in weeks', mood: 8, severity: 1, content: 'Did 3 miles without stopping. Allergies are calming down finally. HR stayed in a nice zone.', tags: 'exercise,allergies,mood' },
+    { id: did(), date: daysAgo(1), title: 'Good focus day', mood: '😀 Great', severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night — noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity' },
+    { id: did(), date: daysAgo(3), title: 'IBS flare', mood: '😔 Low', severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday — probably contributed.', tags: 'ibs,flare,stress' },
+    { id: did(), date: daysAgo(6), title: 'Therapy insight', mood: '😊 Good', severity: 3, content: 'Sarah helped me see the connection between perfectionism at work and my IBS flares. Going to try setting earlier stop times this week.', tags: 'anxiety,therapy,insight' },
+    { id: did(), date: daysAgo(9), title: 'Afternoon crash', mood: '😐 Okay', severity: 4, content: 'Meds wore off around 2pm today and I just couldn\'t focus. Ate lunch late (3pm). Need to be better about lunch timing.', tags: 'adhd,meds' },
+    { id: did(), date: daysAgo(12), title: 'First good run in weeks', mood: '😀 Great', severity: 1, content: 'Did 3 miles without stopping. Allergies are calming down finally. HR stayed in a nice zone.', tags: 'exercise,allergies,mood' },
   ];
 
   const labs = [
@@ -126,10 +182,11 @@ export function buildDemoData() {
   ];
 
   const activities = [
-    { id: did(), date: daysAgo(1), type: 'walk', duration_minutes: 32, distance: 1.8, calories: 145, heart_rate_avg: 110, source: 'manual', notes: 'Lunchtime walk' },
-    { id: did(), date: daysAgo(3), type: 'run', duration_minutes: 28, distance: 3.0, calories: 290, heart_rate_avg: 148, source: 'manual', notes: 'Easy run' },
+    { id: did(), date: daysAgo(1), type: 'walk', duration_minutes: 32, distance: 1.8, calories: 145, heart_rate_avg: 110, source: 'apple_health', notes: 'Lunchtime walk' },
+    { id: did(), date: daysAgo(3), type: 'run', duration_minutes: 28, distance: 3.0, calories: 290, heart_rate_avg: 148, source: 'apple_health', notes: 'Easy run' },
     { id: did(), date: daysAgo(5), type: 'yoga', duration_minutes: 45, distance: 0, calories: 160, heart_rate_avg: 92, source: 'manual', notes: '' },
-    { id: did(), date: daysAgo(7), type: 'strength', duration_minutes: 40, distance: 0, calories: 220, heart_rate_avg: 120, source: 'manual', notes: 'Upper body' },
+    { id: did(), date: daysAgo(7), type: 'strength', duration_minutes: 40, distance: 0, calories: 220, heart_rate_avg: 120, source: 'apple_health', notes: 'Upper body' },
+    { id: did(), date: daysAgo(9), type: 'run', duration_minutes: 35, distance: 3.6, calories: 340, heart_rate_avg: 152, source: 'apple_health', notes: '' },
   ];
 
   // Empty collections — user sees empty states for these
@@ -142,7 +199,26 @@ export function buildDemoData() {
   const insurance = [];
   const insurance_claims = [];
   const drug_prices = [];
-  const cycles = [];
+  // Cycle tracking — imported from Flo GDPR export, shows predicted period
+  // in the Dashboard timeline and enables cycle-phase badges across Vitals
+  // and Journal.
+  const cycles = [
+    // Last period (5 days, starting ~20 days ago)
+    { id: did(), date: daysAgo(20), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(19), type: 'period', value: 'heavy', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(18), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(17), type: 'period', value: 'light', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(16), type: 'period', value: 'spotting', symptom: '', notes: 'imported from Flo' },
+    // Previous period (5 days, ~48 days ago — so ~28 day cycle)
+    { id: did(), date: daysAgo(48), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(47), type: 'period', value: 'heavy', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(46), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(45), type: 'period', value: 'light', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(44), type: 'period', value: 'spotting', symptom: '', notes: 'imported from Flo' },
+    // Symptom logs around ovulation and luteal
+    { id: did(), date: daysAgo(6), type: 'symptom', value: '', symptom: 'cramps', notes: '' },
+    { id: did(), date: daysAgo(10), type: 'symptom', value: '', symptom: 'bloating', notes: '' },
+  ];
   const genetic_results = [];
 
   return {
