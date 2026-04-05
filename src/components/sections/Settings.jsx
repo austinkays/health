@@ -1347,7 +1347,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             Report a Bug
           </a>
           <a
-            href="mailto:support@salve.today"
+            href="mailto:salveapp@proton.me"
             className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat no-underline hover:text-salve-lav transition-colors"
           >
             <MessageCircle size={14} className="text-salve-textFaint" />
