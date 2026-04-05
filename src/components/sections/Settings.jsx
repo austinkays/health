@@ -7,7 +7,7 @@ import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
-import { getAIProvider, setAIProvider } from '../../services/ai';
+import { getAIProvider, setAIProvider, isPremiumActive, trialDaysRemaining } from '../../services/ai';
 import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
@@ -57,7 +57,22 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [dedupStatus, setDedupStatus] = useState(null); // null | 'running' | { results }
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
-  const userTier = s?.tier || 'free';
+  // Effective tier — factors in trial expiry + localStorage dev override
+  const userTier = isPremiumActive(s) ? 'premium' : 'free';
+  const trialDays = trialDaysRemaining(s);
+  const isOnTrial = trialDays != null && trialDays > 0;
+  const trialExpired = s?.tier === 'premium' && trialDays === 0;
+  const [tierOverride, setTierOverride] = useState(() => {
+    try { return localStorage.getItem('salve:tier-override') || ''; } catch { return ''; }
+  });
+  const applyOverride = (val) => {
+    try {
+      if (val) localStorage.setItem('salve:tier-override', val);
+      else localStorage.removeItem('salve:tier-override');
+    } catch { /* ignore */ }
+    setTierOverride(val);
+    window.location.reload();
+  };
   const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
@@ -563,13 +578,32 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <div className="flex items-center gap-2.5 mb-2">
           <Crown size={16} className={userTier === 'premium' ? 'text-salve-amber' : 'text-salve-textFaint'} />
           <div>
-            <span className="text-sm text-salve-text font-medium font-montserrat">{userTier === 'premium' ? 'Premium' : 'Free Plan'}</span>
+            <span className="text-sm text-salve-text font-medium font-montserrat">
+              {userTier === 'premium' ? (isOnTrial ? 'Free Trial' : 'Premium') : 'Free Plan'}
+            </span>
             <span className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full font-medium ${userTier === 'premium' ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-card2 text-salve-textFaint'}`}>
-              {userTier === 'premium' ? 'Active' : 'Current'}
+              {userTier === 'premium' ? (isOnTrial ? `${trialDays} day${trialDays === 1 ? '' : 's'} left` : 'Active') : 'Current'}
             </span>
           </div>
         </div>
-        {userTier !== 'premium' && (
+        {isOnTrial && (
+          <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
+            You're on a 14-day free trial with full access to every feature. Enjoy the ride — no payment needed to explore.
+          </p>
+        )}
+        {trialExpired && (
+          <div className="space-y-2 mt-2">
+            <p className="text-[11px] text-salve-rose font-montserrat leading-relaxed">
+              Your trial ended. You're now on the free plan.
+            </p>
+            <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+              Upgrading keeps Claude AI, advanced insights, experimental themes, and unlimited AI access.
+              <br />
+              <em className="text-salve-textFaint">Payment coming soon — reach out at <a href="mailto:salveapp@proton.me" className="text-salve-lav no-underline hover:underline">salveapp@proton.me</a> if you'd like early access.</em>
+            </p>
+          </div>
+        )}
+        {userTier === 'free' && !trialExpired && (
           <div className="space-y-1.5 mt-2">
             <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">Premium includes:</p>
             <ul className="text-[11px] text-salve-textMid font-montserrat space-y-1 pl-4 list-disc">
@@ -578,6 +612,32 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <li>Experimental themes</li>
               <li>No daily AI limit</li>
             </ul>
+          </div>
+        )}
+        {/* Dev-mode tier override — lets you preview the free/expired state without waiting */}
+        {import.meta.env.DEV && (
+          <div className="mt-3 pt-3 border-t border-salve-border">
+            <p className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1.5">Dev: tier override</p>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => applyOverride('')}
+                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === '' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
+              >
+                Actual ({s?.tier === 'premium' && isOnTrial ? 'trial' : s?.tier || 'free'})
+              </button>
+              <button
+                onClick={() => applyOverride('free')}
+                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'free' ? 'border-salve-rose/50 bg-salve-rose/10 text-salve-rose' : 'border-salve-border text-salve-textFaint'}`}
+              >
+                Force free
+              </button>
+              <button
+                onClick={() => applyOverride('premium')}
+                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'premium' ? 'border-salve-amber/50 bg-salve-amber/10 text-salve-amber' : 'border-salve-border text-salve-textFaint'}`}
+              >
+                Force premium
+              </button>
+            </div>
           </div>
         )}
       </Card>

@@ -21,6 +21,30 @@ export function isFeatureLocked(feature) {
   return getAIProvider() !== 'anthropic' && FREE_BLOCKED_FEATURES.has(feature);
 }
 
+// Returns true when the user has active premium access — either permanent
+// premium (trial_expires_at IS NULL) or a trial that hasn't yet expired.
+// `settings` is data.settings from useHealthData (the profile row).
+// Respects a localStorage dev override at 'salve:tier-override' ('free' or 'premium').
+export function isPremiumActive(settings) {
+  try {
+    const override = localStorage.getItem('salve:tier-override');
+    if (override === 'free') return false;
+    if (override === 'premium') return true;
+  } catch { /* ignore */ }
+  if (!settings || settings.tier !== 'premium') return false;
+  if (settings.trial_expires_at == null) return true;
+  return new Date(settings.trial_expires_at).getTime() > Date.now();
+}
+
+// Returns number of whole days remaining in the trial, or null if no trial
+// (permanent premium or already expired).
+export function trialDaysRemaining(settings) {
+  if (!settings?.trial_expires_at) return null;
+  const msLeft = new Date(settings.trial_expires_at).getTime() - Date.now();
+  if (msLeft <= 0) return 0;
+  return Math.ceil(msLeft / 86_400_000);
+}
+
 function getModel(feature) {
   const provider = getAIProvider();
   const tier = LITE_FEATURES.has(feature) ? 'lite' : PRO_FEATURES.has(feature) ? 'pro' : 'flash';

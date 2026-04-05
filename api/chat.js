@@ -82,19 +82,67 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Auth verification failed' });
   }
 
-  // ── Premium tier check ──
+  // ── Premium tier check (respects trial_expires_at) ──
+  let profile = null;
   try {
-    const profileRes = await fetch(`${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=tier`, {
-      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
-    });
+    const profileRes = await fetch(
+      `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=tier,trial_expires_at`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+    );
     if (profileRes.ok) {
       const profiles = await profileRes.json();
-      if (!profiles[0] || profiles[0].tier !== 'premium') {
-        return res.status(403).json({ error: 'Premium feature. Upgrade to use Claude.' });
+      profile = profiles[0] || null;
+      const isPremium = profile?.tier === 'premium';
+      const trialActive =
+        profile?.trial_expires_at == null ||
+        new Date(profile.trial_expires_at).getTime() > Date.now();
+      if (!isPremium || !trialActive) {
+        const reason = isPremium ? 'trial_expired' : 'not_premium';
+        return res.status(403).json({
+          error: 'Premium feature. Upgrade to use Claude.',
+          reason,
+          trial_expires_at: profile?.trial_expires_at ?? null,
+        });
       }
     }
   } catch {
     // Fail-open on tier check error — allow the request
+  }
+
+  // ── Per-user Claude daily call limit (50/day) ──
+  // Protects against runaway spend on the $50 Anthropic monthly cap.
+  // Uses the same api_usage table pattern as api/gemini.js's daily limit.
+  const CLAUDE_DAILY_LIMIT = 50;
+  try {
+    // Count calls made today (midnight PT = 08:00 UTC approximation)
+    const todayStartUtc = new Date();
+    todayStartUtc.setUTCHours(8, 0, 0, 0);
+    if (todayStartUtc.getTime() > Date.now()) {
+      // We haven't hit today's 08:00 UTC yet — use yesterday's 08:00 UTC
+      todayStartUtc.setUTCDate(todayStartUtc.getUTCDate() - 1);
+    }
+    const countRes = await fetch(
+      `${supabaseUrl}/rest/v1/api_usage?user_id=eq.${userId}&endpoint=eq.chat&created_at=gte.${todayStartUtc.toISOString()}&select=id`,
+      {
+        headers: {
+          apikey: serviceKey,
+          Authorization: `Bearer ${serviceKey}`,
+          Prefer: 'count=exact',
+        },
+      }
+    );
+    if (countRes.ok) {
+      const range = countRes.headers.get('content-range') || '0-0/0';
+      const total = parseInt(range.split('/')[1], 10);
+      if (!isNaN(total) && total >= CLAUDE_DAILY_LIMIT) {
+        return res.status(429).json({
+          error: `Daily AI limit reached (${CLAUDE_DAILY_LIMIT}/day). Resets at midnight PT.`,
+          daily_limit: true,
+        });
+      }
+    }
+  } catch {
+    // Fail-open on daily-limit check error
   }
 
   // Proxy to Anthropic

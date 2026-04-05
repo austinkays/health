@@ -16,7 +16,7 @@ import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { VITAL_TYPES } from '../../constants/defaults';
-import { fetchInsight } from '../../services/ai';
+import { fetchInsight, isPremiumActive } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -371,7 +371,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   };
 
   useEffect(() => {
-    if (data.settings.ai_mode === 'alwaysOn' && data.settings.tier === 'premium' && activeMeds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
+    if (data.settings.ai_mode === 'alwaysOn' && isPremiumActive(data.settings) && activeMeds.length + data.conditions.length > 0 && !insight && hasAIConsent()) {
       loadInsight();
     }
   }, [data.settings.ai_mode, activeMeds.length, data.conditions.length]); // eslint-disable-line react-hooks/exhaustive-deps

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { db } from '../services/db';
 import { cache } from '../services/cache';
+import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 
 export default function useHealthData(session) {
   const [data, setData] = useState({
@@ -46,6 +47,12 @@ export default function useHealthData(session) {
         if (!cancelled) {
           setData(fresh);
           cache.write(fresh).catch(() => {});
+          // If premium is no longer active (trial expired / free tier) but the
+          // client still has anthropic selected, force-switch to gemini so
+          // requests don't hit /api/chat and 403. Keeps client + server in sync.
+          if (!isPremiumActive(fresh.settings) && getAIProvider() === 'anthropic') {
+            setAIProvider('gemini');
+          }
         }
       } catch (err) {
         console.error('Failed to load data:', err);
