@@ -160,7 +160,7 @@ html.theme-aurora body::after {
 html.theme-aurora::before {
   content: '';
   position: fixed;
-  top: -18vh;
+  top: -6vw;
   left: -32vw;
   width: 32vw;
   height: 2px;
@@ -190,10 +190,14 @@ html.theme-aurora::before {
   50% { opacity: 0.4; }
 }
 @keyframes aurora-meteor {
-  0%, 95%  { transform: rotate(18deg) translate(0, 0); opacity: 0; }
-  95.5%    { transform: rotate(18deg) translate(0, 0); opacity: 0.85; }
-  99.5%    { transform: rotate(18deg) translate(170vw, 70vh); opacity: 0.85; }
-  100%     { transform: rotate(18deg) translate(170vw, 70vh); opacity: 0; }
+  /* y = x * tan(18°) ≈ x * 0.325 — keep motion aligned with rotation */
+  0%, 94%  { transform: rotate(18deg) translate(0, 0);          opacity: 0; }
+  94.8%    { transform: rotate(18deg) translate(6vw, 2vw);      opacity: 0.3; }
+  95.6%    { transform: rotate(18deg) translate(20vw, 6.5vw);   opacity: 0.85; }
+  98.8%    { transform: rotate(18deg) translate(140vw, 45.5vw); opacity: 0.85; }
+  99.4%    { transform: rotate(18deg) translate(158vw, 51.4vw); opacity: 0.55; }
+  99.8%    { transform: rotate(18deg) translate(168vw, 54.6vw); opacity: 0.15; }
+  100%     { transform: rotate(18deg) translate(170vw, 55.3vw); opacity: 0; }
 }
 html.theme-aurora h1,
 html.theme-aurora h2,
@@ -460,7 +464,7 @@ html.theme-galactic body::after {
   content: '';
   position: fixed;
   /* Short rotated streak — a tiny fixed-dimension bar that zips across */
-  top: -20vh;
+  top: -8vw;
   left: -30vw;
   width: 28vw;
   height: 2px;
@@ -528,13 +532,15 @@ html.theme-galactic body::after {
   }
 }
 @keyframes galactic-shooting-star {
-  0%, 92%  { transform: rotate(22deg) translate(0, 0);        opacity: 0; }
-  92.8%    { transform: rotate(22deg) translate(5vw, 2.5vh);  opacity: 0.3; }
-  93.6%    { transform: rotate(22deg) translate(18vw, 9vh);   opacity: 0.85; }
-  97.8%    { transform: rotate(22deg) translate(135vw, 67vh); opacity: 0.85; }
-  99%      { transform: rotate(22deg) translate(155vw, 77vh); opacity: 0.55; }
-  99.8%    { transform: rotate(22deg) translate(168vw, 83vh); opacity: 0.15; }
-  100%     { transform: rotate(22deg) translate(170vw, 85vh); opacity: 0; }
+  /* Translate in vw for both axes so the motion angle stays consistent
+     with the rotation (22deg → y = x * tan(22°) ≈ x * 0.4) */
+  0%, 92%  { transform: rotate(22deg) translate(0, 0);          opacity: 0; }
+  92.8%    { transform: rotate(22deg) translate(5vw, 2vw);      opacity: 0.3; }
+  93.6%    { transform: rotate(22deg) translate(18vw, 7.2vw);   opacity: 0.85; }
+  97.8%    { transform: rotate(22deg) translate(135vw, 54vw);   opacity: 0.85; }
+  99%      { transform: rotate(22deg) translate(155vw, 62vw);   opacity: 0.55; }
+  99.8%    { transform: rotate(22deg) translate(168vw, 67.2vw); opacity: 0.15; }
+  100%     { transform: rotate(22deg) translate(170vw, 68vw);   opacity: 0; }
 }
 html.theme-galactic h1,
 html.theme-galactic h2,
