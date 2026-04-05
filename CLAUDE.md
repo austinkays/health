@@ -15,7 +15,7 @@ Personal health management app. Originally a Claude.ai React artifact (~2000+ li
 - **Styling:** Tailwind CSS v3
 - **Charts:** Recharts
 - **Icons:** lucide-react
-- **Fonts:** Google Fonts - Playfair Display (headings), Montserrat (body)
+- **Fonts:** Google Fonts - per-theme heading font (Fraunces / Playfair Display / Instrument Serif / Space Grotesk), Montserrat (body universally)
 - **Database:** Supabase (PostgreSQL with Row Level Security)
 - **Auth:** Supabase Auth (magic link / OTP email; session expiry detection; OTP 10-min countdown)
 - **Offline cache:** localStorage (AES-GCM encrypted via `cache.js` + `crypto.js`)
@@ -440,7 +440,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | **Ember** | Dark | Flickering firelight glow (raised to upper 84–92% Y) + floating sparks |
 | **Galactic** | Dark | 30-star field drifting left-to-right in a gentle arc (120s cycle) + nebula wash + diagonal shooting star every 22s (body::after) |
 | **Prismatic** | Dark | Slow 8-stop horizontal rainbow wash (32s loop) + darkening film, Playfair headings rendered IN the rainbow via background-clip |
-| **Crystal Cave** | Dark | Amethyst + sapphire radial glows + twinkling sparkles + hologram white-glare sweep across cards on hover + uppercase letter-spaced Montserrat headings + crisp cyan focus outlines |
+| **Crystal Cave** | Dark | Amethyst + sapphire radial glows + twinkling sparkles + hologram white-glare sweep across cards on hover + uppercase letter-spaced Space Grotesk headings (shared with other architectural themes) + cyan/pink heading glow + crisp cyan focus outlines |
 
 **Per-theme features:**
 - **`gradient: [key1, key2, key3]`**: each theme picks 3 color keys from its own palette for the `.text-gradient-magic` "Hello, {name}" greeting, so the animated gradient harmonizes with each theme (no more lav→sage→amber clash). Applied via `--salve-gradient-1/2/3` CSS vars.
@@ -460,9 +460,15 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 
 ### Typography
 
-- **Headings:** Playfair Display (serif), 400/600/700 weight
-- **Body:** Montserrat, 300-600 weight
-- Import via Google Fonts in `index.css`
+- **Headings (per-theme via `.font-playfair` class targeting `html.theme-X` in `index.css`):**
+  - *Soft romantic* (Lilac, Dawnlight, Sunrise): **Fraunces** variable, SOFT axis 100, weight 500
+  - *Preserved Playfair* (Cherry Blossom, Sunny Day): **Playfair Display** 400/600/700 (tailwind default)
+  - *Dark editorial* (Midnight, Forest, Noir): **Instrument Serif** 400, 0.005em letter-spacing
+  - *Warm dramatic* (Blaze, Ember, Aurora): **Fraunces** variable, SOFT axis 0, opsz 96, weight 600
+  - *Architectural* (Crystal, Neon, Galactic, Prismatic): **Space Grotesk** 500, uppercase, 0.14em letter-spacing (Crystal stacks cyan/pink text-shadow glow on top)
+- **Body:** Montserrat, 300-600 weight (universal)
+- Import via Google Fonts in `index.css` (Fraunces variable font + Instrument Serif + Playfair Display + Montserrat + Space Grotesk in one request)
+- Tailwind alias: `.font-playfair` is the universal heading class name (name kept for backwards-compat with 30 files); actual font family is swapped per active theme via CSS selectors like `html.theme-midnight .font-playfair { font-family: 'Instrument Serif', ... }`
 
 ### Layout
 
@@ -565,7 +571,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] All 26 sections reachable via Quick Access (6+ primary tiles, expandable up to all 20, + 6 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
-- [ ] Fonts load (Playfair Display for headings, Montserrat for body)
+- [ ] Fonts load (per-theme heading font + Montserrat body); switching theme swaps heading typeface without flash
 - [ ] Vercel deployment works with all env vars
 - [ ] Sign-out works and returns to auth screen
 - [ ] AI consent gate appears on first AI use (AIPanel or Dashboard insight)
