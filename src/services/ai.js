@@ -18,6 +18,10 @@ const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns',
 const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources']);
 
 export function isFeatureLocked(feature) {
+  // Demo mode unlocks everything — all AI calls return canned responses
+  // anyway, so there's nothing to protect and we want demo users to see
+  // the full premium experience.
+  if (_demoMode) return false;
   return getAIProvider() !== 'anthropic' && FREE_BLOCKED_FEATURES.has(feature);
 }
 
@@ -26,6 +30,14 @@ export function isFeatureLocked(feature) {
 // `settings` is data.settings from useHealthData (the profile row).
 // Respects a localStorage dev override at 'salve:tier-override' ('free' or 'premium').
 export function isPremiumActive(settings) {
+  // Demo mode: honor the demo profile's tier directly (Jordan is premium).
+  // Skip the localStorage dev override so leftover testing state doesn't
+  // leak into the demo experience.
+  if (_demoMode) {
+    if (!settings || settings.tier !== 'premium') return false;
+    if (settings.trial_expires_at == null) return true;
+    return new Date(settings.trial_expires_at).getTime() > Date.now();
+  }
   try {
     const override = localStorage.getItem('salve:tier-override');
     if (override === 'free') return false;
