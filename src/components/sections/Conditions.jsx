@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink, FlaskConical } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink, FlaskConical, BookOpen } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -8,10 +8,12 @@ import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
+import ExternalLinkBadge from '../ui/ExternalLinkBadge';
 import { EMPTY_CONDITION } from '../../constants/defaults';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { medlinePlusUrl, providerLookupUrl, clinicalTrialsUrl } from '../../utils/links';
+import { matchResources, normalizeCondition } from '../../constants/resources/index.js';
 
 const STATUS_COLORS = {
   active: { c: C.rose, bg: 'rgba(232,138,154,0.15)', label: '⚠ Active' },
@@ -61,6 +63,17 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
     })),
     { value: '__custom', label: '— Type custom —' },
   ], [data.providers]);
+
+  /* ── Resources matched against user data ── */
+  const allMatched = useMemo(() => matchResources(data), [data]);
+
+  /** Filter matched resources to those relevant to a specific condition name */
+  const resourcesForCondition = (condName) => {
+    const norm = normalizeCondition(condName);
+    return allMatched.filter(({ resource }) =>
+      (resource.conditions || []).some(rc => normalizeCondition(rc) === norm)
+    );
+  };
 
   const saveC = async () => {
     if (!form.name.trim()) return;
@@ -126,6 +139,8 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
           const st = STATUS_COLORS[c.status] || STATUS_COLORS.active;
           const isExpanded = expandedId === c.id;
           const relatedMeds = medsByCondition[c.id] || [];
+          const condResources = resourcesForCondition(c.name);
+          const hasResearch = condResources.some(r => r.resource.source === 'EveryCure');
           return (
             <Card key={c.id} id={`record-${c.id}`} onClick={() => setExpandedId(isExpanded ? null : c.id)} className={`cursor-pointer transition-all${highlightId === c.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between items-start">
@@ -133,6 +148,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <a href={medlinePlusUrl(c.name)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{c.name}</a>
                     <Badge label={st.label} color={st.c} bg={st.bg} />
+                    {hasResearch && <Badge label="🔬 Research" color={C.sage} bg="rgba(143,191,160,0.15)" />}
                   </div>
                   {!isExpanded && c.provider && (
                     <div className="text-xs text-salve-textMid truncate flex items-center gap-1">
@@ -168,6 +184,52 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                     </div>
                   )}
                   {c.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{c.notes}</div>}
+                  {(() => {
+                    const res = resourcesForCondition(c.name);
+                    const everycure = res.filter(r => r.resource.source === 'EveryCure');
+                    const understood = res.filter(r => r.resource.source === 'Understood.org');
+                    if (everycure.length === 0 && understood.length === 0) return null;
+                    return (
+                      <details className="mt-2.5 pt-2 border-t border-salve-border/30 group/res">
+                        <summary className="text-[11px] font-semibold text-salve-lav cursor-pointer list-none flex items-center gap-1 select-none">
+                          <BookOpen size={11} /> Resources &amp; research ({everycure.length + understood.length})
+                          <ChevronDown size={11} className="ml-auto transition-transform group-open/res:rotate-180 text-salve-textFaint" />
+                        </summary>
+                        <div className="mt-2 space-y-2">
+                          {everycure.map(({ resource: r }) => (
+                            <div key={r.id} className="rounded-lg border border-salve-sage/20 bg-salve-sage/5 p-2.5">
+                              <div className="flex items-start gap-1.5">
+                                <span className="text-sm flex-shrink-0" aria-hidden="true">🔬</span>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-xs font-semibold text-salve-text">{r.title}</span>
+                                    <Badge label="Research" color={C.sage} bg="rgba(143,191,160,0.15)" />
+                                  </div>
+                                  <p className="text-[11px] text-salve-textMid leading-relaxed mt-0.5 mb-1.5">{r.blurb}</p>
+                                  <ExternalLinkBadge url={r.url} label="EveryCure Portfolio" />
+                                </div>
+                              </div>
+                              <p className="text-[10px] text-salve-rose/80 mt-1.5 leading-snug italic">
+                                ⚠ Research-stage — not standard care. Always discuss with your healthcare provider before making treatment decisions.
+                              </p>
+                            </div>
+                          ))}
+                          {understood.map(({ resource: r }) => (
+                            <div key={r.id} className="flex items-start gap-1.5 py-1">
+                              <BookOpen size={11} className="text-salve-lav flex-shrink-0 mt-0.5" />
+                              <div className="min-w-0">
+                                <ExternalLinkBadge url={r.url} label={r.title} />
+                                <p className="text-[10px] text-salve-textFaint leading-snug mt-0.5">{r.blurb}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-salve-textFaint/70 mt-2 leading-snug">
+                          External resources are not medical advice. Always consult your healthcare providers.
+                        </p>
+                      </details>
+                    );
+                  })()}
                   <div className="flex gap-2.5 mt-2.5 flex-wrap">
                     <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} aria-label="Edit condition" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(c.id, c.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>

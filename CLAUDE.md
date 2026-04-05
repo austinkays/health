@@ -141,7 +141,7 @@ health/
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display
 │   │       ├── Vitals.jsx        # Vitals tracking + chart with reference ranges + abnormal flags + source badges (Oura/Apple Health/Manual) + source filter pills
-│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links
+│   │       ├── Conditions.jsx    # Condition list + add/edit + status filter tabs + provider picker + cross-referenced medications + ClinicalTrials.gov links + per-condition "Resources & research" expandable section (EveryCure 🔬 research cards with disclaimer + Understood.org article links via matchResources)
 │   │       ├── Providers.jsx     # Provider directory + NPI registry search + CMS registry links + maps links + phone/portal links + cross-referenced meds & conditions
 │   │       ├── Allergies.jsx     # Allergy list + add/edit + type categorization (medication/food/environmental/etc)
 │   │       ├── Appointments.jsx  # Upcoming/past visits + add/edit + location maps links + provider picker + auto-fill location + provider phone quick-link + video call links + Google Calendar links
@@ -975,7 +975,7 @@ Each resource entry has:
 | ~~1~~ | ~~Resource framework: `constants/resources/` + `matchResources()` utility~~ | ✅ Done |
 | ~~2~~ | ~~EveryCure portfolio data file: 10 active programs with condition/medication tags~~ | ✅ Done |
 | ~~3~~ | ~~Understood.org topic library: ~40 curated articles tagged by condition~~ | ✅ Done |
-| 4 | Conditions.jsx per-condition Resources expansion | 1h |
+| ~~4~~ | ~~Conditions.jsx per-condition Resources expansion~~ | ✅ Done |
 | 5 | Dashboard Discover card (rotating highlights) | 1h |
 | 6 *(later)* | Sage AI integration: teach chat to cite curated resources | 2-3h |
 
