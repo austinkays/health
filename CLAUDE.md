@@ -707,6 +707,9 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | `GEMINI_API_KEY` | Vercel env vars only | Google Gemini API key (free tier AI) |
 | `OURA_CLIENT_ID` | Vercel env vars only | Oura Ring OAuth2 client ID (from Oura Developer Portal) |
 | `OURA_CLIENT_SECRET` | Vercel env vars only | Oura Ring OAuth2 client secret (server-side only, never exposed to client) |
+| `VITE_SENTRY_DSN` | `.env.local` + Vercel env vars (optional) | Sentry project DSN for production error reporting. If unset, Sentry is silently disabled. |
+| `VITE_SENTRY_DSN_DEV` | `.env.local` (optional) | Optional override to enable Sentry in development mode for testing the scrub pipeline |
+| `VITE_SENTRY_RELEASE` | Vercel env vars (optional) | Release identifier (e.g. git SHA) to correlate errors to commits |
 
 ## Reference Docs
 

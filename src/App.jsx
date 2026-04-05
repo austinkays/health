@@ -13,6 +13,7 @@ import ErrorBoundary from './components/ui/ErrorBoundary';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
+import { setSentryUser, clearSentryUser } from './services/sentry';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -149,7 +150,7 @@ function AppContent() {
     if (window.__ouraCode) {
       // Oura OAuth callback — code was stashed by supabase.js, navigate to settings
       setTab('settings');
-      getSession().then(s => { setSession(s); setAuthLoading(false); });
+      getSession().then(s => { setSession(s); if (s?.user?.id) setSentryUser(s.user.id); setAuthLoading(false); });
     } else if (code) {
       supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
         if (!error && data.session) {
@@ -161,6 +162,7 @@ function AppContent() {
     } else {
       getSession().then(s => {
         setSession(s);
+        if (s?.user?.id) setSentryUser(s.user.id);
         setAuthLoading(false);
       });
     }
@@ -169,6 +171,9 @@ function AppContent() {
       // If the session was signed out or the token refresh failed, show expiry notice
       if (!s && (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
         setSessionExpired(true);
+        clearSentryUser();
+      } else if (s?.user?.id) {
+        setSentryUser(s.user.id);
       }
       setSession(s);
       setAuthLoading(false);

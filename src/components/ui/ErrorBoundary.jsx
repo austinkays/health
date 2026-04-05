@@ -2,6 +2,7 @@ import { Component } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
+import { captureError } from '../../services/sentry';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -11,6 +12,11 @@ export default class ErrorBoundary extends Component {
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidCatch(error, info) {
+    // Report to Sentry (scrubbed of PHI via beforeSend in services/sentry.js)
+    captureError(error, { componentStack: info?.componentStack });
   }
 
   render() {
