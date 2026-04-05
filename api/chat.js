@@ -93,9 +93,11 @@ export default async function handler(req, res) {
       const profiles = await profileRes.json();
       profile = profiles[0] || null;
       const isPremium = profile?.tier === 'premium';
-      const trialActive =
-        profile?.trial_expires_at == null ||
-        new Date(profile.trial_expires_at).getTime() > Date.now();
+      let trialActive = profile?.trial_expires_at == null;
+      if (!trialActive && profile?.trial_expires_at) {
+        const expiresTs = new Date(profile.trial_expires_at).getTime();
+        trialActive = !isNaN(expiresTs) && expiresTs > Date.now();
+      }
       if (!isPremium || !trialActive) {
         const reason = isPremium ? 'trial_expired' : 'not_premium';
         return res.status(403).json({
@@ -132,8 +134,9 @@ export default async function handler(req, res) {
       }
     );
     if (countRes.ok) {
-      const range = countRes.headers.get('content-range') || '0-0/0';
-      const total = parseInt(range.split('/')[1], 10);
+      const range = countRes.headers.get('content-range') || '';
+      const parts = range.split('/');
+      const total = parts.length >= 2 ? parseInt(parts[1], 10) : NaN;
       if (!isNaN(total) && total >= CLAUDE_DAILY_LIMIT) {
         return res.status(429).json({
           error: `Daily AI limit reached (${CLAUDE_DAILY_LIMIT}/day). Resets at midnight PT.`,
@@ -154,9 +157,30 @@ export default async function handler(req, res) {
   }
 
   // Validate client-provided tools if present
-  if (clientTools != null && (!Array.isArray(clientTools) || clientTools.length > 30 ||
-      clientTools.some(t => typeof t.name !== 'string' || typeof t.input_schema !== 'object'))) {
-    return res.status(400).json({ error: 'Invalid tools parameter' });
+  const MAX_TOOLS = 30;
+  const MAX_TOOL_SCHEMA_BYTES = 10_000;
+  const MAX_TOOL_NAME_LEN = 64;
+  if (clientTools != null) {
+    if (!Array.isArray(clientTools) || clientTools.length > MAX_TOOLS) {
+      return res.status(400).json({ error: 'Invalid tools parameter' });
+    }
+    for (const t of clientTools) {
+      if (!t || typeof t.name !== 'string' || t.name.length > MAX_TOOL_NAME_LEN) {
+        return res.status(400).json({ error: 'Invalid tools parameter' });
+      }
+      if (t.input_schema == null || typeof t.input_schema !== 'object') {
+        return res.status(400).json({ error: 'Invalid tools parameter' });
+      }
+      let schemaSize;
+      try {
+        schemaSize = JSON.stringify(t.input_schema).length;
+      } catch {
+        return res.status(400).json({ error: 'Invalid tools parameter' });
+      }
+      if (schemaSize > MAX_TOOL_SCHEMA_BYTES) {
+        return res.status(400).json({ error: 'Tool schema too large' });
+      }
+    }
   }
 
   // Validate model against allowlist
@@ -176,10 +200,17 @@ export default async function handler(req, res) {
     };
     if (system) body.system = system;
 
-    // Merge client tools with web search tool if needed
+    // Merge client tools with web search tool if needed.
+    // Avoid duplicating web_search if the client already sent it.
+    const baseTools = Array.isArray(clientTools) ? clientTools : [];
+    const clientHasWebSearch = baseTools.some(
+      t => t?.name === 'web_search' || t?.type === 'web_search_20250305'
+    );
     const allTools = [
-      ...(Array.isArray(clientTools) ? clientTools : []),
-      ...(use_web_search ? [{ type: 'web_search_20250305', name: 'web_search' }] : []),
+      ...baseTools,
+      ...(use_web_search && !clientHasWebSearch
+        ? [{ type: 'web_search_20250305', name: 'web_search' }]
+        : []),
     ];
     if (allTools.length > 0) body.tools = allTools;
 

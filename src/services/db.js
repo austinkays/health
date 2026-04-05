@@ -19,6 +19,11 @@ const DEDUP_COLUMNS = {
   activities: ['date', 'type', 'duration_minutes'],
 };
 
+// In-flight add() promises keyed by "table:uid:dedupKey" so concurrent adds
+// with the same dedup signature share a single insert. Prevents the classic
+// check-then-insert race in a single browser tab.
+const _inFlightAdds = new Map();
+
 // ── Generic CRUD factory ──
 function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
   const dedupCols = DEDUP_COLUMNS[table];
@@ -37,24 +42,41 @@ function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
       const { data: { user } } = await supabase.auth.getUser();
       const uid = user.id;
 
-      // Dedup check: query Supabase for an existing row with matching key columns
+      // Deduplicate concurrent identical adds within this tab.
+      let inFlightKey = null;
       if (dedupCols) {
-        let query = supabase.from(table).select('id').eq('user_id', uid);
-        for (const col of dedupCols) {
-          if (item[col] != null) query = query.eq(col, item[col]);
-          else query = query.is(col, null);
-        }
-        const { data: existing } = await query.limit(1);
-        if (existing?.length) return clean(existing[0]); // already exists — skip silently
+        const sig = dedupCols.map(c => `${c}=${item[c] == null ? '∅' : String(item[c])}`).join('|');
+        inFlightKey = `${table}:${uid}:${sig}`;
+        const existing = _inFlightAdds.get(inFlightKey);
+        if (existing) return existing;
       }
 
-      const { data, error } = await supabase
-        .from(table)
-        .insert({ ...item, user_id: uid })
-        .select()
-        .single();
-      if (error) throw error;
-      return clean(data);
+      const doAdd = (async () => {
+        // Dedup check: query Supabase for an existing row with matching key columns
+        if (dedupCols) {
+          let query = supabase.from(table).select('id').eq('user_id', uid);
+          for (const col of dedupCols) {
+            if (item[col] != null) query = query.eq(col, item[col]);
+            else query = query.is(col, null);
+          }
+          const { data: existing } = await query.limit(1);
+          if (existing?.length) return clean(existing[0]); // already exists — skip silently
+        }
+
+        const { data, error } = await supabase
+          .from(table)
+          .insert({ ...item, user_id: uid })
+          .select()
+          .single();
+        if (error) throw error;
+        return clean(data);
+      })();
+
+      if (inFlightKey) {
+        _inFlightAdds.set(inFlightKey, doAdd);
+        doAdd.finally(() => _inFlightAdds.delete(inFlightKey));
+      }
+      return doAdd;
     },
 
     async update(id, changes) {

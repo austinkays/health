@@ -27,21 +27,38 @@ setInterval(() => {
 // ── Daily call limit (free tier) ──
 const DAILY_LIMIT = 10;
 
+// Compute "now in PT" as a Date whose UTC fields are actually the PT wall-clock
+// fields, then zero out to midnight and convert back to a real UTC timestamp.
+function midnightPTAsUTC() {
+  const now = Date.now();
+  // en-CA gives ISO-ish "YYYY-MM-DD, HH:mm:ss" which Date can reliably parse
+  // after a simple normalization. Using Intl parts directly to avoid locale parsing.
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(now));
+  const get = (t) => parts.find(p => p.type === t)?.value;
+  const y = Number(get('year'));
+  const mo = Number(get('month'));
+  const d = Number(get('day'));
+  let h = Number(get('hour'));
+  const mi = Number(get('minute'));
+  const s = Number(get('second'));
+  if (h === 24) h = 0; // Intl sometimes emits 24 for midnight
+  if ([y, mo, d, h, mi, s].some(v => Number.isNaN(v))) {
+    // Fallback: 24h window ending now
+    return new Date(now - 24 * 60 * 60 * 1000);
+  }
+  // Milliseconds between "PT wall-clock now" and "PT wall-clock midnight today"
+  const msSinceMidnightPT = ((h * 60 + mi) * 60 + s) * 1000;
+  return new Date(now - msSinceMidnightPT);
+}
+
 async function checkDailyLimit(userId, supabaseUrl, serviceKey) {
   try {
-    // Midnight Pacific Time today
-    const now = new Date();
-    const pt = new Date(now.toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
-    pt.setHours(0, 0, 0, 0);
-    // Convert back to UTC ISO string for query
-    const midnightPT = new Date(now.getTime() - (now - pt) + (pt - new Date(pt.toISOString().slice(0, 19)))).toISOString();
-    // Simpler: just compute PT midnight as offset
-    const ptOffset = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles', hour12: false });
-    const ptNow = new Date(ptOffset);
-    const ptMidnight = new Date(ptNow);
-    ptMidnight.setHours(0, 0, 0, 0);
-    const diffMs = ptNow - ptMidnight;
-    const utcMidnightPT = new Date(Date.now() - diffMs).toISOString();
+    const utcMidnightPT = midnightPTAsUTC().toISOString();
 
     const res = await fetch(
       `${supabaseUrl}/rest/v1/api_usage?select=id&user_id=eq.${userId}&endpoint=eq.gemini&created_at=gte.${encodeURIComponent(utcMidnightPT)}`,
@@ -56,9 +73,10 @@ async function checkDailyLimit(userId, supabaseUrl, serviceKey) {
       }
     );
     // Count from content-range header: "0-0/42" → 42
-    const range = res.headers.get('content-range');
-    if (range) {
-      const total = parseInt(range.split('/')[1], 10);
+    const range = res.headers.get('content-range') || '';
+    const parts = range.split('/');
+    if (parts.length >= 2) {
+      const total = parseInt(parts[1], 10);
       if (!isNaN(total) && total >= DAILY_LIMIT) return false;
     }
     return true;
@@ -352,17 +370,29 @@ export default async function handler(req, res) {
     const timer = setTimeout(() => controller.abort(), 115_000);
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify(body),
         signal: controller.signal,
       }
     );
 
     clearTimeout(timer);
-    const geminiData = await response.json();
+    const geminiData = await response.json().catch(() => ({}));
+
+    // If upstream returned an error status OR the body carries an error object,
+    // surface that to the client rather than returning a 200 with a translated
+    // "no response" message.
+    if (!response.ok || geminiData.error) {
+      const status = response.ok ? 502 : response.status;
+      const message = geminiData.error?.message || `Gemini API returned ${response.status}`;
+      return res.status(status).json({ error: message });
+    }
 
     // Translate Gemini response → Anthropic format
     const translated = translateResponse(geminiData);
@@ -373,10 +403,6 @@ export default async function handler(req, res) {
         tokens_in: translated.usage?.input_tokens ?? null,
         tokens_out: translated.usage?.output_tokens ?? null,
       });
-    }
-
-    if (!response.ok && !geminiData.error) {
-      return res.status(response.status).json({ error: `Gemini API returned ${response.status}` });
     }
 
     return res.status(200).json(translated);

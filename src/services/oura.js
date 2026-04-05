@@ -17,10 +17,17 @@ export function getOuraTokens() {
 }
 
 export function setOuraTokens(tokens) {
+  // Oura returns expires_in in seconds. Validate: must be a positive finite
+  // number. Otherwise fall back to the Oura documented default (24h) so we
+  // don't mark a fresh token as already-expired.
+  const expiresInRaw = Number(tokens.expires_in);
+  const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0
+    ? expiresInRaw
+    : 86400;
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
     access_token: tokens.access_token,
     refresh_token: tokens.refresh_token,
-    expires_at: Date.now() + (tokens.expires_in || 86400) * 1000,
+    expires_at: Date.now() + expiresIn * 1000,
     connected_at: tokens.connected_at || new Date().toISOString(),
   }));
 }
@@ -80,30 +87,37 @@ export async function exchangeOuraCode(code) {
 }
 
 // ── Token refresh ──
+// A single in-flight refresh promise acts as a mutex so concurrent callers
+// don't race the refresh_token (which would invalidate it after first use).
+let _refreshPromise = null;
 
 async function refreshAccessToken() {
-  const stored = getOuraTokens();
-  if (!stored?.refresh_token) throw new Error('No refresh token');
+  if (_refreshPromise) return _refreshPromise;
+  _refreshPromise = (async () => {
+    const stored = getOuraTokens();
+    if (!stored?.refresh_token) throw new Error('No refresh token');
 
-  const token = await getAuthToken();
-  if (!token) throw new Error('Not signed in');
+    const token = await getAuthToken();
+    if (!token) throw new Error('Not signed in');
 
-  const res = await fetch('/api/oura?action=refresh', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ refresh_token: stored.refresh_token }),
-  });
-  if (!res.ok) {
-    // If refresh fails, token is revoked — disconnect
-    clearOuraTokens();
-    throw new Error('Oura session expired. Please reconnect.');
-  }
-  const tokens = await res.json();
-  setOuraTokens({ ...tokens, connected_at: stored.connected_at });
-  return tokens.access_token;
+    const res = await fetch('/api/oura?action=refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ refresh_token: stored.refresh_token }),
+    });
+    if (!res.ok) {
+      // If refresh fails, token is revoked — disconnect
+      clearOuraTokens();
+      throw new Error('Oura session expired. Please reconnect.');
+    }
+    const tokens = await res.json();
+    setOuraTokens({ ...tokens, connected_at: stored.connected_at });
+    return tokens.access_token;
+  })().finally(() => { _refreshPromise = null; });
+  return _refreshPromise;
 }
 
 async function getValidOuraToken() {

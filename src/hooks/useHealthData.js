@@ -72,7 +72,7 @@ export default function useHealthData(session, demoMode = false) {
 
     load();
     return () => { cancelled = true; };
-  }, [session]);
+  }, [session, demoMode]);
 
   // Generic updater
   const update = useCallback(async (key, val) => {

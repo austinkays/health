@@ -37,11 +37,18 @@ export async function checkPersistentRateLimit(userId, endpoint, maxRequests, wi
       }),
     });
 
-    if (!res.ok) return true; // fail-open
+    if (!res.ok) {
+      // Fail CLOSED on upstream server errors (5xx) so attackers can't bypass
+      // rate limits by exhausting Supabase. Fail-open only for 4xx (e.g., RPC
+      // not found during migration) where the in-memory limit is the backstop.
+      if (res.status >= 500) return false;
+      return true;
+    }
     const allowed = await res.json();
     return allowed === true;
   } catch {
-    return true; // fail-open on network error
+    // Network error reaching Supabase — treat same as upstream 5xx, fail closed.
+    return false;
   }
 }
 

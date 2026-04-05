@@ -221,7 +221,7 @@ async function rxcuiToNDCs(rxcui) {
   return (data?.ndcGroup?.ndcList?.ndc || []).map(normalizeNDC);
 }
 
-/** Query NADAC for a single NDC — returns price record or null */
+/** Query NADAC for a single NDC — returns { price } | { notFound: true } | { upstreamError: true } */
 async function nadacLookup(ndc) {
   const params = new URLSearchParams({
     'conditions[0][property]': 'ndc',
@@ -232,20 +232,27 @@ async function nadacLookup(ndc) {
     'sort[0][order]': 'desc',
   });
   const url = `${NADAC_BASE}?${params}`;
-  const res = await fetchWithTimeout(url);
-  if (!res.ok) return null;
-  const data = await res.json();
-  const row = data?.results?.[0];
-  if (!row) return null;
-  return {
-    ndc,
-    ndc_description: row.ndc_description || '',
-    nadac_per_unit: parseFloat(row.nadac_per_unit) || 0,
-    pricing_unit: row.pricing_unit || 'EA',
-    effective_date: row.effective_date || '',
-    as_of_date: row.as_of_date || '',
-    classification: row.classification_for_rate_setting || '',
-  };
+  try {
+    const res = await fetchWithTimeout(url);
+    if (res.status === 404) return { notFound: true };
+    if (!res.ok) return { upstreamError: true };
+    const data = await res.json();
+    const row = data?.results?.[0];
+    if (!row) return { notFound: true };
+    return {
+      price: {
+        ndc,
+        ndc_description: row.ndc_description || '',
+        nadac_per_unit: parseFloat(row.nadac_per_unit) || 0,
+        pricing_unit: row.pricing_unit || 'EA',
+        effective_date: row.effective_date || '',
+        as_of_date: row.as_of_date || '',
+        classification: row.classification_for_rate_setting || '',
+      },
+    };
+  } catch {
+    return { upstreamError: true };
+  }
 }
 
 /** Full price pipeline: RxCUI → NDCs → NADAC prices for cheapest option */
@@ -257,12 +264,24 @@ async function lookupPrice(rxcui) {
   // until we find a match (most drugs match within the first 20-30 NDCs)
   const BATCH = 15;
   let prices = [];
+  let upstreamFailures = 0;
+  let totalAttempts = 0;
   for (let i = 0; i < ndcs.length && !prices.length && i < 45; i += BATCH) {
     const batch = ndcs.slice(i, i + BATCH);
-    const results = await Promise.all(batch.map(ndc => nadacLookup(ndc).catch(() => null)));
-    prices = results.filter(Boolean);
+    const results = await Promise.all(batch.map(ndc => nadacLookup(ndc)));
+    for (const r of results) {
+      totalAttempts++;
+      if (r?.upstreamError) upstreamFailures++;
+      else if (r?.price) prices.push(r.price);
+    }
   }
-  if (!prices.length) return { error: 'No NADAC pricing available for this medication' };
+  if (!prices.length) {
+    // If every attempt hit an upstream error, distinguish outage from "no coverage"
+    if (totalAttempts > 0 && upstreamFailures === totalAttempts) {
+      return { error: 'NADAC pricing service is temporarily unavailable. Please try again later.' };
+    }
+    return { error: 'No NADAC pricing available for this medication' };
+  }
 
   // Sort by price ascending — cheapest first
   prices.sort((a, b) => a.nadac_per_unit - b.nadac_per_unit);

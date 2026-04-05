@@ -53,6 +53,7 @@ export async function exportAll() {
     },
   };
 
+  const exportErrors = [];
   for (const [key, table] of Object.entries(TABLE_MAP)) {
     const { data: rows, error } = await supabase
       .from(table)
@@ -60,7 +61,12 @@ export async function exportAll() {
       .eq('user_id', uid)
       .order('created_at', { ascending: true });
 
-    if (!error && rows) {
+    if (error) {
+      exportErrors.push({ table, message: error.message || String(error) });
+      exported[key] = [];
+      continue;
+    }
+    if (rows) {
       exported[key] = rows.map(row => {
         const out = { ...row };
         // Preserve sync_id as _sync_id in export format
@@ -90,6 +96,11 @@ export async function exportAll() {
   exported._export.recordCount = Object.keys(TABLE_MAP)
     .reduce((sum, key) => sum + (exported[key]?.length || 0), 0);
   exported._export.version = 3;
+  if (exportErrors.length > 0) {
+    exported._export.partial = true;
+    exported._export.errors = exportErrors;
+    console.warn('exportAll: some tables failed to export', exportErrors);
+  }
 
   return exported;
 }
@@ -129,9 +140,14 @@ export async function encryptExport(exportData, passphrase) {
  */
 export async function decryptExport(encryptedObj, passphrase) {
   const enc = new TextEncoder();
-  const salt = Uint8Array.from(atob(encryptedObj.salt), c => c.charCodeAt(0));
-  const iv = Uint8Array.from(atob(encryptedObj.iv), c => c.charCodeAt(0));
-  const ciphertext = Uint8Array.from(atob(encryptedObj.data), c => c.charCodeAt(0));
+  let salt, iv, ciphertext;
+  try {
+    salt = Uint8Array.from(atob(encryptedObj.salt), c => c.charCodeAt(0));
+    iv = Uint8Array.from(atob(encryptedObj.iv), c => c.charCodeAt(0));
+    ciphertext = Uint8Array.from(atob(encryptedObj.data), c => c.charCodeAt(0));
+  } catch {
+    throw new Error('Backup file is corrupt or not a valid encrypted export.');
+  }
 
   const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']);
   const key = await crypto.subtle.deriveKey(
@@ -142,8 +158,17 @@ export async function decryptExport(encryptedObj, passphrase) {
     ['decrypt']
   );
 
-  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
-  return JSON.parse(new TextDecoder().decode(plaintext));
+  let plaintext;
+  try {
+    plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  } catch {
+    throw new Error('Wrong passphrase or corrupt backup file.');
+  }
+  try {
+    return JSON.parse(new TextDecoder().decode(plaintext));
+  } catch {
+    throw new Error('Decrypted payload is not valid JSON.');
+  }
 }
 
 /**

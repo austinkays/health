@@ -39,7 +39,8 @@ export function isPremiumActive(settings) {
   if (_demoMode) {
     if (!settings || settings.tier !== 'premium') return false;
     if (settings.trial_expires_at == null) return true;
-    return new Date(settings.trial_expires_at).getTime() > Date.now();
+    const ts = new Date(settings.trial_expires_at).getTime();
+    return !isNaN(ts) && ts > Date.now();
   }
   try {
     const override = localStorage.getItem('salve:tier-override');
@@ -48,14 +49,17 @@ export function isPremiumActive(settings) {
   } catch { /* ignore */ }
   if (!settings || settings.tier !== 'premium') return false;
   if (settings.trial_expires_at == null) return true;
-  return new Date(settings.trial_expires_at).getTime() > Date.now();
+  const ts = new Date(settings.trial_expires_at).getTime();
+  return !isNaN(ts) && ts > Date.now();
 }
 
 // Returns number of whole days remaining in the trial, or null if no trial
 // (permanent premium or already expired).
 export function trialDaysRemaining(settings) {
   if (!settings?.trial_expires_at) return null;
-  const msLeft = new Date(settings.trial_expires_at).getTime() - Date.now();
+  const expiresTs = new Date(settings.trial_expires_at).getTime();
+  if (isNaN(expiresTs)) return null;
+  const msLeft = expiresTs - Date.now();
   if (msLeft <= 0) return 0;
   return Math.ceil(msLeft / 86_400_000);
 }
