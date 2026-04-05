@@ -11,7 +11,7 @@ import EmptyState from '../ui/EmptyState';
 import Motif from '../ui/Motif';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, fmtDateRelative } from '../../utils/dates';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
@@ -287,46 +287,83 @@ export default function Vitals({ data, addItem, removeItem }) {
 
       <SectionTitle>Recent Entries</SectionTitle>
       {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
-        data.vitals.slice().reverse()
-          .filter(v => sourceFilter === 'all' || getSource(v) === sourceFilter)
-          .slice(0, 20).map(v => {
-          const t = VITAL_TYPES.find(x => x.id === v.type);
-          const flag = getVitalFlag(v.type, v.value, v.value2);
-          const fs = flagStyle(flag);
-          const src = getSource(v);
-          const SrcIcon = SOURCE_ICON[src];
-          return (
-            <Card key={v.id} className="!p-3.5" style={flag ? { borderLeft: `3px solid ${fs.color}` } : undefined}>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-1.5">
-                  {flag && <AlertTriangle size={13} color={fs.color} />}
-                  <div>
-                    <span className="text-[13px] font-medium text-salve-text">{t?.label}: </span>
-                    <span className="text-sm font-semibold" style={{ color: flag ? fs.color : C.sage }}>{v.type === 'bp' ? `${v.value}/${v.value2}` : v.value} {t?.unit}</span>
-                    {flag && <span className="text-[10px] font-medium ml-1.5" style={{ color: fs.color }}>({flag.label})</span>}
+        (() => {
+          // Group filtered entries by date — newest first
+          const filtered = data.vitals.slice().reverse()
+            .filter(v => sourceFilter === 'all' || getSource(v) === sourceFilter)
+            .slice(0, 40);
+          const byDate = [];
+          const dateMap = new Map();
+          for (const v of filtered) {
+            if (!dateMap.has(v.date)) {
+              const group = { date: v.date, entries: [] };
+              dateMap.set(v.date, group);
+              byDate.push(group);
+            }
+            dateMap.get(v.date).entries.push(v);
+          }
+          return byDate.map(({ date, entries }) => {
+            const cp = data.cycles?.length > 0 ? getCyclePhaseForDate(date, data.cycles) : null;
+            return (
+              <Card key={date} className="!p-0 !mb-2.5 overflow-hidden">
+                {/* Date header */}
+                <div className="flex items-baseline justify-between px-3.5 py-2 bg-salve-card2/40 border-b border-salve-border/50">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
+                  <div className="flex items-baseline gap-2">
+                    {cp && (
+                      <span className="text-[10px] font-montserrat" style={{ color: cp.color }}>
+                        {cp.phase} day {cp.dayOfCycle}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-salve-textFaint font-montserrat">{fmtDate(date)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {SrcIcon && <SrcIcon size={10} style={{ color: SOURCE_COLOR[src] }} />}
-                  <span className="text-[11px] text-salve-textFaint">
-                    {fmtDate(v.date)}
-                    {data.cycles?.length > 0 && (() => {
-                      const cp = getCyclePhaseForDate(v.date, data.cycles);
-                      return cp ? (
-                        <span className="text-[10px] font-montserrat ml-1" style={{ color: cp.color }}>
-                          · {cp.phase} day {cp.dayOfCycle}
-                        </span>
-                      ) : null;
-                    })()}
-                  </span>
-                  <button onClick={() => del.ask(v.id, t?.label || 'entry')} aria-label="Delete vital entry" className="bg-transparent border-none cursor-pointer text-salve-textFaint p-1 flex"><Trash2 size={14} /></button>
+                {/* Entries for this date */}
+                <div className="divide-y divide-salve-border/40">
+                  {entries.map(v => {
+                    const t = VITAL_TYPES.find(x => x.id === v.type);
+                    const flag = getVitalFlag(v.type, v.value, v.value2);
+                    const fs = flagStyle(flag);
+                    const src = getSource(v);
+                    const SrcIcon = SOURCE_ICON[src];
+                    const displayVal = v.type === 'bp' ? `${v.value}/${v.value2}` : v.value;
+                    return (
+                      <div key={v.id} className="relative">
+                        {flag && (
+                          <div
+                            className="absolute left-0 top-0 bottom-0 w-[3px]"
+                            style={{ backgroundColor: fs.color }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <div className="flex items-center gap-2 px-3.5 py-2">
+                          <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
+                            {flag && <AlertTriangle size={12} color={fs.color} className="flex-shrink-0" aria-hidden="true" />}
+                            <span className="text-[13px] text-salve-textMid font-montserrat">{t?.label}</span>
+                            <span className="text-[14px] font-semibold font-montserrat" style={{ color: flag ? fs.color : C.sage }}>
+                              {displayVal}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
+                            </span>
+                            {flag && <span className="text-[10px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
+                            {v.notes && <span className="text-[11px] text-salve-textFaint italic">— {v.notes}</span>}
+                          </div>
+                          {SrcIcon && <SrcIcon size={11} style={{ color: SOURCE_COLOR[src] }} className="flex-shrink-0" aria-hidden="true" />}
+                          <button
+                            onClick={() => del.ask(v.id, t?.label || 'entry')}
+                            aria-label={`Delete ${t?.label || 'entry'}`}
+                            className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-1 flex flex-shrink-0 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                        <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
+                      </div>
+                    );
+                  })}
                 </div>
-              </div>
-              {v.notes && <div className="text-xs text-salve-textMid mt-1">{v.notes}</div>}
-          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
-          </Card>
-          );
-        })
+              </Card>
+            );
+          });
+        })()
       }
     </div>
   );
