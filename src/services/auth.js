@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { clearTokenCache } from './token';
 
 // Always redirect to the production app after magic link auth.
 // Using window.location.origin would send localhost links in local dev,
@@ -37,6 +38,8 @@ export async function signInWithGoogle() {
 }
 
 export async function signOut() {
+  // Clear the token cache first so no subsequent call can reuse the old token
+  clearTokenCache();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }

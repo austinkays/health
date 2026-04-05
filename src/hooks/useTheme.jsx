@@ -5,32 +5,35 @@ const ThemeContext = createContext();
 
 function applyThemeVariables(themeId) {
   const theme = themes[themeId] || themes[DEFAULT_THEME];
-  const root = document.documentElement;
+  // Batch all DOM mutations into a single rAF to avoid multiple reflows
+  requestAnimationFrame(() => {
+    const root = document.documentElement;
 
-  // Set color CSS variables as RGB triplets (for Tailwind <alpha-value>)
-  for (const [key, hex] of Object.entries(theme.colors)) {
-    root.style.setProperty(`--salve-${key}`, hexToRgbTriplet(hex));
-  }
+    // Set color CSS variables as RGB triplets (for Tailwind <alpha-value>)
+    for (const [key, hex] of Object.entries(theme.colors)) {
+      root.style.setProperty(`--salve-${key}`, hexToRgbTriplet(hex));
+    }
 
-  // Set ambiance RGB values per time period (comma-separated for rgba())
-  for (const [period, rgb] of Object.entries(theme.ambiance)) {
-    root.style.setProperty(`--ambiance-${period}`, rgb);
-  }
+    // Set ambiance RGB values per time period (comma-separated for rgba())
+    for (const [period, rgb] of Object.entries(theme.ambiance)) {
+      root.style.setProperty(`--ambiance-${period}`, rgb);
+    }
 
-  // Set per-theme gradient color stops (used by .text-gradient-magic)
-  if (theme.gradient) {
-    theme.gradient.forEach((colorKey, i) => {
-      const hex = theme.colors[colorKey];
-      if (hex) root.style.setProperty(`--salve-gradient-${i + 1}`, hex);
-    });
-  }
+    // Set per-theme gradient color stops (used by .text-gradient-magic)
+    if (theme.gradient) {
+      theme.gradient.forEach((colorKey, i) => {
+        const hex = theme.colors[colorKey];
+        if (hex) root.style.setProperty(`--salve-gradient-${i + 1}`, hex);
+      });
+    }
 
-  // Set theme-specific class on <html> for per-theme CSS effects
-  // Remove any existing theme-* class first
-  for (const cls of Array.from(root.classList)) {
-    if (cls.startsWith('theme-')) root.classList.remove(cls);
-  }
-  root.classList.add(`theme-${theme.id}`);
+    // Set theme-specific class on <html> for per-theme CSS effects
+    // Remove any existing theme-* class first
+    for (const cls of Array.from(root.classList)) {
+      if (cls.startsWith('theme-')) root.classList.remove(cls);
+    }
+    root.classList.add(`theme-${theme.id}`);
+  });
 }
 
 function readCommitted() {

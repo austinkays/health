@@ -52,7 +52,8 @@ function dueLabel(dateStr) {
   const today = new Date(new Date().toDateString());
   const due = new Date(dateStr + 'T00:00:00');
   const diff = Math.round((due - today) / 86400000);
-  if (diff < 0) return { text: `Overdue by ${Math.abs(diff)} day${Math.abs(diff) !== 1 ? 's' : ''}`, overdue: true };
+  const absDiff = Math.abs(diff);
+  if (diff < 0) return { text: `Overdue by ${absDiff} day${absDiff !== 1 ? 's' : ''}`, overdue: true };
   if (diff === 0) return { text: 'Due today', overdue: false };
   if (diff === 1) return { text: 'Due tomorrow', overdue: false };
   return { text: `Due in ${diff} days`, overdue: false };

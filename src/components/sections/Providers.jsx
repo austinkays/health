@@ -224,15 +224,16 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
                 )}
                 {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
                 {p.fax && <div className="text-xs text-salve-textFaint mt-0.5">Fax: {p.fax}</div>}
-                {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
+                {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" aria-label={`Patient portal for ${p.name} (opens in new tab)`} className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
                 {p.npi && (
                   <div className="text-[10px] text-salve-textFaint mt-1 flex items-center gap-1">
-                    <ExternalLink size={10} strokeWidth={1.4} />
+                    <ExternalLink size={10} strokeWidth={1.4} aria-hidden="true" />
                     <span>NPI:</span>
                     <a
                       href={`https://npiregistry.cms.hhs.gov/provider-view/${p.npi}`}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label={`NPI ${p.npi} — view in CMS registry (opens in new tab)`}
                       className="text-salve-sage hover:underline"
                     >
                       {p.npi}

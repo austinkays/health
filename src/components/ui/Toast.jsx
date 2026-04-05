@@ -10,7 +10,7 @@ export function useToast() {
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const showToast = useCallback((message, { duration = 2000 } = {}) => {
+  const showToast = useCallback((message, { duration = 3500 } = {}) => {
     const id = Date.now();
     const celebrate = message.includes('✓');
     setToasts(prev => [...prev, { id, message, leaving: false, celebrate }]);
@@ -23,7 +23,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={showToast}>
       {children}
-      <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[999] flex flex-col items-center gap-2 pointer-events-none">
+      <div aria-live="polite" aria-atomic="false" className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[999] flex flex-col items-center gap-2 pointer-events-none">
         {toasts.map(t => (
           <div
             key={t.id}

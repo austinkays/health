@@ -270,7 +270,7 @@ function InsightResult({ result, savedInsights }) {
 
 function ConnectionsResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
-  const sections = splitSections(text);
+  const sections = useMemo(() => splitSections(text), [text]);
 
   // Single section fallback
   if (sections.length <= 1) {
@@ -329,7 +329,7 @@ const NEWS_SAVE_KEY = 'salve:saved-news';
 function NewsResult({ result, onSaveChange, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
-  const sections = splitSections(text);
+  const sections = useMemo(() => splitSections(text), [text]);
 
   // Saved stories in localStorage
   const [saved, setSaved] = useState(() => {
@@ -503,7 +503,7 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
 function ResourcesResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
-  const sections = splitSections(text);
+  const sections = useMemo(() => splitSections(text), [text]);
 
   // Fallback: single card if we can't parse sections
   if (sections.length <= 1) {
@@ -554,7 +554,7 @@ function ResourcesResult({ result, savedInsights }) {
 function CostResult({ result, savedInsights }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
-  const sections = splitSections(text);
+  const sections = useMemo(() => splitSections(text), [text]);
 
   if (sections.length <= 1) {
     return (

@@ -235,19 +235,37 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Medication`} onBack={() => { setSubView(null); setForm(EMPTY_MED); setEditId(null); }}>
       <Card>
         <div className="relative" ref={acRef}>
-          <Field label="Medication Name" value={form.name} onChange={handleNameChange} placeholder="e.g. Sertraline" required />
+          <Field
+            label="Medication Name"
+            value={form.name}
+            onChange={handleNameChange}
+            placeholder="e.g. Sertraline"
+            required
+            role="combobox"
+            aria-autocomplete="list"
+            aria-expanded={!!(showAc && (acResults.length > 0 || acLoading || acError))}
+            aria-controls="med-ac-listbox"
+            aria-haspopup="listbox"
+          />
           {showAc && (acResults.length > 0 || acLoading || acError) && (
-            <div className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-48 overflow-y-auto" role="listbox" aria-label="Medication suggestions">
-              {acLoading && <div className="px-3 py-2 text-xs text-salve-textFaint flex items-center gap-1.5"><Loader size={11} className="animate-spin" /> Searching...</div>}
+            <div
+              id="med-ac-listbox"
+              role="listbox"
+              aria-label="Medication suggestions"
+              className="absolute z-20 left-0 right-0 top-full -mt-3 bg-salve-card2 border border-salve-border rounded-lg shadow-lg max-h-48 overflow-y-auto"
+            >
+              {acLoading && <div className="px-3 py-2 text-xs text-salve-textFaint flex items-center gap-1.5" role="status"><Loader size={11} className="animate-spin" aria-hidden="true" /> Searching...</div>}
               {acError && !acLoading && <div className="px-3 py-2 text-xs text-salve-rose" role="alert">{acError}</div>}
               {acResults.map((item, i) => (
                 <button
                   key={`${item.rxcui}-${i}`}
+                  id={`med-ac-opt-${i}`}
                   onClick={() => selectAcResult(item)}
                   role="option"
+                  aria-selected={false}
                   className="w-full text-left px-3 py-2 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat flex items-center gap-2 transition-colors"
                 >
-                  <Search size={11} className="text-salve-textFaint flex-shrink-0" />
+                  <Search size={11} className="text-salve-textFaint flex-shrink-0" aria-hidden="true" />
                   <span className="truncate">{item.name}</span>
                 </button>
               ))}
@@ -545,7 +563,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
-                  <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" className="text-salve-text hover:text-salve-sage transition-colors hover:underline">
+                  <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" aria-label={`View ${m.display_name || m.name} on DailyMed (opens in new tab)`} className="text-salve-text hover:text-salve-sage transition-colors hover:underline">
                     {m.display_name || m.name}
                   </a>
                 </div>
@@ -727,8 +745,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                   <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                   <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                   {goodRxUrl(m.name) && (
-                    <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
-                      <ExternalLink size={11} /> Compare Prices
+                    <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" aria-label={`Compare prices for ${m.display_name || m.name} on GoodRx (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
+                      <ExternalLink size={11} aria-hidden="true" /> Compare Prices
                     </a>
                   )}
                 </div>

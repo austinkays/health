@@ -158,12 +158,12 @@ export function buildProfile(data) {
       const perUnit = Number(mp[0].nadac_per_unit);
       let daily = 1;
       const f = (m.frequency || '').toLowerCase();
-      if (/qid|4.*day|q6h/i.test(f)) daily = 4;
-      else if (/tid|3.*day|q8h/i.test(f)) daily = 3;
-      else if (/bid|2.*day|twice|q12h/i.test(f)) daily = 2;
-      else if (/week/i.test(f)) daily = 1 / 7;
-      else if (/biweek|every.*2.*week/i.test(f)) daily = 1 / 14;
-      else if (/month/i.test(f)) daily = 1 / 30;
+      if (/\b(qid|four\s+times|q6h)\b|4\s+times?\s+(a\s+)?day/i.test(f)) daily = 4;
+      else if (/\b(tid|three\s+times|q8h)\b|3\s+times?\s+(a\s+)?day/i.test(f)) daily = 3;
+      else if (/\b(bid|twice|q12h)\b|2\s+times?\s+(a\s+)?day/i.test(f)) daily = 2;
+      else if (/\b(biweekly|bi-weekly|every\s+2\s+weeks?)\b/i.test(f)) daily = 1 / 14;
+      else if (/\bweek(ly)?\b/i.test(f)) daily = 1 / 7;
+      else if (/\bmonth(ly)?\b/i.test(f)) daily = 1 / 30;
       monthlyTotal += perUnit * daily * 30;
       counted++;
     });

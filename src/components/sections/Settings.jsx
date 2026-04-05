@@ -46,6 +46,169 @@ function CopyPromptButton() {
   );
 }
 
+/* ── ThemeTile ───────────────────────────────────────────────────────────────
+   A single theme preview tile. Shows 4 brand-color swatches + theme name +
+   light/dark indicator. Supports hover-to-preview callbacks.
+──────────────────────────────────────────────────────────────────────────── */
+function ThemeTile({ theme, isActive, isLocked, onSelect, onHover, onHoverEnd }) {
+  return (
+    <button
+      onClick={() => !isLocked && onSelect(theme.id)}
+      onMouseEnter={() => onHover?.(theme.id)}
+      onMouseLeave={() => onHoverEnd?.()}
+      aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ' — premium' : ''}`}
+      aria-pressed={isActive}
+      className={`relative p-2.5 rounded-xl border transition-all font-montserrat text-center ${
+        isActive
+          ? 'border-salve-lav/50 bg-salve-lav/10 ring-1 ring-salve-lav/30'
+          : isLocked
+            ? 'border-salve-border bg-salve-card2 opacity-60 cursor-not-allowed'
+            : 'border-salve-border bg-salve-card2 hover:border-salve-border2 cursor-pointer'
+      }`}
+    >
+      {isLocked && (
+        <div className="absolute top-1.5 right-1.5 text-[9px] text-salve-lav/60" aria-hidden="true">🔒</div>
+      )}
+      {/* Colour swatches — bg, lav, sage, rose */}
+      <div className="flex justify-center gap-1 mb-1.5">
+        {['bg', 'lav', 'sage', 'rose'].map(key => (
+          <span
+            key={key}
+            className="w-3.5 h-3.5 rounded-full border border-black/10"
+            style={{ backgroundColor: theme.colors[key] }}
+          />
+        ))}
+      </div>
+      <span className="text-[11px] text-salve-text font-medium block leading-tight">{theme.label}</span>
+      {theme.type === 'light'
+        ? <span className="text-[8px] text-salve-amber/80 block mt-0.5">☀ Light</span>
+        : <span className="text-[8px] text-salve-textFaint block mt-0.5">◑ Dark</span>
+      }
+    </button>
+  );
+}
+
+/* ── ThemeSelector ───────────────────────────────────────────────────────────
+   Full redesigned theme picker:
+   • 3-column grid (less scrolling than 2-col)
+   • Hover-to-preview (reverts when mouse leaves before clicking)
+   • Save/Revert bar anchored at the TOP of the section so it's always visible
+   • Experimental themes in a collapsible panel (no jarring <details> shift)
+──────────────────────────────────────────────────────────────────────────── */
+function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, userTier }) {
+  const [showExperimental, setShowExperimental] = useState(false);
+  const [hoverThemeId, setHoverThemeId] = useState(null);
+  // Track what the user had selected (clicked) before they started hovering
+  const preHoverRef = useRef(themeId);
+
+  const core = Object.values(allThemes).filter(t => !t.experimental);
+  const experimental = Object.values(allThemes).filter(t => t.experimental);
+
+  const handleHover = (id) => {
+    // Only snapshot pre-hover theme if we're not already hovering
+    if (!hoverThemeId) preHoverRef.current = themeId;
+    setHoverThemeId(id);
+    setTheme(id);
+  };
+  const handleHoverEnd = () => {
+    setHoverThemeId(null);
+    setTheme(preHoverRef.current);
+  };
+  const handleSelect = (id) => {
+    preHoverRef.current = id;
+    setHoverThemeId(null);
+    setTheme(id);
+  };
+
+  const previewed = allThemes[themeId];
+  const isPremiumOnly = previewed?.experimental && userTier !== 'premium';
+
+  return (
+    <div>
+      {/* ── Save / Revert bar — lives at the TOP so it's always in view ── */}
+      {hasUnsavedChanges && !hoverThemeId && (
+        <div className="mb-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5 flex items-center justify-between gap-3">
+          <p className="text-xs text-salve-text font-montserrat min-w-0 truncate">
+            Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
+            {isPremiumOnly && <span className="text-salve-textFaint"> · Premium</span>}
+          </p>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => !isPremiumOnly && saveTheme()}
+              disabled={isPremiumOnly}
+              className={`text-xs font-medium px-3 py-1.5 rounded-lg border font-montserrat transition-colors ${
+                isPremiumOnly
+                  ? 'text-salve-textFaint bg-transparent border-salve-border cursor-not-allowed'
+                  : 'text-salve-lav bg-salve-lav/15 border-salve-lav/30 cursor-pointer hover:bg-salve-lav/25'
+              }`}
+              title={isPremiumOnly ? 'Upgrade to premium to save this theme' : 'Save this theme'}
+            >
+              {isPremiumOnly ? '🔒 Save' : 'Save'}
+            </button>
+            <button
+              onClick={revertTheme}
+              className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat hover:border-salve-border2 transition-colors"
+            >
+              Revert
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Core themes — 3-column grid ── */}
+      <div className="grid grid-cols-3 gap-2">
+        {core.map(t => (
+          <ThemeTile
+            key={t.id}
+            theme={t}
+            isActive={themeId === t.id && !hoverThemeId}
+            isLocked={false}
+            onSelect={handleSelect}
+            onHover={handleHover}
+            onHoverEnd={handleHoverEnd}
+          />
+        ))}
+      </div>
+
+      {/* ── Experimental / Premium themes — collapsible panel ── */}
+      {experimental.length > 0 && (
+        <div className="mt-3">
+          <button
+            onClick={() => setShowExperimental(v => !v)}
+            aria-expanded={showExperimental}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-salve-border bg-salve-card2 hover:border-salve-border2 transition-colors cursor-pointer font-montserrat focus:outline-none focus-visible:ring-2 focus-visible:ring-salve-lav/50"
+          >
+            <span className="flex items-center gap-1.5 text-[11px] text-salve-textMid">
+              <Sparkles size={11} className="text-salve-lav" aria-hidden="true" />
+              Experimental themes
+              <span className="px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav text-[9px]">Premium</span>
+            </span>
+            {showExperimental
+              ? <ChevronUp size={14} className="text-salve-textFaint" aria-hidden="true" />
+              : <ChevronDown size={14} className="text-salve-textFaint" aria-hidden="true" />
+            }
+          </button>
+          {showExperimental && (
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              {experimental.map(t => (
+                <ThemeTile
+                  key={t.id}
+                  theme={t}
+                  isActive={themeId === t.id && !hoverThemeId}
+                  isLocked={userTier !== 'premium'}
+                  onSelect={handleSelect}
+                  onHover={userTier === 'premium' ? handleHover : undefined}
+                  onHoverEnd={userTier === 'premium' ? handleHoverEnd : undefined}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Settings({ data, updateSettings, updateItem, addItem, addItemSilent, eraseAll, reloadData, onNav, demoMode = false }) {
   const s = data.settings;
   const pharmacies = data.pharmacies || [];
@@ -366,85 +529,15 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <SectionTitle>Appearance</SectionTitle>
       <Card>
         <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Theme</label>
-        {(() => {
-          const core = Object.values(allThemes).filter(t => !t.experimental);
-          const experimental = Object.values(allThemes).filter(t => t.experimental);
-          const renderTile = (t) => (
-            <button
-              key={t.id}
-              onClick={() => setTheme(t.id)}
-              className={`relative p-3 rounded-xl border transition-all cursor-pointer font-montserrat text-center ${
-                themeId === t.id
-                  ? 'border-salve-lav/50 bg-salve-lav/10'
-                  : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
-              }`}
-            >
-              {t.experimental && userTier !== 'premium' && (
-                <div className="absolute top-1.5 right-1.5 text-[9px] text-salve-lav/70" aria-hidden="true">🔒</div>
-              )}
-              <div className="flex justify-center gap-1 mb-2">
-                {['lav', 'sage', 'amber', 'rose'].map(key => (
-                  <span key={key} className="w-3 h-3 rounded-full" style={{ backgroundColor: t.colors[key] }} />
-                ))}
-              </div>
-              <span className="text-xs text-salve-text font-medium block">{t.label}</span>
-              <span className="text-[9px] text-salve-textFaint block mt-0.5 leading-tight">{t.description}</span>
-              {t.type === 'light' && (
-                <span className="text-[8px] text-salve-amber mt-1 block">☀ Light theme</span>
-              )}
-            </button>
-          );
-          return (
-            <>
-              <div className="grid grid-cols-2 gap-2">{core.map(renderTile)}</div>
-              {experimental.length > 0 && (
-                <details className="mt-3">
-                  <summary className="text-[10px] text-salve-textFaint font-montserrat cursor-pointer select-none flex items-center gap-1">
-                    <Sparkles size={10} className="text-salve-lav" />
-                    <span>Experimental themes</span>
-                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav ml-1">Premium</span>
-                  </summary>
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {experimental.map(renderTile)}
-                  </div>
-                </details>
-              )}
-            </>
-          );
-        })()}
-        {/* Save/Revert bar — appears when the previewed theme differs from saved */}
-        {hasUnsavedChanges && (() => {
-          const previewed = allThemes[themeId];
-          const isPremiumOnly = previewed?.experimental && userTier !== 'premium';
-          return (
-            <div className="mt-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5">
-              <p className="text-xs text-salve-text font-montserrat mb-2">
-                Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
-                {isPremiumOnly && <span className="text-salve-textFaint"> (premium only)</span>}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => !isPremiumOnly && saveTheme()}
-                  disabled={isPremiumOnly}
-                  className={`text-xs font-medium px-3 py-1.5 rounded-lg border font-montserrat transition-colors ${
-                    isPremiumOnly
-                      ? 'text-salve-textFaint bg-transparent border-salve-border cursor-not-allowed'
-                      : 'text-salve-lav bg-salve-lav/15 border-salve-lav/30 cursor-pointer hover:bg-salve-lav/25'
-                  }`}
-                  title={isPremiumOnly ? 'Upgrade to premium to save this theme' : 'Save this theme'}
-                >
-                  {isPremiumOnly ? '🔒 Save (Premium)' : 'Save changes'}
-                </button>
-                <button
-                  onClick={revertTheme}
-                  className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat"
-                >
-                  Revert
-                </button>
-              </div>
-            </div>
-          );
-        })()}
+        <ThemeSelector
+          allThemes={allThemes}
+          themeId={themeId}
+          setTheme={setTheme}
+          saveTheme={saveTheme}
+          revertTheme={revertTheme}
+          hasUnsavedChanges={hasUnsavedChanges}
+          userTier={userTier}
+        />
       </Card>
 
       {/* ══════════════ 3. Sage & AI ══════════════ */}

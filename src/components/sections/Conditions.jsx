@@ -234,8 +234,8 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                     <button onClick={() => { setForm(c); setEditId(c.id); setSubView('form'); }} aria-label="Edit condition" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
                     <button onClick={() => del.ask(c.id, c.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
                     {clinicalTrialsUrl(c.name, data.settings?.location) && (
-                      <a href={clinicalTrialsUrl(c.name, data.settings?.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
-                        <FlaskConical size={12} /> Find Trials
+                      <a href={clinicalTrialsUrl(c.name, data.settings?.location)} target="_blank" rel="noopener noreferrer" aria-label={`Find clinical trials for ${c.name} on ClinicalTrials.gov (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
+                        <FlaskConical size={12} aria-hidden="true" /> Find Trials
                       </a>
                     )}
                   </div>
