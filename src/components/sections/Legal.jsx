@@ -328,7 +328,7 @@ function SecurityPage() {
           <ul className="list-none space-y-1.5">
             {[
               { label: 'App & API', desc: 'Vercel — a US-based platform used by millions of production apps (including Fortune 500 companies). All API keys live here as server-side environment variables.' },
-              { label: 'Database', desc: 'Supabase on AWS us-east-1 (Virginia). Row Level Security is enforced at the PostgreSQL engine level — not just in application code.' },
+              { label: 'Database', desc: 'Supabase, hosted on AWS. Row Level Security is enforced at the PostgreSQL engine level — not just in application code.' },
               { label: 'No physical servers', desc: 'Salve has no self-hosted infrastructure. Both providers handle physical security, hardware maintenance, and infrastructure patching.' },
             ].map(item => (
               <li key={item.label} className="flex items-start gap-2">
@@ -346,8 +346,8 @@ function SecurityPage() {
         </Section>
 
         <Section title="How is data backed up?">
-          <p><strong className="text-salve-text">Infrastructure backups:</strong> Supabase performs automated daily database backups on all plans. Point-in-time recovery is available on paid Supabase plans. These backups are encrypted and managed by Supabase.</p>
-          <p><strong className="text-salve-text">Your own backups:</strong> You can download a complete export of all your health data at any time from Settings → Data Management. You can optionally encrypt this with a passphrase. We strongly recommend keeping your own periodic backups — do not rely on infrastructure backups you can't directly access.</p>
+          <p><strong className="text-salve-text">Infrastructure backups:</strong> Supabase manages database infrastructure. Automated daily backups are included on paid Supabase plans; the free plan does not include them. We cannot guarantee infrastructure-level backup availability — which is exactly why the manual export feature exists.</p>
+          <p><strong className="text-salve-text">Your own backups:</strong> You can download a complete export of all your health data at any time from Settings → Data Management. You can optionally encrypt this with a passphrase. <strong className="text-salve-text">We strongly recommend doing this regularly.</strong> Do not treat any app — including Salve — as your only copy of important health data.</p>
           <p>The export format is open JSON that you can read in any text editor. Your data is never locked into a proprietary format.</p>
         </Section>
 
