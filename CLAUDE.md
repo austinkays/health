@@ -80,10 +80,10 @@ health/
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, ThemeProvider wrapper, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s)
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, ThemeProvider wrapper, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s), sageOpen state + SagePopup render at app root
 │   ├── constants/
 │   │   ├── colors.js             # Color palette: Proxy C object that reads active theme's hex colors at access time (backward-compatible with all 28+ importers)
-│   │   ├── themes.js             # Theme presets (single source of truth): 4 themes (midnight/ember/dawnlight/frost), each with 16 hex colors + ambiance RGB values; hexToRgbTriplet() utility
+│   │   ├── themes.js             # Theme presets (single source of truth): 15 themes (6 core: lilac/noir/midnight/forest/dawnlight/sunrise + 9 experimental: aurora/neon/cherry/sunbeam/blaze/ember/galactic/prismatic/crystal). Each theme: 16 hex colors + ambiance RGB (4 periods) + gradient array (3 color keys) + optional experimental:true flag; hexToRgbTriplet() utility
 │   │   ├── interactions.js       # Drug interaction database (static, client-side)
 │   │   ├── labRanges.js          # Reference ranges for ~80 common lab tests + fuzzy matcher
 │   │   ├── defaults.js           # Default data shapes, empty states, vital types, moods, EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS (4-level: dry/sticky/creamy/eggwhite with fertility labels), FERTILITY_MARKERS
@@ -108,7 +108,7 @@ health/
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
-│   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies CSS variables to :root), useTheme() hook (themeId, setTheme, C, themes), getActiveC() standalone getter for non-React contexts
+│   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies --salve-* color vars + --ambiance-* RGB + --salve-gradient-1/2/3 per-theme gradient stops to :root), useTheme() hook (themeId, setTheme, saveTheme, C, themes), getActiveC() standalone getter for non-React contexts
 │   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 10s interval, random no-repeat, fade animation)
 │   ├── components/
 │   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit)
@@ -127,9 +127,10 @@ health/
 │   │   │   ├── AIProfilePreview.jsx # "What AI Sees" pill button + full-screen slide-up panel
 │   │   │   ├── Motif.jsx         # Decorative sparkle/moon/leaf SVG motifs (aria-hidden)
 │   │   │   ├── AppleHealthImport.jsx # Apple Health import UI: file picker (.xml/.zip), progress bar, dedup preview, bulk insert, clipboard paste for iOS Shortcut
-│   │   │   └── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook); celebration sparkle burst on success toasts (CelebrationBurst component with 6 radial Sparkles particles)
+│   │   │   ├── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook); celebration sparkle burst on success toasts (CelebrationBurst component with 6 radial Sparkles particles)
+│   │   │   └── SagePopup.jsx     # Bottom-sheet modal chat with Sage. Triggered by Leaf button in Header. Multi-turn chat via sendChat, consent-gated, auto-scroll, Enter-to-send. "Full chat" shortcut navigates to AI tab.
 │   │   ├── layout/
-│   │   │   ├── Header.jsx        # Semantic <header>, aria-label on back button, search icon button (all pages), optional action prop for section-specific buttons; TAB_LABELS for all 26 sections (properly capitalized); TAB_DECOR per-section glyphs
+│   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 26 sections
 │   │   │   └── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow
 │   │   └── sections/             # One file per app section (26 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting, live search centerpiece (animated gradient border, rotating placeholders, inline results with stagger animation, "See all" deep-link), consolidated alerts (interactions, anesthesia, care gaps, abnormal labs, price increases, severe allergies), AI insight (shimmer skeleton + cycling wellness messages via useWellnessMessage), appointment prep nudge (48hr), unified timeline, expandable quick access (6 default, user can add/remove/swap tiles)
@@ -393,24 +394,48 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 The app uses an **extensible theme system** with CSS custom properties. All 16 color keys are defined as CSS variables (RGB triplets) consumed by Tailwind's `<alpha-value>` pattern, and as hex strings via the `C` Proxy object for Recharts/dynamic styles.
 
 **Architecture:**
-- **Single source of truth:** `src/constants/themes.js` — each theme is a plain object with 16 hex colors + ambiance values
-- **CSS variables:** `--salve-bg`, `--salve-card`, `--salve-lav`, etc. (set by `ThemeProvider` on `document.documentElement`)
+- **Single source of truth:** `src/constants/themes.js` — each theme is a plain object with 16 hex colors + `ambiance` (4 RGB triplets) + `gradient` (3 color keys) + optional `experimental: true` flag
+- **CSS variables:** `--salve-bg`, `--salve-card`, `--salve-lav`, `--salve-gradient-1/2/3`, etc. (set by `ThemeProvider` on `document.documentElement`)
 - **Tailwind:** `tailwind.config.js` maps `salve.*` to `rgb(var(--salve-*) / <alpha-value>)` — all opacity modifiers work
 - **Recharts/JS:** `import { C } from 'constants/colors'` returns a Proxy reading active theme hex values
-- **Persistence:** `localStorage` key `salve:theme` (default: `'midnight'`)
+- **Persistence:** `localStorage` key `salve:theme` (default: `'lilac'`)
 - **FODT prevention:** Inline `<script>` in `index.html` applies saved theme background before React hydrates
-- **To add a new theme:** Add one object to `themes.js`. Nothing else changes.
+- **Experimental themes** are filtered by `.experimental` flag in Settings into a collapsed "Experimental themes (Premium)" `<details>` section with 🔒 lock for free-tier users
+- **To add a new theme:** Add one object to `themes.js` with colors, ambiance, gradient, and optional CSS effect block in `index.css`. Nothing else changes.
 
-**4 Themes:**
+**15 Themes (6 core + 9 experimental):**
 
-| Theme | Type | Background | Accents |
-|-------|------|-----------|---------|
-| **Midnight** (default) | Dark | `#1a1a2e` navy | Lavender, sage, amber, rose |
-| **Ember** | Dark | `#1c1714` charcoal | Copper, gold, coral, terracotta |
-| **Dawnlight** | Light | `#faf7f2` cream | Deep lavender, forest green, dark amber, berry rose |
-| **Frost** | Dark | `#161b22` slate | Ice blue, mint, soft violet, pale rose |
+*Core themes:*
 
-Each theme also defines **ambiance values** (morning/day/evening/night RGB) so the time-aware hover glow adapts to the active theme's accent palette.
+| Theme | Type | Palette |
+|-------|------|---------|
+| **Lilac** (default) | Light | Soft pastel lavender + sage + rose |
+| **Noir** | Dark | Charcoal, minimal monochrome silver |
+| **Midnight** | Dark | Navy + lavender + sage + amber |
+| **Forest** | Dark | Woodland greens, olive, amber, warm rust |
+| **Dawnlight** | Light | Warm cream + deep lavender + forest green + berry |
+| **Sunrise** | Light | Warm peach + coral cream + pink |
+
+*Experimental themes (with signature animated effect layer):*
+
+| Theme | Type | Effect |
+|-------|------|--------|
+| **Aurora** | Dark | Drifting green/cyan/violet northern-lights curtains + 22 twinkling stars + slow cyan/mint meteor (via html::before) |
+| **Neon** | Dark | Cyberpunk hot-pink/cyan grid with drift + pulse animation, heading text glow |
+| **Cherry Blossom** | Light | Pink sky wash + 22 scattered falling petals (pink + white) with horizontal sway |
+| **Sunny Day** | Light | Blue sky gradient + haloed golden sun + diagonal sunray bands + drifting dust motes |
+| **Blaze** | Dark | Ember turned to 11 — intense multi-layer fire + 14 ember sparks + coordinated breathe animation (opacity + brightness + saturation + hue-rotate in one keyframe, ±18°→+10° hue swing) |
+| **Ember** | Dark | Flickering firelight glow (raised to upper 84–92% Y) + floating sparks |
+| **Galactic** | Dark | 30-star field drifting left-to-right in a gentle arc (120s cycle) + nebula wash + diagonal shooting star every 22s (body::after) |
+| **Prismatic** | Dark | Slow 8-stop horizontal rainbow wash (32s loop) + darkening film, Playfair headings rendered IN the rainbow via background-clip |
+| **Crystal Cave** | Dark | Amethyst + sapphire radial glows + twinkling sparkles + hologram white-glare sweep across cards on hover + uppercase letter-spaced Montserrat headings + crisp cyan focus outlines |
+
+**Per-theme features:**
+- **`gradient: [key1, key2, key3]`**: each theme picks 3 color keys from its own palette for the `.text-gradient-magic` "Hello, {name}" greeting, so the animated gradient harmonizes with each theme (no more lav→sage→amber clash). Applied via `--salve-gradient-1/2/3` CSS vars.
+- **`ambiance`**: 4 RGB triplets (morning/day/evening/night) for time-aware card hover glow
+- **Glassmorphism on experimental themes**: cards with `bg-salve-card`, `bg-salve-card/5`, and `bg-salve-lav/5|10|15` get `backdrop-filter: blur(14-18px) saturate(1.2-1.4)` for frosted-glass over the animated backdrops. Border color is strengthened for definition.
+- **Effect layers**: `html.theme-X body::before` (background layer) + `html.theme-X body::after` (additional layer, usually stars/sparks) + `html.theme-X::before` (used by Aurora meteor when body::after is already taken). All at `z-index: 0` with content at z-index 1.
+- **Shooting stars / meteors** (Galactic + Aurora) use fixed-dimension rotated bars with `transform: translate(X vw, Y vw)` where Y = X × tan(angle) so motion path stays aligned with bar rotation across all viewport aspect ratios.
 
 **Color key roles (16 keys, same across all themes):**
 - `bg`, `card`, `card2` — background surfaces (darkest → lightest for dark themes, reversed for light)
@@ -434,13 +459,16 @@ Each theme also defines **ambiance values** (morning/day/evening/night RGB) so t
 - "made with love for my best friend & soulmate" tagline above bottom nav — Home page only, scroll-reveal (hidden until user scrolls past 50px to bottom, resets on tab change, transparent background, 500ms fade-in transition)
 - Magical UI effects: time-aware ambiance (card hover glow shifts sage→lavender→amber→dim by time of day), button shimmer sweep, quick-access tile contained radial gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade+slide+deblur transitions, AI prose reveal (paragraph-by-paragraph stagger), celebration sparkle burst on success toasts, breathe meditation loader (10s deep breathing cycle with bloom/rings/glow)
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
-- Dashboard sections: contextual greeting → live search centerpiece → consolidated alerts (dismissible, fully hidden when dismissed) → Sage insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
+- Dashboard sections: contextual greeting → live search centerpiece → Recent Vitals hero card → consolidated alerts (dismissible, fully hidden when dismissed) → Sage insight → appointment prep nudge (48hr) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
+- **Recent Vitals card** (hero + chips layout): one featured vital (top-priority available, usually Sleep) shown hero-style with uppercase label + 32px value + full-width 56px Recharts area chart (neutral textMid stroke at 55% opacity + lav gradient fill) + **natural-language trend caption** (e.g., "↓ 1.2 hrs below your 7-day average") with direction-aware color (sage=good, amber=watch, neutral=flat) based on `VITAL_POLARITY` map (sleep/steps/energy/mood=up-is-good, hr/bp/pain=down-is-good, weight/temp/glucose=neutral). Below a thin divider: 2-3 supporting vital chips (label + value + trend arrow only, no charts). Card uses standard `bg-salve-card` surface — no color tint — so it never hijacks the theme palette. Click navigates to Vitals section.
 - Quick Access default 6: Summary, Conditions, Providers, Allergies, Appointments, Labs; "More" expander reveals remaining sections
 - Quick Access tiles are **user-customizable**: Edit button (pencil icon) enters edit mode → tap a tile to select it → bottom sheet shows available replacements → tap replacement to swap → Done button saves. "+" tile at end of grid adds new tiles from available sections. "×" badge on each tile removes it (minimum 1 tile enforced). Persisted in `localStorage` under `salve:dash-primary` (array of 1–16 IDs). Falls back to `DEFAULT_PRIMARY_IDS` if corrupt/missing.
 - Quick Access expanded/collapsed state persists in `localStorage` under `salve:dash-more`
 - "More sections" button auto-hides when all tiles are promoted to primary grid
 - All section views have a back arrow in the header that returns to the **previous section** (navigation history stack, not always Dashboard). Bottom nav tabs and error recovery clear the stack.
 - Section page titles are shown only in the Header — no duplicate `SectionTitle` below. Action buttons (Add/Log/Write) are right-aligned below the header. Sub-section headings (e.g., "Interaction Warnings", "Recent Entries") are preserved.
+- **Header** (minimal, no background decor): contains back button (non-Home), title with theme-aware `text-gradient-magic` animated gradient on "Hello, {name}" for Home, Sage leaf-icon button on the left, and Search magnifying-glass button on the right. Hovers sage-green / lav respectively.
+- **Sage popup** (`SagePopup.jsx`): tapping the leaf button in the header opens a bottom-sheet modal with a minimal multi-turn chat powered by `services/ai.js → sendChat`. Consent-gated via `hasAIConsent()`. Includes "full chat" shortcut button that closes popup and navigates to the AI tab. State managed via `sageOpen` in `App.jsx`, rendered at app root outside the max-width column.
 - **Global Search:** Header magnifying glass icon (visible on all pages) opens the Search view; Dashboard has a live search centerpiece with inline results (up to 5) and "See all" deep-link to full Search view
 - **Deep-link navigation:** `onNav(tab, { highlightId })` navigates to a section AND auto-expands + scrolls to a specific record; used by Search results. All 15 expandable sections support `highlightId` prop (expand + scrollIntoView + lavender pulse animation). Appointments and AnesthesiaFlags support scroll-only deep-link (no expandable cards).
 - **highlight-ring animation:** `highlight-pulse` keyframes in `index.css` — 1.5s lavender box-shadow pulse applied to deep-linked cards
@@ -698,6 +726,7 @@ vercel --prod        # Deploy to production
 
 - [x] **Name the AI chatbot "Sage"** — Done. Leaf avatar, "Hey, I'm Sage" greeting, "Sage is thinking" loading, sage-green Daily Insight cards, BottomNav tab renamed, consent gate updated, disclaimers rebranded.
 - [ ] **Configure Google Sign In** — Button is wired up in Auth.jsx, needs Google Cloud Console OAuth credentials + Supabase provider config to work.
+- [ ] **External patient-resource integrations (EveryCure + Understood.org, extensible)** — Build a unified "Discover" / curated-resource framework that cross-references user's conditions, meds, journal tags, etc., against hand-curated external resource libraries. No org has a public query API, so static tagged JSON files are the mechanism. See detailed plan in Roadmap section below.
 - [x] **Health To-Do's & Reminders** — Done. Full Todos.jsx section with CRUD, filter tabs, priority badges, due date countdown, complete toggle, recurring support. Dashboard integration (overdue/urgent alerts, due-soon timeline, Quick Access tile). AI tool-use (add/update/remove via Sage chat). Search integration. Active todos in AI profile context.
 - [x] **Cycle Tracker Completion** — Done. Shared `utils/cycles.js` with `getCyclePhaseForDate`, Vitals phase badges + chart overlay, Journal phase badges + mood-phase summary, AI cycle patterns feature, medication cycle awareness badges, Dashboard quick-log.
 - [x] **Apple Health Integration** — Done. XML import parser (`services/healthkit.js`) with chunked regex extraction, daily aggregation (HR, steps, sleep, weight, temp, glucose, BP pairing), workout parsing, FHIR R4 lab results. Import UI in Settings (`AppleHealthImport.jsx`) with progress bar, dedup preview, bulk insert. New `activities` table for workouts. New vitals types: steps, active_energy. Paste-from-clipboard for iOS Shortcut bridge. Full wiring: db, storage, search, AI tools, profile context. Remaining: iOS Shortcut artifact file, dedicated Dashboard activity card.
@@ -879,3 +908,76 @@ search_records: { query, table (optional) } — returns matching records for con
 - PDF parsing for Genomind: explore client-side `pdf.js` extraction; fallback to manual structured entry form
 - Genetic data included in encrypted exports/imports
 - AI disclaimers must be even stronger for genetic interpretations: "Genetic information requires professional interpretation. Discuss with your healthcare provider or genetic counselor."
+
+---
+
+### 6. External Patient-Resource Integrations (EveryCure + Understood.org, extensible framework)
+
+**Goal:** Cross-reference the user's conditions, medications, symptoms, and journal tags against curated external resource libraries from high-quality nonprofits (EveryCure for drug repurposing research, Understood.org for learning/thinking differences, NORD/NAMI/etc. in future), and surface matched resources at relevant points in the app. For users with rare diseases, neurodivergence, or underserved conditions, this can be genuinely life-changing — surfaces research and expert content they may never have found otherwise.
+
+**Why static/curated data:**
+- **EveryCure**: no public query API for their 66M drug-disease matrix; 10 publicly-disclosed active repurposing programs ([portfolio](https://everycure.org/portfolio/)); open-source codebase + MEDIC CC0 dataset
+- **Understood.org**: no public API; massive expert-vetted content library (articles, podcasts, videos, community stories) covering ADHD, dyslexia, dyscalculia, dysgraphia, executive function, auditory processing, anxiety, etc.
+- Both benefit from **thoughtful human curation** mapping resources → conditions/symptoms that AI search can't replicate reliably
+
+**Architecture:**
+
+```
+src/constants/resources/
+├── everycure.js      # 10 active repurposing programs (drug ↔ condition pairs, research stage, portfolio URLs)
+├── understood.js     # Curated ~40 articles tagged by condition/audience
+├── (future)          # NORD, NAMI, Crohn's & Colitis Foundation, rare disease networks, etc.
+└── index.js          # Unified matchResources(data) utility
+```
+
+Each resource entry has:
+- `title`, `url`, `source` (org name), `blurb` (1-2 sentences)
+- `conditions: [...]` — condition keys it matches (e.g., `['adhd', 'learning_disability']`)
+- `symptomTags: [...]` — (e.g., `['focus', 'memory', 'anxiety']`)
+- `medications: [...]` — (EveryCure only: drugs the program investigates)
+- `audience: 'self' | 'parent' | 'both'`
+- `researchStage?: 'active' | 'trial' | 'published'` (EveryCure)
+
+**Matching utility (`matchResources(data)`):**
+- Reads user's `data.conditions[]`, `data.medications[]`, `data.journal_entries[].tags`, `data.settings.health_background`
+- Normalizes condition names (fuzzy match: "ADHD" = "attention deficit" = "attention_deficit_hyperactivity_disorder")
+- Returns ranked list of matched resources with relevance score
+- Deduplicated by URL
+
+**UX surfaces:**
+
+| Surface | Behavior |
+|---------|----------|
+| **Per-condition "Resources & research" expansion** in Conditions.jsx | Each condition card gets an expandable section listing matched EveryCure programs + Understood articles + existing ClinicalTrials.gov link. If EveryCure has an active program, card gets a small 🔬 research badge. |
+| **Dashboard Discover card** | Rotating weekly highlight of top 1-3 unseen resource matches. Dismissible per-resource (stored in localStorage `salve:seen-resources`) so nothing repeats. |
+| **Sage AI integration** *(phase 2)* | Sage can cite curated resources when answering health questions: "Understood.org has a great guide on classroom accommodations — [link]. Also EveryCure is researching..." Not AI hallucination — pulled from the curated tagged library. |
+
+**Ethical guardrails (non-negotiable, matches existing app standards):**
+- External links open with clear "you're leaving Salve" indicator
+- Strong disclaimer on every repurposing-related card: "Research-stage, not standard care. Always discuss with your healthcare provider."
+- Never auto-suggest stopping/starting medications
+- User can dismiss any resource as not relevant
+- Resource cards labeled with source attribution (EveryCure, Understood.org, etc.)
+
+**Data curation scope:**
+- **EveryCure**: small — 10 active programs, ~15-30 lines of JSON, updated quarterly as EveryCure publishes
+- **Understood.org**: medium — ~40 articles across their core topics (ADHD, dyslexia, executive function, anxiety, social skills, classroom accommodations, workplace accommodations, parenting). Curated once, updated annually.
+- **Future orgs**: NORD (rare diseases), NAMI (mental health), condition-specific foundations. Each new org = one new JSON file + content curation.
+
+**Implementation phases:**
+
+| Phase | Work | Est. |
+|-------|------|------|
+| 1 | Resource framework: `constants/resources/` + `matchResources()` utility + external-link icon component + "you're leaving Salve" confirmation modal | 2h |
+| 2 | EveryCure portfolio data file: 10 active programs with condition/medication tags | 1h |
+| 3 | Understood.org topic library: ~40 curated articles tagged by condition | 3-4h (mostly content research) |
+| 4 | Conditions.jsx per-condition Resources expansion | 1h |
+| 5 | Dashboard Discover card (rotating highlights) | 1h |
+| 6 *(later)* | Sage AI integration: teach chat to cite curated resources | 2-3h |
+
+**Key technical decisions:**
+- **No API dependencies** — all resource data ships static in the bundle. Zero runtime external calls.
+- **Matching at load time** (memo'd from data changes), not on render — cheap.
+- **Extensible pattern** — adding NORD/NAMI/etc. is one new file + curation work, no UI changes needed.
+- **Condition-name normalization** critical — user types "ADHD", app stores it lowercase as "adhd", resource file tags with "adhd" — all should match without fancy AI.
+- **Respect that repurposing is research-stage** — framing throughout is "conversation starter with your doctor", never "try this drug."
