@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400..700,0..100&family=Instrument+Serif&family=Playfair+Display:wght@400;600;700&family=Montserrat:wght@300;400;500;600&family=Space+Grotesk:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -680,15 +680,61 @@ html.theme-crystal .card-hover::before {
 html.theme-crystal .card-hover:hover::before {
   left: 150%;
 }
-/* Crystal typography — uppercase spaced Montserrat for headings */
-html.theme-crystal h1,
-html.theme-crystal h2,
-html.theme-crystal .font-playfair {
-  font-family: 'Montserrat', sans-serif !important;
+/* ══════════════════════════════════════════════════ */
+/* ── Per-theme heading typography ───────────────── */
+/* ══════════════════════════════════════════════════ */
+/* Default (Cherry Blossom, Sunny Day) keeps Playfair Display from tailwind. */
+
+/* Soft romantic — Fraunces with soft axis, lighter weight */
+html.theme-lilac .font-playfair,
+html.theme-dawnlight .font-playfair,
+html.theme-sunrise .font-playfair {
+  font-family: 'Fraunces', 'Playfair Display', serif !important;
+  font-variation-settings: 'SOFT' 100, 'opsz' 48;
+  font-weight: 500;
+}
+
+/* Dark editorial — Instrument Serif, airy and high-contrast */
+html.theme-midnight .font-playfair,
+html.theme-forest .font-playfair,
+html.theme-noir .font-playfair {
+  font-family: 'Instrument Serif', 'Playfair Display', serif !important;
+  font-weight: 400;
+  letter-spacing: 0.005em;
+}
+
+/* Warm dramatic — Fraunces with harder axis, bolder */
+html.theme-blaze .font-playfair,
+html.theme-ember .font-playfair,
+html.theme-aurora .font-playfair {
+  font-family: 'Fraunces', 'Playfair Display', serif !important;
+  font-variation-settings: 'SOFT' 0, 'opsz' 96;
+  font-weight: 600;
+}
+
+/* Architectural — Space Grotesk uppercase with letter-spacing */
+html.theme-crystal .font-playfair,
+html.theme-neon .font-playfair,
+html.theme-galactic .font-playfair,
+html.theme-prismatic .font-playfair {
+  font-family: 'Space Grotesk', 'Montserrat', sans-serif !important;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-weight: 500;
+}
+
+/* Crystal keeps its signature glow on top of the architectural base */
+html.theme-crystal .font-playfair,
+html.theme-crystal h1,
+html.theme-crystal h2 {
   text-shadow: 0 0 12px rgba(74, 224, 255, 0.35), 0 0 24px rgba(255, 74, 212, 0.2);
+}
+html.theme-crystal h1,
+html.theme-crystal h2 {
+  font-family: 'Space Grotesk', 'Montserrat', sans-serif !important;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 500;
 }
 /* Crisp cyan focus outlines */
 html.theme-crystal input:focus,
