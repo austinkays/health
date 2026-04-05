@@ -185,8 +185,75 @@ try {
     }
   }
 
+  // ── Profiles table (1:1 with user — different test pattern) ──
+  console.log('\n👤 Testing profiles table (name, location, PII)…');
+  {
+    // Tag each user's own profile with a unique marker via PATCH
+    const patch = async (token, userId, name) => {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: ANON_KEY,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name }),
+      });
+      return r.ok;
+    };
+    const markerA = `rls-name-a-${stamp}`;
+    const markerB = `rls-name-b-${stamp}`;
+    const okA = await patch(tokenA, userA.id, markerA);
+    const okB = await patch(tokenB, userB.id, markerB);
+    if (!okA || !okB) {
+      console.log('   ⚠️  Could not patch profile names, skipping profile check');
+    } else {
+      // Each user should see ONLY their own profile row
+      const profA = await listRows('profiles', tokenA);
+      const profB = await listRows('profiles', tokenB);
+      const resA = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=name`, {
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${tokenA}` },
+      });
+      const resB = await fetch(`${SUPABASE_URL}/rest/v1/profiles?select=name`, {
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${tokenB}` },
+      });
+      const namesA = (await resA.json()).map(r => r.name);
+      const namesB = (await resB.json()).map(r => r.name);
+      const aSeesB = namesA.includes(markerB);
+      const bSeesA = namesB.includes(markerA);
+      if (aSeesB || bSeesA) {
+        failures.push({ table: 'profiles', aLeaksToB: aSeesB, bLeaksToA: bSeesA });
+        console.log(`   ❌  profiles                      A sees B: ${bSeesA}  |  B sees A: ${aSeesB}`);
+      } else {
+        passed.push('profiles');
+        console.log(`   ✅  profiles                      isolated (names, PII)`);
+      }
+    }
+  }
+
+  // ── Email exposure check — auth.users should NOT be queryable via REST ──
+  console.log('\n📧 Testing that emails (auth.users) are NOT exposed via REST…');
+  {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/users?select=email`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${tokenA}` },
+    });
+    if (r.ok) {
+      const rows = await r.json();
+      if (Array.isArray(rows) && rows.length > 0 && rows[0].email) {
+        failures.push({ table: 'auth.users', aLeaksToB: true, bLeaksToA: true });
+        console.log(`   ❌  auth.users                    EMAILS EXPOSED VIA REST`);
+      } else {
+        passed.push('auth.users');
+        console.log(`   ✅  auth.users                    hidden (schema not exposed)`);
+      }
+    } else {
+      passed.push('auth.users');
+      console.log(`   ✅  auth.users                      hidden (${r.status})`);
+    }
+  }
+
   console.log('\n─────────────────────────────────────────');
-  console.log(`Passed:   ${passed.length} / ${TABLES.length - skipped.length}`);
+  console.log(`Passed:   ${passed.length} / ${passed.length + failures.length}`);
   if (skipped.length) console.log(`Skipped:  ${skipped.length} (insert failures — investigate)`);
   if (failures.length) {
     console.log(`FAILED:   ${failures.length}  ❌ RLS LEAKAGE DETECTED`);
