@@ -441,20 +441,20 @@ html.theme-galactic body::before {
     radial-gradient(circle 2px at 76% 2%, rgba(255, 255, 255, 0.75), transparent 60%);
   background-size:
     100% 100%, 100% 100%,
-    100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh,
-    100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh,
-    100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh,
-    100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh,
-    100% 180vh, 100% 180vh;
+    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
+    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
+    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
+    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
+    100vw 180vh, 100vw 180vh;
   background-repeat:
     no-repeat, no-repeat,
-    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
-    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
-    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
-    repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y,
-    repeat-y, repeat-y;
+    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
+    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
+    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
+    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
+    repeat, repeat;
   opacity: 1;
-  animation: galactic-drift 80s linear infinite;
+  animation: galactic-drift 120s linear infinite;
 }
 html.theme-galactic body::after {
   content: '';
@@ -479,7 +479,9 @@ html.theme-galactic body::after {
   animation: galactic-shooting-star 22s linear infinite;
 }
 @keyframes galactic-drift {
-  from {
+  /* Stars drift left-to-right in a gentle arc (rise, peak, descend) —
+     nebula layers (first two) stay static */
+  0% {
     background-position:
       0 0, 0 0,
       0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0,
@@ -488,21 +490,51 @@ html.theme-galactic body::after {
       0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0,
       0 0, 0 0;
   }
-  to {
+  25% {
     background-position:
       0 0, 0 0,
-      0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh,
-      0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh,
-      0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh,
-      0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh,
-      0 -180vh, 0 -180vh;
+      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
+      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
+      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
+      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
+      25vw -5vh, 25vw -5vh;
+  }
+  50% {
+    background-position:
+      0 0, 0 0,
+      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
+      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
+      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
+      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
+      50vw -8vh, 50vw -8vh;
+  }
+  75% {
+    background-position:
+      0 0, 0 0,
+      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
+      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
+      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
+      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
+      75vw -5vh, 75vw -5vh;
+  }
+  100% {
+    background-position:
+      0 0, 0 0,
+      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
+      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
+      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
+      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
+      100vw 0, 100vw 0;
   }
 }
 @keyframes galactic-shooting-star {
-  0%, 96%  { transform: rotate(22deg) translate(0, 0); opacity: 0; }
-  96.5%    { transform: rotate(22deg) translate(0, 0); opacity: 0.9; }
-  99.5%    { transform: rotate(22deg) translate(160vw, 80vh); opacity: 0.9; }
-  100%     { transform: rotate(22deg) translate(160vw, 80vh); opacity: 0; }
+  0%, 92%  { transform: rotate(22deg) translate(0, 0);        opacity: 0; }
+  92.8%    { transform: rotate(22deg) translate(5vw, 2.5vh);  opacity: 0.3; }
+  93.6%    { transform: rotate(22deg) translate(18vw, 9vh);   opacity: 0.85; }
+  97.8%    { transform: rotate(22deg) translate(135vw, 67vh); opacity: 0.85; }
+  99%      { transform: rotate(22deg) translate(155vw, 77vh); opacity: 0.55; }
+  99.8%    { transform: rotate(22deg) translate(168vw, 83vh); opacity: 0.15; }
+  100%     { transform: rotate(22deg) translate(170vw, 85vh); opacity: 0; }
 }
 html.theme-galactic h1,
 html.theme-galactic h2,
