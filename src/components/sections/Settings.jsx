@@ -46,7 +46,7 @@ function CopyPromptButton() {
   );
 }
 
-export default function Settings({ data, updateSettings, updateItem, addItem, addItemSilent, eraseAll, reloadData, onNav }) {
+export default function Settings({ data, updateSettings, updateItem, addItem, addItemSilent, eraseAll, reloadData, onNav, demoMode = false }) {
   const s = data.settings;
   const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
@@ -347,13 +347,17 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-salve-text font-medium font-montserrat">{s.name || 'No name set'}</p>
-            <p className="text-[11px] text-salve-textFaint font-montserrat">{userEmail || 'Loading...'}</p>
+            <p className="text-[11px] text-salve-textFaint font-montserrat">{demoMode ? 'Demo mode' : (userEmail || 'Loading...')}</p>
           </div>
           <button
-            onClick={async () => { await signOut(); window.location.reload(); }}
+            onClick={async () => {
+              if (demoMode) { window.location.reload(); return; }
+              await signOut();
+              window.location.reload();
+            }}
             className="flex items-center gap-1.5 text-xs text-salve-rose/70 hover:text-salve-rose font-montserrat bg-transparent border border-salve-rose/20 hover:border-salve-rose/40 rounded-lg px-3 py-1.5 cursor-pointer transition-colors"
           >
-            <LogOut size={12} /> Sign out
+            <LogOut size={12} /> {demoMode ? 'Exit demo' : 'Sign out'}
           </button>
         </div>
       </Card>
@@ -1151,7 +1155,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             )}
           </div>
 
-          {/* ── Erase All Data ── */}
+          {/* ── Danger Zone: erase data + delete account (hidden in demo mode) ── */}
+          {!demoMode && (
+          <>
           <div className="mt-5 pt-5 border-t border-salve-border">
             <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Danger Zone</span>
             <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
@@ -1248,6 +1254,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
           </div>
+          </>
+          )}
         </Card>
       )}
 

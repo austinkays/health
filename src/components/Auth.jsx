@@ -4,7 +4,7 @@ import { signIn, verifyOtp, signInWithGoogle } from '../services/auth';
 // OTP codes expire after 10 minutes (600 seconds)
 const OTP_TTL = 600;
 
-export default function Auth({ sessionExpired = false, onAuthSuccess }) {
+export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDemo }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -261,6 +261,22 @@ export default function Auth({ sessionExpired = false, onAuthSuccess }) {
         <p className="text-center text-salve-textFaint text-xs mt-6">
           No password needed — we'll send a code to your email.
         </p>
+
+        {/* Demo mode — explore without signing up */}
+        {onEnterDemo && (
+          <div className="mt-8 pt-6 border-t border-salve-border text-center">
+            <p className="text-salve-textFaint text-xs mb-3">Not ready to sign up?</p>
+            <button
+              onClick={onEnterDemo}
+              className="inline-flex items-center gap-2 text-sm font-medium text-salve-lav hover:text-salve-text bg-transparent border border-salve-lav/30 hover:border-salve-lav/60 cursor-pointer px-5 py-2.5 rounded-lg transition-colors font-montserrat"
+            >
+              Explore without signing in <span aria-hidden="true">→</span>
+            </button>
+            <p className="text-salve-textFaint text-[10px] mt-2.5 leading-relaxed max-w-[320px] mx-auto">
+              Browse the app with an example user's data. Nothing saves until you sign up.
+            </p>
+          </div>
+        )}
 
       </div>
     </div>

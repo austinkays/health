@@ -2,8 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { db } from '../services/db';
 import { cache } from '../services/cache';
 import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
+import { buildDemoData } from '../constants/demoData';
 
-export default function useHealthData(session) {
+export default function useHealthData(session, demoMode = false) {
   const [data, setData] = useState({
     meds: [], conditions: [], allergies: [], providers: [],
     pharmacies: [], vitals: [], appts: [], journal: [],
@@ -19,8 +20,16 @@ export default function useHealthData(session) {
   });
   const [loading, setLoading] = useState(true);
 
+  // Demo mode: inject the curated demo profile, skip all network calls.
+  useEffect(() => {
+    if (!demoMode) return;
+    setData(buildDemoData());
+    setLoading(false);
+  }, [demoMode]);
+
   // Cache-first loading: show cached data instantly, then refresh from Supabase
   useEffect(() => {
+    if (demoMode) return;
     if (!session) {
       setLoading(false);
       return;

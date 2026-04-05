@@ -13,7 +13,9 @@ import ErrorBoundary from './components/ui/ErrorBoundary';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
+import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
+import { setDemoMode as setAIDemoMode } from './services/ai';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -79,30 +81,50 @@ function AppContent() {
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
+
+  // Sync demo mode to services/ai.js so AI calls route to canned responses
+  useEffect(() => { setAIDemoMode(demoMode); }, [demoMode]);
   const [tab, setTab] = useState('dash');
   const [highlightId, setHighlightId] = useState(null);
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
   const [sageOpen, setSageOpen] = useState(false);
-  const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
+  const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
   const showToast = useToast();
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
-  // CRUD wrappers that show toast confirmations
+  // CRUD wrappers that show toast confirmations.
+  // In demo mode, every write is blocked with a sign-up nudge.
+  const demoBlock = () => {
+    showToast('Sign up to save your own data', { type: 'info' });
+    throw new Error('demo_mode_blocked');
+  };
   const addItemT = async (table, item) => {
+    if (demoMode) demoBlock();
     const result = await addItem(table, item);
     showToast('Saved ✓');
     return result;
   };
   const updateItemT = async (table, id, changes) => {
+    if (demoMode) demoBlock();
     const result = await updateItem(table, id, changes);
     showToast('Updated ✓');
     return result;
   };
   const removeItemT = async (table, id) => {
+    if (demoMode) demoBlock();
     await removeItem(table, id);
     showToast('Deleted');
+  };
+  const updateSettingsT = async (changes) => {
+    if (demoMode) demoBlock();
+    return updateSettings(changes);
+  };
+  const eraseAllT = async () => {
+    if (demoMode) { showToast('Demo mode — nothing to erase', { type: 'info' }); return; }
+    return eraseAll();
   };
 
   const onNav = (t, opts) => {
@@ -236,8 +258,14 @@ function AppContent() {
     );
   }
 
-  if (!session) {
-    return <Auth sessionExpired={sessionExpired} onAuthSuccess={() => setSessionExpired(false)} />;
+  if (!session && !demoMode) {
+    return (
+      <Auth
+        sessionExpired={sessionExpired}
+        onAuthSuccess={() => setSessionExpired(false)}
+        onEnterDemo={() => { setDemoMode(true); setTab('dash'); }}
+      />
+    );
   }
 
   if (dataLoading) {
@@ -259,9 +287,9 @@ function AppContent() {
       case 'providers':   return <Providers {...shared} />;
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} />;
-      case 'ai':          return <AIPanel {...shared} updateSettings={updateSettings} />;
+      case 'ai':          return <AIPanel {...shared} updateSettings={updateSettingsT} demoMode={demoMode} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
-      case 'settings':    return <Settings data={data} updateSettings={updateSettings} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAll} reloadData={reloadData} onNav={onNav} />;
+      case 'settings':    return <Settings data={data} updateSettings={updateSettingsT} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAllT} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
       // Comprehensive sections
       case 'labs':        return <Labs {...shared} />;
       case 'procedures':  return <Procedures {...shared} />;
@@ -295,6 +323,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen overflow-hidden relative">
+      {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
       <div className="max-w-[480px] mx-auto pb-24 relative">
         <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
         <main className="px-4">

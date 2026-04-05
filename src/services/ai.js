@@ -130,6 +130,38 @@ RULES:
 
 const DISCLAIMER = '\n\n---\n*Sage\'s suggestions are not medical advice. Always consult your healthcare providers.*';
 
+// Canned AI responses for demo mode — keeps "Explore without signing in"
+// from burning real tokens on the shared demo profile.
+async function demoResponseFor(feature, messages) {
+  // Small artificial delay so UI loading states still render naturally
+  await new Promise(r => setTimeout(r, 450 + Math.random() * 400));
+  const { DEMO_INSIGHTS, DEMO_NEWS, DEMO_APPT_PREP, demoSageReply } =
+    await import('../constants/demoResponses');
+  switch (feature) {
+    case 'insight':
+      return DEMO_INSIGHTS[Math.floor(Math.random() * DEMO_INSIGHTS.length)] + DISCLAIMER;
+    case 'news':
+      return DEMO_NEWS + DISCLAIMER;
+    case 'appointmentPrep':
+      return DEMO_APPT_PREP + DISCLAIMER;
+    case 'chat': {
+      const lastUser = [...(messages || [])].reverse().find(m => m?.role === 'user');
+      const question = typeof lastUser?.content === 'string'
+        ? lastUser.content
+        : Array.isArray(lastUser?.content)
+          ? (lastUser.content.find(c => c.type === 'text')?.text || '')
+          : '';
+      return demoSageReply(question) + DISCLAIMER;
+    }
+    default:
+      return `**Demo preview**
+
+In the full app, I'd analyze your real profile for this feature — ${feature}. Sign up to see Sage work with your own data.
+
+_(No tokens burned on demo responses.)_${DISCLAIMER}`;
+  }
+}
+
 function extractSources(data) {
   const seen = new Set();
   const sources = [];
@@ -156,7 +188,16 @@ function extractSources(data) {
   return sources;
 }
 
+// Demo mode — when true, all AI calls return canned responses instead of
+// hitting the real provider. Set via setDemoMode() from App.jsx when the user
+// enters the public preview from the Auth screen.
+let _demoMode = false;
+export function setDemoMode(v) { _demoMode = !!v; }
+export function isDemoMode() { return _demoMode; }
+
 async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false, feature = 'chat') {
+  if (_demoMode) return demoResponseFor(feature, messages);
+
   const token = await getAuthToken();
 
   if (!token) {
@@ -392,6 +433,7 @@ RULES FOR TOOL USE:
 - You can chain multiple tool calls in one response if the user requests multiple changes.`;
 
 async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens = 2000, maxLoops = 10) {
+  if (_demoMode) return demoResponseFor('chat', messages);
   const token = await getAuthToken();
   if (!token) throw new Error('You must be signed in to use AI features.');
 
