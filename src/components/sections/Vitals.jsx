@@ -11,7 +11,7 @@ import EmptyState from '../ui/EmptyState';
 import Motif from '../ui/Motif';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
-import { fmtDate, fmtDateRelative } from '../../utils/dates';
+import { fmtDate, fmtDateRelative, todayISO } from '../../utils/dates';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
@@ -78,7 +78,7 @@ export default function Vitals({ data, addItem, removeItem }) {
     if (!form.value || isNaN(Number(form.value))) return;
     if (form.type === 'bp' && (!form.value2 || isNaN(Number(form.value2)))) return;
     await addItem('vitals', form);
-    setForm({ ...EMPTY_VITAL, date: new Date().toISOString().slice(0, 10) });
+    setForm({ ...EMPTY_VITAL, date: todayISO() });
     setSubView(null);
   };
 

@@ -4,16 +4,26 @@
 // conditions (ADHD, IBS, allergies) and trying to manage them holistically.
 // All dates are computed relative to today so the demo always feels current.
 
+// Use LOCAL calendar date — not UTC. Without this, users west of UTC in the
+// evening see "today" roll over to tomorrow's UTC date and the demo ends up
+// with future-dated entries. (Apr 4 PT evening = Apr 5 UTC.)
+function toLocalISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function daysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return toLocalISODate(d);
 }
 
 function daysFromNow(n) {
   const d = new Date();
   d.setDate(d.getDate() + n);
-  return d.toISOString().slice(0, 10);
+  return toLocalISODate(d);
 }
 
 // Deterministic fake UUID so React keys stay stable across renders

@@ -9,7 +9,7 @@ import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, todayISO, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS, FERTILITY_MARKERS } from '../../constants/defaults';
 import { detectFloFormat, parseFloExport } from '../../services/flo';
@@ -71,7 +71,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
   /* Quick-log: auto-open period form when navigated with quickLog flag */
   useEffect(() => {
     if (quickLog && !subView) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayISO();
       setForm({ ...EMPTY_CYCLE, date: today, type: 'period', value: 'Medium' });
       setSubView('form');
     }
@@ -128,7 +128,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
     const s = new Set();
     const d = new Date(nextPeriod + 'T00:00:00');
     for (let i = 0; i < 5; i++) {
-      s.add(d.toISOString().slice(0, 10));
+      s.add(localISODate(d));
       d.setDate(d.getDate() + 1);
     }
     return s;
@@ -147,7 +147,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
     for (let i = -5; i <= 1; i++) {
       const fd = new Date(ov);
       fd.setDate(fd.getDate() + i);
-      s.add(fd.toISOString().slice(0, 10));
+      s.add(localISODate(fd));
     }
     return s;
   }, [nextPeriod, stats.avgLength]);
@@ -347,7 +347,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
     : filter === 'fertility' ? cycles.filter(c => ['cervical_mucus', 'bbt', 'fertility_marker', 'ovulation'].includes(c.type))
     : cycles.filter(c => c.type === filter);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
 
   /* ── Main view ─────────────────────────────────────────── */
   return (

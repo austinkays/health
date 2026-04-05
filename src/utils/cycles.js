@@ -1,4 +1,5 @@
 import { C } from '../constants/colors';
+import { localISODate } from './dates';
 
 export function getCyclePhase(dayOfCycle, avgLen) {
   if (dayOfCycle <= 0) return null;
@@ -39,7 +40,7 @@ export function predictNextPeriod(stats) {
   if (!stats.lastPeriod) return null;
   const next = new Date(stats.lastPeriod + 'T00:00:00');
   next.setDate(next.getDate() + stats.avgLength);
-  return next.toISOString().slice(0, 10);
+  return localISODate(next);
 }
 
 export function getDayOfCycle(stats) {

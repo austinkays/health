@@ -23,8 +23,20 @@ export function daysUntil(d) {
   return 'In ' + diff + 'd';
 }
 
+// Returns today's LOCAL calendar date as YYYY-MM-DD. Do not use
+// .toISOString().slice(0,10) — that returns UTC and can be off by one
+// day for users west of UTC in the evening (e.g., Apr 4 evening PT
+// would be recorded as Apr 5). Every form default + "today" comparison
+// in the app should use this helper.
 export function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+  return localISODate(new Date());
+}
+
+export function localISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 // Returns a friendly relative date label: "Today", "Yesterday",

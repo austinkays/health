@@ -13,7 +13,7 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Motif, { Divider } from '../ui/Motif';
 import { SectionTitle } from '../ui/FormWrap';
-import { fmtDate, daysUntil } from '../../utils/dates';
+import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { VITAL_TYPES } from '../../constants/defaults';
 import { fetchInsight, isPremiumActive } from '../../services/ai';
@@ -262,7 +262,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         const nextDate = new Date(lastStart + 'T00:00:00');
         nextDate.setDate(nextDate.getDate() + avg);
         if (nextDate >= now) {
-          periodEntry = [{ _type: 'period', _sortDate: nextDate.toISOString().slice(0, 10), _label: 'Predicted period' }];
+          periodEntry = [{ _type: 'period', _sortDate: localISODate(nextDate), _label: 'Predicted period' }];
         }
       }
     }

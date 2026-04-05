@@ -11,7 +11,7 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_ACTIVITY, WORKOUT_TYPES } from '../../constants/defaults';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, todayISO } from '../../utils/dates';
 
 const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
@@ -110,7 +110,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   // Save
   const save = async () => {
     if (!form.type) return;
-    const item = { ...form, date: form.date || new Date().toISOString().slice(0, 10) };
+    const item = { ...form, date: form.date || todayISO() };
     if (editId) {
       await updateItem('activities', editId, item);
     } else {
@@ -161,7 +161,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   return (
     <div className="mt-2">
       <div className="flex justify-end mb-3">
-        <Button variant="lavender" onClick={() => { setForm({ ...EMPTY_ACTIVITY, date: new Date().toISOString().slice(0, 10) }); setEditId(null); setSubView('form'); }} className="!py-1.5 !px-3 !text-xs">
+        <Button variant="lavender" onClick={() => { setForm({ ...EMPTY_ACTIVITY, date: todayISO() }); setEditId(null); setSubView('form'); }} className="!py-1.5 !px-3 !text-xs">
           <Plus size={14} /> Log
         </Button>
       </div>

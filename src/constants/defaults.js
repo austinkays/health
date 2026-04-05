@@ -1,5 +1,7 @@
 // Default data shapes for new entries
 
+import { todayISO } from '../utils/dates';
+
 export const EMPTY_MED = {
   name: '', display_name: '', dose: '', frequency: '', route: 'Oral',
   prescriber: '', pharmacy: '', start_date: '', purpose: '',
@@ -22,7 +24,7 @@ export const EMPTY_PROVIDER = {
 };
 
 export const EMPTY_VITAL = {
-  date: new Date().toISOString().slice(0, 10),
+  date: todayISO(),
   type: 'pain', value: '', value2: '', unit: '', notes: '',
 };
 
@@ -37,7 +39,7 @@ export const EMPTY_APPOINTMENT = {
 };
 
 export const EMPTY_JOURNAL = {
-  date: new Date().toISOString().slice(0, 10),
+  date: todayISO(),
   title: '', content: '', severity: '5', tags: '', mood: '',
 };
 
@@ -81,7 +83,7 @@ export const EMPTY_DRUG_PRICE = {
 };
 
 export const EMPTY_CYCLE = {
-  date: new Date().toISOString().slice(0, 10),
+  date: todayISO(),
   type: 'period', value: '', symptom: '', notes: '',
 };
 

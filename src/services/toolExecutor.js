@@ -3,6 +3,7 @@
 
 import { TOOL_TABLE_MAP, RECORD_SUMMARIES } from '../constants/tools';
 import { searchEntities, ENTITY_CONFIG } from '../utils/search.jsx';
+import { todayISO } from '../utils/dates';
 
 // Sanitize string input: strip angle brackets / braces, cap length
 function san(text, limit = 500) {
@@ -116,10 +117,10 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
         const cleaned = sanitizeInput(input, 'add');
         // Add default date for vitals/journal if not provided
         if (table === 'vitals' && !cleaned.date) {
-          cleaned.date = new Date().toISOString().slice(0, 10);
+          cleaned.date = todayISO();
         }
         if (table === 'journal' && !cleaned.date) {
-          cleaned.date = new Date().toISOString().slice(0, 10);
+          cleaned.date = todayISO();
         }
         const saved = await addItem(table, cleaned);
         const summaryFn = RECORD_SUMMARIES[table];

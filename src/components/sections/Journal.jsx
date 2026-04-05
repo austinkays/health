@@ -9,7 +9,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { EMPTY_JOURNAL, MOODS } from '../../constants/defaults';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, todayISO } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { fetchJournalPatterns, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -84,7 +84,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     } else {
       await addItem('journal', form);
     }
-    setForm({ ...EMPTY_JOURNAL, date: new Date().toISOString().slice(0, 10) });
+    setForm({ ...EMPTY_JOURNAL, date: todayISO() });
     setEditId(null);
     setSubView(null);
   };
