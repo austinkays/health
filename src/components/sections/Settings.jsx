@@ -28,6 +28,20 @@ When the file arrives, do this immediately — no commentary, no questions first
 
 Ready? I'll attach the file next.`;
 
+const PROJECT_INSTRUCTIONS = `This project is for syncing my health records into Salve (a personal health management app).
+
+The knowledge file salve-sync.jsx is the complete source code for a React artifact called "Salve Health Sync". It uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON that I import into Salve.
+
+Whenever I ask you to sync, pull records, start the sync artifact, or anything similar, do this immediately — no commentary, no questions first:
+
+1. Create a React artifact. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE contents of salve-sync.jsx into the artifact, unchanged. Do not rewrite, refactor, summarize, shorten, or "fix" anything. The code is already complete and working.
+
+2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
+
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connections enabled. If I don't, briefly tell me what to connect.
+
+Dependencies available in the Claude artifacts runtime: react and lucide-react. No other imports needed, no external API calls from the file itself.`;
+
 function CopyButton({ text, label, copiedLabel = 'Copied!', ariaLabel }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -842,60 +856,117 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
           {expandedSource === 'claude' && (
             <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-4">
-              <p className="text-[11px] text-salve-textFaint leading-relaxed">
-                Open a <strong className="text-salve-text">new chat</strong> on Claude.ai, then follow these three steps in order.
-              </p>
-
-              {/* Step 1 — Prep prompt */}
-              <div>
+              {/* ── Recommended: Claude Project (one-time setup) ── */}
+              <div className="bg-salve-lav/5 border border-salve-lav/20 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">1</span>
-                  <span className="text-[12px] text-salve-text font-medium font-montserrat">Send the prep prompt</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Recommended · one-time setup</span>
                 </div>
-                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
-                  Paste this into Claude.ai and send it. This primes Claude so it knows exactly what to do when the file arrives.
+                <h4 className="text-[13px] text-salve-text font-medium font-montserrat mb-1">Create a Claude Project</h4>
+                <p className="text-[11px] text-salve-textFaint leading-relaxed mb-3">
+                  Set this up once on Claude.ai and every future sync is one short message like "sync my records" — no re-attaching files, no re-pasting prompts.
                 </p>
-                <div className="pl-7">
-                  <CopyButton text={PREP_PROMPT} label="Copy prep prompt" copiedLabel="Prep prompt copied!" />
-                </div>
-              </div>
 
-              {/* Step 2 — Download + attach file */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">2</span>
-                  <span className="text-[12px] text-salve-text font-medium font-montserrat">Attach the sync file</span>
-                </div>
-                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
-                  Download the file, then attach it to Claude as your next message. You don't need to type anything — Claude already has its instructions from step 1.
-                </p>
-                <div className="pl-7">
-                  <a
-                    href="/salve-sync.jsx"
-                    download="salve-sync.jsx"
-                    className="btn-magic btn-magic-lav w-full py-3 rounded-xl font-semibold text-sm no-underline
-                      bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
-                      border border-salve-lav/30 text-salve-lav
-                      flex items-center justify-center gap-2.5
-                      hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
-                  >
-                    <Sparkles size={18} className="animate-pulse" />
-                    Download salve-sync.jsx
-                    <Sparkles size={14} className="opacity-50" />
-                  </a>
-                </div>
-              </div>
+                <ol className="text-[11px] text-salve-textMid space-y-2.5 leading-relaxed list-decimal pl-5 mb-3">
+                  <li>
+                    On Claude.ai, click <strong className="text-salve-text">Projects</strong> → <strong className="text-salve-text">New project</strong>. Name it "Salve Health Sync".
+                  </li>
+                  <li>
+                    In the project's <strong className="text-salve-text">Custom instructions</strong> field, paste the project instructions below.
+                    <div className="mt-2">
+                      <CopyButton text={PROJECT_INSTRUCTIONS} label="Copy project instructions" copiedLabel="Project instructions copied!" />
+                    </div>
+                  </li>
+                  <li>
+                    In the project's <strong className="text-salve-text">Project knowledge</strong> section, upload <code className="text-salve-textMid text-[10px]">salve-sync.jsx</code>.
+                    <div className="mt-2">
+                      <a
+                        href="/salve-sync.jsx"
+                        download="salve-sync.jsx"
+                        className="btn-magic btn-magic-lav w-full py-2.5 rounded-lg font-medium text-xs no-underline
+                          bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
+                          border border-salve-lav/30 text-salve-lav
+                          flex items-center justify-center gap-2
+                          hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
+                      >
+                        <Sparkles size={14} className="animate-pulse" />
+                        Download salve-sync.jsx
+                      </a>
+                    </div>
+                  </li>
+                  <li>
+                    Start a <strong className="text-salve-text">new chat</strong> inside that project and say <em className="text-salve-textMid">"sync my health records"</em>. The artifact will render automatically.
+                  </li>
+                  <li>
+                    Pull your records, download the JSON, and import it via <strong className="text-salve-text">Data Management → Import</strong> above.
+                  </li>
+                </ol>
 
-              {/* Step 3 — Import JSON back */}
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">3</span>
-                  <span className="text-[12px] text-salve-text font-medium font-montserrat">Import the JSON back here</span>
-                </div>
-                <p className="text-[10px] text-salve-textFaint leading-relaxed pl-7">
-                  Once the artifact renders, pull your records, download the JSON it produces, and import it via Data Management → Import above.
+                <p className="text-[10px] text-salve-textFaint italic leading-relaxed">
+                  After setup, future syncs only need step 4 + step 5.
                 </p>
               </div>
+
+              {/* ── Fallback: one-off chat ── */}
+              <details className="group">
+                <summary className="cursor-pointer text-[11px] text-salve-textMid font-montserrat hover:text-salve-text flex items-center gap-1.5">
+                  <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
+                  Or do a one-off sync without setting up a project
+                </summary>
+                <div className="mt-3 pl-4 space-y-4 border-l-2 border-salve-border/40">
+                  <p className="text-[11px] text-salve-textFaint leading-relaxed">
+                    Open a new chat on Claude.ai and follow these steps in order.
+                  </p>
+
+                  {/* Step 1 — Prep prompt */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">1</span>
+                      <span className="text-[12px] text-salve-text font-medium font-montserrat">Send the prep prompt</span>
+                    </div>
+                    <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
+                      Primes Claude so it knows what to do when the file arrives.
+                    </p>
+                    <div className="pl-7">
+                      <CopyButton text={PREP_PROMPT} label="Copy prep prompt" copiedLabel="Prep prompt copied!" />
+                    </div>
+                  </div>
+
+                  {/* Step 2 — Attach file */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">2</span>
+                      <span className="text-[12px] text-salve-text font-medium font-montserrat">Attach the file</span>
+                    </div>
+                    <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
+                      Download it, then attach it as your next message in Claude. You don't need to type anything — Claude already has its instructions from step 1.
+                    </p>
+                    <div className="pl-7">
+                      <a
+                        href="/salve-sync.jsx"
+                        download="salve-sync.jsx"
+                        className="btn-magic w-full py-2.5 rounded-lg font-medium text-xs no-underline
+                          bg-salve-card2 border border-salve-border text-salve-textMid
+                          flex items-center justify-center gap-2
+                          hover:border-salve-lav/40 hover:text-salve-lav"
+                      >
+                        <Sparkles size={14} />
+                        Download salve-sync.jsx
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Step 3 — Import */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">3</span>
+                      <span className="text-[12px] text-salve-text font-medium font-montserrat">Import the JSON back here</span>
+                    </div>
+                    <p className="text-[10px] text-salve-textFaint leading-relaxed pl-7">
+                      Pull records in the artifact, download the JSON, and import via Data Management → Import above.
+                    </p>
+                  </div>
+                </div>
+              </details>
             </div>
           )}
         </Card>
