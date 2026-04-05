@@ -716,6 +716,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | Document | Purpose |
 |----------|---------|
 | `docs/PRODUCTION_AUDIT.md` | Full production-readiness audit: security fixes, data integrity issues, AI underutilization, UX gaps per section, accessibility, PWA/performance, implementation priority checklist |
+| `docs/LAUNCH_CHECKLIST.md` | Focused pre-launch checklist for sharing publicly: Sentry setup, AI cost ceilings, Vercel plan, RLS verification test, Lemon Squeezy payments implementation plan, UX polish checklist, PHI breach response plan |
 | `docs/IMPORT_IMPLEMENTATION.md` | Import/export/merge implementation guide |
 | `docs/MIGRATION_PLAN.md` | Migration planning notes |
 | `docs/superpowers/specs/2026-04-01-cycle-tracker-completion-design.md` | Cycle Tracker completion spec: vitals/journal correlation, AI cycle analysis, med awareness, Dashboard quick-log |
