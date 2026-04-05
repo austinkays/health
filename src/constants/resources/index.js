@@ -4,6 +4,7 @@
 // Content modules register resources by pushing into RESOURCES.
 
 import EVERYCURE_PROGRAMS from './everycure.js';
+import UNDERSTOOD_ARTICLES from './understood.js';
 
 export const RESOURCES = [];
 
@@ -17,6 +18,7 @@ export function registerResources(...items) {
 
 // Auto-register bundled resource modules
 registerResources(...EVERYCURE_PROGRAMS);
+registerResources(...UNDERSTOOD_ARTICLES);
 
 // ---------------------------------------------------------------------------
 // Condition-name normalizer (fuzzy match common aliases)

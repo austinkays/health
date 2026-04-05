@@ -91,7 +91,8 @@ health/
 │   │   ├── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (27 tools incl add/remove cycle, todos, activity, genetic), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
 │   │   └── resources/
 │   │       ├── index.js           # Resource registry: RESOURCES[], registerResources(), normalizeCondition(), matchResources(data) ranking utility
-│   │       └── everycure.js       # 10 active EveryCure drug repurposing programs (portfolio data, condition/medication tags, research stages)
+│   │       ├── everycure.js       # 10 active EveryCure drug repurposing programs (portfolio data, condition/medication tags, research stages)
+│   │       └── understood.js      # 42 curated Understood.org articles tagged by condition/symptom/audience (ADHD, dyslexia, dyscalculia, dysgraphia, exec function, APD, anxiety, accommodations)
 │   ├── services/
 │   │   ├── supabase.js           # Supabase client init (from VITE_SUPABASE_URL/ANON_KEY)
 │   │   ├── auth.js               # signIn (magic link), signOut, getSession, onAuthChange
@@ -973,7 +974,7 @@ Each resource entry has:
 |-------|------|------|
 | ~~1~~ | ~~Resource framework: `constants/resources/` + `matchResources()` utility~~ | ✅ Done |
 | ~~2~~ | ~~EveryCure portfolio data file: 10 active programs with condition/medication tags~~ | ✅ Done |
-| 3 | Understood.org topic library: ~40 curated articles tagged by condition | 3-4h (mostly content research) |
+| ~~3~~ | ~~Understood.org topic library: ~40 curated articles tagged by condition~~ | ✅ Done |
 | 4 | Conditions.jsx per-condition Resources expansion | 1h |
 | 5 | Dashboard Discover card (rotating highlights) | 1h |
 | 6 *(later)* | Sage AI integration: teach chat to cite curated resources | 2-3h |
