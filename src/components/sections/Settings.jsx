@@ -16,22 +16,22 @@ import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 
-const SYNC_PROMPT = `I'm attaching salve-sync.jsx — the source code for the "Salve Health Sync" React artifact. It's a tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
+const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync" — a health-data sync tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
 
-Please do the following, in order:
+When the file arrives, do this immediately — no commentary, no questions first:
 
-1. Create a React artifact from the attached file. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE file contents into the artifact unchanged — do not rewrite, refactor, summarize, or modify the code. It is already complete.
+1. Create a React artifact. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE file contents into the artifact, unchanged. Do not rewrite, refactor, summarize, shorten, or "fix" anything. The code is already complete and working.
 
-2. Do NOT describe the code, analyze it, or ask what I want to do with it before creating the artifact. Just create it immediately.
+2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
-3. After the artifact renders, tell me in one short sentence that it's ready, and check whether I have any health-related MCP connections enabled (healthex, Function Health, or similar). If I don't have any connected, briefly tell me what to connect so the sync can pull my records.
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connections enabled (healthex, Function Health, or similar). If I don't, briefly tell me what to connect so the sync can pull my records.
 
-If I forgot to attach the file, ask me to attach salve-sync.jsx and then proceed with step 1.`;
+Ready? I'll attach the file next.`;
 
-function CopyPromptButton() {
+function CopyButton({ text, label, copiedLabel = 'Copied!', ariaLabel }) {
   const [copied, setCopied] = useState(false);
   const copy = () => {
-    navigator.clipboard.writeText(SYNC_PROMPT).then(() => {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
@@ -39,15 +39,15 @@ function CopyPromptButton() {
   return (
     <button
       onClick={copy}
-      className={`mt-2 w-full py-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors border cursor-pointer font-montserrat ${
+      className={`w-full py-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors border cursor-pointer font-montserrat ${
         copied
           ? 'bg-salve-sage/15 border-salve-sage/30 text-salve-sage'
           : 'bg-salve-card2 border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav'
       }`}
-      aria-label={copied ? 'Prompt copied to clipboard' : 'Copy prompt to send with artifact'}
+      aria-label={ariaLabel || (copied ? 'Copied to clipboard' : label)}
     >
       <ClipboardCopy size={14} />
-      {copied ? 'Copied!' : 'Copy prompt to send with file'}
+      {copied ? copiedLabel : label}
     </button>
   );
 }
@@ -841,28 +841,61 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             {expandedSource === 'claude' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
           </button>
           {expandedSource === 'claude' && (
-            <div className="mt-3 pt-3 border-t border-salve-border/50">
-              <ol className="text-[11px] text-salve-textMid space-y-1 leading-relaxed list-decimal pl-5 mb-3">
-                <li>Download the sync file below</li>
-                <li>Open a <strong className="text-salve-text">new chat</strong> on Claude.ai</li>
-                <li>Paste the prompt <em>and</em> attach the file together in the same message</li>
-                <li>When the artifact renders, pull your records and download the JSON it produces</li>
-                <li>Import that JSON here via Data Management → Import</li>
-              </ol>
-              <a
-                href="/salve-sync.jsx"
-                download="salve-sync.jsx"
-                className="btn-magic btn-magic-lav w-full py-3 rounded-xl font-semibold text-sm no-underline
-                  bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
-                  border border-salve-lav/30 text-salve-lav
-                  flex items-center justify-center gap-2.5
-                  hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
-              >
-                <Sparkles size={18} className="animate-pulse" />
-                Download Sync Artifact
-                <Sparkles size={14} className="opacity-50" />
-              </a>
-              <CopyPromptButton />
+            <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-4">
+              <p className="text-[11px] text-salve-textFaint leading-relaxed">
+                Open a <strong className="text-salve-text">new chat</strong> on Claude.ai, then follow these three steps in order.
+              </p>
+
+              {/* Step 1 — Prep prompt */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">1</span>
+                  <span className="text-[12px] text-salve-text font-medium font-montserrat">Send the prep prompt</span>
+                </div>
+                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
+                  Paste this into Claude.ai and send it. This primes Claude so it knows exactly what to do when the file arrives.
+                </p>
+                <div className="pl-7">
+                  <CopyButton text={PREP_PROMPT} label="Copy prep prompt" copiedLabel="Prep prompt copied!" />
+                </div>
+              </div>
+
+              {/* Step 2 — Download + attach file */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">2</span>
+                  <span className="text-[12px] text-salve-text font-medium font-montserrat">Attach the sync file</span>
+                </div>
+                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
+                  Download the file, then attach it to Claude as your next message. You don't need to type anything — Claude already has its instructions from step 1.
+                </p>
+                <div className="pl-7">
+                  <a
+                    href="/salve-sync.jsx"
+                    download="salve-sync.jsx"
+                    className="btn-magic btn-magic-lav w-full py-3 rounded-xl font-semibold text-sm no-underline
+                      bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20
+                      border border-salve-lav/30 text-salve-lav
+                      flex items-center justify-center gap-2.5
+                      hover:border-salve-lav/50 hover:from-salve-lav/30 hover:to-salve-lav/30"
+                  >
+                    <Sparkles size={18} className="animate-pulse" />
+                    Download salve-sync.jsx
+                    <Sparkles size={14} className="opacity-50" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Step 3 — Import JSON back */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">3</span>
+                  <span className="text-[12px] text-salve-text font-medium font-montserrat">Import the JSON back here</span>
+                </div>
+                <p className="text-[10px] text-salve-textFaint leading-relaxed pl-7">
+                  Once the artifact renders, pull your records, download the JSON it produces, and import it via Data Management → Import above.
+                </p>
+              </div>
             </div>
           )}
         </Card>
