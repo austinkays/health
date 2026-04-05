@@ -298,7 +298,10 @@ export default function AppleHealthImport({ data, reloadData }) {
       <Card>
         <p className="text-[13px] text-salve-text font-medium leading-relaxed mb-2">Paste from iOS Shortcut</p>
         <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
-          Run the Salve Health Shortcut on your iPhone, then paste the output below.
+          Run the <strong className="text-salve-textMid">Salve Health Sync</strong> shortcut on your iPhone, pick a date range, then paste the JSON it copies to your clipboard.
+        </p>
+        <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
+          Don't have the shortcut yet? See the build instructions in <code className="text-salve-textMid">docs/APPLE_HEALTH_SHORTCUT.md</code> (iCloud install link coming soon).
         </p>
         <textarea
           value={pasteText}
