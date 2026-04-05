@@ -22,7 +22,10 @@ export function isFeatureLocked(feature) {
   // anyway, so there's nothing to protect and we want demo users to see
   // the full premium experience.
   if (_demoMode) return false;
-  return getAIProvider() !== 'anthropic' && FREE_BLOCKED_FEATURES.has(feature);
+  // Premium tier unlocks Pro features regardless of provider choice.
+  // Free tier users are gated out of the FREE_BLOCKED_FEATURES set.
+  if (_premiumActive) return false;
+  return FREE_BLOCKED_FEATURES.has(feature);
 }
 
 // Returns true when the user has active premium access — either permanent
@@ -206,6 +209,12 @@ function extractSources(data) {
 let _demoMode = false;
 export function setDemoMode(v) { _demoMode = !!v; }
 export function isDemoMode() { return _demoMode; }
+
+// Premium tier flag — mirrored from profile.tier + trial status via App.jsx.
+// Pro features unlock for any premium user regardless of which AI provider
+// they've chosen, since both Claude Opus and Gemini 2.5 Pro can serve them.
+let _premiumActive = false;
+export function setPremiumActive(v) { _premiumActive = !!v; }
 
 async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false, feature = 'chat') {
   if (_demoMode) return demoResponseFor(feature, messages);
