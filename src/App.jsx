@@ -12,6 +12,7 @@ import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
+import SagePopup from './components/ui/SagePopup';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -81,6 +82,7 @@ function AppContent() {
   const [highlightId, setHighlightId] = useState(null);
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
+  const [sageOpen, setSageOpen] = useState(false);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(session);
   const showToast = useToast();
 
@@ -289,7 +291,7 @@ function AppContent() {
   return (
     <div className="min-h-screen overflow-hidden relative">
       <div className="max-w-[480px] mx-auto pb-24 relative">
-        <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => onNav('ai')} />
+        <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
         <main className="px-4">
           <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
             <Suspense fallback={
@@ -305,6 +307,12 @@ function AppContent() {
         </main>
         <BottomNav tab={tab} onNav={onNav} />
       </div>
+      <SagePopup
+        open={sageOpen}
+        onClose={() => setSageOpen(false)}
+        onOpenFullChat={() => onNav('ai')}
+        data={data}
+      />
     </div>
   );
 }

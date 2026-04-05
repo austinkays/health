@@ -327,29 +327,45 @@ html.theme-cherry body::after {
   pointer-events: none;
   z-index: 0;
   background-image:
-    /* Falling petals — soft pink dots drifting down */
-    radial-gradient(circle 4px at 8% 4%, rgba(232, 148, 180, 0.7), transparent 65%),
-    radial-gradient(circle 3px at 22% 18%, rgba(248, 200, 220, 0.75), transparent 65%),
-    radial-gradient(circle 5px at 38% 34%, rgba(224, 132, 168, 0.65), transparent 65%),
-    radial-gradient(circle 3px at 52% 48%, rgba(240, 184, 208, 0.7), transparent 65%),
-    radial-gradient(circle 4px at 66% 62%, rgba(232, 148, 180, 0.75), transparent 65%),
-    radial-gradient(circle 3px at 80% 76%, rgba(248, 200, 220, 0.65), transparent 65%),
-    radial-gradient(circle 5px at 92% 88%, rgba(224, 132, 168, 0.7), transparent 65%),
-    radial-gradient(circle 3px at 14% 92%, rgba(240, 184, 208, 0.75), transparent 65%),
-    radial-gradient(circle 4px at 44% 6%, rgba(232, 148, 180, 0.65), transparent 65%),
-    radial-gradient(circle 3px at 72% 24%, rgba(248, 200, 220, 0.7), transparent 65%);
-  background-size: 100% 200vh;
-  background-repeat: repeat-y;
-  animation: cherry-petals 18s linear infinite;
+    /* Scattered petals — random-feeling positions, varied sizes, pink + white */
+    radial-gradient(circle 5px at 7% 3%,   rgba(224, 132, 168, 0.75), transparent 62%),
+    radial-gradient(circle 3px at 19% 8%,  rgba(255, 255, 255, 0.85), transparent 65%),
+    radial-gradient(circle 4px at 34% 14%, rgba(248, 200, 220, 0.80), transparent 65%),
+    radial-gradient(circle 6px at 48% 6%,  rgba(232, 148, 180, 0.68), transparent 62%),
+    radial-gradient(circle 3px at 62% 19%, rgba(240, 184, 208, 0.78), transparent 65%),
+    radial-gradient(circle 5px at 76% 11%, rgba(255, 255, 255, 0.72), transparent 62%),
+    radial-gradient(circle 4px at 89% 22%, rgba(224, 132, 168, 0.75), transparent 65%),
+    radial-gradient(circle 6px at 12% 28%, rgba(248, 200, 220, 0.68), transparent 62%),
+    radial-gradient(circle 3px at 26% 41%, rgba(240, 184, 208, 0.82), transparent 65%),
+    radial-gradient(circle 5px at 43% 33%, rgba(232, 148, 180, 0.72), transparent 62%),
+    radial-gradient(circle 4px at 56% 47%, rgba(255, 255, 255, 0.80), transparent 65%),
+    radial-gradient(circle 6px at 71% 38%, rgba(224, 132, 168, 0.70), transparent 62%),
+    radial-gradient(circle 3px at 86% 52%, rgba(248, 200, 220, 0.85), transparent 65%),
+    radial-gradient(circle 5px at 6% 58%,  rgba(240, 184, 208, 0.72), transparent 62%),
+    radial-gradient(circle 4px at 21% 73%, rgba(255, 255, 255, 0.75), transparent 65%),
+    radial-gradient(circle 6px at 37% 66%, rgba(232, 148, 180, 0.68), transparent 62%),
+    radial-gradient(circle 3px at 52% 82%, rgba(248, 200, 220, 0.82), transparent 65%),
+    radial-gradient(circle 5px at 67% 71%, rgba(224, 132, 168, 0.72), transparent 62%),
+    radial-gradient(circle 4px at 81% 86%, rgba(255, 255, 255, 0.78), transparent 65%),
+    radial-gradient(circle 6px at 94% 78%, rgba(240, 184, 208, 0.68), transparent 62%),
+    radial-gradient(circle 3px at 14% 94%, rgba(232, 148, 180, 0.80), transparent 65%),
+    radial-gradient(circle 5px at 45% 96%, rgba(248, 200, 220, 0.72), transparent 62%);
+  background-size: 100vw 180vh;
+  background-repeat: repeat;
+  animation: cherry-petals 24s linear infinite, cherry-sway 9s ease-in-out infinite;
 }
 @keyframes cherry-breeze {
-  0%   { transform: translateX(0); opacity: 0.95; }
-  50%  { transform: translateX(12px); opacity: 1; }
-  100% { transform: translateX(-8px); opacity: 0.92; }
+  0%   { transform: translateX(0);     opacity: 0.95; }
+  50%  { transform: translateX(12px);  opacity: 1; }
+  100% { transform: translateX(-8px);  opacity: 0.92; }
 }
 @keyframes cherry-petals {
   from { background-position: 0 0; }
-  to { background-position: 0 200vh; }
+  to   { background-position: 0 180vh; }
+}
+@keyframes cherry-sway {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(8px); }
 }
 
 /* ── Sunny Day: warm sunbeams + drifting dust motes on blue sky ── */

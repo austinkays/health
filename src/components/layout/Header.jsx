@@ -67,14 +67,14 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
           )}
         </div>
         {action}
-        {!isSearch && (
-          <button onClick={onSearch} aria-label="Search" className="bg-transparent border-none text-salve-textMid hover:text-salve-lav cursor-pointer p-1.5 flex transition-colors">
-            <Search size={18} />
-          </button>
-        )}
         {!isSage && onSage && (
           <button onClick={onSage} aria-label="Open Sage" className="bg-transparent border-none text-salve-textMid hover:text-salve-sage cursor-pointer p-1.5 flex transition-colors">
             <Leaf size={18} />
+          </button>
+        )}
+        {!isSearch && (
+          <button onClick={onSearch} aria-label="Search" className="bg-transparent border-none text-salve-textMid hover:text-salve-lav cursor-pointer p-1.5 flex transition-colors">
+            <Search size={18} />
           </button>
         )}
       </div>
