@@ -208,9 +208,9 @@ html.theme-aurora .font-playfair {
 /* ── Ember: flickering firelight glow + floating sparks ── */
 html.theme-ember body::before {
   background-image:
-    radial-gradient(ellipse 140% 55% at 50% 92%, rgba(255, 106, 26, 0.28), transparent 70%),
-    radial-gradient(ellipse 100% 35% at 50% 88%, rgba(255, 210, 77, 0.18), transparent 60%),
-    radial-gradient(ellipse 60% 20% at 50% 84%, rgba(255, 154, 77, 0.22), transparent 55%);
+    radial-gradient(ellipse 200% 85% at 50% 108%, rgba(255, 106, 26, 0.30), transparent 75%),
+    radial-gradient(ellipse 160% 65% at 50% 112%, rgba(255, 210, 77, 0.20), transparent 70%),
+    radial-gradient(ellipse 120% 45% at 50% 115%, rgba(255, 154, 77, 0.25), transparent 65%);
   opacity: 1;
   animation: ember-flicker 3s ease-in-out infinite;
 }
