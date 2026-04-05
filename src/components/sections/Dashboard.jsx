@@ -208,15 +208,13 @@ export default function Dashboard({ data, interactions, onNav }) {
     return () => clearInterval(id);
   }, [searchFocused, searchQuery]);
 
-  // Live search results (max 5 on dashboard)
-  const searchResults = useMemo(
-    () => searchEntities(data, debouncedSearch).slice(0, 5),
+  // Live search results — run once, derive count from the same result
+  const allSearchResults = useMemo(
+    () => searchEntities(data, debouncedSearch),
     [data, debouncedSearch]
   );
-  const totalResults = useMemo(
-    () => searchEntities(data, debouncedSearch).length,
-    [data, debouncedSearch]
-  );
+  const searchResults = useMemo(() => allSearchResults.slice(0, 5), [allSearchResults]);
+  const totalResults = allSearchResults.length;
 
   const handleSearchKeyDown = useCallback((e) => {
     if (e.key === 'Escape') {

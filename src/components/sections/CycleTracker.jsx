@@ -511,7 +511,19 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
       <Card className="mb-3">
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Previous month"><ChevronLeft size={18} className="text-salve-textMid" /></button>
-          <span className="text-sm font-medium font-montserrat text-salve-text">{monthLabel}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium font-montserrat text-salve-text">{monthLabel}</span>
+            {/* Show "Today" button only when the current month isn't visible */}
+            {(calMonth.year !== new Date().getFullYear() || calMonth.month !== new Date().getMonth()) && (
+              <button
+                onClick={() => { const n = new Date(); setCalMonth({ year: n.getFullYear(), month: n.getMonth() }); }}
+                className="text-[10px] text-salve-lav font-montserrat px-2 py-0.5 rounded-full border border-salve-lav/30 bg-salve-lav/10 hover:bg-salve-lav/20 cursor-pointer transition-colors"
+                aria-label="Go to today"
+              >
+                Today
+              </button>
+            )}
+          </div>
           <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Next month"><ChevronRight size={18} className="text-salve-textMid" /></button>
         </div>
 
@@ -600,7 +612,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
             return (
               <button key={day} onClick={() => calendarQuickLog(dk)}
                 className="relative aspect-square flex flex-col items-center justify-center rounded-lg text-xs font-montserrat cursor-pointer transition-all hover:bg-salve-card2"
-                style={{ backgroundColor: bg, borderWidth: (isPredicted || isToday || isFertile) ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid' }}
+                style={{ backgroundColor: bg, borderWidth: (isPredicted || isToday || isFertile) ? 1 : 0, borderColor: isToday ? C.lav : border, borderStyle: isPredicted ? 'dashed' : 'solid', boxShadow: isToday ? `0 0 0 2px ${C.lav}55` : undefined }}
                 aria-label={`${dk}${hasPeriod ? ', period logged' : ''}${showSymptom ? ', symptom logged' : ''}${showOvulation ? ', ovulation' : ''}${isPredicted ? ', predicted period' : ''}${isFertile ? ', fertile window' : ''}${fertPct !== null ? `, ~${fertPct}% fertility (${fertZone})` : ''}`}
               >
                 <span className={`leading-none ${isToday ? 'font-bold text-salve-lav' : hasPeriod ? 'font-semibold text-salve-rose' : 'text-salve-textMid'}`}>{day}</span>

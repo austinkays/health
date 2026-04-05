@@ -5,6 +5,9 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from './AIConsentGate';
 import AIMarkdown from './AIMarkdown';
 
+// Focusable element selector for focus-trap logic
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
 export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -12,12 +15,48 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   const [error, setError] = useState(null);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
+  const panelRef = useRef(null);
+  // Remember what was focused before the popup opened so we can restore it
+  const triggerRef = useRef(null);
   const consented = hasAIConsent();
 
   useEffect(() => {
     if (open) {
+      triggerRef.current = document.activeElement;
       setTimeout(() => inputRef.current?.focus(), 60);
+    } else if (triggerRef.current) {
+      triggerRef.current.focus();
+      triggerRef.current = null;
     }
+  }, [open]);
+
+  // Escape key closes the popup
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+
+  // Focus trap — keep Tab/Shift+Tab inside the panel
+  useEffect(() => {
+    if (!open) return;
+    const panel = panelRef.current;
+    if (!panel) return;
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = Array.from(panel.querySelectorAll(FOCUSABLE));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    panel.addEventListener('keydown', trap);
+    return () => panel.removeEventListener('keydown', trap);
   }, [open]);
 
   useEffect(() => {
@@ -59,11 +98,13 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}
-      role="dialog"
-      aria-label="Ask Sage"
     >
       <div
+        ref={panelRef}
         onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ask Sage"
         className="w-full max-w-[480px] bg-salve-card border-t border-salve-border rounded-t-2xl flex flex-col shadow-2xl"
         style={{ height: '78vh', maxHeight: '78vh' }}
       >

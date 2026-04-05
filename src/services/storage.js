@@ -171,6 +171,33 @@ export async function decryptExport(encryptedObj, passphrase) {
   }
 }
 
+// Per-field string length limits applied during import validation (prevents OOM from malformed backups)
+const FIELD_MAX_LENGTH = 10_000; // 10 KB per text field
+const ARRAY_MAX_LENGTH = 5_000;  // max records per table
+
+/**
+ * Recursively sanitize a value: cap strings, cap arrays.
+ * Mutates in place for performance (data is already a parsed copy).
+ */
+function sanitizeImportValue(value) {
+  if (typeof value === 'string') {
+    return value.length > FIELD_MAX_LENGTH ? value.slice(0, FIELD_MAX_LENGTH) : value;
+  }
+  if (Array.isArray(value)) {
+    const capped = value.slice(0, ARRAY_MAX_LENGTH);
+    return capped.map(item => (item && typeof item === 'object' ? sanitizeImportRecord(item) : item));
+  }
+  return value;
+}
+
+function sanitizeImportRecord(record) {
+  const out = {};
+  for (const [k, v] of Object.entries(record)) {
+    out[k] = sanitizeImportValue(v);
+  }
+  return out;
+}
+
 /**
  * Validate an uploaded JSON file before import.
  * Returns { valid, mode, preview, normalized } or { valid: false, error }.
@@ -192,6 +219,14 @@ export function validateImport(fileData) {
   const isMerge = fileData._export?.type?.startsWith('mcp-sync');
   const mode = isMerge ? 'merge' : 'restore';
   const normalized = normalizeImportData(fileData);
+
+  // Sanitize field lengths and array sizes to guard against malformed/malicious files
+  for (const [key, val] of Object.entries(normalized)) {
+    if (key === 'settings') continue;
+    if (Array.isArray(val)) {
+      normalized[key] = val.slice(0, ARRAY_MAX_LENGTH).map(r => (r && typeof r === 'object' ? sanitizeImportRecord(r) : r));
+    }
+  }
 
   const preview = {};
   for (const [key, arr] of Object.entries(normalized)) {

@@ -39,9 +39,22 @@ export const cache = {
     try {
       if (!_token) return;
       const encrypted = await encrypt(JSON.stringify(data), _token);
-      localStorage.setItem(CACHE_KEY, encrypted);
+      try {
+        localStorage.setItem(CACHE_KEY, encrypted);
+      } catch (e) {
+        if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+          // Storage full — clear cache and try once more with just the new data
+          localStorage.removeItem(CACHE_KEY);
+          localStorage.removeItem(PENDING_KEY);
+          try {
+            localStorage.setItem(CACHE_KEY, encrypted);
+          } catch {
+            // Still full (e.g. encrypted blob itself is too large) — skip caching
+          }
+        }
+      }
     } catch {
-      // localStorage full or unavailable — silently fail
+      // Encrypt failed or token unavailable — skip caching
     }
   },
 
@@ -51,7 +64,15 @@ export const cache = {
     try {
       const pending = this.getPending();
       pending.push({ ...operation, queuedAt: Date.now() });
-      localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+      try {
+        localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
+      } catch (e) {
+        if (e?.name === 'QuotaExceededError' || e?.code === 22) {
+          // Pending queue full — trim oldest half and retry
+          const trimmed = pending.slice(Math.floor(pending.length / 2));
+          try { localStorage.setItem(PENDING_KEY, JSON.stringify(trimmed)); } catch { /* give up */ }
+        }
+      }
     } catch {
       // silently fail
     }

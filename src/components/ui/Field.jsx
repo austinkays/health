@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error }) {
+export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error, ...inputProps }) {
   const autoId = useId();
   const inputId = id || `field-${autoId}`;
   const inputCls = `w-full py-2.5 px-3.5 rounded-lg border ${error ? 'border-salve-rose' : 'border-salve-border'} text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors`;
@@ -41,6 +41,7 @@ export default function Field({ label, value, onChange, type = 'text', placehold
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder}
           className={inputCls}
+          {...inputProps}
         />
       )}
       {error && (

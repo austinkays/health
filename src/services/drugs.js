@@ -3,21 +3,34 @@
 
 import { getAuthToken } from './token';
 
+// In-flight request deduplication — concurrent calls with the same key share one fetch
+const inFlight = new Map();
+
 async function drugAPI(action, params = {}) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
   const qs = new URLSearchParams({ action, ...params }).toString();
-  const res = await fetch(`/api/drug?${qs}`, {
+  const key = qs;
+
+  if (inFlight.has(key)) return inFlight.get(key);
+
+  const promise = fetch(`/api/drug?${qs}`, {
     headers: { Authorization: `Bearer ${token}` },
+  }).then(async (res) => {
+    if (res.status === 429) {
+      throw new Error('Too many requests. Please wait a moment and try again.');
+    }
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Drug API error (${res.status})`);
+    }
+    return res.json();
+  }).finally(() => {
+    inFlight.delete(key);
   });
-  if (res.status === 429) {
-    throw new Error('Too many requests. Please wait a moment and try again.');
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || `Drug API error (${res.status})`);
-  }
-  return res.json();
+
+  inFlight.set(key, promise);
+  return promise;
 }
 
 /**
