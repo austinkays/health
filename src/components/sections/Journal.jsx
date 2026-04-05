@@ -217,7 +217,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   )}
                 </div>
                 <div className="flex items-center gap-1.5 ml-2">
-                  {e.mood && <span className="text-base">{e.mood.split(' ')[0]}</span>}
+                  {e.mood && <span className="text-base">{String(e.mood).split(' ')[0]}</span>}
                   {e.severity && <Badge label={`${e.severity}/10`} color={sevColor} bg={sevBg} />}
                   <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
