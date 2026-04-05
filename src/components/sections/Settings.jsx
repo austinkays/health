@@ -16,11 +16,17 @@ import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 
-const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
+const SYNC_PROMPT = `I'm attaching salve-sync.jsx — the source code for the "Salve Health Sync" React artifact. It's a tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
 
-It connects to health services via MCP to pull my medical records (medications, conditions, labs, etc.) and export them as a JSON file I can import into Salve.
+Please do the following, in order:
 
-Before I start, can you check if I have any health-related MCP connections set up (like healthex or Function Health)? If not, help me get connected so the sync can pull my records.`;
+1. Create a React artifact from the attached file. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE file contents into the artifact unchanged — do not rewrite, refactor, summarize, or modify the code. It is already complete.
+
+2. Do NOT describe the code, analyze it, or ask what I want to do with it before creating the artifact. Just create it immediately.
+
+3. After the artifact renders, tell me in one short sentence that it's ready, and check whether I have any health-related MCP connections enabled (healthex, Function Health, or similar). If I don't have any connected, briefly tell me what to connect so the sync can pull my records.
+
+If I forgot to attach the file, ask me to attach salve-sync.jsx and then proceed with step 1.`;
 
 function CopyPromptButton() {
   const [copied, setCopied] = useState(false);
@@ -837,10 +843,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           {expandedSource === 'claude' && (
             <div className="mt-3 pt-3 border-t border-salve-border/50">
               <ol className="text-[11px] text-salve-textMid space-y-1 leading-relaxed list-decimal pl-5 mb-3">
-                <li>Download the sync artifact</li>
-                <li>Open <strong className="text-salve-text">Claude.ai</strong> and attach it</li>
-                <li>Paste the prompt and pull records</li>
-                <li>Import the sync file in Data Management</li>
+                <li>Download the sync file below</li>
+                <li>Open a <strong className="text-salve-text">new chat</strong> on Claude.ai</li>
+                <li>Paste the prompt <em>and</em> attach the file together in the same message</li>
+                <li>When the artifact renders, pull your records and download the JSON it produces</li>
+                <li>Import that JSON here via Data Management → Import</li>
               </ol>
               <a
                 href="/salve-sync.jsx"
