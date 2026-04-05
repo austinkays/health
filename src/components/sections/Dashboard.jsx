@@ -6,6 +6,7 @@ import {
   TrendingUp, ShieldAlert, Heart, Leaf, CheckSquare, Zap,
   Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
+  Compass, ExternalLink,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -24,6 +25,7 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
+import { matchResources } from '../../constants/resources/index.js';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
@@ -80,6 +82,13 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
 /* ── Alert dismissal ──────────────────────────────────── */
 
 const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
+const SEEN_RESOURCES_KEY = 'salve:seen-resources';
+
+function getSeenResources() {
+  try {
+    return JSON.parse(localStorage.getItem(SEEN_RESOURCES_KEY) || '[]');
+  } catch { return []; }
+}
 
 function getAlertDismissal() {
   try {
@@ -485,6 +494,28 @@ export default function Dashboard({ data, interactions, onNav }) {
     setShowDismissMenu(false);
   };
 
+  /* ── Discover (matched resources) ─────────── */
+  const [seenResources, setSeenResources] = useState(() => getSeenResources());
+
+  const discoverItems = useMemo(() => {
+    const seenSet = new Set(seenResources);
+    return matchResources({
+      conditions: data.conditions,
+      medications: data.meds,
+      journal_entries: data.journal,
+      settings: data.settings,
+    })
+      .filter(m => !seenSet.has(m.resource.id))
+      .slice(0, 3);
+  }, [data.conditions, data.meds, data.journal, data.settings, seenResources]);
+
+  const dismissResource = useCallback((resourceId) => {
+    setSeenResources(prev => {
+      const next = [...prev, resourceId];
+      localStorage.setItem(SEEN_RESOURCES_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
 
 
   /* ── Render ─────────────────────────────────── */
@@ -720,6 +751,61 @@ export default function Dashboard({ data, interactions, onNav }) {
               <AIMarkdown compact>{insight}</AIMarkdown>
             </Card>
           )}
+        </section>
+      )}
+
+      {/* ── Discover (matched resources) ───────────── */}
+      {discoverItems.length > 0 && (
+        <section aria-label="Discover resources" className="dash-stagger dash-stagger-4 mb-4">
+          <Card className="!p-0 overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-salve-border/50">
+              <Compass size={13} className="text-salve-lav" />
+              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
+            </div>
+            {discoverItems.map((d, i) => {
+              const isEveryCure = d.resource.source === 'EveryCure';
+              const accentColor = isEveryCure ? C.sage : C.rose;
+              return (
+                <div
+                  key={d.resource.id}
+                  className={`flex items-start gap-3 px-4 py-3 ${i < discoverItems.length - 1 ? 'border-b border-salve-border/40' : ''}`}
+                >
+                  <div
+                    className="w-1 self-stretch rounded-full flex-shrink-0 mt-0.5"
+                    style={{ background: accentColor }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      {isEveryCure && <span className="text-[10px]" aria-hidden="true">🔬</span>}
+                      <span
+                        className="text-[9px] font-montserrat tracking-wider uppercase"
+                        style={{ color: accentColor }}
+                      >
+                        {d.resource.source}
+                      </span>
+                    </div>
+                    <a
+                      href={d.resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[12.5px] text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
+                    >
+                      {d.resource.title}
+                      <ExternalLink size={10} className="text-salve-textFaint/50 flex-shrink-0" />
+                    </a>
+                    <p className="text-[11px] text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
+                  </div>
+                  <button
+                    onClick={() => dismissResource(d.resource.id)}
+                    className="p-1.5 -mr-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/40 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors flex-shrink-0"
+                    aria-label={`Dismiss ${d.resource.title}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              );
+            })}
+          </Card>
         </section>
       )}
 
