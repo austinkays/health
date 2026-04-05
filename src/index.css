@@ -25,6 +25,10 @@
 
 /* ── Theme transition ──────────────────────────── */
 /* Smooth crossfade when switching themes           */
+html.theme-transitioning,
+html.theme-transitioned {
+  background-color: #000;
+}
 html.theme-transitioning body {
   opacity: 0;
   transition: opacity 0.5s ease-out;
