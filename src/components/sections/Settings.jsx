@@ -13,7 +13,7 @@ import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { db } from '../../services/db';
-import { signOut } from '../../services/auth';
+import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 
 const SYNC_PROMPT = `I'm using Salve, a personal health management app. This is the Salve Health Sync artifact — please render it as an interactive React component so I can use it.
@@ -51,6 +51,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const pharmacies = data.pharmacies || [];
   const set = (k, v) => updateSettings({ [k]: v });
   const [showEraseConfirm, setShowEraseConfirm] = useState(false);
+  const [deleteStage, setDeleteStage] = useState('idle'); // 'idle' | 'confirm' | 'deleting' | 'error'
+  const [deleteInput, setDeleteInput] = useState('');
+  const [deleteError, setDeleteError] = useState(null);
   const [dedupStatus, setDedupStatus] = useState(null); // null | 'running' | { results }
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
@@ -1112,6 +1115,77 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <Button variant="danger" onClick={() => setShowEraseConfirm(true)} className="text-xs">
                 <Trash2 size={14} /> Erase All Data
               </Button>
+            )}
+          </div>
+
+          {/* ── Delete Account (permanent, removes auth.users row + cascades) ── */}
+          <div className="mt-4 pt-4 border-t border-salve-border">
+            <h4 className="text-[13px] font-medium text-salve-text mb-1 font-montserrat">Delete Account</h4>
+            <p className="text-xs text-salve-textFaint mb-3 leading-relaxed">
+              Permanently deletes your account and all associated data. You will be signed out. This cannot be undone.
+            </p>
+            {deleteStage === 'idle' && (
+              <Button variant="danger" onClick={() => setDeleteStage('confirm')} className="text-xs">
+                <Trash2 size={14} /> Delete My Account
+              </Button>
+            )}
+            {deleteStage === 'confirm' && (
+              <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
+                <p className="text-[13px] text-salve-rose font-medium mb-2">
+                  Type <span className="font-mono">DELETE</span> to confirm permanent deletion.
+                </p>
+                <input
+                  type="text"
+                  value={deleteInput}
+                  onChange={(e) => setDeleteInput(e.target.value)}
+                  placeholder="DELETE"
+                  aria-label="Type DELETE to confirm"
+                  className="w-full mb-2.5 px-3 py-2 rounded-lg border border-salve-rose/30 bg-salve-card text-salve-text text-sm font-montserrat outline-none focus:border-salve-rose/60"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    variant="danger"
+                    disabled={deleteInput !== 'DELETE'}
+                    onClick={async () => {
+                      setDeleteStage('deleting');
+                      setDeleteError(null);
+                      try {
+                        await deleteAccount();
+                        // Account is gone — force a clean reload
+                        window.location.href = '/';
+                      } catch (err) {
+                        setDeleteError(err.message || 'Deletion failed');
+                        setDeleteStage('error');
+                      }
+                    }}
+                    className="text-xs"
+                  >
+                    <Trash2 size={14} /> Permanently Delete
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => { setDeleteStage('idle'); setDeleteInput(''); }}
+                    className="text-xs"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+            {deleteStage === 'deleting' && (
+              <p className="text-[13px] text-salve-textMid italic">Deleting your account…</p>
+            )}
+            {deleteStage === 'error' && (
+              <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
+                <p className="text-[13px] text-salve-rose mb-2">{deleteError}</p>
+                <Button
+                  variant="ghost"
+                  onClick={() => { setDeleteStage('idle'); setDeleteInput(''); setDeleteError(null); }}
+                  className="text-xs"
+                >
+                  Try again
+                </Button>
+              </div>
             )}
           </div>
         </Card>

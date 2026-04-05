@@ -32,21 +32,34 @@ function Privacy() {
       </Section>
 
       <Section title="AI Features">
-        <p>When you use AI-powered features (Sage chat, health insights, news), your health profile is sent to Anthropic's Claude API for processing. This requires your explicit consent, which you can grant or revoke at any time in Settings.</p>
-        <p>Anthropic processes this data according to their usage policy. Salve does not store AI conversation data on third-party servers beyond what Anthropic retains per their policy.</p>
+        <p>When you use AI-powered features (Sage chat, health insights, news), your health profile is sent to Google's Gemini API (free tier) or Anthropic's Claude API (premium tier) for processing. This requires your explicit consent, which you can grant or revoke at any time in Settings.</p>
+        <p>Each provider processes data according to their own usage policy. Salve does not store AI conversation data on third-party servers beyond what the provider retains per their policy.</p>
       </Section>
 
       <Section title="Data Sharing">
         <p>We do not sell, rent, or share your personal health data with third parties for marketing or advertising purposes. Data is only transmitted to:</p>
         <ul className="list-disc pl-5 space-y-1">
           <li>Supabase (database hosting)</li>
-          <li>Anthropic (AI features, only with your consent)</li>
+          <li>Vercel (application hosting + serverless API proxies)</li>
+          <li>Google Gemini and/or Anthropic Claude (AI features, only with your consent)</li>
           <li>Government medical APIs (RxNorm, OpenFDA, NPPES) for drug and provider lookups (no personal data sent)</li>
+          <li>Oura API (only if you connect a Ring — OAuth2, tokens stored encrypted locally)</li>
         </ul>
       </Section>
 
-      <Section title="Your Rights">
-        <p>You can export all your data at any time as a JSON backup (optionally encrypted). You can permanently delete all your data from Settings. Upon deletion, your records are removed from Supabase and cannot be recovered.</p>
+      <Section title="Your Rights (GDPR / CCPA)">
+        <p>You have the right to:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong>Access</strong> — view all your data at any time within the app</li>
+          <li><strong>Portability</strong> — export all data as a JSON backup (optionally encrypted) from Settings</li>
+          <li><strong>Rectification</strong> — edit or correct any record in the app</li>
+          <li><strong>Erasure</strong> — erase all data OR permanently delete your entire account (including your authentication record) from Settings. Deletion cascades across every table and cannot be reversed.</li>
+          <li><strong>Withdraw AI consent</strong> — revoke AI data-sharing consent at any time in Settings</li>
+        </ul>
+      </Section>
+
+      <Section title="Age Requirement">
+        <p>Salve is intended for users 13 years of age or older. If you are under 13, do not create an account. Users between 13 and 18 should have parent or guardian involvement. We do not knowingly collect data from children under 13.</p>
       </Section>
     </Card>
   );
@@ -144,7 +157,11 @@ export default function Legal() {
       {activeTab === 'hipaa' && <HipaaNotice />}
 
       <p className="text-[11px] text-salve-textFaint text-center mt-4 mb-2 italic">
-        Questions? Contact us at the email associated with your account.
+        Questions, privacy requests, or bug reports?
+        <br />
+        Email <a href="mailto:support@salve.health" className="text-salve-lav no-underline hover:underline">support@salve.health</a>
+        {' '}or open an issue at
+        {' '}<a href="https://github.com/austinkays/health/issues" target="_blank" rel="noopener noreferrer" className="text-salve-lav no-underline hover:underline">github.com/austinkays/health/issues</a>.
       </p>
     </div>
   );

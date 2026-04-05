@@ -41,6 +41,28 @@ export async function signOut() {
   if (error) throw error;
 }
 
+// Permanently deletes the user's auth account + all associated data
+// (cascades via ON DELETE CASCADE on every user-owned table).
+// Requires the user's session token and an explicit 'DELETE' confirmation string.
+export async function deleteAccount() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('Not signed in');
+  const res = await fetch('/api/delete-account', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ confirm: 'DELETE' }),
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.error || 'Account deletion failed');
+  }
+  // Local session is dead now — sign out client-side to clear it cleanly
+  await supabase.auth.signOut().catch(() => {});
+}
+
 export async function getSession() {
   const { data: { session } } = await supabase.auth.getSession();
   return session;
