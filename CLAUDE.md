@@ -242,7 +242,9 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 - Translates Anthropic-format requests ↔ Gemini API format (messages, tools, responses, web search)
 - **Model routing:** `model` param from client selects: `gemini-2.0-flash-lite` (simple), `gemini-2.5-flash` (general), `gemini-2.5-pro-preview-06-05` (complex)
 - **Rate limited:** 15 req/min per user (in-memory + persistent via `_rateLimit.js`)
-- **Daily limit:** 10 calls/day per user (queries `api_usage` table, resets midnight PT)
+- **Daily limit:** 10 calls/day per user (queries `api_usage` table, resets midnight PT — computed via `Intl.DateTimeFormat` parts, DST-safe)
+- **Upstream error passthrough:** non-2xx Gemini responses (or responses with `error` body) are surfaced to the client with the real status code instead of being translated into a 200 "no response" message
+- **API key transport:** Gemini key sent via `x-goog-api-key` header (not URL query string) to avoid exposure in server logs / CDN caches
 - **Feature gating:** Pro-tier features (connections, care gaps, etc.) blocked client-side via `isFeatureLocked()`
 - **Web search:** Gemini's `googleSearch` tool; grounding metadata translated to `web_search_tool_result` blocks for source extraction
 - **Tool-use:** Function calling with Anthropic↔Gemini format translation (tool_use ↔ functionCall, tool_result ↔ functionResponse)
@@ -266,6 +268,7 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 - `checkPersistentRateLimit(userId, endpoint, max, windowSec)` — cross-instance rate limiting via Supabase `check_rate_limit()` SQL function
 - `logUsage(userId, endpoint, { tokens_in, tokens_out })` — fire-and-forget usage tracking to `api_usage` table
 - Both endpoints verify Supabase auth token, enforce CORS, and log usage
+- **Fail-closed on upstream errors:** returns `false` (deny) when Supabase responds 5xx or the network call throws, so attackers can't bypass rate limits during Supabase outages. Only 4xx responses (e.g., RPC missing during a migration) are treated as fail-open with the in-memory bucket as backstop.
 
 **Provider selection** (client-side):
 - `getAIProvider()` / `setAIProvider()` — reads/writes `localStorage` key `salve:ai-provider` (default: `'gemini'`)
@@ -279,7 +282,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 
 **`api/drug.js`** — RxNorm + OpenFDA + NADAC proxy:
 - **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs; `formatLabel()` captures 22+ fields including spl_set_id, pharm_class_moa, pharm_class_pe, dosage_form, precautions, overdosage, storage, effective_time), `interactions` (RxNorm interaction list for multiple RxCUIs), `price` (RxCUI → NDCs via RxNorm → NADAC DKAN API lookup for cheapest per-unit price)
-- **NADAC pipeline:** `rxcuiToNDCs(rxcui)` → normalize to 11-digit → parallel `nadacLookup(ndc)` queries (up to 5 NDCs) → return cheapest `nadac_per_unit` with all prices
+- **NADAC pipeline:** `rxcuiToNDCs(rxcui)` → normalize to 11-digit → parallel `nadacLookup(ndc)` queries (up to 5 NDCs) → return cheapest `nadac_per_unit` with all prices. `nadacLookup()` returns a tagged result (`{price}` / `{notFound}` / `{upstreamError}`) so the pipeline can distinguish "drug not covered by NADAC" from "CMS API is down" and surface a "service temporarily unavailable" message when every attempt hits an upstream error
 - **NADAC API:** CMS Medicaid DKAN endpoint at `data.medicaid.gov/api/1/datastore/query/{dataset-id}/0` (dataset ID stored as constant for annual rotation)
 - **Rate limited:** 40 requests/minute per user (in-memory sliding window)
 - **Cached:** In-memory 30-minute TTL, max 500 entries
@@ -359,7 +362,9 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | Layer | Mechanism |
 |-------|----------|
 | **Database** | Row Level Security on all tables, scoped to `auth.uid()` |
-| **API** | Auth token verified server-side; CORS restricted to allowlisted origins; rate limited 20 req/min per user |
+| **API** | Auth token verified server-side; CORS restricted to allowlisted origins; rate limited 20 req/min per user; persistent rate limiter fails **closed** on Supabase 5xx / network errors so outages can't be exploited to bypass limits |
+| **Input validation** | `api/chat.js` validates client-provided tools: max 30 tools, ≤64 char names, ≤10KB per `input_schema` (DoS guard). `content-range` header parsing guarded against malformed values. |
+| **Trial expiry** | Both server (`api/chat.js`) and client (`ai.js`) guard against `NaN` from invalid `trial_expires_at`, so a malformed date never silently extends a trial |
 | **API Timeouts** | `chat.js`: 115s AbortController timeout; `drug.js`/`provider.js`: 15s `fetchWithTimeout()` for external calls |
 | **Client → Server** | HTTPS via Vercel; Bearer token required (fails early if missing); shared token cache with concurrent-call dedup (`token.js`) |
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
@@ -372,7 +377,10 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Offline sync** | `setupOfflineSync()` wired up in App.jsx; flushes pending writes when connectivity returns |
 | **Data erase** | `eraseAll()` runs sequential per-table deletes with error handling; throws on partial failure |
 | **Secrets** | `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `OURA_CLIENT_SECRET` server-only; never exposed to client |
-| **Oura OAuth** | OAuth2 authorization code flow; client_secret stays server-side in `api/oura.js`; tokens stored in localStorage with auto-refresh; Oura API calls proxied through Vercel (no direct client→Oura) |
+| **Oura OAuth** | OAuth2 authorization code flow; client_secret stays server-side in `api/oura.js`; tokens stored in localStorage with auto-refresh (single in-flight refresh mutex prevents concurrent callers from racing and invalidating the refresh_token); `expires_in` validated as positive finite number; Oura API calls proxied through Vercel (no direct client→Oura) |
+| **Export integrity** | `exportAll()` records per-table errors in `_export.errors` + `_export.partial: true` instead of silently omitting failed tables, so users can detect incomplete backups |
+| **Encrypted import** | `decryptExport()` distinguishes wrong-passphrase from corrupt-file errors with explicit try/catch around base64 decoding, AES-GCM decrypt, and JSON.parse |
+| **Concurrent-add dedup** | `db.js` shares an in-flight promise keyed by `(table, uid, dedup signature)` so two identical CRUD adds from the same tab collapse to one insert (prevents check-then-insert race for vitals/cycles/activities) |
 | **Resilient loading** | `loadAll()` uses `Promise.allSettled()` — individual table failures return empty defaults instead of crashing the app |
 
 ### Accessibility (WCAG 2.1 Level A)
