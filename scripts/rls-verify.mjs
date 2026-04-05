@@ -88,7 +88,7 @@ async function adminDeleteUser(userId) {
 // Per-table extra fields for tables with NOT NULL columns that lack defaults.
 // Everything else inserts with just { user_id } and relies on schema defaults.
 const EXTRA_FIELDS = {
-  drug_prices: { rxcui: 'rls-test-rxcui' },
+  drug_prices: { rxcui: 'rls-test-rxcui', ndc: 'rls-test-ndc', nadac_per_unit: 0.01 },
   todos: { title: 'rls-test' },
 };
 
