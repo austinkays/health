@@ -64,11 +64,11 @@ export function ThemeProvider({ children }) {
       applyThemeVariables(themeId);
       root.classList.remove('theme-transitioning');
       root.classList.add('theme-transitioned');
-    }, 250);
+    }, 500);
 
     const cleanupTimer = setTimeout(() => {
       root.classList.remove('theme-transitioned');
-    }, 650);
+    }, 1100);
 
     return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
   }, [themeId]);

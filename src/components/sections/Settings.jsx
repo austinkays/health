@@ -50,12 +50,10 @@ function CopyPromptButton() {
    A single theme preview tile. Shows 4 brand-color swatches + theme name +
    light/dark indicator. Supports hover-to-preview callbacks.
 ──────────────────────────────────────────────────────────────────────────── */
-function ThemeTile({ theme, isActive, isLocked, onSelect, onHover, onHoverEnd }) {
+function ThemeTile({ theme, isActive, isLocked, onSelect }) {
   return (
     <button
       onClick={() => !isLocked && onSelect(theme.id)}
-      onMouseEnter={() => onHover?.(theme.id)}
-      onMouseLeave={() => onHoverEnd?.()}
       aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ' — premium' : ''}`}
       aria-pressed={isActive}
       className={`relative p-2.5 rounded-xl border transition-all font-montserrat text-center ${
@@ -97,36 +95,23 @@ function ThemeTile({ theme, isActive, isLocked, onSelect, onHover, onHoverEnd })
 ──────────────────────────────────────────────────────────────────────────── */
 function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, userTier }) {
   const [showExperimental, setShowExperimental] = useState(false);
-  const [hoverThemeId, setHoverThemeId] = useState(null);
-  // Track what the user had selected (clicked) before they started hovering
-  const preHoverRef = useRef(themeId);
 
-  const core = Object.values(allThemes).filter(t => !t.experimental);
+  const core = Object.values(allThemes).filter(t => !t.experimental)
+    .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
   const experimental = Object.values(allThemes).filter(t => t.experimental);
 
-  const handleHover = (id) => {
-    // Only snapshot pre-hover theme if we're not already hovering
-    if (!hoverThemeId) preHoverRef.current = themeId;
-    setHoverThemeId(id);
-    setTheme(id);
-  };
-  const handleHoverEnd = () => {
-    setHoverThemeId(null);
-    setTheme(preHoverRef.current);
-  };
   const handleSelect = (id) => {
-    preHoverRef.current = id;
-    setHoverThemeId(null);
     setTheme(id);
   };
 
   const previewed = allThemes[themeId];
   const isPremiumOnly = previewed?.experimental && userTier !== 'premium';
+  const hasUnsaved = hasUnsavedChanges;
 
   return (
     <div>
       {/* ── Save / Revert bar — lives at the TOP so it's always in view ── */}
-      {hasUnsavedChanges && !hoverThemeId && (
+      {hasUnsaved && (
         <div className="mb-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5 flex items-center justify-between gap-3">
           <p className="text-xs text-salve-text font-montserrat min-w-0 truncate">
             Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
@@ -161,11 +146,9 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
           <ThemeTile
             key={t.id}
             theme={t}
-            isActive={themeId === t.id && !hoverThemeId}
+            isActive={themeId === t.id}
             isLocked={false}
             onSelect={handleSelect}
-            onHover={handleHover}
-            onHoverEnd={handleHoverEnd}
           />
         ))}
       </div>
@@ -194,11 +177,9 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                 <ThemeTile
                   key={t.id}
                   theme={t}
-                  isActive={themeId === t.id && !hoverThemeId}
+                  isActive={themeId === t.id}
                   isLocked={userTier !== 'premium'}
                   onSelect={handleSelect}
-                  onHover={userTier === 'premium' ? handleHover : undefined}
-                  onHoverEnd={userTier === 'premium' ? handleHoverEnd : undefined}
                 />
               ))}
             </div>

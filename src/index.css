@@ -27,11 +27,11 @@
 /* Smooth crossfade when switching themes           */
 html.theme-transitioning body {
   opacity: 0;
-  transition: opacity 0.25s ease-out;
+  transition: opacity 0.5s ease-out;
 }
 html.theme-transitioned body {
   opacity: 1;
-  transition: opacity 0.35s ease-in;
+  transition: opacity 0.6s ease-in;
 }
 
 /* ── Theme CSS variable defaults (Lilac) ───── */
