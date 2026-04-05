@@ -445,7 +445,10 @@ RULES FOR TOOL USE:
 - You can chain multiple tool calls in one response if the user requests multiple changes.`;
 
 async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens = 2000, maxLoops = 10) {
-  if (_demoMode) return demoResponseFor('chat', messages);
+  if (_demoMode) {
+    const text = await demoResponseFor('chat', messages);
+    return { text, messages };
+  }
   const token = await getAuthToken();
   if (!token) throw new Error('You must be signed in to use AI features.');
 
