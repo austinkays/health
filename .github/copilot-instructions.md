@@ -9,6 +9,15 @@ Copilot read it directly.
 The rules below are a condensed summary of the non-negotiables that apply to
 every change. Claude Code and VS Code Copilot should both enforce these.
 
+## ⚠️ Pre-launch action items (remind the user!)
+
+The `## Pre-Launch Action Items` section near the top of `CLAUDE.md` contains
+a checklist of outside-the-codebase tasks the user must complete before sharing
+publicly (Sentry DSN, AI spend caps, RLS verification, etc.). At the start of
+each session, glance at it. If you see the user working on launch-adjacent
+topics (payments, Reddit, sharing, monitoring, errors, "ready to publish"),
+proactively surface the unchecked items — don't wait to be asked.
+
 ## Project snapshot
 
 - Vite + React 18 + Tailwind v3, Supabase (PostgreSQL + RLS), Vercel serverless

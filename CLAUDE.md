@@ -730,6 +730,24 @@ npm run preview      # Preview production build locally
 vercel --prod        # Deploy to production
 ```
 
+## Pre-Launch Action Items (NOT CODE — USER TO DO)
+
+**Critical path before sharing publicly (e.g., on Reddit).** These are outside-the-codebase tasks the user must complete — dashboard configuration, account signups, manual testing. Any assistant session reading this file should proactively remind the user about unchecked items.
+
+Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md).
+
+- [ ] **Sentry account + DSN** — sign up at sentry.io (free tier), create a React/Vite project, copy DSN, add `VITE_SENTRY_DSN` to Vercel env vars (Production + Preview), redeploy. Verify with `throw new Error('sentry-test')` in the prod DevTools console.
+- [ ] **AI provider spend caps** — set monthly $ limit + 50/75/90% email alerts in Anthropic Console → Billing. If using paid Gemini, do the same in Google Cloud Console → Billing → Budgets.
+- [ ] **Uptime monitor** — UptimeRobot or BetterStack free tier, 5-min ping on production URL, email alerts.
+- [ ] **Vercel plan decision** — stay on Hobby if launching free + under quotas. Upgrade to Pro ($20/mo) BEFORE adding any paid tier (commercial use requires Pro).
+- [ ] **RLS end-to-end verification** — follow the DevTools script in `docs/LAUNCH_CHECKLIST.md` section 2. Create two test accounts, try to read each other's data via Supabase REST API, confirm zero cross-contamination on every sensitive table. REQUIRED before public share.
+- [ ] **Fresh-user walkthrough** — sign up with a clean email, tap through every section, verify all empty states render without crashes. Test on iPhone Safari + Android Chrome. Test PWA install flow (Add to Home Screen).
+- [ ] **Offline mode verification** — enable airplane mode, confirm cached data loads and pending writes queue correctly.
+- [ ] **Support workflow documented** — decide response-time commitment + who owns the `salveapp@proton.me` inbox. Document PHI breach response plan (assess scope → revoke tokens → notify within 72h → patch → post-mortem).
+- [ ] **(Later, when monetizing) Lemon Squeezy payments** — ~4h of code, full implementation plan in `docs/LAUNCH_CHECKLIST.md` section 3. Do NOT build until user validates that people want the app and has a clear tier-gating UX decided.
+
+**Support email:** `salveapp@proton.me` (set in `src/components/sections/Legal.jsx`)
+
 ## To-Do
 
 - [x] **Name the AI chatbot "Sage"** — Done. Leaf avatar, "Hey, I'm Sage" greeting, "Sage is thinking" loading, sage-green Daily Insight cards, BottomNav tab renamed, consent gate updated, disclaimers rebranded.

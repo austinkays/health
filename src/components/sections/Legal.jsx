@@ -159,7 +159,7 @@ export default function Legal() {
       <p className="text-[11px] text-salve-textFaint text-center mt-4 mb-2 italic">
         Questions, privacy requests, or bug reports?
         <br />
-        Email <a href="mailto:support@salve.health" className="text-salve-lav no-underline hover:underline">support@salve.health</a>
+        Email <a href="mailto:salveapp@proton.me" className="text-salve-lav no-underline hover:underline">salveapp@proton.me</a>
         {' '}or open an issue at
         {' '}<a href="https://github.com/austinkays/health/issues" target="_blank" rel="noopener noreferrer" className="text-salve-lav no-underline hover:underline">github.com/austinkays/health/issues</a>.
       </p>
