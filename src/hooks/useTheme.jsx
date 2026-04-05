@@ -17,6 +17,14 @@ function applyThemeVariables(themeId) {
     root.style.setProperty(`--ambiance-${period}`, rgb);
   }
 
+  // Set per-theme gradient color stops (used by .text-gradient-magic)
+  if (theme.gradient) {
+    theme.gradient.forEach((colorKey, i) => {
+      const hex = theme.colors[colorKey];
+      if (hex) root.style.setProperty(`--salve-gradient-${i + 1}`, hex);
+    });
+  }
+
   // Set theme-specific class on <html> for per-theme CSS effects
   // Remove any existing theme-* class first
   for (const cls of Array.from(root.classList)) {

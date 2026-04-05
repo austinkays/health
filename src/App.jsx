@@ -289,7 +289,7 @@ function AppContent() {
   return (
     <div className="min-h-screen overflow-hidden relative">
       <div className="max-w-[480px] mx-auto pb-24 relative">
-        <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} />
+        <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => onNav('ai')} />
         <main className="px-4">
           <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
             <Suspense fallback={

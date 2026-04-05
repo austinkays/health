@@ -1117,7 +1117,12 @@ html.theme-crystal .border-salve-border {
 
 /* Gradient text for special headings */
 .text-gradient-magic {
-  background: linear-gradient(135deg, rgb(var(--salve-lav)), rgb(var(--salve-sage)), rgb(var(--salve-amber)));
+  background: linear-gradient(
+    135deg,
+    var(--salve-gradient-1, rgb(var(--salve-lav))),
+    var(--salve-gradient-2, rgb(var(--salve-sage))),
+    var(--salve-gradient-3, rgb(var(--salve-amber)))
+  );
   background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

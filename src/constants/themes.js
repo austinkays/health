@@ -35,6 +35,7 @@ export const themes = {
       rose:      '#c06a8c',
       roseDim:   '#d488a8',
     },
+    gradient: ['lav', 'rose', 'amber'],
     ambiance: {
       morning: '90, 144, 120',
       day:     '136, 102, 184',
@@ -66,6 +67,7 @@ export const themes = {
       rose:      '#caa0a0',
       roseDim:   '#a88080',
     },
+    gradient: ['text', 'textMid', 'textFaint'],
     ambiance: {
       morning: '158, 176, 158',
       day:     '180, 180, 186',
@@ -97,6 +99,7 @@ export const themes = {
       rose:      '#d48c9a',
       roseDim:   '#b66e80',
     },
+    gradient: ['lav', 'rose', 'amber'],
     ambiance: {
       morning: '143, 194, 154',
       day:     '180, 156, 222',
@@ -128,6 +131,7 @@ export const themes = {
       rose:      '#c4765a',
       roseDim:   '#a05c44',
     },
+    gradient: ['sage', 'amber', 'rose'],
     ambiance: {
       morning: '180, 200, 148',
       day:     '143, 184, 112',
@@ -159,6 +163,7 @@ export const themes = {
       rose:      '#c45060',
       roseDim:   '#d8788a',
     },
+    gradient: ['lav', 'rose', 'amber'],
     ambiance: {
       morning: '61, 138, 92',
       day:     '124, 106, 170',
@@ -190,6 +195,7 @@ export const themes = {
       rose:      '#c44c4c',
       roseDim:   '#d87070',
     },
+    gradient: ['lav', 'amber', 'rose'],
     ambiance: {
       morning: '88, 144, 128',
       day:     '196, 100, 140',
@@ -222,6 +228,7 @@ export const themes = {
       rose:      '#ec8898',
       roseDim:   '#cc6c7e',
     },
+    gradient: ['lav', 'sage', 'amber'],
     ambiance: {
       morning: '112, 204, 232',
       day:     '132, 220, 180',
@@ -255,6 +262,7 @@ export const themes = {
       rose:      '#ff5a7c',
       roseDim:   '#d44864',
     },
+    gradient: ['lav', 'sage', 'amber'],
     ambiance: {
       morning: '77, 216, 255',
       day:     '255, 77, 184',
@@ -287,6 +295,7 @@ export const themes = {
       rose:      '#d04868',
       roseDim:   '#e07088',
     },
+    gradient: ['rose', 'lav', 'roseDim'],
     ambiance: {
       morning: '212, 100, 140',
       day:     '224, 136, 164',
@@ -319,6 +328,7 @@ export const themes = {
       rose:      '#e85050',
       roseDim:   '#f07878',
     },
+    gradient: ['amber', 'sage', 'lav'],
     ambiance: {
       morning: '232, 160, 32',
       day:     '240, 184, 72',
@@ -351,6 +361,7 @@ export const themes = {
       rose:      '#ff1744',
       roseDim:   '#d4002e',
     },
+    gradient: ['rose', 'lav', 'sage'],
     ambiance: {
       morning: '255, 234, 0',
       day:     '255, 61, 0',
@@ -383,6 +394,7 @@ export const themes = {
       rose:      '#e63522',
       roseDim:   '#c02416',
     },
+    gradient: ['lav', 'amber', 'sage'],
     ambiance: {
       morning: '255, 210, 77',
       day:     '255, 106, 26',
@@ -415,6 +427,7 @@ export const themes = {
       rose:      '#ff6a7a',
       roseDim:   '#d44e5c',
     },
+    gradient: ['lav', 'sage', 'amber'],
     ambiance: {
       morning: '160, 124, 240',
       day:     '106, 164, 255',
@@ -447,6 +460,7 @@ export const themes = {
       rose:      '#ff508c',
       roseDim:   '#d43670',
     },
+    gradient: ['lav', 'sage', 'amber'],
     ambiance: {
       morning: '40, 212, 180',
       day:     '216, 80, 224',
@@ -479,6 +493,7 @@ export const themes = {
       rose:      '#d868e0',
       roseDim:   '#b048b8',
     },
+    gradient: ['lav', 'rose', 'amber'],
     ambiance: {
       morning: '255, 74, 212',
       day:     '74, 224, 255',
