@@ -24,7 +24,10 @@ When the file arrives, do this immediately — no commentary, no questions first
 
 2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
-3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connections enabled (healthex, Function Health, or similar). If I don't, briefly tell me what to connect so the sync can pull my records.
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have the required MCP connectors enabled in Claude. The artifact needs these two:
+   - healthex (URL: https://api.healthex.io/mcp) — pulls records from my patient portals
+   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp) — pulls my Function Health lab panels
+   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives — spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
 
 Ready? I'll attach the file next.`;
 
@@ -38,7 +41,10 @@ Whenever I ask you to sync, pull records, start the sync artifact, or anything s
 
 2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
-3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connections enabled. If I don't, briefly tell me what to connect.
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have the required MCP connectors enabled in Claude. The artifact needs these two:
+   - healthex (URL: https://api.healthex.io/mcp) — pulls records from my patient portals
+   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp) — pulls my Function Health lab panels
+   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives — spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
 
 Dependencies available in the Claude artifacts runtime: react and lucide-react. No other imports needed, no external API calls from the file itself.`;
 
@@ -856,6 +862,29 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
           {expandedSource === 'claude' && (
             <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-4">
+              {/* ── MCP connectors required ── */}
+              <div className="bg-salve-card2 border border-salve-border rounded-xl p-3">
+                <h4 className="text-[11px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">Connectors you'll need on Claude.ai</h4>
+                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2.5">
+                  The sync artifact pulls records through MCP connectors. Add these once under <strong className="text-salve-textMid">Claude settings → Connectors → Add custom connector</strong>, complete the OAuth sign-in for each, and you're set.
+                </p>
+                <ul className="space-y-2 mb-2.5">
+                  <li className="text-[11px] text-salve-textMid leading-relaxed">
+                    <div className="font-medium text-salve-text">healthex</div>
+                    <div className="text-[10px] text-salve-textFaint">Pulls records from patient portals (Epic/MyChart, Cerner, etc.)</div>
+                    <code className="text-[10px] text-salve-lav break-all">https://api.healthex.io/mcp</code>
+                  </li>
+                  <li className="text-[11px] text-salve-textMid leading-relaxed">
+                    <div className="font-medium text-salve-text">function-health</div>
+                    <div className="text-[10px] text-salve-textFaint">Pulls Function Health lab panels (only if you're a Function member)</div>
+                    <code className="text-[10px] text-salve-lav break-all">https://services.functionhealth.com/ai-chat/mcp</code>
+                  </li>
+                </ul>
+                <p className="text-[10px] text-salve-textFaint italic leading-relaxed">
+                  Don't worry if you're not sure how to add connectors — Claude will walk you through it once the artifact loads and checks what's missing.
+                </p>
+              </div>
+
               {/* ── Recommended: Claude Project (one-time setup) ── */}
               <div className="bg-salve-lav/5 border border-salve-lav/20 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
