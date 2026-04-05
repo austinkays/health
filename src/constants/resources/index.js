@@ -3,6 +3,8 @@
 //   medications[], audience, researchStage? }
 // Content modules register resources by pushing into RESOURCES.
 
+import EVERYCURE_PROGRAMS from './everycure.js';
+
 export const RESOURCES = [];
 
 /**
@@ -12,6 +14,9 @@ export const RESOURCES = [];
 export function registerResources(...items) {
   for (const r of items) RESOURCES.push(r);
 }
+
+// Auto-register bundled resource modules
+registerResources(...EVERYCURE_PROGRAMS);
 
 // ---------------------------------------------------------------------------
 // Condition-name normalizer (fuzzy match common aliases)
