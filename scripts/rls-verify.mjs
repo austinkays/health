@@ -85,7 +85,15 @@ async function adminDeleteUser(userId) {
   }
 }
 
+// Per-table extra fields for tables with NOT NULL columns that lack defaults.
+// Everything else inserts with just { user_id } and relies on schema defaults.
+const EXTRA_FIELDS = {
+  drug_prices: { rxcui: 'rls-test-rxcui' },
+  todos: { title: 'rls-test' },
+};
+
 async function insertMinimalRow(table, userToken, userId) {
+  const payload = { user_id: userId, ...(EXTRA_FIELDS[table] || {}) };
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: 'POST',
     headers: {
@@ -94,7 +102,7 @@ async function insertMinimalRow(table, userToken, userId) {
       'Content-Type': 'application/json',
       Prefer: 'return=representation',
     },
-    body: JSON.stringify({ user_id: userId }),
+    body: JSON.stringify(payload),
   });
   const body = await res.text();
   if (!res.ok) return { ok: false, status: res.status, body };
