@@ -21,6 +21,7 @@ export default function Feedback({ data, addItem, removeItem }) {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
 
@@ -30,6 +31,7 @@ export default function Feedback({ data, addItem, removeItem }) {
     e.preventDefault();
     if (!message.trim()) return;
     setSending(true);
+    setSubmitError(null);
     try {
       await addItem('feedback', { type, message: message.trim() });
       setMessage('');
@@ -38,6 +40,7 @@ export default function Feedback({ data, addItem, removeItem }) {
       setTimeout(() => setSent(false), 3000);
     } catch (err) {
       console.error('Failed to submit feedback:', err);
+      setSubmitError('Something went wrong — please try again in a moment.');
     } finally {
       setSending(false);
     }
@@ -74,21 +77,19 @@ export default function Feedback({ data, addItem, removeItem }) {
             })}
           </div>
 
-          <Field label="Message">
-            <textarea
-              value={message}
-              onChange={e => setMessage(e.target.value)}
-              placeholder={
-                type === 'bug'
-                  ? 'Describe what happened and what you expected...'
-                  : type === 'suggestion'
-                  ? 'What feature or improvement would you like to see?'
-                  : 'Share your thoughts, ideas, or just say hi...'
-              }
-              rows={4}
-              className="w-full bg-salve-bg border border-salve-border rounded-lg px-3 py-2 text-sm text-salve-text font-montserrat resize-none focus:outline-none focus:border-salve-lav/40 focus:ring-1 focus:ring-salve-lav/20 transition-colors"
-            />
-          </Field>
+          <Field
+            label="Message"
+            value={message}
+            onChange={v => { setMessage(v); setSubmitError(null); }}
+            textarea
+            placeholder={
+              type === 'bug'
+                ? 'Describe what happened and what you expected...'
+                : type === 'suggestion'
+                ? 'What feature or improvement would you like to see?'
+                : 'Share your thoughts, ideas, or just say hi...'
+            }
+          />
 
           <div className="flex items-center gap-3">
             <button
@@ -105,6 +106,9 @@ export default function Feedback({ data, addItem, removeItem }) {
               </span>
             )}
           </div>
+          {submitError && (
+            <p className="text-xs text-salve-rose font-montserrat mt-1">{submitError}</p>
+          )}
         </form>
       </Card>
 
