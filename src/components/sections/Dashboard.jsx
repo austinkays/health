@@ -969,20 +969,25 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* ── Pinned shortcuts (user-starred) ─────── */}
       {starredTiles.length > 0 && (
         <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-3">
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
-            {starredTiles.map(t => (
-              <button
-                key={t.id}
-                onClick={() => onNav(t.id)}
-                className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all relative"
-              >
-                <div className="absolute top-1.5 right-1.5">
-                  <span className="text-salve-amber text-[8px]">★</span>
-                </div>
-                <t.icon size={20} color={C.lav} strokeWidth={1.5} />
-                <span className="text-[11px] text-salve-textMid font-montserrat">{t.label}</span>
-              </button>
-            ))}
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
+            {starredTiles.map((t, i) => {
+              const remainder = starredTiles.length % 3;
+              const isLast = i === starredTiles.length - 1;
+              const span = isLast && remainder !== 0 ? 3 - remainder + 1 : 1;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => onNav(t.id)}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2' : span === 3 ? ' col-span-3' : ''}`}
+                >
+                  <div className="absolute top-1.5 right-1.5">
+                    <span className="text-salve-amber text-[8px]">★</span>
+                  </div>
+                  <t.icon size={20} color={C.lav} strokeWidth={1.5} />
+                  <span className="text-[11px] text-salve-textMid font-montserrat">{t.label}</span>
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
@@ -992,17 +997,22 @@ export default function Dashboard({ data, interactions, onNav }) {
         {starredTiles.length > 0 && (
           <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
         )}
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3 mb-4">
-          {hubTiles.map(h => (
-            <button
-              key={h.id}
-              onClick={() => onNav(h.navId)}
-              className="bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
-            >
-              <h.icon size={20} color={C.lav} strokeWidth={1.5} />
-              <span className="text-[11px] text-salve-textMid font-montserrat">{h.label}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4">
+          {hubTiles.map((h, i) => {
+            const remainder = hubTiles.length % 3;
+            const isLast = i === hubTiles.length - 1;
+            const span = isLast && remainder !== 0 ? 3 - remainder + 1 : 1;
+            return (
+              <button
+                key={h.id}
+                onClick={() => onNav(h.navId)}
+                className={`bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2' : span === 3 ? ' col-span-3' : ''}`}
+              >
+                <h.icon size={20} color={C.lav} strokeWidth={1.5} />
+                <span className="text-[11px] text-salve-textMid font-montserrat">{h.label}</span>
+              </button>
+            );
+          })}
         </div>
       </section>
     </div>
