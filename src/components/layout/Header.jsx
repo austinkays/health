@@ -55,7 +55,7 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
           </button>
         )}
         <div className="flex-1">
-          <h1 className={`font-playfair font-semibold m-0 text-salve-text ${isDash ? 'text-2xl md:text-4xl' : 'text-xl md:text-3xl'}`}>
+          <h1 className={`font-playfair m-0 text-salve-text ${isDash ? 'text-2xl md:text-[28px] font-semibold md:font-normal' : 'text-xl md:text-2xl font-semibold'}`}>
             {isDash ? (
               <span className="text-gradient-magic">Hello, {name || 'there'}</span>
             ) : (
@@ -63,7 +63,7 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
             )}
           </h1>
           {isDash && (
-            <p className="m-0 mt-1 text-[13px] md:text-base text-salve-textFaint font-light italic">
+            <p className="m-0 mt-1.5 text-[13px] md:text-[15px] text-salve-textFaint font-light italic">
               Your health, your story, your power.
             </p>
           )}

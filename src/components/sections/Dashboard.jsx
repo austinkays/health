@@ -619,22 +619,22 @@ export default function Dashboard({ data, interactions, onNav }) {
     <div className="mt-1">
 
       {/* ── Contextual Greeting ────────────────── */}
-      <section aria-label="Greeting" className="dash-stagger dash-stagger-1 mb-4">
+      <section aria-label="Greeting" className="dash-stagger dash-stagger-1 mb-4 md:mb-6">
         <div className="flex items-start gap-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="greeting-motif">
                 <Motif type={greeting.motif} size={16} color={C.sage} />
               </span>
-              <span className="font-playfair text-lg font-medium text-salve-textMid">{greeting.text}</span>
+              <span className="font-playfair text-lg md:text-xl font-medium text-salve-textMid">{greeting.text}</span>
             </div>
-            <p className="text-[13px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
+            <p className="text-[13px] md:text-[15px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
           </div>
         </div>
       </section>
 
       {/* ── Centerpiece Search ─────────────────── */}
-      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5">
+      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7">
         <div className={`search-hero ${searchFocused ? 'search-hero-focused' : ''}`}>
           <div className="search-hero-inner">
             <div className="relative flex items-center">
@@ -658,7 +658,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                 onKeyDown={handleSearchKeyDown}
                 placeholder={SEARCH_PLACEHOLDERS[placeholderIdx]}
                 aria-label="Search your health data"
-                className="w-full bg-transparent py-3.5 pl-10 pr-10 text-sm text-salve-text placeholder:text-salve-textFaint/70 font-montserrat outline-none relative z-[1]"
+                className="w-full bg-transparent py-3.5 md:py-4 pl-10 pr-10 text-sm md:text-[15px] text-salve-text placeholder:text-salve-textFaint/70 font-montserrat outline-none relative z-[1]"
               />
               {searchQuery && (
                 <button
@@ -746,10 +746,10 @@ export default function Dashboard({ data, interactions, onNav }) {
         <div>
           {/* Alerts */}
           {alerts.length > 0 && !alertsDismissed && (
-            <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4">
+            <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4 md:mb-6">
               <Card className="!p-0 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-2 border-b border-salve-border/50">
-                  <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
+                <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
+                  <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
                   <button
                     onClick={() => setShowDismissMenu(!showDismissMenu)}
                     className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors"
@@ -770,11 +770,11 @@ export default function Dashboard({ data, interactions, onNav }) {
                   <button
                     key={a.id}
                     onClick={() => onNav(a.nav, a.highlightId ? { highlightId: a.highlightId } : undefined)}
-                    className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
+                    className={`w-full flex items-center gap-2.5 md:gap-3 px-4 md:px-5 py-3 md:py-3.5 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
                   >
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
                     <a.icon size={14} color={a.color} className="flex-shrink-0" />
-                    <span className="text-[12.5px] text-salve-textMid text-left flex-1">{a.text}</span>
+                    <span className="text-[12.5px] md:text-sm text-salve-textMid text-left flex-1">{a.text}</span>
                     <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
                   </button>
                 ))}
@@ -790,7 +790,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                 className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-salve-sage/5 border border-salve-sage/15 cursor-pointer hover:bg-salve-sage/10 hover:border-salve-sage/25 transition-all font-montserrat text-left"
               >
                 <Leaf size={13} className="text-salve-sage/70 flex-shrink-0" />
-                <span className="text-[12px] text-salve-sageDim/80 flex-1">Get today's insight from Sage</span>
+                <span className="text-[12px] md:text-[13px] text-salve-sageDim/80 flex-1">Get today's insight from Sage</span>
                 <ChevronRight size={12} className="text-salve-sage/40 flex-shrink-0" />
               </button>
             </section>
@@ -858,9 +858,9 @@ export default function Dashboard({ data, interactions, onNav }) {
           {displayedDiscover.length > 0 && (
             <section aria-label="Discover resources" className="dash-stagger dash-stagger-4 mb-4">
               <Card className="!p-0 overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-salve-border/50">
+                <div className="flex items-center gap-2 px-4 md:px-5 py-2.5 border-b border-salve-border/50">
                   <Compass size={13} className="text-salve-lav" />
-                  <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
+                  <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
                 </div>
                 {displayedDiscover.map((d, i) => {
                   const isEveryCure = d.resource.source === 'EveryCure';
@@ -868,7 +868,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                   return (
                     <div
                       key={d.resource.id}
-                      className={`flex items-start gap-3 px-4 py-3 ${i < displayedDiscover.length - 1 ? 'border-b border-salve-border/40' : ''}`}
+                      className={`flex items-start gap-3 px-4 md:px-5 py-3 md:py-4 ${i < displayedDiscover.length - 1 ? 'border-b border-salve-border/40' : ''}`}
                     >
                       <div
                         className="w-1 self-stretch rounded-full flex-shrink-0 mt-0.5"
@@ -878,7 +878,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                         <div className="flex items-center gap-1.5 mb-0.5">
                           {isEveryCure && <span className="text-[10px]" aria-hidden="true">🔬</span>}
                           <span
-                            className="text-[9px] font-montserrat tracking-wider uppercase"
+                            className="text-[9px] md:text-[11px] font-montserrat tracking-wider uppercase"
                             style={{ color: accentColor }}
                           >
                             {d.resource.source}
@@ -888,12 +888,12 @@ export default function Dashboard({ data, interactions, onNav }) {
                           href={d.resource.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[12.5px] text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
+                          className="text-[12.5px] md:text-sm text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
                         >
                           {d.resource.title}
                           <ExternalLink size={10} className="text-salve-textFaint/50 flex-shrink-0" />
                         </a>
-                        <p className="text-[11px] text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
+                        <p className="text-[11px] md:text-[13px] text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
                       </div>
                       <button
                         onClick={() => dismissResource(d.resource.id)}
@@ -927,19 +927,19 @@ export default function Dashboard({ data, interactions, onNav }) {
                   return (
                     <div
                       key={item.id || i}
-                      className="w-full flex items-center gap-3 py-2.5 px-1 rounded-lg group timeline-row"
+                      className="w-full flex items-center gap-3 py-2.5 md:py-3.5 px-1 rounded-lg group timeline-row"
                     >
                       <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
                       <button
                         onClick={() => onNav('cycles')}
                         className="flex-1 text-left min-w-0 bg-transparent border-0 cursor-pointer p-0"
                       >
-                        <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
-                        <div className="text-[11px] text-salve-textFaint">{sub}</div>
+                        <div className="text-[13px] md:text-sm text-salve-text font-medium truncate">{label}</div>
+                        <div className="text-[11px] md:text-xs text-salve-textFaint">{sub}</div>
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onNav('cycles', { quickLog: true }); }}
-                        className="ml-auto py-1 px-2.5 rounded-full text-[10px] font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
+                        className="ml-auto py-1 px-2.5 rounded-full text-[10px] md:text-[11px] font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
                         aria-label="Log period for today"
                       >
                         Log today
@@ -951,16 +951,16 @@ export default function Dashboard({ data, interactions, onNav }) {
                   <button
                     key={item.id || i}
                     onClick={() => onNav(isAppt ? 'appts' : isTodo ? 'todos' : 'meds')}
-                    className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
+                    className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 md:py-3.5 px-1 rounded-lg group timeline-row"
                   >
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
                     <div className="flex-1 text-left min-w-0">
-                      <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
-                      <div className="text-[11px] text-salve-textFaint">{sub}</div>
+                      <div className="text-[13px] md:text-sm text-salve-text font-medium truncate">{label}</div>
+                      <div className="text-[11px] md:text-xs text-salve-textFaint">{sub}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-[12px] font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
-                      <div className="text-[10px] text-salve-textFaint">{fmtDate(item._sortDate)}</div>
+                      <div className="text-[12px] md:text-[13px] font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
+                      <div className="text-[10px] md:text-[11px] text-salve-textFaint">{fmtDate(item._sortDate)}</div>
                     </div>
                   </button>
                 );
@@ -991,19 +991,19 @@ export default function Dashboard({ data, interactions, onNav }) {
             const fArrow = f.direction === 'up' ? '↑' : f.direction === 'down' ? '↓' : '→';
             return (
               <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
-                <Card className="!p-4 cursor-pointer" onClick={() => onNav('vitals')}>
+                <Card className="!p-4 md:!p-6 cursor-pointer" onClick={() => onNav('vitals')}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-[10px] text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
-                      <span className="text-[9px] text-salve-textFaint font-montserrat">last 14 days</span>
+                      <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
+                      <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat">last 14 days</span>
                     </div>
                     <ChevronRight size={12} className="text-salve-textFaint" />
                   </div>
                   <div className="mb-3">
-                    <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1">{fLabel}</div>
+                    <div className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1">{fLabel}</div>
                     <div className="flex items-baseline gap-2 mb-2">
                       <div className="text-[32px] font-medium text-salve-text font-montserrat leading-none">{fDisplay}</div>
-                      <div className="text-[12px] text-salve-textMid font-montserrat">{fUnit}</div>
+                      <div className="text-[12px] md:text-[13px] text-salve-textMid font-montserrat">{fUnit}</div>
                     </div>
                     {fHasChart && (
                       <div className="w-full h-[56px] -mx-1">
@@ -1021,7 +1021,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                       </div>
                     )}
                     {captionText && (
-                      <div className="flex items-center gap-1.5 text-[11px] font-montserrat mt-1" style={{ color: fSignalColor }}>
+                      <div className="flex items-center gap-1.5 text-[11px] md:text-xs font-montserrat mt-1" style={{ color: fSignalColor }}>
                         <span className="text-[12px]" aria-hidden="true">{fArrow}</span>
                         <span>{captionText}</span>
                       </div>
@@ -1038,9 +1038,9 @@ export default function Dashboard({ data, interactions, onNav }) {
                         const cArrow = c.direction === 'up' ? '↑' : c.direction === 'down' ? '↓' : '→';
                         return (
                           <div key={c.type} className="flex items-baseline gap-1.5 min-w-0">
-                            <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">{cLabel}</span>
-                            <span className="text-[13px] font-medium text-salve-text font-montserrat">
-                              {cDisplay}<span className="text-[9px] text-salve-textFaint ml-0.5">{cUnit}</span>
+                            <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat uppercase tracking-wider">{cLabel}</span>
+                            <span className="text-[13px] md:text-sm font-medium text-salve-text font-montserrat">
+                              {cDisplay}<span className="text-[9px] md:text-[11px] text-salve-textFaint ml-0.5">{cUnit}</span>
                             </span>
                             {c.delta !== null && (
                               <span className="text-[11px] font-montserrat leading-none" style={{ color: cSignalColor }} aria-hidden="true">
@@ -1065,7 +1065,7 @@ export default function Dashboard({ data, interactions, onNav }) {
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <Lightbulb size={13} className="text-salve-amber" />
-              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
+              <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
             </div>
             <button
               onClick={dismissAllTips}
@@ -1075,7 +1075,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               Hide all
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-4">
             {visibleTips.map((tip, i) => {
               const TipIcon = tip.icon;
               const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
@@ -1083,7 +1083,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               return (
                 <div
                   key={tip.id}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
                 >
                   <button
                     onClick={() => dismissTip(tip.id)}
@@ -1093,17 +1093,17 @@ export default function Dashboard({ data, interactions, onNav }) {
                     <X size={11} />
                   </button>
                   <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center mb-2"
+                    className="w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2"
                     style={{ background: `${colorVar}15` }}
                   >
                     <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
                   </div>
-                  <div className="text-[12px] text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
-                  <p className="text-[10.5px] text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
+                  <div className="text-[12px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
+                  <p className="text-[10.5px] md:text-[13px] text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
                   {tip.href ? (
                     <a
                       href={tip.href}
-                      className="inline-flex items-center gap-1 text-[10.5px] font-medium font-montserrat no-underline transition-colors mt-auto"
+                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat no-underline transition-colors mt-auto"
                       style={{ color: colorVar }}
                     >
                       {tip.actionLabel}
@@ -1112,7 +1112,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                   ) : (
                     <button
                       onClick={() => onNav(tip.action)}
-                      className="inline-flex items-center gap-1 text-[10.5px] font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors mt-auto"
+                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors mt-auto"
                       style={{ color: colorVar }}
                     >
                       {tip.actionLabel}
@@ -1140,7 +1140,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                 <button
                   key={t.id}
                   onClick={() => onNav(t.id)}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
                 >
                   <div className="absolute top-1.5 right-1.5">
                     <span className="text-salve-amber text-[8px]">★</span>
@@ -1168,7 +1168,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               <button
                 key={h.id}
                 onClick={() => onNav(h.navId)}
-                className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
+                className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
               >
                 <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
                 <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{h.label}</span>

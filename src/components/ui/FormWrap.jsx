@@ -16,8 +16,8 @@ export default function FormWrap({ title, onBack, children }) {
 
 export function SectionTitle({ children, action }) {
   return (
-    <div className="flex justify-between items-center mt-6 mb-3">
-      <h2 className="font-playfair text-[17px] font-semibold text-salve-text m-0">{children}</h2>
+    <div className="flex justify-between items-center mt-6 md:mt-8 mb-3 md:mb-4">
+      <h2 className="font-playfair text-[17px] md:text-lg font-semibold text-salve-text m-0">{children}</h2>
       {action}
     </div>
   );

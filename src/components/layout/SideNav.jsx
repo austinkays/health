@@ -26,7 +26,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name }) {
       {/* Search button */}
       <button
         onClick={onSearch}
-        className="mx-4 mb-2 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
+        className="mx-4 mb-3 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
       >
         <Search size={16} />
         <span className="flex-1 text-left">Search</span>
@@ -34,7 +34,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name }) {
       </button>
 
       {/* Nav items */}
-      <div className="flex-1 flex flex-col gap-1 px-3 mt-2">
+      <div className="flex-1 flex flex-col gap-1.5 px-3 mt-2">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;
           const active = tab === item.id;
@@ -43,7 +43,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name }) {
               key={item.id}
               onClick={() => onNav(item.id)}
               aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-3 px-3.5 py-3 rounded-lg cursor-pointer bg-transparent border-none text-left transition-all duration-150 ${
+              className={`flex items-center gap-3 px-3.5 py-3.5 rounded-lg cursor-pointer bg-transparent border-none text-left transition-all duration-150 ${
                 active
                   ? 'bg-salve-lav/10 text-salve-lav border-l-[3px] border-l-salve-lav pl-[11px]'
                   : 'text-salve-textMid hover:bg-salve-bg hover:text-salve-text'
