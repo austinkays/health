@@ -26,7 +26,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
-import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import { useIsDesktop } from '../layout/SplitView';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
@@ -1289,27 +1289,42 @@ export default function Dashboard({ data, interactions, onNav }) {
                 onClick={() => onNav('vitals')}
                 className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
-                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-0.5">Heart Rate</div>
-                <div className="flex items-baseline gap-1 mb-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Heart Rate</div>
+                  <div className="text-[9px] text-salve-textFaint font-montserrat">14 days</div>
+                </div>
+                <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
                   <span className="text-[11px] text-salve-textFaint font-montserrat">bpm avg</span>
+                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: hrTrend.avg >= 60 && hrTrend.avg <= 100 ? C.sage : C.amber }}>
+                    {hrTrend.avg >= 60 && hrTrend.avg <= 100 ? 'Normal' : 'Attention'}
+                  </span>
                 </div>
-                <div className="h-[56px] -mx-1">
+                <div className="h-[80px] -mx-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={hrTrend.days} margin={{ top: 2, right: 4, bottom: 0, left: 4 }}>
+                    <AreaChart data={hrTrend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
                       <defs>
                         <linearGradient id="hr-dash-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.2} />
-                          <stop offset="100%" stopColor={C.rose} stopOpacity={0} />
+                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.25} />
+                          <stop offset="100%" stopColor={C.rose} stopOpacity={0.03} />
                         </linearGradient>
                       </defs>
-                      <Area type="monotone" dataKey="value" stroke={C.rose} strokeWidth={1.5} strokeOpacity={0.7} fill="url(#hr-dash-grad)" dot={false} isAnimationActive={false} />
+                      <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                      <YAxis domain={[Math.max(40, hrTrend.min - 8), hrTrend.max + 8]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
+                      <Tooltip
+                        contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}
+                        formatter={(v) => [`${v} bpm`, '']}
+                        labelFormatter={(l) => l}
+                      />
+                      <ReferenceLine y={60} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
+                      <ReferenceLine y={100} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
+                      <Area type="monotone" dataKey="value" stroke={C.rose} strokeWidth={2} fill="url(#hr-dash-grad)" dot={{ r: 2, fill: C.rose, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-[9px] text-salve-textFaint font-montserrat">↓ {hrTrend.min} bpm</span>
-                  <span className="text-[9px] text-salve-textFaint font-montserrat">↑ {hrTrend.max} bpm</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-[9px] text-salve-textFaint font-montserrat">Range: {hrTrend.min}–{hrTrend.max} bpm</span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: 60–100</span>
                 </div>
               </button>
             )}
@@ -1320,32 +1335,44 @@ export default function Dashboard({ data, interactions, onNav }) {
                 onClick={() => onNav('vitals')}
                 className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
-                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-0.5">Blood Oxygen</div>
-                <div className="flex items-baseline gap-1 mb-2">
+                <div className="flex items-center justify-between mb-0.5">
+                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Blood Oxygen</div>
+                  <div className="text-[9px] text-salve-textFaint font-montserrat">14 days</div>
+                </div>
+                <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
                   <span className="text-[11px] text-salve-textFaint font-montserrat">% avg</span>
+                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: spo2Trend.lowNights === 0 ? C.sage : C.amber }}>
+                    {spo2Trend.lowNights === 0 ? 'Normal' : `${spo2Trend.lowNights} low`}
+                  </span>
                 </div>
-                <div className="h-[56px] -mx-1">
+                <div className="h-[80px] -mx-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={spo2Trend.days} margin={{ top: 2, right: 4, bottom: 0, left: 4 }}>
+                    <AreaChart data={spo2Trend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
                       <defs>
                         <linearGradient id="spo2-dash-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.2} />
-                          <stop offset="100%" stopColor={C.lav} stopOpacity={0} />
+                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.25} />
+                          <stop offset="100%" stopColor={C.lav} stopOpacity={0.03} />
                         </linearGradient>
                       </defs>
-                      <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={1.5} strokeOpacity={0.7} fill="url(#spo2-dash-grad)" dot={false} isAnimationActive={false} />
+                      <XAxis dataKey="date" tickFormatter={(d) => new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'numeric', day: 'numeric' })} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                      <YAxis domain={[Math.min(90, spo2Trend.avg - 3), 100]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
+                      <Tooltip
+                        contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}
+                        formatter={(v) => [`${v}%`, '']}
+                        labelFormatter={(d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
+                      />
+                      <ReferenceLine y={95} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.5} label={{ value: '95%', position: 'right', fontSize: 8, fill: C.amber, fontFamily: 'Montserrat' }} />
+                      <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} fill="url(#spo2-dash-grad)" dot={{ r: 2, fill: C.lav, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                {spo2Trend.lowNights > 0 ? (
-                  <div className="flex items-center gap-1 mt-1.5">
-                    <AlertTriangle size={9} color={C.amber} />
-                    <span className="text-[9px] font-montserrat" style={{ color: C.amber }}>{spo2Trend.lowNights} night{spo2Trend.lowNights > 1 ? 's' : ''} below 95%</span>
-                  </div>
-                ) : (
-                  <div className="text-[9px] text-salve-textFaint font-montserrat mt-1.5">Normal range</div>
-                )}
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-[9px] font-montserrat" style={{ color: spo2Trend.lowNights > 0 ? C.amber : C.textFaint }}>
+                    {spo2Trend.lowNights > 0 ? `${spo2Trend.lowNights} night${spo2Trend.lowNights > 1 ? 's' : ''} below 95%` : 'All readings ≥95%'}
+                  </span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: ≥95%</span>
+                </div>
               </button>
             )}
 
@@ -1353,34 +1380,35 @@ export default function Dashboard({ data, interactions, onNav }) {
             {labHighlights.length > 0 && (
               <button
                 onClick={() => onNav('labs')}
-                className={`bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors ${!hrTrend && !spo2Trend ? 'col-span-2' : 'col-span-2'}`}
+                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
                   <ChevronRight size={11} className="text-salve-textFaint/50" />
                 </div>
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                   {labHighlights.map(lab => {
                     const flag = lab.flag;
-                    const flagColor = flag === 'abnormal' || flag === 'high' || flag === 'low' || flag === 'critical' ? C.rose : C.textFaint;
-                    const flagLabel = flag === 'high' ? '↑' : flag === 'low' ? '↓' : flag === 'critical' ? '‼' : flag === 'abnormal' ? '!' : '✓';
                     const hasFlag = ['abnormal', 'high', 'low', 'critical'].includes(flag);
+                    const flagColor = hasFlag ? C.rose : flag === 'normal' || flag === 'completed' ? C.sage : C.textFaint;
+                    const flagLabel = flag === 'high' ? '↑ High' : flag === 'low' ? '↓ Low' : flag === 'critical' ? '‼ Critical' : flag === 'abnormal' ? '! Abnormal' : '✓ Normal';
                     return (
-                      <div key={lab.id} className="flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-salve-textMid font-montserrat truncate flex-1">{lab.name}</span>
-                        <div className="flex items-center gap-1.5 flex-shrink-0">
-                          {lab.value && <span className="text-[11px] font-medium font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.value}{lab.unit ? ` ${lab.unit}` : ''}</span>}
-                          <span className="text-[10px] font-semibold font-montserrat w-3 text-center" style={{ color: hasFlag ? flagColor : C.sage }}>{flagLabel}</span>
+                      <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || '—'}</div>
+                          <div className="text-[10px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          {lab.result && <div className="text-[12px] font-semibold font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
+                          <div className="text-[9px] font-montserrat" style={{ color: flagColor }}>{flagLabel}</div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-                {labHighlights.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-salve-border/50 text-[9px] text-salve-textFaint font-montserrat">
-                    Last updated {fmtDate(labHighlights[0].date)}
-                  </div>
-                )}
+                <div className="mt-2.5 pt-2 border-t border-salve-border/50 text-[9px] text-salve-textFaint font-montserrat">
+                  {labHighlights.length} recent result{labHighlights.length !== 1 ? 's' : ''} · Last: {fmtDate(labHighlights[0].date)}
+                </div>
               </button>
             )}
           </div>
