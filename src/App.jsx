@@ -15,7 +15,7 @@ import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
-import { setDemoMode as setAIDemoMode, setPremiumActive, isPremiumActive } from './services/ai';
+import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -94,7 +94,10 @@ function AppContent() {
 
   // Sync premium status into services/ai.js so isFeatureLocked() sees it.
   // Pro features unlock for premium users regardless of provider choice.
-  useEffect(() => { setPremiumActive(isPremiumActive(data?.settings)); }, [data?.settings]);
+  useEffect(() => {
+    setPremiumActive(isPremiumActive(data?.settings));
+    setAdminActive(isAdminActive(data?.settings));
+  }, [data?.settings]);
   const showToast = useToast();
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);

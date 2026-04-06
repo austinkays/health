@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Lock } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Lock, Stethoscope, Shield } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
@@ -8,7 +8,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchHouseConsultation, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -18,7 +18,7 @@ import { createToolExecutor } from '../../services/toolExecutor';
 import { computeCycleStats, getCyclePhaseForDate } from '../../utils/cycles';
 
 // Feature ID → ai.js feature name for lock checking
-const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns' };
+const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', house: 'houseConsultation' };
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -27,6 +27,7 @@ const FEATURES = [
   { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose, premium: true },
   { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage, premium: true },
   { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose, premium: true },
+  { id: 'house', label: 'House Consultation', desc: 'Claude & Gemini debate your health', icon: Stethoscope, color: C.amber, admin: true },
 ];
 
 const INSIGHTS_SAVE_KEY = 'salve:saved-insights';
@@ -604,6 +605,110 @@ function CostResult({ result, savedInsights }) {
   );
 }
 
+/* ── House Consultation Result (dual-AI debate) ──────────── */
+
+function HouseRound({ round, roundNum, label }) {
+  const [activeTab, setActiveTab] = useState('claude');
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2 mb-2.5">
+        <span className="text-[11px] font-semibold text-salve-textMid font-montserrat uppercase tracking-wider">{label}</span>
+        <div className="flex-1 h-px bg-salve-border/40" />
+      </div>
+      <div className="flex gap-1 mb-2.5">
+        <button
+          onClick={() => setActiveTab('claude')}
+          className={`flex items-center gap-1.5 text-[11px] font-medium font-montserrat px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+            activeTab === 'claude'
+              ? 'border-salve-lav/50 bg-salve-lav/15 text-salve-lav'
+              : 'border-salve-border bg-salve-card2 text-salve-textFaint hover:text-salve-text'
+          }`}
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-salve-lav" />
+          Claude
+        </button>
+        <button
+          onClick={() => setActiveTab('gemini')}
+          className={`flex items-center gap-1.5 text-[11px] font-medium font-montserrat px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
+            activeTab === 'gemini'
+              ? 'border-salve-sage/50 bg-salve-sage/15 text-salve-sage'
+              : 'border-salve-border bg-salve-card2 text-salve-textFaint hover:text-salve-text'
+          }`}
+        >
+          <div className="w-1.5 h-1.5 rounded-full bg-salve-sage" />
+          Gemini
+        </button>
+      </div>
+      <div className={`rounded-xl border overflow-hidden transition-colors ${
+        activeTab === 'claude' ? 'border-salve-lav/20 bg-salve-lav/5' : 'border-salve-sage/20 bg-salve-sage/5'
+      }`}>
+        <div className={`border-l-[3px] p-4 pl-5 ${
+          activeTab === 'claude' ? 'border-salve-lav/40' : 'border-salve-sage/40'
+        }`}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
+              activeTab === 'claude' ? 'bg-salve-lav/15' : 'bg-salve-sage/15'
+            }`}>
+              {activeTab === 'claude'
+                ? <Sparkles size={10} className="text-salve-lav" />
+                : <Shield size={10} className="text-salve-sage" />
+              }
+            </div>
+            <span className={`text-[10px] font-semibold font-montserrat tracking-wide ${
+              activeTab === 'claude' ? 'text-salve-lav' : 'text-salve-sage'
+            }`}>
+              {activeTab === 'claude' ? 'Claude Opus' : 'Gemini Pro'}
+            </span>
+          </div>
+          <AIMarkdown compact>{activeTab === 'claude' ? round.claude : round.gemini}</AIMarkdown>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HouseConsultationResult({ result, savedInsights }) {
+  const text = typeof result === 'string'
+    ? result
+    : result?.rounds
+      ? result.rounds.map((r, i) => `Round ${i + 1}:\nClaude: ${r.claude}\nGemini: ${r.gemini}`).join('\n\n')
+      : '';
+
+  if (!result?.rounds) {
+    return (
+      <div>
+        <ResultHeader icon={Stethoscope} label="House Consultation" color={C.amber} text={text} featureType="house" savedInsights={savedInsights} />
+        <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 overflow-hidden">
+          <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
+            <AIMarkdown>{typeof result === 'string' ? result : result?.text || ''}</AIMarkdown>
+          </div>
+        </div>
+        <Disclaimer />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <ResultHeader icon={Stethoscope} label="House Consultation" color={C.amber} text={text} featureType="house" savedInsights={savedInsights} />
+      <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 p-4 mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Stethoscope size={16} className="text-salve-amber" />
+          <span className="text-[13px] font-semibold font-playfair text-salve-text">Differential Diagnosis Team</span>
+        </div>
+        <p className="text-[11px] text-salve-textFaint leading-relaxed font-montserrat">
+          Two AI models independently analyzed your health profile, then debated each other's findings — like a medical team bouncing ideas off each other.
+        </p>
+      </div>
+
+      <HouseRound round={result.rounds[0]} roundNum={1} label="Round 1 — Independent Analysis" />
+      <HouseRound round={result.rounds[1]} roundNum={2} label="Round 2 — Rebuttal & Debate" />
+
+      <Disclaimer />
+    </div>
+  );
+}
+
 function FeatureLoading({ ready, onReveal }) {
   const { message, key } = useWellnessMessage();
   return (
@@ -938,6 +1043,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
         const r = await fetchCyclePatterns(cycleProfile);
         setResult(r);
+      } else if (id === 'house') {
+        const r = await fetchHouseConsultation(profile);
+        setResult(r);
       } else {
         const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
         const r = await fn(profile);
@@ -946,11 +1054,14 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     } catch (e) {
       const isDailyLimit = e.message?.includes('Daily AI limit');
       const isPremium = e.message?.includes('Premium feature');
+      const isAdmin = e.message?.includes('Admin feature') || e.message?.includes('admin tier');
       const msg = isDailyLimit
         ? '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for unlimited access.'
-        : isPremium
-          ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis.\n\nGo to **Settings → AI Provider** to upgrade.'
-          : 'Error: ' + e.message;
+        : isAdmin
+          ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style consultation.'
+          : isPremium
+            ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis.\n\nGo to **Settings → AI Provider** to upgrade.'
+            : 'Error: ' + e.message;
       setResult({ text: msg, sources: [] });
     } finally {
       setLoading(false);
@@ -1092,6 +1203,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
             <Disclaimer />
           </div>
         ) :
+        mode === 'house' ? <HouseConsultationResult result={result} savedInsights={savedInsights} /> :
         null
       ) : null}
     </div>
@@ -1111,14 +1223,20 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
       {FEATURES.map(f => {
-          const locked = f.premium && isFeatureLocked(FEATURE_TO_AI[f.id] || f.id);
+          const locked = (f.premium || f.admin) && isFeatureLocked(FEATURE_TO_AI[f.id] || f.id);
+          const badgeLabel = f.admin ? 'Admin' : 'Premium';
+          const badgeColor = f.admin ? 'amber' : 'lav';
           return (
             <button
               key={f.id}
               onClick={() => {
                 if (locked) {
-                  setResult({ text: '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.' });
+                  const msg = f.admin
+                    ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style differential diagnosis.'
+                    : '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.';
+                  setResult({ text: msg });
                   setMode(f.id);
+                  setRevealed(true);
                   return;
                 }
                 runFeature(f.id);
@@ -1128,8 +1246,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
               <div className="flex items-center justify-between">
                 <f.icon size={22} color={locked ? C.textFaint : f.color} strokeWidth={1.5} />
                 {locked && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium font-montserrat flex items-center gap-0.5">
-                    <Lock size={8} /> Premium
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full bg-salve-${badgeColor}/15 text-salve-${badgeColor} font-medium font-montserrat flex items-center gap-0.5`}>
+                    <Lock size={8} /> {badgeLabel}
                   </span>
                 )}
               </div>

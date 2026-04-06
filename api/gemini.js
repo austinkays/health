@@ -324,8 +324,24 @@ export default async function handler(req, res) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
     }
 
-    // Daily call limit for free tier (10 calls/day, resets midnight PT)
+    // Check user tier — premium/admin users bypass daily limit
+    let userTier = 'free';
     if (userId) {
+      try {
+        const profileRes = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=tier`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+        );
+        if (profileRes.ok) {
+          const profiles = await profileRes.json();
+          userTier = profiles[0]?.tier || 'free';
+        }
+      } catch { /* fail-open: treat as free */ }
+    }
+
+    // Daily call limit for free tier only (10 calls/day, resets midnight PT)
+    // Premium and admin users bypass the daily limit.
+    if (userId && userTier === 'free') {
       const dailyAllowed = await checkDailyLimit(userId, supabaseUrl, serviceKey);
       if (!dailyAllowed) {
         return res.status(429).json({ error: 'Daily AI limit reached (10/day on free tier). Resets at midnight PT.', daily_limit: true });

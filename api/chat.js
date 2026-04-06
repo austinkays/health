@@ -92,7 +92,7 @@ export default async function handler(req, res) {
     if (profileRes.ok) {
       const profiles = await profileRes.json();
       profile = profiles[0] || null;
-      const isPremium = profile?.tier === 'premium';
+      const isPremium = profile?.tier === 'premium' || profile?.tier === 'admin';
       let trialActive = profile?.trial_expires_at == null;
       if (!trialActive && profile?.trial_expires_at) {
         const expiresTs = new Date(profile.trial_expires_at).getTime();
