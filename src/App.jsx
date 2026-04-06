@@ -195,28 +195,24 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+
     if (window.__ouraCode) {
-      // Oura OAuth callback — code was stashed by supabase.js, navigate to settings
+      // Oura OAuth callback — navigate to settings; session arrives via INITIAL_SESSION below
       setTab('settings');
-      getSession().then(s => { setSession(s); if (s?.user?.id) setSentryUser(s.user.id); setAuthLoading(false); });
-    } else if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
-        if (!error && data.session) {
-          setSession(data.session);
-        }
+    }
+
+    if (code) {
+      // Exchange OAuth code for session; the resulting session will be picked up
+      // by the INITIAL_SESSION / SIGNED_IN event from onAuthStateChange below.
+      supabase.auth.exchangeCodeForSession(code).then(() => {
         window.history.replaceState({}, '', window.location.pathname);
-        setAuthLoading(false);
-      });
-    } else {
-      getSession().then(s => {
-        setSession(s);
-        if (s?.user?.id) setSentryUser(s.user.id);
-        setAuthLoading(false);
       });
     }
 
+    // Avoid calling getSession() here — it competes with onAuthStateChange for
+    // the gotrue storage lock and causes a 5-second stall in React Strict Mode.
+    // INITIAL_SESSION fires immediately and provides the same initial session.
     const subscription = onAuthChange((event, s) => {
-      // If the session was signed out or the token refresh failed, show expiry notice
       if (!s && (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
         setSessionExpired(true);
         clearSentryUser();
@@ -291,14 +287,6 @@ function AppContent() {
         onAuthSuccess={() => setSessionExpired(false)}
         onEnterDemo={() => { setDemoMode(true); setTab('dash'); }}
       />
-    );
-  }
-
-  if (dataLoading) {
-    return (
-      <div className="min-h-screen bg-salve-bg flex items-center justify-center">
-        <LoadingSpinner text="Loading your health data..." />
-      </div>
     );
   }
 

@@ -360,7 +360,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   const vitalsSnapshot = useMemo(() => {
     const today = Date.now();
     const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
-    const sparkCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
+    const sparkCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
     const vitals = data.vitals || [];
     if (!vitals.length) return null;
     const recent = vitals.filter(v => v.date >= recentCutoff);
@@ -1112,7 +1112,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                       <div className="text-[12px] md:text-[13px] text-salve-textMid font-montserrat">{fUnit}</div>
                     </div>
                     {fHasChart && (
-                      <div className="w-full h-[56px] -mx-1">
+                      <div className="w-full h-[64px] -mx-1">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={f.series} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>
                             <defs>
@@ -1121,7 +1121,15 @@ export default function Dashboard({ data, interactions, onNav }) {
                                 <stop offset="100%" stopColor={C.lav} stopOpacity={0} />
                               </linearGradient>
                             </defs>
-                            <Area type="monotone" dataKey="value" stroke={C.textMid} strokeWidth={1.5} strokeOpacity={0.55} fill="url(#vitals-hero-grad)" dot={false} isAnimationActive={false} />
+                            <Tooltip
+                              content={({ active, payload }) => active && payload?.[0] ? (
+                                <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[11px] font-montserrat text-salve-text shadow-sm">
+                                  {payload[0].value}{fUnit}
+                                </div>
+                              ) : null}
+                              cursor={{ stroke: C.lav, strokeWidth: 1, strokeOpacity: 0.4 }}
+                            />
+                            <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} strokeOpacity={0.7} fill="url(#vitals-hero-grad)" dot={{ r: 3, fill: C.lav, strokeWidth: 0, fillOpacity: 0.8 }} activeDot={{ r: 4, fill: C.lav }} isAnimationActive={false} />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>

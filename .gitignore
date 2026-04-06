@@ -31,3 +31,6 @@ Thumbs.db
 # Source assets
 salve_icon.png
 .playwright-mcp/
+
+# Redundant local subdirectory (app lives at root)
+health/

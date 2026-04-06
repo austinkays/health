@@ -62,6 +62,7 @@ export default function Vitals({ data, addItem, removeItem }) {
   const [trendAI, setTrendAI] = useState(null);
   const [trendLoading, setTrendLoading] = useState(false);
   const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
+  const [timeRange, setTimeRange] = useState('30d');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -101,12 +102,18 @@ export default function Vitals({ data, addItem, removeItem }) {
 
   const vi = VITAL_TYPES.find(t => t.id === ct);
 
+  const cutoffDate = useMemo(() => {
+    if (timeRange === 'all') return null;
+    const days = { '7d': 7, '30d': 30, '90d': 90 }[timeRange] || 30;
+    return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  }, [timeRange]);
+
   // Aggregate to daily averages — prevents high-frequency wearable data (hundreds of HR/resp readings)
   // from rendering as an unreadable blob. One point per day per type.
   const integerTypes = new Set(['hr', 'bp', 'glucose']);
   const cd = useMemo(() => {
     const filtered = data.vitals.filter(
-      v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter)
+      v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter) && (!cutoffDate || v.date >= cutoffDate)
     );
     const byDate = new Map();
     for (const v of filtered) {
@@ -126,7 +133,15 @@ export default function Vitals({ data, addItem, removeItem }) {
         ...(vals2.length > 0 ? { value2: avg(vals2) } : {}),
       }))
       .filter(d => d.value !== null);
-  }, [data.vitals, ct, sourceFilter]);
+  }, [data.vitals, ct, sourceFilter, cutoffDate]);
+
+  const cdStats = useMemo(() => {
+    if (!cd.length) return null;
+    const vals = cd.map(p => p.value).filter(Number.isFinite);
+    if (!vals.length) return null;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    return { min: Math.min(...vals), max: Math.max(...vals), avg, count: vals.length };
+  }, [cd]);
 
   const phaseBands = useMemo(() => {
     if (!cycleOverlay || !data.cycles?.length || cd.length < 2) return [];
@@ -218,8 +233,21 @@ export default function Vitals({ data, addItem, removeItem }) {
         </div>
       )}
 
-      {data.cycles?.length > 0 && cd.length > 1 && (
-        <div className="flex justify-end mb-1.5">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex gap-1">
+          {['7d', '30d', '90d', 'all'].map(r => (
+            <button
+              key={r}
+              onClick={() => setTimeRange(r)}
+              className={`py-1 px-2.5 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+                timeRange === r ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+              }`}
+            >
+              {r === 'all' ? 'All' : r}
+            </button>
+          ))}
+        </div>
+        {data.cycles?.length > 0 && cd.length > 1 && (
           <button
             onClick={() => {
               const next = !cycleOverlay;
@@ -230,17 +258,24 @@ export default function Vitals({ data, addItem, removeItem }) {
               cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
-            Color by cycle phase
+            Cycle phase
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {cd.length > 1 ? (
         <Card className="!p-3.5">
-          <div className="font-playfair text-sm font-medium mb-2.5 pl-1.5 text-salve-text">
-            {vi?.label} <span className="font-normal text-salve-textFaint text-xs">
-              {cd.length > 14 ? 'daily avg' : 'over time'}
-            </span>
+          <div className="flex items-baseline justify-between mb-2 pl-1.5">
+            <div className="font-playfair text-sm font-medium text-salve-text">
+              {vi?.label} <span className="font-normal text-salve-textFaint text-xs">daily avg</span>
+            </div>
+            {cdStats && (
+              <div className="flex gap-3 text-[10px] text-salve-textFaint font-montserrat">
+                <span>Avg <span className="text-salve-text font-medium">{cdStats.avg % 1 === 0 ? cdStats.avg : cdStats.avg.toFixed(1)}</span></span>
+                <span>Low <span className="text-salve-text font-medium">{cdStats.min % 1 === 0 ? cdStats.min : cdStats.min.toFixed(1)}</span></span>
+                <span>High <span className="text-salve-text font-medium">{cdStats.max % 1 === 0 ? cdStats.max : cdStats.max.toFixed(1)}</span></span>
+              </div>
+            )}
           </div>
           <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} daily averages from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
