@@ -5,19 +5,24 @@ import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 import { buildDemoData } from '../constants/demoData';
 
 export default function useHealthData(session, demoMode = false) {
-  const [data, setData] = useState({
-    meds: [], conditions: [], allergies: [], providers: [],
-    pharmacies: [], vitals: [], appts: [], journal: [],
-    labs: [], procedures: [], immunizations: [], care_gaps: [],
-    anesthesia_flags: [], appeals_and_disputes: [], surgical_planning: [], insurance: [],
-    insurance_claims: [],
-    drug_prices: [],
-    todos: [],
-    cycles: [],
-    activities: [],
-    genetic_results: [],
-    feedback: [],
-    settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
+  const [data, setData] = useState(() => {
+    // Synchronous read of non-PHI settings sidecar — shows name/prefs instantly
+    // before the encrypted cache or Supabase have a chance to load.
+    const cachedSettings = cache.readSettingsSync();
+    return {
+      meds: [], conditions: [], allergies: [], providers: [],
+      pharmacies: [], vitals: [], appts: [], journal: [],
+      labs: [], procedures: [], immunizations: [], care_gaps: [],
+      anesthesia_flags: [], appeals_and_disputes: [], surgical_planning: [], insurance: [],
+      insurance_claims: [],
+      drug_prices: [],
+      todos: [],
+      cycles: [],
+      activities: [],
+      genetic_results: [],
+      feedback: [],
+      settings: cachedSettings ?? { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
+    };
   });
   const [loading, setLoading] = useState(true);
 

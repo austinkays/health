@@ -218,6 +218,10 @@ function AppContent() {
         clearSentryUser();
       } else if (s?.user?.id) {
         setSentryUser(s.user.id);
+        // Pre-derive the cache encryption key while React is re-rendering,
+        // so cache.read() in useHealthData finds the key already cached.
+        cache.setToken(s.access_token);
+        cache.prewarm();
       }
       setSession(s);
       setAuthLoading(false);
