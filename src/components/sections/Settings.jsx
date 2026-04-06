@@ -124,7 +124,9 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
 
   const core = Object.values(allThemes).filter(t => !t.experimental)
     .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
-  const experimental = Object.values(allThemes).filter(t => t.experimental);
+  const experimentalLight = Object.values(allThemes).filter(t => t.experimental && t.type === 'light');
+  const experimentalDark  = Object.values(allThemes).filter(t => t.experimental && t.type === 'dark');
+  const experimental = [...experimentalLight, ...experimentalDark];
 
   const handleSelect = (id) => {
     setTheme(id);
@@ -198,16 +200,41 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
             }
           </button>
           {showExperimental && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
-              {experimental.map(t => (
-                <ThemeTile
-                  key={t.id}
-                  theme={t}
-                  isActive={themeId === t.id}
-                  isLocked={userTier !== 'premium'}
-                  onSelect={handleSelect}
-                />
-              ))}
+            <div className="mt-2 space-y-2">
+              {/* Light experimental themes */}
+              {experimentalLight.length > 0 && (
+                <>
+                  <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">☀ Light</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {experimentalLight.map(t => (
+                      <ThemeTile
+                        key={t.id}
+                        theme={t}
+                        isActive={themeId === t.id}
+                        isLocked={userTier !== 'premium'}
+                        onSelect={handleSelect}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+              {/* Dark experimental themes */}
+              {experimentalDark.length > 0 && (
+                <>
+                  <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">◑ Dark</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {experimentalDark.map(t => (
+                      <ThemeTile
+                        key={t.id}
+                        theme={t}
+                        isActive={themeId === t.id}
+                        isLocked={userTier !== 'premium'}
+                        onSelect={handleSelect}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

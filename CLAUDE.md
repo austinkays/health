@@ -447,7 +447,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | **Blaze** | Dark | Ember turned to 11 — intense multi-layer fire + 14 ember sparks + coordinated breathe animation (opacity + brightness + saturation + hue-rotate in one keyframe, ±18°→+10° hue swing) |
 | **Ember** | Dark | Flickering firelight glow (raised to upper 84–92% Y) + floating sparks |
 | **Galactic** | Dark | 30-star field drifting left-to-right in a gentle arc (120s cycle) + nebula wash + diagonal shooting star every 22s (body::after) |
-| **Prismatic** | Dark | Slow 8-stop horizontal rainbow wash (32s loop) + darkening film, Playfair headings rendered IN the rainbow via background-clip |
+| **Prismatic** | Light | Iridescent rainbow shimmer on white bg (low-opacity 20%, heavy blur, soft white mist overlay); headings rendered IN the rainbow via background-clip |
 | **Crystal Cave** | Dark | Amethyst + sapphire radial glows + twinkling sparkles + hologram white-glare sweep across cards on hover + uppercase letter-spaced Space Grotesk headings (shared with other architectural themes) + cyan/pink heading glow + crisp cyan focus outlines |
 
 **Per-theme features:**
