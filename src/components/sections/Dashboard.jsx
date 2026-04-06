@@ -26,7 +26,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
-import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
+import { AreaChart, Area, ComposedChart, BarChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import { useIsDesktop } from '../layout/SplitView';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
@@ -440,12 +440,12 @@ export default function Dashboard({ data, interactions, onNav }) {
   }, [data.activities]);
 
   /* ── Health Trend Cards ─────────────────── */
-  // Sleep: 14-night bar chart
+  // Sleep: 7-night bar chart
   const sleepTrend = useMemo(() => {
     const sleepVitals = (data.vitals || []).filter(v => v.type === 'sleep');
     if (sleepVitals.length < 4) return null;
     const days = [];
-    for (let i = 13; i >= 0; i--) {
+    for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
       const dateStr = d.toISOString().slice(0, 10);
       const recs = sleepVitals.filter(v => v.date === dateStr);
@@ -459,11 +459,11 @@ export default function Dashboard({ data, interactions, onNav }) {
     return { days, avg, last };
   }, [data.vitals]);
 
-  // Heart Rate: 14-day daily avg area chart
+  // Heart Rate: 7-day daily min/avg/max band chart
   const hrTrend = useMemo(() => {
     const hrVitals = (data.vitals || []).filter(v => v.type === 'hr');
     if (hrVitals.length < 4) return null;
-    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     const recent = hrVitals.filter(v => v.date >= cutoff);
     if (recent.length < 4) return null;
     const byDate = new Map();
@@ -473,19 +473,24 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
     const days = [...byDate.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length), label: new Date(date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2) }));
+      .map(([date, vals]) => {
+        const min = Math.round(Math.min(...vals));
+        const max = Math.round(Math.max(...vals));
+        const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
+        return { date, min, band: max - min, avg, label: new Date(date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2) };
+      });
     if (days.length < 4) return null;
-    const avg = Math.round(days.reduce((s, d) => s + d.value, 0) / days.length);
-    const min = Math.min(...days.map(d => d.value));
-    const max = Math.max(...days.map(d => d.value));
+    const avg = Math.round(days.reduce((s, d) => s + d.avg, 0) / days.length);
+    const min = Math.min(...days.map(d => d.min));
+    const max = Math.max(...days.map(d => d.min + d.band));
     return { days, avg, min, max };
   }, [data.vitals]);
 
-  // Blood Oxygen: 14-day daily avg
+  // Blood Oxygen: 7-day daily min/avg/max band chart
   const spo2Trend = useMemo(() => {
     const spo2Vitals = (data.vitals || []).filter(v => v.type === 'spo2');
     if (spo2Vitals.length < 4) return null;
-    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     const recent = spo2Vitals.filter(v => v.date >= cutoff);
     if (recent.length < 4) return null;
     const byDate = new Map();
@@ -495,11 +500,17 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
     const days = [...byDate.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10 }));
+      .map(([date, vals]) => {
+        const min = Math.round(Math.min(...vals) * 10) / 10;
+        const max = Math.round(Math.max(...vals) * 10) / 10;
+        const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10;
+        return { date, min, band: Math.round((max - min) * 10) / 10, avg };
+      });
     if (days.length < 4) return null;
-    const avg = Math.round(days.reduce((s, d) => s + d.value, 0) / days.length * 10) / 10;
-    const lowNights = days.filter(d => d.value < 95).length;
-    return { days, avg, lowNights };
+    const avg = Math.round(days.reduce((s, d) => s + d.avg, 0) / days.length * 10) / 10;
+    const lowNights = days.filter(d => d.min < 95).length;
+    const minVal = Math.min(...days.map(d => d.min));
+    return { days, avg, lowNights, minVal };
   }, [data.vitals]);
 
   // Lab highlights — recent 6 labs sorted by date
@@ -1242,187 +1253,6 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </div>
 
-      {/* ── Health Trends grid ─────────────────── */}
-      {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
-        <section aria-label="Health trends" className="dash-stagger dash-stagger-4 mb-4">
-          <SectionTitle>Health Trends</SectionTitle>
-          <div className="grid grid-cols-2 gap-2.5 md:gap-4">
-
-            {/* Sleep 14-night bar chart */}
-            {sleepTrend && (
-              <button
-                onClick={() => onNav('vitals')}
-                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div>
-                    <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Sleep</span>
-                    <span className="text-[9px] text-salve-textFaint/60 font-montserrat ml-1.5">14 nights</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-[22px] font-medium text-salve-text font-montserrat leading-none">{sleepTrend.avg}</span>
-                    <span className="text-[11px] text-salve-textFaint font-montserrat">hrs avg</span>
-                  </div>
-                </div>
-                <div className="flex items-end gap-[3px] h-12 mt-2">
-                  {sleepTrend.days.map((d, i) => {
-                    const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
-                    const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
-                    const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
-                    const isLast = i === sleepTrend.days.length - 1;
-                    return (
-                      <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
-                        <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
-                        {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h</span></div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
-                  {sleepTrend.last && (
-                    <div className="ml-auto text-[10px] font-montserrat" style={{ color: sleepTrend.last.value >= 7 ? C.sage : sleepTrend.last.value >= 5 ? C.amber : C.rose }}>
-                      Last night: {sleepTrend.last.value}h
-                    </div>
-                  )}
-                </div>
-              </button>
-            )}
-
-            {/* Heart Rate 14-day area */}
-            {hrTrend && (
-              <button
-                onClick={() => onNav('vitals')}
-                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Heart Rate</div>
-                  <div className="text-[9px] text-salve-textFaint font-montserrat">14 days</div>
-                </div>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
-                  <span className="text-[11px] text-salve-textFaint font-montserrat">bpm avg</span>
-                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: hrTrend.avg >= 60 && hrTrend.avg <= 100 ? C.sage : C.amber }}>
-                    {hrTrend.avg >= 60 && hrTrend.avg <= 100 ? 'Normal' : 'Attention'}
-                  </span>
-                </div>
-                <div className="h-[80px] -mx-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={hrTrend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
-                      <defs>
-                        <linearGradient id="hr-dash-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.25} />
-                          <stop offset="100%" stopColor={C.rose} stopOpacity={0.03} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                      <YAxis domain={[Math.max(40, hrTrend.min - 8), hrTrend.max + 8]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
-                      <Tooltip
-                        contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}
-                        formatter={(v) => [`${v} bpm`, '']}
-                        labelFormatter={(l) => l}
-                      />
-                      <ReferenceLine y={60} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
-                      <ReferenceLine y={100} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
-                      <Area type="monotone" dataKey="value" stroke={C.rose} strokeWidth={2} fill="url(#hr-dash-grad)" dot={{ r: 2, fill: C.rose, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[9px] text-salve-textFaint font-montserrat">Range: {hrTrend.min}–{hrTrend.max} bpm</span>
-                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: 60–100</span>
-                </div>
-              </button>
-            )}
-
-            {/* Blood Oxygen 14-day */}
-            {spo2Trend && (
-              <button
-                onClick={() => onNav('vitals')}
-                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Blood Oxygen</div>
-                  <div className="text-[9px] text-salve-textFaint font-montserrat">14 days</div>
-                </div>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
-                  <span className="text-[11px] text-salve-textFaint font-montserrat">% avg</span>
-                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: spo2Trend.lowNights === 0 ? C.sage : C.amber }}>
-                    {spo2Trend.lowNights === 0 ? 'Normal' : `${spo2Trend.lowNights} low`}
-                  </span>
-                </div>
-                <div className="h-[80px] -mx-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={spo2Trend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
-                      <defs>
-                        <linearGradient id="spo2-dash-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.25} />
-                          <stop offset="100%" stopColor={C.lav} stopOpacity={0.03} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="date" tickFormatter={(d) => new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'numeric', day: 'numeric' })} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                      <YAxis domain={[Math.min(90, spo2Trend.avg - 3), 100]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
-                      <Tooltip
-                        contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}
-                        formatter={(v) => [`${v}%`, '']}
-                        labelFormatter={(d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
-                      />
-                      <ReferenceLine y={95} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.5} label={{ value: '95%', position: 'right', fontSize: 8, fill: C.amber, fontFamily: 'Montserrat' }} />
-                      <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} fill="url(#spo2-dash-grad)" dot={{ r: 2, fill: C.lav, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[9px] font-montserrat" style={{ color: spo2Trend.lowNights > 0 ? C.amber : C.textFaint }}>
-                    {spo2Trend.lowNights > 0 ? `${spo2Trend.lowNights} night${spo2Trend.lowNights > 1 ? 's' : ''} below 95%` : 'All readings ≥95%'}
-                  </span>
-                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: ≥95%</span>
-                </div>
-              </button>
-            )}
-
-            {/* Lab highlights */}
-            {labHighlights.length > 0 && (
-              <button
-                onClick={() => onNav('labs')}
-                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
-                  <ChevronRight size={11} className="text-salve-textFaint/50" />
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                  {labHighlights.map(lab => {
-                    const flag = lab.flag;
-                    const hasFlag = ['abnormal', 'high', 'low', 'critical'].includes(flag);
-                    const flagColor = hasFlag ? C.rose : flag === 'normal' || flag === 'completed' ? C.sage : C.textFaint;
-                    const flagLabel = flag === 'high' ? '↑ High' : flag === 'low' ? '↓ Low' : flag === 'critical' ? '‼ Critical' : flag === 'abnormal' ? '! Abnormal' : '✓ Normal';
-                    return (
-                      <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[11px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || '—'}</div>
-                          <div className="text-[10px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
-                        </div>
-                        <div className="flex-shrink-0 text-right">
-                          {lab.result && <div className="text-[12px] font-semibold font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
-                          <div className="text-[9px] font-montserrat" style={{ color: flagColor }}>{flagLabel}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-2.5 pt-2 border-t border-salve-border/50 text-[9px] text-salve-textFaint font-montserrat">
-                  {labHighlights.length} recent result{labHighlights.length !== 1 ? 's' : ''} · Last: {fmtDate(labHighlights[0].date)}
-                </div>
-              </button>
-            )}
-          </div>
-        </section>
-      )}
-
       {/* ── Getting Started tips (magazine grid) ─── */}
       {visibleTips.length > 0 && (
         <section aria-label="Getting started" className="dash-stagger dash-stagger-4 mb-4 mt-4">
@@ -1486,6 +1316,207 @@ export default function Dashboard({ data, interactions, onNav }) {
                 </div>
               );
             })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Health Trends grid ─────────────────── */}
+      {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
+        <section aria-label="Health trends" className="dash-stagger dash-stagger-4 mb-4">
+          <SectionTitle>Health Trends</SectionTitle>
+          <div className="grid grid-cols-2 gap-2.5 md:gap-4">
+
+            {/* Sleep 14-night bar chart */}
+            {sleepTrend && (
+              <button
+                onClick={() => onNav('vitals')}
+                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Sleep</span>
+                    <span className="text-[9px] text-salve-textFaint/60 font-montserrat ml-1.5">7 nights</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[22px] font-medium text-salve-text font-montserrat leading-none">{sleepTrend.avg}</span>
+                    <span className="text-[11px] text-salve-textFaint font-montserrat">hrs avg</span>
+                  </div>
+                </div>
+                <div className="flex items-end gap-[3px] h-12 mt-2">
+                  {sleepTrend.days.map((d, i) => {
+                    const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
+                    const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
+                    const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
+                    const isLast = i === sleepTrend.days.length - 1;
+                    return (
+                      <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
+                        <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
+                        {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
+                  {sleepTrend.last && (
+                    <div className="ml-auto text-[10px] font-montserrat" style={{ color: sleepTrend.last.value >= 7 ? C.sage : sleepTrend.last.value >= 5 ? C.amber : C.rose }}>
+                      Last night: {sleepTrend.last.value}h
+                    </div>
+                  )}
+                </div>
+              </button>
+            )}
+
+            {/* Heart Rate 7-day band chart */}
+            {hrTrend && (
+              <button
+                onClick={() => onNav('vitals')}
+                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Heart Rate</div>
+                  <div className="text-[9px] text-salve-textFaint font-montserrat">7 days</div>
+                </div>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
+                  <span className="text-[11px] text-salve-textFaint font-montserrat">bpm avg</span>
+                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: hrTrend.avg >= 60 && hrTrend.avg <= 100 ? C.sage : C.amber }}>
+                    {hrTrend.avg >= 60 && hrTrend.avg <= 100 ? 'Normal' : 'Attention'}
+                  </span>
+                </div>
+                <div className="h-[80px] -mx-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={hrTrend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
+                      <defs>
+                        <linearGradient id="hr-band-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={C.rose} stopOpacity={0.06} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                      <YAxis domain={[Math.max(40, hrTrend.min - 8), hrTrend.max + 8]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0]?.payload;
+                          return (
+                            <div style={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}>
+                              <p style={{ margin: 0, color: C.text }}>{d.label}</p>
+                              <p style={{ margin: 0, color: C.rose }}>{d.avg} bpm avg</p>
+                              {d.band > 0 && <p style={{ margin: '2px 0 0', color: C.textFaint, fontSize: 10 }}>{d.min}–{d.min + d.band} range</p>}
+                            </div>
+                          );
+                        }}
+                      />
+                      <ReferenceLine y={60} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
+                      <ReferenceLine y={100} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
+                      <Area type="monotone" dataKey="min" stackId="hr" fill="transparent" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Area type="monotone" dataKey="band" stackId="hr" fill="url(#hr-band-grad)" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Line type="monotone" dataKey="avg" stroke={C.rose} strokeWidth={1.5} dot={{ r: 2, fill: C.rose, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-[9px] text-salve-textFaint font-montserrat">Range: {hrTrend.min}–{hrTrend.max} bpm</span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: 60–100</span>
+                </div>
+              </button>
+            )}
+
+            {/* Blood Oxygen 7-day band chart */}
+            {spo2Trend && (
+              <button
+                onClick={() => onNav('vitals')}
+                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-0.5">
+                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Blood Oxygen</div>
+                  <div className="text-[9px] text-salve-textFaint font-montserrat">7 days</div>
+                </div>
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
+                  <span className="text-[11px] text-salve-textFaint font-montserrat">% avg</span>
+                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: spo2Trend.lowNights === 0 ? C.sage : C.amber }}>
+                    {spo2Trend.lowNights === 0 ? 'Normal' : `${spo2Trend.lowNights} low`}
+                  </span>
+                </div>
+                <div className="h-[80px] -mx-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={spo2Trend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
+                      <defs>
+                        <linearGradient id="spo2-band-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={C.lav} stopOpacity={0.06} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" tickFormatter={(d) => new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'numeric', day: 'numeric' })} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+                      <YAxis domain={[Math.min(90, spo2Trend.minVal - 2), 100]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0]?.payload;
+                          return (
+                            <div style={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}>
+                              <p style={{ margin: 0, color: C.text }}>{d.date ? new Date(d.date + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}</p>
+                              <p style={{ margin: 0, color: C.lav }}>{d.avg}% avg</p>
+                              {d.band > 0 && <p style={{ margin: '2px 0 0', color: C.textFaint, fontSize: 10 }}>{d.min}–{Math.round((d.min + d.band) * 10) / 10}% range</p>}
+                            </div>
+                          );
+                        }}
+                      />
+                      <ReferenceLine y={95} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.5} label={{ value: '95%', position: 'right', fontSize: 8, fill: C.amber, fontFamily: 'Montserrat' }} />
+                      <Area type="monotone" dataKey="min" stackId="spo2" fill="transparent" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Area type="monotone" dataKey="band" stackId="spo2" fill="url(#spo2-band-grad)" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Line type="monotone" dataKey="avg" stroke={C.lav} strokeWidth={1.5} dot={{ r: 2, fill: C.lav, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className="text-[9px] font-montserrat" style={{ color: spo2Trend.lowNights > 0 ? C.amber : C.textFaint }}>
+                    {spo2Trend.lowNights > 0 ? `${spo2Trend.lowNights} night${spo2Trend.lowNights > 1 ? 's' : ''} below 95%` : 'All readings ≥95%'}
+                  </span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: ≥95%</span>
+                </div>
+              </button>
+            )}
+
+            {/* Lab highlights */}
+            {labHighlights.length > 0 && (
+              <button
+                onClick={() => onNav('labs')}
+                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
+                  <ChevronRight size={11} className="text-salve-textFaint/50" />
+                </div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  {labHighlights.map(lab => {
+                    const flag = lab.flag;
+                    const hasFlag = ['abnormal', 'high', 'low', 'critical'].includes(flag);
+                    const flagColor = hasFlag ? C.rose : flag === 'normal' || flag === 'completed' ? C.sage : C.textFaint;
+                    const flagLabel = flag === 'high' ? '↑ High' : flag === 'low' ? '↓ Low' : flag === 'critical' ? '‼ Critical' : flag === 'abnormal' ? '! Abnormal' : '✓ Normal';
+                    return (
+                      <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[11px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || '—'}</div>
+                          <div className="text-[10px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
+                        </div>
+                        <div className="flex-shrink-0 text-right">
+                          {lab.result && <div className="text-[12px] font-semibold font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
+                          <div className="text-[9px] font-montserrat" style={{ color: flagColor }}>{flagLabel}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-2.5 pt-2 border-t border-salve-border/50 text-[9px] text-salve-textFaint font-montserrat">
+                  {labHighlights.length} recent result{labHighlights.length !== 1 ? 's' : ''} · Last: {fmtDate(labHighlights[0].date)}
+                </div>
+              </button>
+            )}
           </div>
         </section>
       )}
