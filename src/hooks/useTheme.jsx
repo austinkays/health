@@ -3,37 +3,31 @@ import { themes, DEFAULT_THEME, THEME_STORAGE_KEY, hexToRgbTriplet } from '../co
 
 const ThemeContext = createContext();
 
-function applyThemeVariables(themeId) {
+function applyThemeVariables(themeId, animate = false) {
   const theme = themes[themeId] || themes[DEFAULT_THEME];
-  // Batch all DOM mutations into a single rAF to avoid multiple reflows
-  requestAnimationFrame(() => {
+  function apply() {
     const root = document.documentElement;
-
-    // Set color CSS variables as RGB triplets (for Tailwind <alpha-value>)
     for (const [key, hex] of Object.entries(theme.colors)) {
       root.style.setProperty(`--salve-${key}`, hexToRgbTriplet(hex));
     }
-
-    // Set ambiance RGB values per time period (comma-separated for rgba())
     for (const [period, rgb] of Object.entries(theme.ambiance)) {
       root.style.setProperty(`--ambiance-${period}`, rgb);
     }
-
-    // Set per-theme gradient color stops (used by .text-gradient-magic)
     if (theme.gradient) {
       theme.gradient.forEach((colorKey, i) => {
         const hex = theme.colors[colorKey];
         if (hex) root.style.setProperty(`--salve-gradient-${i + 1}`, hex);
       });
     }
-
-    // Set theme-specific class on <html> for per-theme CSS effects
-    // Remove any existing theme-* class first
     for (const cls of Array.from(root.classList)) {
       if (cls.startsWith('theme-')) root.classList.remove(cls);
     }
     root.classList.add(`theme-${theme.id}`);
-  });
+  }
+  // Only defer via rAF when animating a theme switch — first render applies synchronously
+  // (the inline script in index.html already set the vars; sync call just keeps React in sync)
+  if (animate) requestAnimationFrame(apply);
+  else apply();
 }
 
 function readCommitted() {
@@ -51,7 +45,9 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      applyThemeVariables(themeId);
+      // inline script in index.html already set all vars — this sync call just
+      // keeps React's DOM state in sync without adding an animation frame delay
+      applyThemeVariables(themeId, false);
       return;
     }
 
@@ -61,7 +57,7 @@ export function ThemeProvider({ children }) {
     root.classList.add('theme-transitioning');
 
     const applyTimer = setTimeout(() => {
-      applyThemeVariables(themeId);
+      applyThemeVariables(themeId, true);
       root.classList.remove('theme-transitioning');
       root.classList.add('theme-transitioned');
     }, 500);
