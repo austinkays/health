@@ -133,7 +133,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
   };
 
   const previewed = allThemes[themeId];
-  const isPremiumOnly = previewed?.experimental && userTier !== 'premium';
+  const isPremiumOnly = previewed?.experimental && userTier === 'free';
   const hasUnsaved = hasUnsavedChanges;
 
   return (
@@ -211,7 +211,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                         key={t.id}
                         theme={t}
                         isActive={themeId === t.id}
-                        isLocked={userTier !== 'premium'}
+                        isLocked={userTier === 'free'}
                         onSelect={handleSelect}
                       />
                     ))}
@@ -228,7 +228,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                         key={t.id}
                         theme={t}
                         isActive={themeId === t.id}
-                        isLocked={userTier !== 'premium'}
+                        isLocked={userTier === 'free'}
                         onSelect={handleSelect}
                       />
                     ))}
