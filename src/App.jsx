@@ -6,6 +6,7 @@ import { db } from './services/db';
 import Auth from './components/Auth';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
+import SideNav from './components/layout/SideNav';
 import useHealthData from './hooks/useHealthData';
 import { checkInteractions } from './utils/interactions';
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -153,6 +154,23 @@ function AppContent() {
       return next;
     });
   };
+
+  // Global keyboard shortcuts (desktop)
+  useEffect(() => {
+    const handler = (e) => {
+      // Cmd/Ctrl + K → open search
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        onNav('search');
+      }
+      // Escape → close Sage popup
+      if (e.key === 'Escape' && sageOpen) {
+        setSageOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [sageOpen]);
 
   // Time-aware ambiance — shift accent warmth throughout the day
   useEffect(() => {
@@ -327,23 +345,26 @@ function AppContent() {
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
-      <div className="max-w-[480px] mx-auto pb-24 relative">
-        <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
-        <main className="px-4">
-          <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
-            <Suspense fallback={
-              <div className="flex items-center justify-center py-20">
-                <LoadingSpinner text="Loading..." />
-              </div>
-            }>
-              <div key={tab} className="section-enter">
-                {renderSection()}
-              </div>
-            </Suspense>
-          </ErrorBoundary>
-        </main>
-        <BottomNav tab={tab} onNav={onNav} />
+      <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} name={data.settings.name} />
+      <div className="md:ml-[220px]">
+        {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
+        <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[720px] lg:max-w-[960px]">
+          <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
+          <main className="px-4">
+            <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
+              <Suspense fallback={
+                <div className="flex items-center justify-center py-20">
+                  <LoadingSpinner text="Loading..." />
+                </div>
+              }>
+                <div key={tab} className="section-enter">
+                  {renderSection()}
+                </div>
+              </Suspense>
+            </ErrorBoundary>
+          </main>
+          <BottomNav tab={tab} onNav={onNav} />
+        </div>
       </div>
       <SagePopup
         open={sageOpen}

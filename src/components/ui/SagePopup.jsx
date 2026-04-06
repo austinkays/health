@@ -105,7 +105,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
         role="dialog"
         aria-modal="true"
         aria-label="Ask Sage"
-        className="w-full max-w-[480px] bg-salve-card border-t border-salve-border rounded-t-2xl flex flex-col shadow-2xl"
+        className="w-full max-w-[480px] md:max-w-[600px] bg-salve-card border-t border-salve-border rounded-t-2xl md:rounded-2xl flex flex-col shadow-2xl md:mb-4"
         style={{ height: '78vh', maxHeight: '78vh' }}
       >
         {/* Header */}

@@ -971,7 +971,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* ── Pinned shortcuts (user-starred) ─────── */}
       {starredTiles.length > 0 && (
         <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-3">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
             {starredTiles.map(t => (
               <button
                 key={t.id}
@@ -994,7 +994,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         {starredTiles.length > 0 && (
           <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
         )}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 mb-4">
           {hubTiles.map(h => (
             <button
               key={h.id}
