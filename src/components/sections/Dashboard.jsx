@@ -656,7 +656,6 @@ export default function Dashboard({ data, interactions, onNav }) {
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
-
   const dismissAlerts = (duration) => {
     const val = { until: duration === 'forever' ? 'forever' : Date.now() + duration };
     localStorage.setItem(ALERT_DISMISS_KEY, JSON.stringify(val));
@@ -679,6 +678,16 @@ export default function Dashboard({ data, interactions, onNav }) {
   }, [data.conditions, data.meds, data.journal, data.settings, seenResources]);
 
   const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
+
+  /* ── Whether the left column has any visible content (for responsive layout) ── */
+  const hasLeftContent = useMemo(() => {
+    const hasAlerts = alerts.length > 0 && !alertsDismissed;
+    const aiConsent = hasAIConsent();
+    const hasAITeaser = aiConsent && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0;
+    const hasAIInsight = aiConsent && (insight || insightLoading);
+    const hasDiscover = displayedDiscover.length > 0;
+    return hasAlerts || hasAITeaser || hasAIInsight || hasDiscover;
+  }, [alerts, alertsDismissed, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length]);
 
   const dismissResource = useCallback((resourceId) => {
     setSeenResources(prev => {
@@ -837,10 +846,10 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </section>
 
-      {/* ── Two-column grid zone (desktop) ─────────── */}
-      <div className="md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start">
+      {/* ── Two-column grid zone (desktop) — collapses to single col when left is empty ── */}
+      <div className={hasLeftContent ? 'md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start' : ''}>
         {/* ── Left column ── */}
-        <div>
+        {hasLeftContent && <div>
           {/* Alerts */}
           {alerts.length > 0 && !alertsDismissed && (
             <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4 md:mb-6">
@@ -1005,13 +1014,13 @@ export default function Dashboard({ data, interactions, onNav }) {
               </Card>
             </section>
           )}
-        </div>
+        </div>}
 
-        {/* ── Right column ── */}
-        <div>
+        {/* ── Right column (or single column when left is empty) ── */}
+        <div className={!hasLeftContent ? 'md:grid md:grid-cols-2 md:gap-4 lg:gap-6' : ''}>
           {/* Coming Up timeline */}
           {displayedTimeline.length > 0 && (
-            <section aria-label="Coming up" className="dash-stagger dash-stagger-3 mb-4">
+            <section aria-label="Coming up" className={`dash-stagger dash-stagger-3 mb-4 ${!hasLeftContent ? 'md:col-span-2' : ''}`}>
               <SectionTitle>Coming Up</SectionTitle>
               {displayedTimeline.map((item, i) => {
                 const isAppt = item._type === 'appt';
