@@ -87,6 +87,10 @@ const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
 const SEEN_RESOURCES_KEY = 'salve:seen-resources';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
 
+// dismissBehavior:
+//   'auto'      — hidden by data check (no dismiss needed); snoozes 7d if dismissed before data exists
+//   'snooze'    — first X snoozes for snoozeDays, second X is permanent
+//   'permanent' — one X and it's gone for good (optional integrations user may not want)
 const STARTER_TIPS = [
   {
     id: 'add-meds',
@@ -96,6 +100,8 @@ const STARTER_TIPS = [
     body: 'Start by adding your current meds to get drug interaction checks, refill tracking, and AI-powered insights.',
     action: 'meds',
     actionLabel: 'Add medications',
+    dismissBehavior: 'auto',
+    snoozeDays: 7,
   },
   {
     id: 'chat-sage',
@@ -105,6 +111,8 @@ const STARTER_TIPS = [
     body: 'Tap the leaf icon to chat with Sage. Ask health questions, add records by voice, or get personalized insights.',
     action: 'ai',
     actionLabel: 'Open Sage',
+    dismissBehavior: 'snooze',
+    snoozeDays: 3,
   },
   {
     id: 'connect-oura',
@@ -114,6 +122,7 @@ const STARTER_TIPS = [
     body: 'Link your Oura Ring to automatically sync sleep, heart rate, temperature, and readiness data.',
     action: 'settings',
     actionLabel: 'Connect in Settings',
+    dismissBehavior: 'permanent',
   },
   {
     id: 'import-data',
@@ -123,6 +132,8 @@ const STARTER_TIPS = [
     body: 'Bring in data from Apple Health exports, Flo period tracker, or a previous Salve backup file.',
     action: 'settings',
     actionLabel: 'Import in Settings',
+    dismissBehavior: 'snooze',
+    snoozeDays: 7,
   },
   {
     id: 'claude-sync',
@@ -132,6 +143,7 @@ const STARTER_TIPS = [
     body: 'Use the Salve Sync artifact in Claude.ai to push health data directly into your account. Grab it from Settings → Claude Sync.',
     action: 'settings',
     actionLabel: 'Get artifact',
+    dismissBehavior: 'permanent',
   },
   {
     id: 'add-providers',
@@ -141,21 +153,20 @@ const STARTER_TIPS = [
     body: 'Add doctors and providers to cross-reference medications, auto-fill appointments, and look up NPI registry info.',
     action: 'providers',
     actionLabel: 'Add providers',
+    dismissBehavior: 'auto',
+    snoozeDays: 7,
   },
-  {
-    id: 'feedback',
-    icon: Mail,
-    color: 'amber',
-    title: 'Share feedback or ideas',
-    body: 'Salve is built with love and your input helps shape it. Let us know what features you\'d like to see.',
-    action: 'feedback',
-    actionLabel: 'Send feedback',
-  },
+  // feedback is not a card — it renders as a persistent footer line in the section
 ];
 
 function getDismissedTips() {
   try {
-    return JSON.parse(localStorage.getItem(DISMISSED_TIPS_KEY) || '[]');
+    const raw = JSON.parse(localStorage.getItem(DISMISSED_TIPS_KEY) || '[]');
+    // Migrate from old format (array of strings → array of record objects)
+    if (raw.length > 0 && typeof raw[0] === 'string') {
+      return raw.map(id => ({ id, permanent: true }));
+    }
+    return raw;
   } catch { return []; }
 }
 
@@ -664,6 +675,48 @@ export default function Dashboard({ data, interactions, onNav }) {
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
 
+  /* Today chips — compact at-a-glance strip above search */
+  const todayChips = useMemo(() => {
+    const chips = [];
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const upcomingAppts = [...data.appts]
+      .filter(a => new Date(a.date + 'T00:00:00') >= now)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (upcomingAppts.length > 0) {
+      const next = upcomingAppts[0];
+      const days = Math.round((new Date(next.date + 'T00:00:00') - now) / 86400000);
+      chips.push({
+        id: 'appt', icon: Calendar, color: C.sage,
+        label: next.provider || 'Appointment',
+        sub: days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `in ${days}d`,
+        nav: 'appts',
+      });
+    }
+    const refillsDue = activeMeds.filter(m => {
+      if (!m.refill_date) return false;
+      const d = Math.round((new Date(m.refill_date + 'T00:00:00') - now) / 86400000);
+      return d >= 0 && d <= 7;
+    });
+    if (refillsDue.length > 0) {
+      chips.push({
+        id: 'refills', icon: Pill, color: C.amber,
+        label: `${refillsDue.length} refill${refillsDue.length > 1 ? 's' : ''}`,
+        sub: 'this week', nav: 'meds',
+      });
+    }
+    const overdueTodos = (data.todos || []).filter(t =>
+      !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now
+    );
+    if (overdueTodos.length > 0) {
+      chips.push({
+        id: 'todos', icon: CheckSquare, color: C.rose,
+        label: `${overdueTodos.length} overdue`,
+        sub: `to-do${overdueTodos.length > 1 ? 's' : ''}`, nav: 'todos',
+      });
+    }
+    return chips;
+  }, [data.appts, activeMeds, data.todos]);
+
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
@@ -712,22 +765,53 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [dismissedTips, setDismissedTips] = useState(() => getDismissedTips());
 
   const visibleTips = useMemo(() => {
-    const dismissed = new Set(dismissedTips);
-    return STARTER_TIPS.filter(t => !dismissed.has(t.id));
-  }, [dismissedTips]);
+    const now = Date.now();
+    const dismissMap = new Map(dismissedTips.map(d => [d.id, d]));
+    return STARTER_TIPS.filter(tip => {
+      // Data-proven complete: auto-hide regardless of dismissal
+      if (tip.id === 'add-meds' && activeMeds.length > 0) return false;
+      if (tip.id === 'add-providers' && data.providers.length > 0) return false;
+      if (tip.id === 'connect-oura' && hasOura) return false;
+      const record = dismissMap.get(tip.id);
+      if (!record) return true;
+      if (record.permanent) return false;
+      if (record.snoozedUntil && now < record.snoozedUntil) return false;
+      return true; // Snooze expired — resurface
+    });
+  }, [dismissedTips, activeMeds, data.providers, hasOura]);
 
   const dismissTip = useCallback((tipId) => {
     setDismissedTips(prev => {
-      const next = [...prev, tipId];
+      const tip = STARTER_TIPS.find(t => t.id === tipId);
+      const existing = prev.find(d => d.id === tipId);
+      const behavior = tip?.dismissBehavior || 'permanent';
+      let record;
+      if (behavior === 'permanent' || behavior === 'auto') {
+        // 'auto' tips: if data isn't there yet, snooze; otherwise they'd already be hidden by data check
+        if (behavior === 'auto') {
+          record = existing?.snoozedUntil
+            ? { id: tipId, permanent: true }
+            : { id: tipId, snoozedUntil: Date.now() + (tip.snoozeDays || 7) * 86400000 };
+        } else {
+          record = { id: tipId, permanent: true };
+        }
+      } else {
+        // 'snooze': first dismiss snoozes, second is permanent
+        record = existing?.snoozedUntil
+          ? { id: tipId, permanent: true }
+          : { id: tipId, snoozedUntil: Date.now() + (tip.snoozeDays || 7) * 86400000 };
+      }
+      const next = prev.filter(d => d.id !== tipId);
+      if (record) next.push(record);
       localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
 
   const dismissAllTips = useCallback(() => {
-    const allIds = STARTER_TIPS.map(t => t.id);
-    localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(allIds));
-    setDismissedTips(allIds);
+    const records = STARTER_TIPS.map(t => ({ id: t.id, permanent: true }));
+    localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(records));
+    setDismissedTips(records);
   }, []);
 
 
@@ -749,6 +833,29 @@ export default function Dashboard({ data, interactions, onNav }) {
           </div>
         </div>
       </section>
+
+      {/* ── Today at a Glance chips ────────────── */}
+      {todayChips.length > 0 && (
+        <section aria-label="Today at a glance" className="dash-stagger dash-stagger-2 mb-4 -mt-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            {todayChips.map(chip => {
+              const ChipIcon = chip.icon;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => onNav(chip.nav)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
+                  style={{ background: `${chip.color}12`, outline: `1px solid ${chip.color}28` }}
+                >
+                  <ChipIcon size={11} style={{ color: chip.color }} />
+                  <span className="text-[11.5px] font-medium" style={{ color: chip.color }}>{chip.label}</span>
+                  <span className="text-[10.5px] ml-0.5" style={{ color: chip.color, opacity: 0.65 }}>{chip.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ── Centerpiece Search ─────────────────── */}
       <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7">
@@ -854,6 +961,23 @@ export default function Dashboard({ data, interactions, onNav }) {
               </div>
             )}
           </div>
+        </div>
+      </section>
+
+      {/* ── Quick Navigation Hub ───────────────── */}
+      <section aria-label="Quick navigation" className="dash-stagger dash-stagger-3 mb-5 md:mb-7">
+        <div className={`grid gap-2 md:gap-3 ${hubTiles.length <= 5 ? 'grid-cols-' + hubTiles.length : 'grid-cols-3 md:grid-cols-6'}`}
+          style={{ gridTemplateColumns: `repeat(${Math.min(hubTiles.length, 6)}, 1fr)` }}>
+          {hubTiles.map((h) => (
+            <button
+              key={h.id}
+              onClick={() => onNav(h.navId)}
+              className="bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
+            >
+              <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
+              <span className="text-[10.5px] md:text-[12px] text-salve-textMid font-montserrat text-center leading-tight">{h.label}</span>
+            </button>
+          ))}
         </div>
       </section>
 
@@ -1253,73 +1377,6 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </div>
 
-      {/* ── Getting Started tips (magazine grid) ─── */}
-      {visibleTips.length > 0 && (
-        <section aria-label="Getting started" className="dash-stagger dash-stagger-4 mb-4 mt-4">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <div className="flex items-center gap-2">
-              <Lightbulb size={13} className="text-salve-amber" />
-              <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
-            </div>
-            <button
-              onClick={dismissAllTips}
-              className="text-[10px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
-              aria-label="Dismiss all tips"
-            >
-              Hide all
-            </button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-4">
-            {visibleTips.map((tip, i) => {
-              const TipIcon = tip.icon;
-              const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
-              const isLastOdd = visibleTips.length % 2 !== 0 && i === visibleTips.length - 1;
-              return (
-                <div
-                  key={tip.id}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
-                >
-                  <button
-                    onClick={() => dismissTip(tip.id)}
-                    className="absolute top-2 right-2 p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/30 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors"
-                    aria-label={`Dismiss ${tip.title}`}
-                  >
-                    <X size={11} />
-                  </button>
-                  <div
-                    className="w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2"
-                    style={{ background: `${colorVar}15` }}
-                  >
-                    <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
-                  </div>
-                  <div className="text-[12px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
-                  <p className="text-[10.5px] md:text-[13px] text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
-                  {tip.href ? (
-                    <a
-                      href={tip.href}
-                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat no-underline transition-colors mt-auto"
-                      style={{ color: colorVar }}
-                    >
-                      {tip.actionLabel}
-                      <ExternalLink size={9} />
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => onNav(tip.action)}
-                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors mt-auto"
-                      style={{ color: colorVar }}
-                    >
-                      {tip.actionLabel}
-                      <ChevronRight size={10} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
       {/* ── Health Trends grid ─────────────────── */}
       {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
         <section aria-label="Health trends" className="dash-stagger dash-stagger-4 mb-4">
@@ -1521,6 +1578,81 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
+      {/* ── Getting Started tips (onboarding, dismissible) ── */}
+      {visibleTips.length > 0 && (
+        <section aria-label="Getting started" className="dash-stagger dash-stagger-5 mb-4 mt-4">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <Lightbulb size={13} className="text-salve-amber" />
+              <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
+            </div>
+            <button
+              onClick={dismissAllTips}
+              className="text-[10px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
+              aria-label="Dismiss all tips"
+            >
+              Hide all
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-4">
+            {visibleTips.map((tip, i) => {
+              const TipIcon = tip.icon;
+              const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
+              const isLastOdd = visibleTips.length % 2 !== 0 && i === visibleTips.length - 1;
+              return (
+                <div
+                  key={tip.id}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
+                >
+                  <button
+                    onClick={() => dismissTip(tip.id)}
+                    className="absolute top-2 right-2 p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/30 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors"
+                    aria-label={`Dismiss ${tip.title}`}
+                  >
+                    <X size={11} />
+                  </button>
+                  <div
+                    className="w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2"
+                    style={{ background: `${colorVar}15` }}
+                  >
+                    <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
+                  </div>
+                  <div className="text-[12px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
+                  <p className="text-[10.5px] md:text-[13px] text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
+                  {tip.href ? (
+                    <a
+                      href={tip.href}
+                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat no-underline transition-colors mt-auto"
+                      style={{ color: colorVar }}
+                    >
+                      {tip.actionLabel}
+                      <ExternalLink size={9} />
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => onNav(tip.action)}
+                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors mt-auto"
+                      style={{ color: colorVar }}
+                    >
+                      {tip.actionLabel}
+                      <ChevronRight size={10} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Persistent feedback footer — always present at bottom of onboarding section */}
+          <button
+            onClick={() => onNav('feedback')}
+            className="w-full flex items-center justify-center gap-1.5 mt-3 pt-2.5 border-t border-salve-border/40 bg-transparent border-x-0 border-b-0 cursor-pointer font-montserrat group"
+          >
+            <Mail size={11} className="text-salve-textFaint/50 group-hover:text-salve-amber transition-colors" />
+            <span className="text-[11px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
+          </button>
+        </section>
+      )}
+
       <Divider />
 
       {/* ── Pinned shortcuts (user-starred) ─────── */}
@@ -1549,29 +1681,6 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
-      {/* ── Quick Access (hub tiles) ───────────── */}
-      <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
-        {starredTiles.length > 0 && (
-          <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
-        )}
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4 mb-4">
-          {hubTiles.map((h, i) => {
-            const remainder = hubTiles.length % 3;
-            const isLast = i === hubTiles.length - 1;
-            const span = isLast && remainder !== 0 ? 3 - remainder + 1 : 1;
-            return (
-              <button
-                key={h.id}
-                onClick={() => onNav(h.navId)}
-                className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
-              >
-                <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-                <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{h.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }
