@@ -26,7 +26,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
-import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useIsDesktop } from '../layout/SplitView';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
@@ -374,14 +374,20 @@ export default function Dashboard({ data, interactions, onNav }) {
     const buildItem = (type) => {
       const latest = byType[type];
       if (!latest) return null;
-      const series = vitals
-        .filter(v => v.type === type && v.date >= sparkCutoff)
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .map(v => {
-          const n = Number(v.value);
-          return { date: v.date, value: Number.isFinite(n) ? n : null };
-        })
-        .filter(p => p.value !== null);
+      // Aggregate to daily averages so high-frequency wearable data doesn't make a blob
+      const byDateMap = new Map();
+      for (const v of vitals.filter(v2 => v2.type === type && v2.date >= sparkCutoff)) {
+        const n = Number(v.value);
+        if (!Number.isFinite(n)) continue;
+        if (!byDateMap.has(v.date)) byDateMap.set(v.date, []);
+        byDateMap.get(v.date).push(n);
+      }
+      const series = [...byDateMap.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([date, vals]) => ({
+          date,
+          value: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10,
+        }));
       const recent7 = series.filter(p => p.date >= recentCutoff).map(p => p.value);
       const recentAvg = mean(recent7);
       const latestNum = Number(latest.value);
@@ -432,6 +438,76 @@ export default function Dashboard({ data, interactions, onNav }) {
     const lastActivity = [...activities].sort((a, b) => b.date.localeCompare(a.date))[0];
     return { count: recent.length, totalMinutes, totalCalories, dayBars, lastActivity };
   }, [data.activities]);
+
+  /* ── Health Trend Cards ─────────────────── */
+  // Sleep: 14-night bar chart
+  const sleepTrend = useMemo(() => {
+    const sleepVitals = (data.vitals || []).filter(v => v.type === 'sleep');
+    if (sleepVitals.length < 4) return null;
+    const days = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const dateStr = d.toISOString().slice(0, 10);
+      const recs = sleepVitals.filter(v => v.date === dateStr);
+      const val = recs.length ? recs.reduce((s, v) => s + Number(v.value), 0) / recs.length : null;
+      days.push({ dateStr, label: d.toLocaleDateString('en', { weekday: 'short' }).slice(0, 2), value: val !== null ? Math.round(val * 10) / 10 : null });
+    }
+    const withData = days.filter(d => d.value !== null);
+    if (withData.length < 4) return null;
+    const avg = Math.round(withData.reduce((s, d) => s + d.value, 0) / withData.length * 10) / 10;
+    const last = withData[withData.length - 1];
+    return { days, avg, last };
+  }, [data.vitals]);
+
+  // Heart Rate: 14-day daily avg area chart
+  const hrTrend = useMemo(() => {
+    const hrVitals = (data.vitals || []).filter(v => v.type === 'hr');
+    if (hrVitals.length < 4) return null;
+    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const recent = hrVitals.filter(v => v.date >= cutoff);
+    if (recent.length < 4) return null;
+    const byDate = new Map();
+    for (const v of recent) {
+      if (!byDate.has(v.date)) byDate.set(v.date, []);
+      byDate.get(v.date).push(Number(v.value));
+    }
+    const days = [...byDate.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length), label: new Date(date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2) }));
+    if (days.length < 4) return null;
+    const avg = Math.round(days.reduce((s, d) => s + d.value, 0) / days.length);
+    const min = Math.min(...days.map(d => d.value));
+    const max = Math.max(...days.map(d => d.value));
+    return { days, avg, min, max };
+  }, [data.vitals]);
+
+  // Blood Oxygen: 14-day daily avg
+  const spo2Trend = useMemo(() => {
+    const spo2Vitals = (data.vitals || []).filter(v => v.type === 'spo2');
+    if (spo2Vitals.length < 4) return null;
+    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const recent = spo2Vitals.filter(v => v.date >= cutoff);
+    if (recent.length < 4) return null;
+    const byDate = new Map();
+    for (const v of recent) {
+      if (!byDate.has(v.date)) byDate.set(v.date, []);
+      byDate.get(v.date).push(Number(v.value));
+    }
+    const days = [...byDate.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10 }));
+    if (days.length < 4) return null;
+    const avg = Math.round(days.reduce((s, d) => s + d.value, 0) / days.length * 10) / 10;
+    const lowNights = days.filter(d => d.value < 95).length;
+    return { days, avg, lowNights };
+  }, [data.vitals]);
+
+  // Lab highlights — recent 6 labs sorted by date
+  const labHighlights = useMemo(() => {
+    const labs = data.labs || [];
+    if (labs.length < 2) return [];
+    return [...labs].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 6);
+  }, [data.labs]);
 
   const urgentGaps = useMemo(
     () => (data.care_gaps || []).filter(g => g.urgency === 'urgent').length,
@@ -1148,6 +1224,159 @@ export default function Dashboard({ data, interactions, onNav }) {
           )}
         </div>
       </div>
+
+      {/* ── Health Trends grid ─────────────────── */}
+      {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
+        <section aria-label="Health trends" className="dash-stagger dash-stagger-4 mb-4">
+          <SectionTitle>Health Trends</SectionTitle>
+          <div className="grid grid-cols-2 gap-2.5 md:gap-4">
+
+            {/* Sleep 14-night bar chart */}
+            {sleepTrend && (
+              <button
+                onClick={() => onNav('vitals')}
+                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div>
+                    <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Sleep</span>
+                    <span className="text-[9px] text-salve-textFaint/60 font-montserrat ml-1.5">14 nights</span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-[22px] font-medium text-salve-text font-montserrat leading-none">{sleepTrend.avg}</span>
+                    <span className="text-[11px] text-salve-textFaint font-montserrat">hrs avg</span>
+                  </div>
+                </div>
+                <div className="flex items-end gap-[3px] h-12 mt-2">
+                  {sleepTrend.days.map((d, i) => {
+                    const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
+                    const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
+                    const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
+                    const isLast = i === sleepTrend.days.length - 1;
+                    return (
+                      <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
+                        <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
+                        {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
+                  {sleepTrend.last && (
+                    <div className="ml-auto text-[10px] font-montserrat" style={{ color: sleepTrend.last.value >= 7 ? C.sage : sleepTrend.last.value >= 5 ? C.amber : C.rose }}>
+                      Last night: {sleepTrend.last.value}h
+                    </div>
+                  )}
+                </div>
+              </button>
+            )}
+
+            {/* Heart Rate 14-day area */}
+            {hrTrend && (
+              <button
+                onClick={() => onNav('vitals')}
+                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-0.5">Heart Rate</div>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
+                  <span className="text-[11px] text-salve-textFaint font-montserrat">bpm avg</span>
+                </div>
+                <div className="h-[56px] -mx-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={hrTrend.days} margin={{ top: 2, right: 4, bottom: 0, left: 4 }}>
+                      <defs>
+                        <linearGradient id="hr-dash-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.2} />
+                          <stop offset="100%" stopColor={C.rose} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area type="monotone" dataKey="value" stroke={C.rose} strokeWidth={1.5} strokeOpacity={0.7} fill="url(#hr-dash-grad)" dot={false} isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-[9px] text-salve-textFaint font-montserrat">↓ {hrTrend.min} bpm</span>
+                  <span className="text-[9px] text-salve-textFaint font-montserrat">↑ {hrTrend.max} bpm</span>
+                </div>
+              </button>
+            )}
+
+            {/* Blood Oxygen 14-day */}
+            {spo2Trend && (
+              <button
+                onClick={() => onNav('vitals')}
+                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+              >
+                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-0.5">Blood Oxygen</div>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
+                  <span className="text-[11px] text-salve-textFaint font-montserrat">% avg</span>
+                </div>
+                <div className="h-[56px] -mx-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={spo2Trend.days} margin={{ top: 2, right: 4, bottom: 0, left: 4 }}>
+                      <defs>
+                        <linearGradient id="spo2-dash-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.2} />
+                          <stop offset="100%" stopColor={C.lav} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={1.5} strokeOpacity={0.7} fill="url(#spo2-dash-grad)" dot={false} isAnimationActive={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                {spo2Trend.lowNights > 0 ? (
+                  <div className="flex items-center gap-1 mt-1.5">
+                    <AlertTriangle size={9} color={C.amber} />
+                    <span className="text-[9px] font-montserrat" style={{ color: C.amber }}>{spo2Trend.lowNights} night{spo2Trend.lowNights > 1 ? 's' : ''} below 95%</span>
+                  </div>
+                ) : (
+                  <div className="text-[9px] text-salve-textFaint font-montserrat mt-1.5">Normal range</div>
+                )}
+              </button>
+            )}
+
+            {/* Lab highlights */}
+            {labHighlights.length > 0 && (
+              <button
+                onClick={() => onNav('labs')}
+                className={`bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors ${!hrTrend && !spo2Trend ? 'col-span-2' : 'col-span-2'}`}
+              >
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
+                  <ChevronRight size={11} className="text-salve-textFaint/50" />
+                </div>
+                <div className="space-y-1.5">
+                  {labHighlights.map(lab => {
+                    const flag = lab.flag;
+                    const flagColor = flag === 'abnormal' || flag === 'high' || flag === 'low' || flag === 'critical' ? C.rose : C.textFaint;
+                    const flagLabel = flag === 'high' ? '↑' : flag === 'low' ? '↓' : flag === 'critical' ? '‼' : flag === 'abnormal' ? '!' : '✓';
+                    const hasFlag = ['abnormal', 'high', 'low', 'critical'].includes(flag);
+                    return (
+                      <div key={lab.id} className="flex items-center justify-between gap-2">
+                        <span className="text-[11px] text-salve-textMid font-montserrat truncate flex-1">{lab.name}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {lab.value && <span className="text-[11px] font-medium font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.value}{lab.unit ? ` ${lab.unit}` : ''}</span>}
+                          <span className="text-[10px] font-semibold font-montserrat w-3 text-center" style={{ color: hasFlag ? flagColor : C.sage }}>{flagLabel}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {labHighlights.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-salve-border/50 text-[9px] text-salve-textFaint font-montserrat">
+                    Last updated {fmtDate(labHighlights[0].date)}
+                  </div>
+                )}
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ── Getting Started tips (magazine grid) ─── */}
       {visibleTips.length > 0 && (
