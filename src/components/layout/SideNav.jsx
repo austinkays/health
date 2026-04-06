@@ -26,23 +26,15 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
         )}
       </div>
 
-      {/* Search + Ask Sage row */}
-      <div className="mx-4 mb-2 flex items-center gap-2">
+      {/* Search */}
+      <div className="mx-4 mb-2">
         <button
           onClick={onSearch}
-          className="flex-1 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
+          className="w-full px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
         >
           <Search size={16} />
           <span className="flex-1 text-left">Search</span>
           <kbd className="text-[10px] text-salve-textFaint bg-salve-bg px-1.5 py-0.5 rounded border border-salve-border font-montserrat">{MOD_KEY}K</kbd>
-        </button>
-        <button
-          onClick={onSage}
-          aria-label="Ask Sage"
-          title="Ask Sage"
-          className="p-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-sage transition-colors cursor-pointer bg-transparent border border-salve-border flex-shrink-0"
-        >
-          <Leaf size={16} />
         </button>
       </div>
 

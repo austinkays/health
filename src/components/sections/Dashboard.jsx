@@ -235,7 +235,7 @@ const HUB_TILES = [
 
 const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
-export default function Dashboard({ data, interactions, onNav }) {
+export default function Dashboard({ data, interactions, onNav, onSage }) {
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -1000,6 +1000,25 @@ export default function Dashboard({ data, interactions, onNav }) {
           ))}
         </div>
       </section>
+
+      {/* ── Chat with Sage ──────────────────────── */}
+      {onSage && (
+        <section className="dash-stagger dash-stagger-3 mb-5 md:mb-6">
+          <button
+            onClick={onSage}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-border rounded-xl cursor-pointer hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all group text-left"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.sage}18` }}>
+              <Leaf size={15} color={C.sage} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] md:text-sm font-medium text-salve-text">Chat with Sage</div>
+              <div className="text-[11px] md:text-xs text-salve-textFaint truncate">Ask about your health, medications, or records</div>
+            </div>
+            <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-sage transition-colors flex-shrink-0" />
+          </button>
+        </section>
+      )}
 
       {/* ── Two-column grid zone (desktop) — collapses to single col when left is empty ── */}
       <div className={hasLeftContent ? 'md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start' : ''}>
