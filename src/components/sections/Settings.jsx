@@ -639,18 +639,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
         </div>
 
-        {userTier === 'admin' && (
-          <div className="mt-2.5 rounded-lg border border-salve-amber/30 bg-salve-amber/5 px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <Crown size={14} className="text-salve-amber" />
-              <span className="text-[12px] font-semibold text-salve-amber font-montserrat">Admin Tier</span>
-            </div>
-            <p className="text-[10px] text-salve-textFaint mt-1 leading-relaxed font-montserrat">
-              All features unlocked. House Consultation uses both Claude and Gemini simultaneously for dual-AI differential analysis.
-            </p>
-          </div>
-        )}
-
         {aiConsent && (
           <>
             <div className="my-3 border-t border-salve-border/50" />
@@ -684,16 +672,21 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <SectionTitle>Premium</SectionTitle>
       <Card>
         <div className="flex items-center gap-2.5 mb-2">
-          <Crown size={16} className={userTier === 'premium' ? 'text-salve-amber' : 'text-salve-textFaint'} />
+          <Crown size={16} className={userTier === 'admin' ? 'text-salve-amber' : userTier === 'premium' ? 'text-salve-amber' : 'text-salve-textFaint'} />
           <div>
             <span className="text-sm text-salve-text font-medium font-montserrat">
-              {userTier === 'premium' ? (isOnTrial ? 'Free Trial' : 'Premium') : 'Free Plan'}
+              {userTier === 'admin' ? 'Admin Tier' : userTier === 'premium' ? (isOnTrial ? 'Free Trial' : 'Premium') : 'Free Plan'}
             </span>
-            <span className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full font-medium ${userTier === 'premium' ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-card2 text-salve-textFaint'}`}>
-              {userTier === 'premium' ? (isOnTrial ? `${trialDays} day${trialDays === 1 ? '' : 's'} left` : 'Active') : 'Current'}
+            <span className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full font-medium ${userTier === 'admin' ? 'bg-salve-amber/15 text-salve-amber' : userTier === 'premium' ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-card2 text-salve-textFaint'}`}>
+              {userTier === 'admin' ? 'Active' : userTier === 'premium' ? (isOnTrial ? `${trialDays} day${trialDays === 1 ? '' : 's'} left` : 'Active') : 'Current'}
             </span>
           </div>
         </div>
+        {userTier === 'admin' && (
+          <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
+            All features unlocked. House Consultation uses both Claude and Gemini simultaneously for dual-AI differential analysis.
+          </p>
+        )}
         {isOnTrial && (
           <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
             You're on a 14-day free trial with full access to every feature. Enjoy the ride — no payment needed to explore.
