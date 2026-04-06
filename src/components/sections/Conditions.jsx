@@ -283,6 +283,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
         </Card>
       ) : null}
       emptyMessage="Select a condition to view details"
+      detailKey={expandedId}
     />
   );
 }

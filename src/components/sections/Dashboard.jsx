@@ -877,8 +877,8 @@ export default function Dashboard({ data, interactions, onNav, onSage }) {
         </section>
       )}
 
-      {/* ── Centerpiece Search ─────────────────── */}
-      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7">
+      {/* ── Centerpiece Search — hidden on desktop (SideNav ⌘K handles it) ── */}
+      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7 md:hidden">
         <div className={`search-hero ${searchFocused ? 'search-hero-focused' : ''}`}>
           <div className="search-hero-inner">
             <div className="relative flex items-center">
@@ -1248,6 +1248,8 @@ export default function Dashboard({ data, interactions, onNav, onSage }) {
             </section>
           )}
 
+          {/* Vitals + Activity — side-by-side at lg+ */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-4">
           {/* Vitals Snapshot */}
           {vitalsSnapshot && vitalsSnapshot.featured && (() => {
             const f = vitalsSnapshot.featured;
@@ -1413,6 +1415,7 @@ export default function Dashboard({ data, interactions, onNav, onSage }) {
               </Card>
             </section>
           )}
+          </div>{/* end vitals+activity grid */}
         </div>
       </div>
 

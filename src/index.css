@@ -1234,18 +1234,30 @@ html.theme-crystal .border-salve-border {
   height: 1px;
 }
 
+/* SplitView detail pane entry animation */
+@keyframes detail-enter {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.splitview-detail-enter {
+  animation: detail-enter 0.14s ease-out;
+}
+
 /* Alert row hover */
+.alert-row {
+  transition: background 0.15s ease;
+}
 .alert-row:hover {
-  background: rgb(var(--salve-card2) / 0.5);
+  background: rgb(var(--salve-lav) / 0.05);
 }
 
 /* Timeline row hover */
 .timeline-row {
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 .timeline-row:hover {
-  background: rgb(var(--salve-card2) / 0.3);
-  transform: translateX(2px);
+  background: rgb(var(--salve-lav) / 0.04);
+  transform: translateX(3px);
 }
 
 /* Insight card ambient glow */

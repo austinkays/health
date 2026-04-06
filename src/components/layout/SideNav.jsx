@@ -1,12 +1,12 @@
 import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dash', label: 'Home', icon: Home },
-  { id: 'meds', label: 'Medications', icon: Pill },
-  { id: 'vitals', label: 'Vitals', icon: Heart },
-  { id: 'ai', label: 'Sage', icon: Leaf },
-  { id: 'journal', label: 'Journal', icon: BookOpen },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
+  { id: 'dash', label: 'Home', icon: Home, key: '1' },
+  { id: 'meds', label: 'Medications', icon: Pill, key: '2' },
+  { id: 'vitals', label: 'Vitals', icon: Heart, key: '3' },
+  { id: 'ai', label: 'Sage', icon: Leaf, key: '4' },
+  { id: 'journal', label: 'Journal', icon: BookOpen, key: '5' },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '6' },
 ];
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
@@ -55,9 +55,12 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
               }`}
             >
               <Icon size={18} strokeWidth={active ? 2 : 1.5} />
-              <span className={`text-[14px] ${active ? 'font-semibold' : 'font-normal'}`}>
+              <span className={`text-[14px] flex-1 ${active ? 'font-semibold' : 'font-normal'}`}>
                 {item.label}
               </span>
+              {!active && (
+                <kbd className="text-[10px] text-salve-textFaint/40 font-montserrat leading-none">{item.key}</kbd>
+              )}
             </button>
           );
         })}

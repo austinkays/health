@@ -161,6 +161,7 @@ function AppContent() {
 
   // Global keyboard shortcuts (desktop)
   useEffect(() => {
+    const NAV_KEYS = { '1': 'dash', '2': 'meds', '3': 'vitals', '4': 'ai', '5': 'journal', '6': 'settings' };
     const handler = (e) => {
       // Cmd/Ctrl + K → open search
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -170,6 +171,14 @@ function AppContent() {
       // Escape → close Sage popup
       if (e.key === 'Escape' && sageOpen) {
         setSageOpen(false);
+      }
+      // 1–6 → jump to main nav sections (desktop only, no modifier, not in inputs)
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && NAV_KEYS[e.key]) {
+        const tag = document.activeElement?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+          e.preventDefault();
+          onNav(NAV_KEYS[e.key]);
+        }
       }
     };
     window.addEventListener('keydown', handler);

@@ -317,6 +317,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
         </Card>
       ) : null}
       emptyMessage="Select a provider to view details"
+      detailKey={expandedId}
     />
   );
 }
