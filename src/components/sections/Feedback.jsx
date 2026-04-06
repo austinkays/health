@@ -39,6 +39,7 @@ export default function Feedback({ data, addItem, removeItem }) {
       setSent(true);
       setTimeout(() => setSent(false), 3000);
     } catch (err) {
+      if (err?.message === 'demo_mode_blocked') return;
       console.error('Failed to submit feedback:', err);
       setSubmitError('Something went wrong — please try again in a moment.');
     } finally {
