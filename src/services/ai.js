@@ -15,29 +15,31 @@ export function setAIProvider(provider) {
 
 const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
 const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
-const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources']);
+const ADMIN_FEATURES = new Set(['houseConsultation']);
+const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources', 'houseConsultation']);
 
 export function isFeatureLocked(feature) {
   // Demo mode unlocks everything — all AI calls return canned responses
   // anyway, so there's nothing to protect and we want demo users to see
   // the full premium experience.
   if (_demoMode) return false;
-  // Premium tier unlocks Pro features regardless of provider choice.
-  // Free tier users are gated out of the FREE_BLOCKED_FEATURES set.
-  if (_premiumActive) return false;
+  // Admin tier unlocks everything including admin-only features.
+  if (_adminActive) return false;
+  // Premium tier unlocks Pro features but NOT admin-only features.
+  if (_premiumActive) return ADMIN_FEATURES.has(feature);
   return FREE_BLOCKED_FEATURES.has(feature);
 }
 
 // Returns true when the user has active premium access — either permanent
-// premium (trial_expires_at IS NULL) or a trial that hasn't yet expired.
+// premium/admin (trial_expires_at IS NULL) or a trial that hasn't yet expired.
 // `settings` is data.settings from useHealthData (the profile row).
-// Respects a localStorage dev override at 'salve:tier-override' ('free' or 'premium').
+// Respects a localStorage dev override at 'salve:tier-override' ('free', 'premium', or 'admin').
 export function isPremiumActive(settings) {
   // Demo mode: honor the demo profile's tier directly (Jordan is premium).
   // Skip the localStorage dev override so leftover testing state doesn't
   // leak into the demo experience.
   if (_demoMode) {
-    if (!settings || settings.tier !== 'premium') return false;
+    if (!settings || (settings.tier !== 'premium' && settings.tier !== 'admin')) return false;
     if (settings.trial_expires_at == null) return true;
     const ts = new Date(settings.trial_expires_at).getTime();
     return !isNaN(ts) && ts > Date.now();
@@ -45,9 +47,26 @@ export function isPremiumActive(settings) {
   try {
     const override = localStorage.getItem('salve:tier-override');
     if (override === 'free') return false;
-    if (override === 'premium') return true;
+    if (override === 'premium' || override === 'admin') return true;
   } catch { /* ignore */ }
-  if (!settings || settings.tier !== 'premium') return false;
+  if (!settings || (settings.tier !== 'premium' && settings.tier !== 'admin')) return false;
+  if (settings.trial_expires_at == null) return true;
+  const ts = new Date(settings.trial_expires_at).getTime();
+  return !isNaN(ts) && ts > Date.now();
+}
+
+// Returns true when the user has admin tier — unlocks House Consultation
+// and all premium features.
+export function isAdminActive(settings) {
+  if (_demoMode) {
+    return settings?.tier === 'admin';
+  }
+  try {
+    const override = localStorage.getItem('salve:tier-override');
+    if (override === 'free' || override === 'premium') return false;
+    if (override === 'admin') return true;
+  } catch { /* ignore */ }
+  if (!settings || settings.tier !== 'admin') return false;
   if (settings.trial_expires_at == null) return true;
   const ts = new Date(settings.trial_expires_at).getTime();
   return !isNaN(ts) && ts > Date.now();
@@ -145,6 +164,27 @@ RULES:
 
   costOptimization:
     'You are a medication cost specialist. Given this patient\'s health profile with NADAC wholesale drug prices, analyze their medication costs and provide actionable suggestions. Consider: generic alternatives for brand-name drugs, therapeutic substitutes that may be cheaper, patient assistance programs (PAPs) from manufacturers, pharmacy discount cards (GoodRx, RxSaver, Cost Plus Drugs), 90-day supply savings, mail-order pharmacy options, state prescription assistance programs, and manufacturer savings cards/coupons. For each suggestion, be specific: name the program, estimate potential savings, and note any eligibility requirements. Organize by medication. Be warm and practical. End with total potential monthly savings estimate.',
+
+  houseConsultation:
+    `You are a brilliant, sharp-witted medical analyst on a differential diagnosis team — think Dr. House's team. You are direct, insightful, and not afraid to challenge assumptions. Given this patient's complete health profile, provide your independent analysis:
+
+1. **Key observations** — What stands out? What patterns do others miss?
+2. **Differential considerations** — What could explain the combination of their conditions, symptoms, and medication effects?
+3. **Red flags or concerns** — Anything that warrants attention based on drug interactions, condition progression, or gaps in care?
+4. **Unconventional connections** — Any non-obvious links between their conditions, meds, vitals, or lifestyle?
+5. **Recommendations** — What would you push for if this were your patient?
+
+Be specific. Reference their actual data. Be bold in your analysis but always ground it in evidence. Keep it under 400 words.`,
+
+  houseRebuttal:
+    `You are a brilliant medical analyst on a differential diagnosis team — think Dr. House's team. Your colleague just presented their analysis of this patient. You've seen the same health profile. Now:
+
+1. **Where you AGREE** — Which of their points are spot-on?
+2. **Where you DISAGREE or see it differently** — Challenge their reasoning. Offer alternative explanations.
+3. **What they MISSED** — Important patterns or connections they overlooked.
+4. **Your final take** — What's the most important thing this patient should focus on?
+
+Be direct and specific. This is a professional debate, not a polite summary. Reference the patient's actual data. Keep it under 300 words.`,
 };
 
 const DISCLAIMER = '\n\n---\n*Sage\'s suggestions are not medical advice. Always consult your healthcare providers.*';
@@ -219,6 +259,10 @@ export function isDemoMode() { return _demoMode; }
 // they've chosen, since both Claude Opus and Gemini 2.5 Pro can serve them.
 let _premiumActive = false;
 export function setPremiumActive(v) { _premiumActive = !!v; }
+
+// Admin tier flag — unlocks House Consultation and all features.
+let _adminActive = false;
+export function setAdminActive(v) { _adminActive = !!v; }
 
 // ── Message History Cap ──
 // Prevent unbounded token growth in multi-turn chats by keeping only the
@@ -438,6 +482,73 @@ export async function fetchCostOptimization(profileText) {
     PROMPTS.costOptimization + '\n\n' + profileText,
     2000, true, 'costOptimization'
   );
+}
+
+/* ── House Consultation: dual-provider debate ──────────── */
+
+// Call a specific provider endpoint directly, bypassing getModel routing
+async function callProvider(endpoint, model, messages, system, maxTokens = 2000) {
+  const token = await getAuthToken();
+  if (!token) throw new Error('You must be signed in.');
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120000);
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ messages, system, max_tokens: maxTokens, model }),
+      signal: controller.signal,
+    });
+    if (res.status === 429) throw new Error('Rate limited. Please wait a moment.');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(typeof err.error === 'string' ? err.error : err.error?.message || `API error ${res.status}`);
+    }
+    const data = await res.json();
+    const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n\n');
+    if (!text.trim()) throw new Error('Empty response');
+    return text;
+  } catch (e) {
+    if (e.name === 'AbortError') throw new Error('Request timed out.');
+    throw e;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function fetchHouseConsultation(profileText) {
+  if (_demoMode) return demoResponseFor('houseConsultation');
+
+  if (!_adminActive) throw new Error('Admin feature. House Consultation requires admin tier.');
+
+  const userMsg = [{ role: 'user', content: 'Analyze my complete health profile. Give me your honest, thorough differential analysis.' }];
+
+  // Round 1: Both AIs analyze independently, in parallel
+  const [claudeR1, geminiR1] = await Promise.all([
+    callProvider('/api/chat', 'claude-opus-4-6', userMsg, PROMPTS.houseConsultation + '\n\nYou are "Claude" on this team.\n\n' + profileText, 2000),
+    callProvider('/api/gemini', 'gemini-2.5-pro-preview-06-05', userMsg, PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team.\n\n' + profileText, 2000),
+  ]);
+
+  // Round 2: Each sees the other's analysis and responds
+  const claudeRebuttalMsg = [{ role: 'user', content: `Your colleague Gemini's analysis:\n\n${geminiR1}\n\nNow give your rebuttal and final take.` }];
+  const geminiRebuttalMsg = [{ role: 'user', content: `Your colleague Claude's analysis:\n\n${claudeR1}\n\nNow give your rebuttal and final take.` }];
+
+  const [claudeR2, geminiR2] = await Promise.all([
+    callProvider('/api/chat', 'claude-opus-4-6', claudeRebuttalMsg, PROMPTS.houseRebuttal + '\n\nYou are "Claude." Your colleague is "Gemini."\n\n' + profileText, 1500),
+    callProvider('/api/gemini', 'gemini-2.5-pro-preview-06-05', geminiRebuttalMsg, PROMPTS.houseRebuttal + '\n\nYou are "Gemini." Your colleague is "Claude."\n\n' + profileText, 1500),
+  ]);
+
+  return {
+    rounds: [
+      { claude: claudeR1, gemini: geminiR1 },
+      { claude: claudeR2, gemini: geminiR2 },
+    ],
+  };
 }
 
 export async function fetchCrossReactivity(medName, allergies, profileText) {

@@ -8,7 +8,7 @@ import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
-import { getAIProvider, setAIProvider, isPremiumActive, trialDaysRemaining } from '../../services/ai';
+import { getAIProvider, setAIProvider, isPremiumActive, isAdminActive, trialDaysRemaining } from '../../services/ai';
 // Auto-set AI provider based on tier — no manual model picker needed
 import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
@@ -254,7 +254,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [dedupStatus, setDedupStatus] = useState(null); // null | 'running' | { results }
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
   // Effective tier — factors in trial expiry + localStorage dev override
-  const userTier = isPremiumActive(s) ? 'premium' : 'free';
+  const userTier = isAdminActive(s) ? 'admin' : isPremiumActive(s) ? 'premium' : 'free';
   const trialDays = trialDaysRemaining(s);
   const isOnTrial = trialDays != null && trialDays > 0;
   const trialExpired = s?.tier === 'premium' && trialDays === 0;
@@ -639,6 +639,18 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
         </div>
 
+        {userTier === 'admin' && (
+          <div className="mt-2.5 rounded-lg border border-salve-amber/30 bg-salve-amber/5 px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <Crown size={14} className="text-salve-amber" />
+              <span className="text-[12px] font-semibold text-salve-amber font-montserrat">Admin Tier</span>
+            </div>
+            <p className="text-[10px] text-salve-textFaint mt-1 leading-relaxed font-montserrat">
+              All features unlocked. House Consultation uses both Claude and Gemini simultaneously for dual-AI differential analysis.
+            </p>
+          </div>
+        )}
+
         {aiConsent && (
           <>
             <div className="my-3 border-t border-salve-border/50" />
@@ -724,7 +736,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         {import.meta.env.DEV && (
           <div className="mt-3 pt-3 border-t border-salve-border">
             <p className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1.5">Dev: tier override</p>
-            <div className="flex gap-1.5">
+            <div className="flex gap-1.5 flex-wrap">
               <button
                 onClick={() => applyOverride('')}
                 className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === '' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
@@ -739,9 +751,15 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </button>
               <button
                 onClick={() => applyOverride('premium')}
-                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'premium' ? 'border-salve-amber/50 bg-salve-amber/10 text-salve-amber' : 'border-salve-border text-salve-textFaint'}`}
+                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'premium' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
               >
                 Force premium
+              </button>
+              <button
+                onClick={() => applyOverride('admin')}
+                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'admin' ? 'border-salve-amber/50 bg-salve-amber/10 text-salve-amber' : 'border-salve-border text-salve-textFaint'}`}
+              >
+                Force admin
               </button>
             </div>
           </div>
