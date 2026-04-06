@@ -91,7 +91,7 @@ function getModel(feature) {
     const models = { lite: 'claude-haiku-4-5-20251001', flash: 'claude-sonnet-4-6', pro: 'claude-opus-4-6' };
     return { endpoint: '/api/chat', model: models[tier] };
   }
-  const models = { lite: 'gemini-2.0-flash-lite', flash: 'gemini-2.5-flash', pro: 'gemini-2.5-pro-preview-06-05' };
+  const models = { lite: 'gemini-2.5-flash-lite', flash: 'gemini-2.5-flash', pro: 'gemini-2.5-pro' };
   return { endpoint: '/api/gemini', model: models[tier] };
 }
 
@@ -531,7 +531,7 @@ export async function fetchHouseConsultation(profileText) {
   // Round 1: Both AIs analyze independently, in parallel
   const [claudeR1, geminiR1] = await Promise.all([
     callProvider('/api/chat', 'claude-opus-4-6', userMsg, PROMPTS.houseConsultation + '\n\nYou are "Claude" on this team.\n\n' + profileText, 2000),
-    callProvider('/api/gemini', 'gemini-2.5-pro-preview-06-05', userMsg, PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team.\n\n' + profileText, 2000),
+    callProvider('/api/gemini', 'gemini-2.5-pro', userMsg, PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team.\n\n' + profileText, 2000),
   ]);
 
   // Round 2: Each sees the other's analysis and responds
@@ -540,7 +540,7 @@ export async function fetchHouseConsultation(profileText) {
 
   const [claudeR2, geminiR2] = await Promise.all([
     callProvider('/api/chat', 'claude-opus-4-6', claudeRebuttalMsg, PROMPTS.houseRebuttal + '\n\nYou are "Claude." Your colleague is "Gemini."\n\n' + profileText, 1500),
-    callProvider('/api/gemini', 'gemini-2.5-pro-preview-06-05', geminiRebuttalMsg, PROMPTS.houseRebuttal + '\n\nYou are "Gemini." Your colleague is "Claude."\n\n' + profileText, 1500),
+    callProvider('/api/gemini', 'gemini-2.5-pro', geminiRebuttalMsg, PROMPTS.houseRebuttal + '\n\nYou are "Gemini." Your colleague is "Claude."\n\n' + profileText, 1500),
   ]);
 
   return {

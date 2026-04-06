@@ -87,9 +87,9 @@ async function checkDailyLimit(userId, supabaseUrl, serviceKey) {
 
 // ── Allowed Gemini models ──
 const ALLOWED_MODELS = new Set([
-  'gemini-2.0-flash-lite',
+  'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
-  'gemini-2.5-pro-preview-06-05',
+  'gemini-2.5-pro',
 ]);
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 
