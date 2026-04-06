@@ -167,8 +167,8 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
         </div>
       )}
 
-      {/* ── Core themes — 3-column grid ── */}
-      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+      {/* ── Core themes ── */}
+      <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}>
         {core.map(t => (
           <ThemeTile
             key={t.id}
@@ -199,7 +199,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
             }
           </button>
           {showExperimental && (
-            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mt-2">
+            <div className="grid gap-2 mt-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}>
               {experimental.map(t => (
                 <ThemeTile
                   key={t.id}
