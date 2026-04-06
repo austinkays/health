@@ -593,20 +593,11 @@ export default function Dashboard({ data, interactions, onNav }) {
 
   /* ── Getting Started tips ──────────────────── */
   const [dismissedTips, setDismissedTips] = useState(() => getDismissedTips());
-  const totalRecords = useMemo(() =>
-    (data.meds?.length || 0) + (data.conditions?.length || 0) + (data.vitals?.length || 0) +
-    (data.providers?.length || 0) + (data.allergies?.length || 0) + (data.journal?.length || 0),
-  [data.meds, data.conditions, data.vitals, data.providers, data.allergies, data.journal]);
 
   const visibleTips = useMemo(() => {
     const dismissed = new Set(dismissedTips);
-    // Hide tips the user has already acted on
-    const acted = new Set();
-    if ((data.meds?.length || 0) >= 1) acted.add('add-meds');
-    if ((data.providers?.length || 0) >= 1) acted.add('add-providers');
-    if (isOuraConnected()) acted.add('connect-oura');
-    return STARTER_TIPS.filter(t => !dismissed.has(t.id) && !acted.has(t.id));
-  }, [dismissedTips, data.meds, data.providers]);
+    return STARTER_TIPS.filter(t => !dismissed.has(t.id));
+  }, [dismissedTips]);
 
   const dismissTip = useCallback((tipId) => {
     setDismissedTips(prev => {
@@ -1068,71 +1059,70 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </div>
 
-      {/* ── Getting Started tips (sparse dashboard) ─── */}
-      {visibleTips.length > 0 && totalRecords < 10 && (
+      {/* ── Getting Started tips (magazine grid) ─── */}
+      {visibleTips.length > 0 && (
         <section aria-label="Getting started" className="dash-stagger dash-stagger-4 mb-4 mt-4">
-          <Card className="!p-0 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-salve-border/50">
-              <div className="flex items-center gap-2">
-                <Lightbulb size={13} className="text-salve-amber" />
-                <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
-              </div>
-              <button
-                onClick={dismissAllTips}
-                className="text-[10px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
-                aria-label="Dismiss all tips"
-              >
-                Hide all
-              </button>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <Lightbulb size={13} className="text-salve-amber" />
+              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
             </div>
+            <button
+              onClick={dismissAllTips}
+              className="text-[10px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
+              aria-label="Dismiss all tips"
+            >
+              Hide all
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2.5">
             {visibleTips.map((tip, i) => {
               const TipIcon = tip.icon;
               const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
+              const isLastOdd = visibleTips.length % 2 !== 0 && i === visibleTips.length - 1;
               return (
                 <div
                   key={tip.id}
-                  className={`flex items-start gap-3 px-4 py-3 ${i < visibleTips.length - 1 ? 'border-b border-salve-border/40' : ''}`}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
                 >
+                  <button
+                    onClick={() => dismissTip(tip.id)}
+                    className="absolute top-2 right-2 p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/30 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors"
+                    aria-label={`Dismiss ${tip.title}`}
+                  >
+                    <X size={11} />
+                  </button>
                   <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    className="w-7 h-7 rounded-lg flex items-center justify-center mb-2"
                     style={{ background: `${colorVar}15` }}
                   >
                     <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[12.5px] text-salve-text font-medium mb-0.5">{tip.title}</div>
-                    <p className="text-[11px] text-salve-textFaint leading-relaxed m-0 mb-1.5">{tip.body}</p>
-                    {tip.href ? (
-                      <a
-                        href={tip.href}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium font-montserrat no-underline transition-colors"
-                        style={{ color: colorVar }}
-                      >
-                        {tip.actionLabel}
-                        <ExternalLink size={10} />
-                      </a>
-                    ) : (
-                      <button
-                        onClick={() => onNav(tip.action)}
-                        className="inline-flex items-center gap-1 text-[11px] font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors"
-                        style={{ color: colorVar }}
-                      >
-                        {tip.actionLabel}
-                        <ChevronRight size={11} />
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => dismissTip(tip.id)}
-                    className="p-1.5 -mr-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/40 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors flex-shrink-0"
-                    aria-label={`Dismiss ${tip.title}`}
-                  >
-                    <X size={12} />
-                  </button>
+                  <div className="text-[12px] text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
+                  <p className="text-[10.5px] text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
+                  {tip.href ? (
+                    <a
+                      href={tip.href}
+                      className="inline-flex items-center gap-1 text-[10.5px] font-medium font-montserrat no-underline transition-colors mt-auto"
+                      style={{ color: colorVar }}
+                    >
+                      {tip.actionLabel}
+                      <ExternalLink size={9} />
+                    </a>
+                  ) : (
+                    <button
+                      onClick={() => onNav(tip.action)}
+                      className="inline-flex items-center gap-1 text-[10.5px] font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors mt-auto"
+                      style={{ color: colorVar }}
+                    >
+                      {tip.actionLabel}
+                      <ChevronRight size={10} />
+                    </button>
+                  )}
                 </div>
               );
             })}
-          </Card>
+          </div>
         </section>
       )}
 
