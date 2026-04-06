@@ -348,7 +348,7 @@ function AppContent() {
       <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} name={data.settings.name} />
       <div className="md:ml-[220px]">
         {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
-        <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[720px] lg:max-w-[960px]">
+        <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[720px] lg:max-w-[960px] xl:max-w-[1200px]">
           <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
           <main className="px-4">
             <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>

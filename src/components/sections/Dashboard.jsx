@@ -27,6 +27,7 @@ import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import { useIsDesktop } from '../layout/SplitView';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
 const VITAL_POLARITY = {
@@ -150,6 +151,7 @@ const HUB_TILES = [
 const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
 export default function Dashboard({ data, interactions, onNav }) {
+  const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
   const wellness = useWellnessMessage();
@@ -272,8 +274,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       .map(t => ({ ...t, _type: 'todo', _sortDate: t.due_date }));
 
     return [...appts, ...refills, ...periodEntry, ...dueTodos]
-      .sort((a, b) => new Date(a._sortDate) - new Date(b._sortDate))
-      .slice(0, 4);
+      .sort((a, b) => new Date(a._sortDate) - new Date(b._sortDate));
   }, [data.appts, activeMeds, data.cycles, data.todos]);
 
   const latestJournal = useMemo(
@@ -333,7 +334,6 @@ export default function Dashboard({ data, interactions, onNav }) {
     const featured = buildItem(featuredType);
     const chips = available
       .filter(t => t !== featuredType)
-      .slice(0, 3)
       .map(buildItem)
       .filter(Boolean);
     return { featured, chips };
@@ -481,6 +481,9 @@ export default function Dashboard({ data, interactions, onNav }) {
     return items;
   }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, data.appts, activeMeds]);
 
+  const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
+  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
+
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
@@ -503,8 +506,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       journal_entries: data.journal,
       settings: data.settings,
     })
-      .filter(m => !seenSet.has(m.resource.id))
-      .slice(0, 3);
+      .filter(m => !seenSet.has(m.resource.id));
   }, [data.conditions, data.meds, data.journal, data.settings, seenResources]);
 
   const dismissResource = useCallback((resourceId) => {
@@ -642,229 +644,253 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </section>
 
-      {/* ── Needs Attention (consolidated alerts) ── */}
-      {alerts.length > 0 && !alertsDismissed && (
-        <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4">
-          <Card className="!p-0 overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-salve-border/50">
-              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
-              <button
-                onClick={() => setShowDismissMenu(!showDismissMenu)}
-                className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors"
-                aria-label="Dismiss alerts"
-              >
-                <X size={13} />
-              </button>
-            </div>
-            {showDismissMenu && (
-              <div className="flex items-center gap-1.5 px-4 py-2 bg-salve-card2/50 border-b border-salve-border/50">
-                <span className="text-[10.5px] text-salve-textFaint mr-auto">Hide for:</span>
-                <button onClick={() => dismissAlerts(86400000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 day</button>
-                <button onClick={() => dismissAlerts(604800000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 week</button>
-                <button onClick={() => dismissAlerts('forever')} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">Always</button>
+      {/* ── Row: AI Insight + Alerts (side-by-side on desktop) ── */}
+      {(() => {
+        const hasAlerts = alerts.length > 0 && !alertsDismissed;
+        const hasInsightTeaser = hasAIConsent() && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0;
+        const hasInsightContent = hasAIConsent() && (insight || insightLoading);
+        const showInsight = hasInsightTeaser || hasInsightContent;
+        if (!hasAlerts && !showInsight) return null;
+
+        const alertsNode = hasAlerts && (
+          <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4">
+            <Card className="!p-0 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-salve-border/50">
+                <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
+                <button
+                  onClick={() => setShowDismissMenu(!showDismissMenu)}
+                  className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors"
+                  aria-label="Dismiss alerts"
+                >
+                  <X size={13} />
+                </button>
               </div>
+              {showDismissMenu && (
+                <div className="flex items-center gap-1.5 px-4 py-2 bg-salve-card2/50 border-b border-salve-border/50">
+                  <span className="text-[10.5px] text-salve-textFaint mr-auto">Hide for:</span>
+                  <button onClick={() => dismissAlerts(86400000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 day</button>
+                  <button onClick={() => dismissAlerts(604800000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 week</button>
+                  <button onClick={() => dismissAlerts('forever')} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">Always</button>
+                </div>
+              )}
+              {alerts.map((a, i) => (
+                <button
+                  key={a.id}
+                  onClick={() => onNav(a.nav, a.highlightId ? { highlightId: a.highlightId } : undefined)}
+                  className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
+                >
+                  <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
+                  <a.icon size={14} color={a.color} className="flex-shrink-0" />
+                  <span className="text-[12.5px] text-salve-textMid text-left flex-1">{a.text}</span>
+                  <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
+                </button>
+              ))}
+            </Card>
+          </section>
+        );
+
+        const insightNode = (
+          <>
+            {hasInsightTeaser && (
+              <section aria-label="Get insight from Sage" className="dash-stagger dash-stagger-3 mb-4">
+                <button
+                  onClick={loadInsight}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-salve-sage/5 border border-salve-sage/15 cursor-pointer hover:bg-salve-sage/10 hover:border-salve-sage/25 transition-all font-montserrat text-left"
+                >
+                  <Leaf size={13} className="text-salve-sage/70 flex-shrink-0" />
+                  <span className="text-[12px] text-salve-sageDim/80 flex-1">Get today's insight from Sage</span>
+                  <ChevronRight size={12} className="text-salve-sage/40 flex-shrink-0" />
+                </button>
+              </section>
             )}
-            {alerts.map((a, i) => (
-              <button
-                key={a.id}
-                onClick={() => onNav(a.nav, a.highlightId ? { highlightId: a.highlightId } : undefined)}
-                className={`w-full flex items-center gap-2.5 px-4 py-3 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
-              >
-                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
-                <a.icon size={14} color={a.color} className="flex-shrink-0" />
-                <span className="text-[12.5px] text-salve-textMid text-left flex-1">{a.text}</span>
-                <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
-              </button>
-            ))}
-          </Card>
-        </section>
-      )}
+            {hasInsightContent && (
+              <section aria-label="Daily insight" className="dash-stagger dash-stagger-3 mb-4">
+                {insightLoading ? (
+                  <Card className="!bg-salve-sage/5 !border-salve-sage/15 shimmer-bg insight-glow">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Leaf size={14} className="text-salve-sageDim" />
+                      <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
+                    </div>
+                    <div className="relative w-14 h-14 mx-auto mb-3 flex items-center justify-center">
+                      <div className="absolute inset-0 rounded-full border border-salve-sage/20 breathe-ring" />
+                      <div className="absolute inset-2 rounded-full border border-salve-sage/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
+                      <Leaf size={18} className="breathe-icon text-salve-sageDim" />
+                    </div>
+                    <p className="text-[10px] text-salve-textFaint/50 font-montserrat tracking-widest uppercase mb-3 text-center">Breathe with me</p>
+                    <div key={wellness.key} className="wellness-msg text-[12px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
+                  </Card>
+                ) : insight && (
+                  <Card className="!bg-salve-sage/5 !border-salve-sage/15 insight-glow">
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Leaf size={14} className="text-salve-sage" />
+                        <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim();
+                            const key = 'salve:saved-insights';
+                            try {
+                              const arr = JSON.parse(localStorage.getItem(key) || '[]');
+                              if (!arr.some(s => s.type === 'insight' && s.text === clean)) {
+                                arr.push({ type: 'insight', label: 'Health Insight', text: clean, savedAt: new Date().toISOString() });
+                                localStorage.setItem(key, JSON.stringify(arr));
+                              }
+                            } catch {}
+                          }}
+                          className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
+                          aria-label="Save insight"
+                        ><Bookmark size={12} /></button>
+                        <button
+                          onClick={() => { const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim(); navigator.clipboard.writeText(clean); }}
+                          className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
+                          aria-label="Copy insight"
+                        ><Copy size={12} /></button>
+                        <button
+                          onClick={() => { setInsight(null); loadInsight(); }}
+                          className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
+                          aria-label="New insight"
+                        ><RefreshCw size={12} /></button>
+                      </div>
+                    </div>
+                    <AIMarkdown compact>{insight}</AIMarkdown>
+                  </Card>
+                )}
+              </section>
+            )}
+          </>
+        );
 
-      {/* ── AI Insight teaser (when no insight loaded, consented) ── */}
-      {hasAIConsent() && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0 && (
-        <section aria-label="Get insight from Sage" className="dash-stagger dash-stagger-3 mb-4">
-          <button
-            onClick={loadInsight}
-            className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-salve-sage/5 border border-salve-sage/15 cursor-pointer hover:bg-salve-sage/10 hover:border-salve-sage/25 transition-all font-montserrat text-left"
-          >
-            <Leaf size={13} className="text-salve-sage/70 flex-shrink-0" />
-            <span className="text-[12px] text-salve-sageDim/80 flex-1">Get today's insight from Sage</span>
-            <ChevronRight size={12} className="text-salve-sage/40 flex-shrink-0" />
-          </button>
-        </section>
-      )}
-
-      {/* ── AI Insight (only when loaded or loading) ── */}
-      {hasAIConsent() && (insight || insightLoading) && (
-        <section aria-label="Daily insight" className="dash-stagger dash-stagger-3 mb-4">
-          {insightLoading ? (
-            <Card className="!bg-salve-sage/5 !border-salve-sage/15 shimmer-bg insight-glow">
-              <div className="flex items-center gap-2 mb-2">
-                <Leaf size={14} className="text-salve-sageDim" />
-                <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
-              </div>
-              <div className="relative w-14 h-14 mx-auto mb-3 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border border-salve-sage/20 breathe-ring" />
-                <div className="absolute inset-2 rounded-full border border-salve-sage/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
-                <Leaf size={18} className="breathe-icon text-salve-sageDim" />
-              </div>
-              <p className="text-[10px] text-salve-textFaint/50 font-montserrat tracking-widest uppercase mb-3 text-center">Breathe with me</p>
-              <div key={wellness.key} className="wellness-msg text-[12px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
-            </Card>
-          ) : insight && (
-            <Card className="!bg-salve-sage/5 !border-salve-sage/15 insight-glow">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-2">
-                  <Leaf size={14} className="text-salve-sage" />
-                  <span className="text-xs text-salve-sageDim font-montserrat tracking-wide">FROM SAGE</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => {
-                      const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim();
-                      const key = 'salve:saved-insights';
-                      try {
-                        const arr = JSON.parse(localStorage.getItem(key) || '[]');
-                        if (!arr.some(s => s.type === 'insight' && s.text === clean)) {
-                          arr.push({ type: 'insight', label: 'Health Insight', text: clean, savedAt: new Date().toISOString() });
-                          localStorage.setItem(key, JSON.stringify(arr));
-                        }
-                      } catch {}
-                    }}
-                    className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
-                    aria-label="Save insight"
-                  ><Bookmark size={12} /></button>
-                  <button
-                    onClick={() => { const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim(); navigator.clipboard.writeText(clean); }}
-                    className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
-                    aria-label="Copy insight"
-                  ><Copy size={12} /></button>
-                  <button
-                    onClick={() => { setInsight(null); loadInsight(); }}
-                    className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
-                    aria-label="New insight"
-                  ><RefreshCw size={12} /></button>
-                </div>
-              </div>
-              <AIMarkdown compact>{insight}</AIMarkdown>
-            </Card>
-          )}
-        </section>
-      )}
+        return (
+          <div className="md:flex md:gap-4 md:items-start">
+            {showInsight && <div className="md:flex-[3] md:min-w-0">{insightNode}</div>}
+            {alertsNode && <div className="md:flex-[2] md:min-w-0">{alertsNode}</div>}
+          </div>
+        );
+      })()}
 
       {/* ── Discover (matched resources) ───────────── */}
-      {discoverItems.length > 0 && (
+      {displayedDiscover.length > 0 && (
         <section aria-label="Discover resources" className="dash-stagger dash-stagger-4 mb-4">
           <Card className="!p-0 overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2.5 border-b border-salve-border/50">
               <Compass size={13} className="text-salve-lav" />
               <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
             </div>
-            {discoverItems.map((d, i) => {
-              const isEveryCure = d.resource.source === 'EveryCure';
-              const accentColor = isEveryCure ? C.sage : C.rose;
-              return (
-                <div
-                  key={d.resource.id}
-                  className={`flex items-start gap-3 px-4 py-3 ${i < discoverItems.length - 1 ? 'border-b border-salve-border/40' : ''}`}
-                >
+            <div className="md:flex md:flex-wrap">
+              {displayedDiscover.map((d, i) => {
+                const isEveryCure = d.resource.source === 'EveryCure';
+                const accentColor = isEveryCure ? C.sage : C.rose;
+                return (
                   <div
-                    className="w-1 self-stretch rounded-full flex-shrink-0 mt-0.5"
-                    style={{ background: accentColor }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      {isEveryCure && <span className="text-[10px]" aria-hidden="true">🔬</span>}
-                      <span
-                        className="text-[9px] font-montserrat tracking-wider uppercase"
-                        style={{ color: accentColor }}
-                      >
-                        {d.resource.source}
-                      </span>
-                    </div>
-                    <a
-                      href={d.resource.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[12.5px] text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
-                    >
-                      {d.resource.title}
-                      <ExternalLink size={10} className="text-salve-textFaint/50 flex-shrink-0" />
-                    </a>
-                    <p className="text-[11px] text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
-                  </div>
-                  <button
-                    onClick={() => dismissResource(d.resource.id)}
-                    className="p-1.5 -mr-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/40 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors flex-shrink-0"
-                    aria-label={`Dismiss ${d.resource.title}`}
+                    key={d.resource.id}
+                    className={`flex items-start gap-3 px-4 py-3 md:flex-1 md:min-w-[200px] ${i < displayedDiscover.length - 1 ? 'border-b md:border-b-0 md:border-r border-salve-border/40' : ''}`}
                   >
-                    <X size={12} />
-                  </button>
-                </div>
-              );
-            })}
+                    <div
+                      className="w-1 self-stretch rounded-full flex-shrink-0 mt-0.5"
+                      style={{ background: accentColor }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        {isEveryCure && <span className="text-[10px]" aria-hidden="true">🔬</span>}
+                        <span
+                          className="text-[9px] font-montserrat tracking-wider uppercase"
+                          style={{ color: accentColor }}
+                        >
+                          {d.resource.source}
+                        </span>
+                      </div>
+                      <a
+                        href={d.resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[12.5px] text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
+                      >
+                        {d.resource.title}
+                        <ExternalLink size={10} className="text-salve-textFaint/50 flex-shrink-0" />
+                      </a>
+                      <p className="text-[11px] text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
+                    </div>
+                    <button
+                      onClick={() => dismissResource(d.resource.id)}
+                      className="p-1.5 -mr-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/40 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors flex-shrink-0"
+                      aria-label={`Dismiss ${d.resource.title}`}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
         </section>
       )}
 
-      {/* ── Coming Up (unified timeline) ──────────── */}
-      {timeline.length > 0 && (
-        <section aria-label="Coming up" className="dash-stagger dash-stagger-4 mb-2">
-          <SectionTitle>Coming Up</SectionTitle>
-          {timeline.map((item, i) => {
-            const isAppt = item._type === 'appt';
-            const isPeriod = item._type === 'period';
-            const isTodo = item._type === 'todo';
-            const dotColor = isAppt ? C.sage : isPeriod ? C.rose : isTodo ? C.lav : C.amber;
-            const label = isAppt ? (item.reason || 'Appointment') : isPeriod ? item._label : isTodo ? item.title : `${item.name} ${item.dose || ''}`.trim();
-            const sub = isAppt ? item.provider : isPeriod ? 'Predicted' : isTodo ? 'To-do' : 'Refill';
-            if (isPeriod) {
+      {/* ── Row: Vitals + Coming Up (side-by-side on desktop) ── */}
+      {(() => {
+        const hasVitals = vitalsSnapshot && vitalsSnapshot.featured;
+        const hasTimeline = displayedTimeline.length > 0;
+        if (!hasVitals && !hasTimeline) return null;
+
+        const timelineNode = hasTimeline && (
+          <section aria-label="Coming up" className="dash-stagger dash-stagger-4 mb-2">
+            <SectionTitle>Coming Up</SectionTitle>
+            {displayedTimeline.map((item, i) => {
+              const isAppt = item._type === 'appt';
+              const isPeriod = item._type === 'period';
+              const isTodo = item._type === 'todo';
+              const dotColor = isAppt ? C.sage : isPeriod ? C.rose : isTodo ? C.lav : C.amber;
+              const label = isAppt ? (item.reason || 'Appointment') : isPeriod ? item._label : isTodo ? item.title : `${item.name} ${item.dose || ''}`.trim();
+              const sub = isAppt ? item.provider : isPeriod ? 'Predicted' : isTodo ? 'To-do' : 'Refill';
+              if (isPeriod) {
+                return (
+                  <div
+                    key={item.id || i}
+                    className="w-full flex items-center gap-3 py-2.5 px-1 rounded-lg group timeline-row"
+                  >
+                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
+                    <button
+                      onClick={() => onNav('cycles')}
+                      className="flex-1 text-left min-w-0 bg-transparent border-0 cursor-pointer p-0"
+                    >
+                      <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
+                      <div className="text-[11px] text-salve-textFaint">{sub}</div>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onNav('cycles', { quickLog: true }); }}
+                      className="ml-auto py-1 px-2.5 rounded-full text-[10px] font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
+                      aria-label="Log period for today"
+                    >
+                      Log today
+                    </button>
+                  </div>
+                );
+              }
               return (
-                <div
+                <button
                   key={item.id || i}
-                  className="w-full flex items-center gap-3 py-2.5 px-1 rounded-lg group timeline-row"
+                  onClick={() => onNav(isAppt ? 'appts' : isTodo ? 'todos' : 'meds')}
+                  className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
                 >
                   <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-                  <button
-                    onClick={() => onNav('cycles')}
-                    className="flex-1 text-left min-w-0 bg-transparent border-0 cursor-pointer p-0"
-                  >
+                  <div className="flex-1 text-left min-w-0">
                     <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
                     <div className="text-[11px] text-salve-textFaint">{sub}</div>
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onNav('cycles', { quickLog: true }); }}
-                    className="ml-auto py-1 px-2.5 rounded-full text-[10px] font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
-                    aria-label="Log period for today"
-                  >
-                    Log today
-                  </button>
-                </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-[12px] font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
+                    <div className="text-[10px] text-salve-textFaint">{fmtDate(item._sortDate)}</div>
+                  </div>
+                </button>
               );
-            }
-            return (
-              <button
-                key={item.id || i}
-                onClick={() => onNav(isAppt ? 'appts' : isTodo ? 'todos' : 'meds')}
-                className="w-full flex items-center gap-3 bg-transparent border-0 cursor-pointer py-2.5 px-1 rounded-lg group timeline-row"
-              >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-                <div className="flex-1 text-left min-w-0">
-                  <div className="text-[13px] text-salve-text font-medium truncate">{label}</div>
-                  <div className="text-[11px] text-salve-textFaint">{sub}</div>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="text-[12px] font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
-                  <div className="text-[10px] text-salve-textFaint">{fmtDate(item._sortDate)}</div>
-                </div>
-              </button>
-            );
-          })}
-        </section>
-      )}
+            })}
+          </section>
+        );
 
-      {/* ── Vitals Snapshot ──────────────────────── */}
-      {vitalsSnapshot && vitalsSnapshot.featured && (() => {
+        return (
+          <div className="md:flex md:gap-4 md:items-start">
+            {hasVitals && <div className="md:flex-[3] md:min-w-0">{(() => {
         const f = vitalsSnapshot.featured;
         const fType = VITAL_TYPES.find(t => t.id === f.type);
         const fLabel = fType?.label || f.type;
@@ -964,6 +990,10 @@ export default function Dashboard({ data, interactions, onNav }) {
             </Card>
           </section>
         );
+      })()}</div>}
+            {timelineNode && <div className="md:flex-[2] md:min-w-0">{timelineNode}</div>}
+          </div>
+        );
       })()}
 
       <Divider />
@@ -971,7 +1001,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* ── Pinned shortcuts (user-starred) ─────── */}
       {starredTiles.length > 0 && (
         <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-3">
-          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3">
             {starredTiles.map(t => (
               <button
                 key={t.id}
@@ -994,7 +1024,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         {starredTiles.length > 0 && (
           <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
         )}
-        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-3 mb-4">
+        <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 md:gap-3 mb-4">
           {hubTiles.map(h => (
             <button
               key={h.id}
