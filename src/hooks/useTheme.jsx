@@ -41,56 +41,56 @@ export function ThemeProvider({ children }) {
   const [themeId, setThemeIdInternal] = useState(initial);
 
   const isFirstRender = useRef(true);
-  // Tracks any in-flight rAF so rapid theme changes can cancel it
   const rafRef = useRef(null);
+  const cleanupTimerRef = useRef(null);
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      // inline script in index.html already set all vars — this sync call just
-      // keeps React's DOM state in sync without adding an animation frame delay
+      // inline script in index.html already set all vars — sync call keeps
+      // React's DOM state in sync without adding an animation frame delay
       applyThemeVariables(themeId, false);
       return;
     }
 
-    const root = document.documentElement;
+    const body = document.body;
 
-    // Cancel any rAF still pending from a previous (interrupted) transition
-    if (rafRef.current) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
+    // Cancel any in-flight fade-in (handles rapid theme changes)
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    clearTimeout(cleanupTimerRef.current);
 
-    // Reset class state to a clean slate — both classes may be present if the
-    // user changed themes before the previous transition finished
-    root.classList.remove('theme-transitioning', 'theme-transitioned');
-    // Force a reflow so the removal is committed before we re-add
+    // Snap invisible immediately — works whether we're mid-fade-in or at full opacity.
+    // body inline style overrides any CSS rule, so this is always reliable.
+    body.style.transition = 'none';
+    body.style.opacity = '0';
+    // Commit the snap before the next rAF so the browser doesn't batch it
+    // with the fade-in style changes below.
     // eslint-disable-next-line no-unused-expressions
-    void root.offsetHeight;
-    root.classList.add('theme-transitioning');
+    void body.offsetHeight;
 
-    const applyTimer = setTimeout(() => {
-      // Apply vars synchronously while body is still at opacity:0 so colors
-      // are in place before the fade-in begins (avoids one-frame color flash).
-      applyThemeVariables(themeId, false);
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        root.classList.remove('theme-transitioning');
-        root.classList.add('theme-transitioned');
-      });
-    }, 800);
+    // Apply new theme vars while invisible — html bg (rgb(var(--salve-bg)))
+    // is already updated here so nothing shows through the invisible body.
+    applyThemeVariables(themeId, false);
 
-    const cleanupTimer = setTimeout(() => {
-      root.classList.remove('theme-transitioned');
-    }, 2600);
+    // Fade in on the next frame
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      body.style.transition = 'opacity 0.55s ease-in';
+      body.style.opacity = '1';
+      // Clean up inline styles after the transition so nothing overrides
+      // normal page behaviour going forward
+      cleanupTimerRef.current = setTimeout(() => {
+        body.style.transition = '';
+        body.style.opacity = '';
+      }, 560);
+    });
 
     return () => {
-      clearTimeout(applyTimer);
-      clearTimeout(cleanupTimer);
-      if (rafRef.current) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+      clearTimeout(cleanupTimerRef.current);
+      // Restore body if the component unmounts mid-transition
+      body.style.transition = '';
+      body.style.opacity = '';
     };
   }, [themeId]);
 

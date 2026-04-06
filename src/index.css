@@ -37,18 +37,11 @@
 }
 
 /* ── Theme transition ──────────────────────────── */
-/* Smooth crossfade when switching themes           */
-html.theme-transitioning,
-html.theme-transitioned {
-  background-color: #000;
-}
-html.theme-transitioning body {
-  opacity: 0;
-  transition: opacity 0.8s ease-out;
-}
-html.theme-transitioned body {
-  opacity: 1;
-  transition: opacity 1.6s ease-in;
+/* When body is invisible during a theme switch,    */
+/* html's bg shows through — match the theme bg so  */
+/* there's no flash of white/wrong color.           */
+html {
+  background: rgb(var(--salve-bg));
 }
 
 /* ── Theme CSS variable defaults (Lilac) ───── */
