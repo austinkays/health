@@ -962,6 +962,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     const msgs = [...chatMessages, { role: 'user', content: chatInput }];
     setChatMessages(msgs);
     setChatInput('');
+    chatInputRef.current?.focus();
     setLoading(true);
     setToolExecutions([]);
     try {
@@ -992,6 +993,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   };
 
   const chatEndRef = useRef(null);
+  const chatInputRef = useRef(null);
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, loading]);
@@ -1052,6 +1054,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       </div>
       <div className="flex gap-2">
         <input
+          ref={chatInputRef}
           className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[13px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
           value={chatInput}
           onChange={e => setChatInput(e.target.value)}

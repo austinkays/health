@@ -73,6 +73,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
     const next = [...messages, userMsg];
     setMessages(next);
     setInput('');
+    inputRef.current?.focus();
     setLoading(true);
     try {
       const profile = buildProfile(data);
