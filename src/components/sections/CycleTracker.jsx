@@ -676,7 +676,8 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
       {filtered.length === 0 ? (
         <EmptyState icon={Heart} text="No cycle data logged yet" motif="moon" />
       ) : (
-        filtered.map(c => {
+        <div className="md:grid md:grid-cols-2 md:gap-3">
+        {filtered.map(c => {
           const isExpanded = expandedId === c.id;
           const isHighlighted = highlightId === c.id;
 
@@ -733,7 +734,8 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
               </Card>
             </div>
           );
-        })
+        })}
+        </div>
       )}
     </div>
   );

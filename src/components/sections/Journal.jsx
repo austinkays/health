@@ -200,7 +200,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
       })()}
 
       {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
-        data.journal.filter(e => !tagFilter || (e.tags && e.tags.split(',').map(t => t.trim()).includes(tagFilter))).map(e => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{data.journal.filter(e => !tagFilter || (e.tags && e.tags.split(',').map(t => t.trim()).includes(tagFilter))).map(e => {
           const sev = Number(e.severity);
           const sevColor = sev >= 7 ? C.rose : sev >= 4 ? C.amber : C.sage;
           const sevBg = sev >= 7 ? 'rgba(232,138,154,0.15)' : sev >= 4 ? 'rgba(232,200,138,0.15)' : 'rgba(143,191,160,0.15)';
@@ -244,7 +244,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('journal', id))} onCancel={del.cancel} itemId={e.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

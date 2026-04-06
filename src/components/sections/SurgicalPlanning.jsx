@@ -111,7 +111,7 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
 
 
       {data.surgical_planning.length === 0 ? <EmptyState icon={PlaneTakeoff} text="No surgical plans yet" motif="leaf" /> :
-        data.surgical_planning.map(plan => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{data.surgical_planning.map(plan => {
           const ss = statusStyle(plan.status);
           const procs = Array.isArray(plan.procedures) ? plan.procedures : [];
           const outstanding = Array.isArray(plan.outstanding_items) ? plan.outstanding_items : [];
@@ -179,7 +179,7 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('surgical_planning', id))} onCancel={del.cancel} itemId={plan.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

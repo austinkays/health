@@ -212,7 +212,7 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
           motif="leaf"
         />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-4">
           {filtered.map(t => {
             const isExpanded = expandedId === t.id;
             const ps = priorityStyle(t.priority);

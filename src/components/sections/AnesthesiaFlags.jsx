@@ -70,7 +70,7 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem,
       {flags.length === 0 ? (
         <EmptyState icon={AlertOctagon} text="No anesthesia flags recorded" motif="leaf" />
       ) : (
-        flags.map(flag => (
+        <div className="md:grid md:grid-cols-2 md:gap-4">{flags.map(flag => (
           <Card key={flag.id} id={`record-${flag.id}`} style={{ borderLeft: `3px solid ${C.rose}` }} className={highlightId === flag.id ? 'highlight-ring' : ''}>
             <div className="flex justify-between items-start">
               <div className="flex-1">
@@ -97,7 +97,7 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem,
             </div>
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('anesthesia_flags', id))} onCancel={del.cancel} itemId={flag.id} />
           </Card>
-        ))
+        ))}</div>
       )}
 
       {flags.length > 0 && (

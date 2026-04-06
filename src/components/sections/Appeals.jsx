@@ -114,7 +114,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
 
 
       {fl.length === 0 ? <EmptyState icon={Scale} text={filter === 'active' ? 'No open appeals' : 'No appeals recorded'} motif="leaf" /> :
-        fl.map(a => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{fl.map(a => {
           const ss = statusStyle(a.status);
           const isExpanded = expandedId === a.id;
           const dlBadge = a.status !== 'Resolved' ? deadlineBadge(a.deadline) : null;
@@ -171,7 +171,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appeals_and_disputes', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

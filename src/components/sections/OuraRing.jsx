@@ -264,7 +264,7 @@ export default function OuraRing({ data, addItem, onNav }) {
       </div>
 
       {/* Today's overview */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
         <StatCard
           icon={Moon} label="Sleep" color={C.lav}
           value={sleepHrs} unit="hrs"
@@ -307,7 +307,8 @@ export default function OuraRing({ data, addItem, onNav }) {
         <InfoCard info={INFO.temp} />
       </Card>
 
-      {/* Sleep breakdown */}
+      {/* Sleep + Readiness breakdown */}
+      <div className="md:grid md:grid-cols-2 md:gap-4">
       {latest?.sleep && (
         <Card className="mb-3">
           <div className="flex items-center justify-between mb-2.5">
@@ -356,8 +357,10 @@ export default function OuraRing({ data, addItem, onNav }) {
           </div>
         </Card>
       )}
+      </div>
 
-      {/* 7-day sleep history */}
+      {/* 7-day history */}
+      <div className="md:grid md:grid-cols-2 md:gap-4">
       {latest?.sleepHistory?.length > 1 && (
         <Card className="mb-3">
           <span className="text-xs font-medium text-salve-textFaint font-montserrat uppercase tracking-wider block mb-2.5">7-Day Sleep</span>
@@ -422,6 +425,7 @@ export default function OuraRing({ data, addItem, onNav }) {
           </div>
         </Card>
       )}
+      </div>
 
       <div className="text-center py-2">
         <button

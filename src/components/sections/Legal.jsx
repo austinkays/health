@@ -152,9 +152,11 @@ export default function Legal() {
         ))}
       </div>
 
+      <div className="md:max-w-3xl md:mx-auto">
       {activeTab === 'privacy' && <Privacy />}
       {activeTab === 'terms' && <Terms />}
       {activeTab === 'hipaa' && <HipaaNotice />}
+      </div>
 
       <p className="text-[11px] text-salve-textFaint text-center mt-4 mb-2 italic">
         Questions, privacy requests, or bug reports?

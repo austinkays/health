@@ -145,7 +145,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
               <Motif type="leaf" size={12} color={C.sage} style={{ marginRight: 4 }} /> Upcoming
             </div>
           )}
-          {up.map(a => (
+          <div className="md:grid md:grid-cols-2 md:gap-4">{up.map(a => (
             <Card key={a.id} id={`record-${a.id}`} style={{ borderLeft: `3px solid ${C.sage}` }} className={highlightId === a.id ? 'highlight-ring' : ''}>
               <div className="flex justify-between">
                 <div className="flex-1">
@@ -201,9 +201,9 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
               )}
               <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
-          ))}
+          ))}</div>
           {past.length > 0 && <><Divider /><div className="text-[11px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}
-          {past.slice(0, 10).map(a => (
+          <div className="md:grid md:grid-cols-2 md:gap-4">{past.slice(0, 10).map(a => (
             <Card key={a.id} id={`record-${a.id}`} className={`opacity-75${highlightId === a.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between">
                 <div>
@@ -218,7 +218,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
               {a.post_notes && <div className="text-xs text-salve-textMid mt-1.5 border-t border-salve-border pt-1.5">{a.post_notes}</div>}
             <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
-          ))}
+          ))}</div>
         </>
       )}
     </div>

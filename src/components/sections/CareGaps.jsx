@@ -142,7 +142,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
 
 
       {fl.length === 0 ? <EmptyState icon={AlertTriangle} text={filter === 'active' ? 'No open care gaps' : 'No care gaps recorded'} motif="leaf" /> :
-        fl.map(g => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{fl.map(g => {
           const us = urgencyStyle(g.urgency);
           const isExpanded = expandedId === g.id;
           return (
@@ -171,7 +171,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('care_gaps', id))} onCancel={del.cancel} itemId={g.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

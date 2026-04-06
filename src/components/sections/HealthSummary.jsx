@@ -235,6 +235,8 @@ export default function HealthSummary({ data, onNav }) {
         </div>
       </Card>
 
+      {/* ── Section grid ── */}
+      <div className="md:grid md:grid-cols-2 md:gap-4">
       {/* ── Safety-critical: Allergies (always shown) ── */}
       <Section
         icon={Shield} title="Allergies" count={allergies.length}
@@ -578,6 +580,7 @@ export default function HealthSummary({ data, onNav }) {
         </Section>
       )}
 
+      </div>
       {/* ── Footer ─────────────────────────────── */}
       <p className="text-center text-salve-textFaint text-[11px] mt-4 mb-2">
         Tap any row to view details · Tap "View All" to manage

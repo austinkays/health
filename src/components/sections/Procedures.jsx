@@ -71,7 +71,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem, high
 
 
       {data.procedures.length === 0 ? <EmptyState icon={Syringe} text="No procedures recorded yet" motif="leaf" /> :
-        data.procedures.map(p => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{data.procedures.map(p => {
           const tc = p.type ? typeColor(p.type) : null;
           const isExpanded = expandedId === p.id;
           return (
@@ -110,7 +110,7 @@ export default function Procedures({ data, addItem, updateItem, removeItem, high
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('procedures', id))} onCancel={del.cancel} itemId={p.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

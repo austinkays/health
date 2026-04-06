@@ -154,7 +154,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
         </div>
 
         {data.insurance.length === 0 ? <EmptyState icon={BadgeDollarSign} text="No insurance plans recorded" motif="leaf" /> :
-          data.insurance.map(ins => {
+          <div className="md:grid md:grid-cols-2 md:gap-4">{data.insurance.map(ins => {
             const ts = ins.type ? typeStyle(ins.type) : null;
             const isExpanded = expandedId === ins.id;
             const planClaims = claims.filter(c => c.insurance_plan === ins.name).length;
@@ -191,7 +191,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
                 <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('insurance', id))} onCancel={del.cancel} itemId={ins.id} />
               </Card>
             );
-          })
+          })}</div>
         }
       </>}
 
@@ -222,7 +222,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
         )}
 
         {claims.length === 0 ? <EmptyState icon={Receipt} text="No claims tracked yet" motif="leaf" /> :
-          claims.map(cl => {
+          <div className="md:grid md:grid-cols-2 md:gap-3">{claims.map(cl => {
             const ss = claimStatusStyle(cl.status);
             const isExpanded = expandedId === cl.id;
             return (
@@ -262,7 +262,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
                 <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('insurance_claims', id))} onCancel={del.cancel} itemId={cl.id} />
               </Card>
             );
-          })
+          })}</div>
         }
       </>}
     </div>

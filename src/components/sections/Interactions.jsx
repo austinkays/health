@@ -66,7 +66,7 @@ export default function Interactions({ interactions, meds }) {
             NLM Database Results
             <span className="text-[9px] font-normal normal-case text-salve-textFaint tracking-normal">via National Library of Medicine</span>
           </div>
-          {liveResults.map((r, i) => (
+          <div className="md:grid md:grid-cols-2 md:gap-4">{liveResults.map((r, i) => (
             <Card key={`live-${i}`} style={{ borderLeft: `3px solid ${r.severity === 'danger' ? C.rose : r.severity === 'caution' ? C.amber : C.sage}` }}>
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[13px] font-semibold text-salve-text">{r.pair || 'Interaction'}</span>
@@ -75,7 +75,7 @@ export default function Interactions({ interactions, meds }) {
               <div className="text-xs text-salve-textMid leading-relaxed">{r.description}</div>
               <div className="text-[9px] text-salve-textFaint mt-1.5">Source: NLM RxNorm</div>
             </Card>
-          ))}
+          ))}</div>
           {interactions.length > 0 && <div className="h-px bg-salve-border my-3" />}
         </>
       )}
@@ -101,7 +101,7 @@ export default function Interactions({ interactions, meds }) {
       ) : interactions.length > 0 ? (
         <>
           <div className="text-xs text-salve-textFaint mb-3 text-center">{interactions.length} interaction{interactions.length > 1 ? 's' : ''} found</div>
-          {interactions.map((w, i) => (
+          <div className="md:grid md:grid-cols-2 md:gap-4">{interactions.map((w, i) => (
             <Card key={i} style={{ borderLeft: `3px solid ${w.severity === 'danger' ? C.rose : w.severity === 'caution' ? C.amber : C.sage}` }}>
               <div className="flex justify-between items-center mb-1.5">
                 <span className="text-[13px] font-semibold text-salve-text">{w.medA} + {w.medB}</span>
@@ -109,7 +109,7 @@ export default function Interactions({ interactions, meds }) {
               </div>
               <div className="text-xs text-salve-textMid leading-relaxed">{w.msg}</div>
             </Card>
-          ))}
+          ))}</div>
         </>
       ) : null}
 

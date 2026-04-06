@@ -158,7 +158,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
 
       {filtered.length === 0 ? (
         <EmptyState icon={Building2} text={filter === 'all' ? 'No pharmacies found' : `No ${filter === 'preferred' ? 'preferred' : ''} pharmacies`} motif="leaf" />
-      ) : filtered.map(p => {
+      ) : <div className="md:grid md:grid-cols-2 md:gap-4">{filtered.map(p => {
         const isExpanded = expandedId === p._key;
         const meds = medsByKey[p._key] || [];
         const refills = refillsByKey[p._key] || [];
@@ -284,7 +284,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
             {p._saved && <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('pharmacies', id))} onCancel={del.cancel} itemId={p.id} />}
           </Card>
         );
-      })}
+      })}</div>}
     </div>
   );
 }

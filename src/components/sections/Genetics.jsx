@@ -255,7 +255,7 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
       {sorted.length === 0 ? (
         <EmptyState icon={Dna} text="No genetic results yet" motif="leaf" />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-4">
           {sorted.map(g => {
             const isExpanded = expandedId === g.id;
             const ps = phenotypeStyle(g.phenotype);

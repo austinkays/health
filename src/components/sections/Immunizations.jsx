@@ -101,7 +101,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem, h
       )}
 
       {data.immunizations.length === 0 ? <EmptyState icon={ShieldCheck} text="No immunizations recorded yet" motif="leaf" /> :
-        data.immunizations.map(imm => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{data.immunizations.map(imm => {
           const isExpanded = expandedId === imm.id;
           return (
           <Card key={imm.id} id={`record-${imm.id}`} onClick={() => setExpandedId(isExpanded ? null : imm.id)} className={`cursor-pointer transition-all${highlightId === imm.id ? ' highlight-ring' : ''}`}>
@@ -139,7 +139,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem, h
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('immunizations', id))} onCancel={del.cancel} itemId={imm.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

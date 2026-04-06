@@ -201,8 +201,8 @@ export default function Vitals({ data, addItem, removeItem }) {
           <div className="font-playfair text-sm font-medium mb-2.5 pl-1.5 text-salve-text">
             {vi?.label} <span className="font-normal text-salve-textFaint text-xs">over time</span>
           </div>
-          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} readings from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`}>
-          <ResponsiveContainer width="100%" height={180}>
+          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} readings from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={cd}>
               <defs>
                 <linearGradient id="sf" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.sage} stopOpacity={0.25} /><stop offset="95%" stopColor={C.sage} stopOpacity={0} /></linearGradient>
@@ -302,7 +302,7 @@ export default function Vitals({ data, addItem, removeItem }) {
             }
             dateMap.get(v.date).entries.push(v);
           }
-          return byDate.map(({ date, entries }) => {
+          return <div className="md:grid md:grid-cols-2 md:gap-3">{byDate.map(({ date, entries }) => {
             const cp = data.cycles?.length > 0 ? getCyclePhaseForDate(date, data.cycles) : null;
             return (
               <Card key={date} className="!p-0 !mb-2.5 overflow-hidden">
@@ -362,7 +362,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                 </div>
               </Card>
             );
-          });
+          })}</div>;
         })()
       }
     </div>

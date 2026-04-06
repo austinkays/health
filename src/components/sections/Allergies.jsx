@@ -80,7 +80,7 @@ export default function Allergies({ data, addItem, updateItem, removeItem, highl
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
       {data.allergies.length === 0 ? <EmptyState icon={Shield} text="No allergies recorded" motif="star" /> :
-        data.allergies.map(a => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{data.allergies.map(a => {
           const s = SEV[a.severity] || SEV.moderate;
           const isExpanded = expandedId === a.id;
           return (
@@ -109,7 +109,7 @@ export default function Allergies({ data, addItem, updateItem, removeItem, highl
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('allergies', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
           );
-        })
+        })}</div>
       }
     </div>
   );

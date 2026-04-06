@@ -97,7 +97,7 @@ export default function Search({ data, onNav }) {
 
       {/* ── Filter Pills ─────────────────────────── */}
       {allResults.length > 0 && (
-        <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1 no-scrollbar md:flex-wrap md:overflow-visible">
           {FILTER_TABS.map(t => {
             const count = counts[t.key] || 0;
             if (t.key !== 'all' && count === 0) return null;
@@ -122,7 +122,7 @@ export default function Search({ data, onNav }) {
       {/* ── Results ──────────────────────────────── */}
       {debouncedQuery.length >= 2 ? (
         filteredResults.length > 0 ? (
-          <div>
+          <div className="md:grid md:grid-cols-2 md:gap-3">
             {filteredResults.map((r, i) => {
               const Icon = r.config.icon;
               return (

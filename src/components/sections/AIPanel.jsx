@@ -1011,7 +1011,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       )}
       <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
         {chatMessages.map((m, i) => (
-          <article key={i} className={`max-w-[85%] rounded-xl ${
+          <article key={i} className={`max-w-[85%] md:max-w-[70%] rounded-xl ${
             m.role === 'user'
               ? 'self-end bg-salve-lav/20 text-salve-text ml-auto px-3.5 py-2.5 text-[13px] leading-relaxed'
               : 'self-start bg-salve-card border border-salve-border text-salve-textMid px-3.5 pt-2.5 pb-1.5'
@@ -1041,7 +1041,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           </article>
         ))}
         {toolExecutions.length > 0 && loading && (
-          <div className="self-start flex flex-col gap-1 max-w-[85%]">
+          <div className="self-start flex flex-col gap-1 max-w-[85%] md:max-w-[70%]">
             {toolExecutions.map(t => (
               <ToolExecutionCard key={t.id} execution={t} onConfirm={confirmPending} />
             ))}
@@ -1109,7 +1109,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         <p className="text-[13px] text-salve-textFaint italic">Your health companion, powered by your data.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2.5 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-4">
       {FEATURES.map(f => {
           const locked = f.premium && isFeatureLocked(FEATURE_TO_AI[f.id] || f.id);
           return (

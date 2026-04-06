@@ -235,7 +235,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
       {filtered.length === 0 ? (
         <EmptyState icon={Activity} text={filter === 'all' ? 'No activities yet' : `No ${filter} activities`} motif="leaf" />
       ) : (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 md:grid md:grid-cols-2 md:gap-4">
           {filtered.map(a => {
             const isExpanded = expandedId === a.id;
             const color = typeColor(a.type);

@@ -168,7 +168,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
       )}
 
       {/* ── Core themes — 3-column grid ── */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
         {core.map(t => (
           <ThemeTile
             key={t.id}
@@ -199,7 +199,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
             }
           </button>
           {showExperimental && (
-            <div className="grid grid-cols-3 gap-2 mt-2">
+            <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mt-2">
               {experimental.map(t => (
                 <ThemeTile
                   key={t.id}
@@ -515,6 +515,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
   return (
     <div className="mt-2">
+      <div className="md:grid md:grid-cols-2 md:gap-6 md:items-start">
+      {/* ── Left Column ── */}
+      <div>
       {/* ══════════════ 1. Account ══════════════ */}
       <SectionTitle>Account</SectionTitle>
       <Card>
@@ -846,6 +849,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
       </Card>
 
+      </div>
+      {/* ── Right Column ── */}
+      <div>
       {/* ══════════════ 6. Connected Sources ══════════════ */}
       <SectionTitle>Connected Sources</SectionTitle>
 
@@ -1511,6 +1517,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </div>
         </div>
       </Card>
+
+      </div>
+      </div>
 
       {/* ══════════════ 9. Footer ══════════════ */}
       <div className="text-center mt-6 mb-2">
