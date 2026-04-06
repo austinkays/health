@@ -53,44 +53,45 @@ export function ThemeProvider({ children }) {
       return;
     }
 
-    const body = document.body;
-
-    // Cancel any in-flight fade-in (handles rapid theme changes)
+    // Cancel any in-flight transition (handles rapid theme changes)
     if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     clearTimeout(cleanupTimerRef.current);
+    // Remove any leftover overlay from a previous rapid switch
+    document.getElementById('salve-theme-overlay')?.remove();
 
-    // Snap invisible immediately — works whether we're mid-fade-in or at full opacity.
-    // body inline style overrides any CSS rule, so this is always reliable.
-    body.style.transition = 'none';
-    body.style.opacity = '0';
-    // Commit the snap before the next rAF so the browser doesn't batch it
-    // with the fade-in style changes below.
-    // eslint-disable-next-line no-unused-expressions
-    void body.offsetHeight;
+    // Capture the current background before applying new vars
+    const oldBgRgb = getComputedStyle(document.documentElement)
+      .getPropertyValue('--salve-bg').trim();
+    const oldBg = oldBgRgb ? `rgb(${oldBgRgb})` : 'transparent';
 
-    // Apply new theme vars while invisible — html bg (rgb(var(--salve-bg)))
-    // is already updated here so nothing shows through the invisible body.
+    // Apply new theme vars immediately — content updates to new colors beneath the overlay
     applyThemeVariables(themeId, false);
 
-    // Fade in on the next frame
+    // Create a fixed overlay covering the viewport with the OLD background colour.
+    // Only this one div needs to animate (GPU-composited opacity) — the rest of the
+    // DOM is already in its final state underneath.
+    const overlay = document.createElement('div');
+    overlay.id = 'salve-theme-overlay';
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:99999;pointer-events:none;' +
+      'will-change:opacity;opacity:1;background:' + oldBg + ';transition:none;';
+    document.body.appendChild(overlay);
+    // Commit opacity:1 before scheduling the fade so the browser doesn't batch it
+    // eslint-disable-next-line no-unused-expressions
+    void overlay.offsetHeight;
+
+    // Fade overlay out on the next frame, revealing the already-updated theme
     rafRef.current = requestAnimationFrame(() => {
       rafRef.current = null;
-      body.style.transition = 'opacity 0.55s ease-in';
-      body.style.opacity = '1';
-      // Clean up inline styles after the transition so nothing overrides
-      // normal page behaviour going forward
-      cleanupTimerRef.current = setTimeout(() => {
-        body.style.transition = '';
-        body.style.opacity = '';
-      }, 560);
+      overlay.style.transition = 'opacity 0.5s ease-in';
+      overlay.style.opacity = '0';
+      cleanupTimerRef.current = setTimeout(() => overlay.remove(), 510);
     });
 
     return () => {
       if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
       clearTimeout(cleanupTimerRef.current);
-      // Restore body if the component unmounts mid-transition
-      body.style.transition = '';
-      body.style.opacity = '';
+      document.getElementById('salve-theme-overlay')?.remove();
     };
   }, [themeId]);
 
