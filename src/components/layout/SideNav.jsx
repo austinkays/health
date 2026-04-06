@@ -16,7 +16,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
       className="hidden md:flex fixed left-0 top-0 h-full w-[260px] bg-salve-card border-r border-salve-border flex-col z-40"
     >
       {/* App name / branding */}
-      <div className="px-6 pt-8 pb-5">
+      <div className="px-6 pt-8 pb-4">
         <h2 className="font-playfair text-2xl font-semibold text-gradient-magic m-0">Salve</h2>
         {name && (
           <p className="text-salve-textFaint text-sm mt-1.5 truncate">{name}</p>
@@ -26,7 +26,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
       {/* Search button */}
       <button
         onClick={onSearch}
-        className="mx-4 mb-3 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
+        className="mx-4 mb-2 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
       >
         <Search size={16} />
         <span className="flex-1 text-left">Search</span>
@@ -34,7 +34,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
       </button>
 
       {/* Nav items */}
-      <div className="flex-1 flex flex-col gap-1.5 px-3 mt-2">
+      <div className="flex flex-col gap-0.5 px-3 mt-1">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon;
           const active = tab === item.id;
@@ -43,14 +43,14 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
               key={item.id}
               onClick={() => onNav(item.id)}
               aria-current={active ? 'page' : undefined}
-              className={`flex items-center gap-3 px-3.5 py-3.5 rounded-lg cursor-pointer bg-transparent border-none text-left transition-all duration-150 ${
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg cursor-pointer bg-transparent border-none text-left transition-all duration-150 ${
                 active
                   ? 'bg-salve-lav/10 text-salve-lav border-l-[3px] border-l-salve-lav pl-[11px]'
                   : 'text-salve-textMid hover:bg-salve-bg hover:text-salve-text'
               }`}
             >
-              <Icon size={20} strokeWidth={active ? 2 : 1.5} />
-              <span className={`text-[15px] ${active ? 'font-semibold' : 'font-normal'}`}>
+              <Icon size={18} strokeWidth={active ? 2 : 1.5} />
+              <span className={`text-[14px] ${active ? 'font-semibold' : 'font-normal'}`}>
                 {item.label}
               </span>
             </button>
@@ -58,10 +58,13 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
         })}
       </div>
 
+      {/* Spacer */}
+      <div className="flex-1" />
+
       {/* Quick Sage chat */}
       <button
         onClick={onSage}
-        className="mx-4 mb-3 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-sage transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
+        className="mx-4 mb-2 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-sage transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
       >
         <Leaf size={16} />
         <span className="flex-1 text-left">Ask Sage</span>
@@ -69,29 +72,22 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
 
       {/* Demo mode card */}
       {demoMode && (
-        <div className="mx-3 mb-2 px-3 py-2.5 bg-salve-lav/10 border border-salve-lav/25 rounded-xl">
-          <div className="flex items-center gap-1.5 mb-0.5">
+        <div className="mx-3 mb-3 px-3 py-2.5 bg-salve-lav/10 border border-salve-lav/25 rounded-xl">
+          <div className="flex items-center gap-2">
             <Sparkles size={12} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
-            <span className="text-xs font-semibold text-salve-text">Demo mode</span>
+            <span className="text-[13px] font-semibold text-salve-text flex-1">Demo mode</span>
+            <button
+              onClick={onExitDemo}
+              className="bg-salve-lav text-white rounded-lg text-[11px] font-semibold px-3 py-1 border-none cursor-pointer hover:opacity-90 transition-opacity font-montserrat flex-shrink-0"
+            >
+              Sign up →
+            </button>
           </div>
-          <p className="text-xs text-salve-textFaint leading-snug m-0 mb-2">
-            Exploring with an example user's data.
+          <p className="text-[11px] text-salve-textFaint leading-snug m-0 mt-1 pl-5">
+            Exploring with sample data.
           </p>
-          <button
-            onClick={onExitDemo}
-            className="w-full bg-salve-lav text-white rounded-lg text-xs font-semibold py-1.5 border-none cursor-pointer hover:opacity-90 transition-opacity font-montserrat"
-          >
-            Sign up →
-          </button>
         </div>
       )}
-
-      {/* Footer tagline */}
-      <div className="px-6 pb-5 pt-3">
-        <p className="text-salve-textFaint text-[10px] tracking-wider leading-relaxed text-center font-montserrat">
-          made with love for my<br />best friend & soulmate
-        </p>
-      </div>
     </nav>
   );
 }
