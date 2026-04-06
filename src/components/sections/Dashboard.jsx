@@ -33,6 +33,7 @@ import { useIsDesktop } from '../layout/SplitView';
 const VITAL_POLARITY = {
   sleep: 'up', hr: 'down', bp: 'down', steps: 'up',
   energy: 'up', pain: 'down', mood: 'up',
+  spo2: 'up', resp: null,
   weight: null, temp: null, glucose: null,
 };
 
@@ -368,7 +369,7 @@ export default function Dashboard({ data, interactions, onNav }) {
     for (const v of recent) {
       if (!byType[v.type] || v.date > byType[v.type].date) byType[v.type] = v;
     }
-    const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood'];
+    const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood', 'spo2', 'resp', 'temp', 'glucose'];
     const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
     const buildItem = (type) => {
       const latest = byType[type];
@@ -411,6 +412,26 @@ export default function Dashboard({ data, interactions, onNav }) {
       .filter(Boolean);
     return { featured, chips };
   }, [data.vitals]);
+
+  /* Activity snapshot — last 7 days summary + per-day bar data */
+  const activitySnapshot = useMemo(() => {
+    const activities = data.activities || [];
+    if (!activities.length) return null;
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const recent = activities.filter(a => a.date >= cutoff);
+    if (!recent.length) return null;
+    const totalMinutes = recent.reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
+    const totalCalories = recent.reduce((s, a) => s + (Number(a.calories) || 0), 0);
+    const dayBars = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayMins = activities.filter(a => a.date === dateStr).reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
+      dayBars.push({ date: dateStr, mins: dayMins, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
+    }
+    const lastActivity = [...activities].sort((a, b) => b.date.localeCompare(a.date))[0];
+    return { count: recent.length, totalMinutes, totalCalories, dayBars, lastActivity };
+  }, [data.activities]);
 
   const urgentGaps = useMemo(
     () => (data.care_gaps || []).filter(g => g.urgency === 'urgent').length,
@@ -1028,7 +1049,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                     )}
                   </div>
                   {vitalsSnapshot.chips.length > 0 && (
-                    <div className="pt-3 border-t border-salve-border flex items-center gap-3 flex-wrap">
+                    <div className={`pt-3 border-t border-salve-border ${vitalsSnapshot.chips.length >= 2 ? 'grid grid-cols-2 gap-x-3 gap-y-2.5' : 'flex items-center gap-3'}`}>
                       {vitalsSnapshot.chips.map(c => {
                         const cType = VITAL_TYPES.find(t => t.id === c.type);
                         const cLabel = cType?.label || c.type;
@@ -1036,16 +1057,29 @@ export default function Dashboard({ data, interactions, onNav }) {
                         const cDisplay = c.type === 'bp' && c.value2 ? `${c.value}/${c.value2}` : c.value;
                         const cSignalColor = c.signal === 'good' ? C.sage : c.signal === 'watch' ? C.amber : C.textFaint;
                         const cArrow = c.direction === 'up' ? '↑' : c.direction === 'down' ? '↓' : '→';
+                        const hasSparkline = c.series && c.series.length >= 2;
                         return (
-                          <div key={c.type} className="flex items-baseline gap-1.5 min-w-0">
-                            <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat uppercase tracking-wider">{cLabel}</span>
-                            <span className="text-[13px] md:text-sm font-medium text-salve-text font-montserrat">
-                              {cDisplay}<span className="text-[9px] md:text-[11px] text-salve-textFaint ml-0.5">{cUnit}</span>
-                            </span>
-                            {c.delta !== null && (
-                              <span className="text-[11px] font-montserrat leading-none" style={{ color: cSignalColor }} aria-hidden="true">
-                                {cArrow}
-                              </span>
+                          <div key={c.type} className="flex items-center justify-between gap-1.5 min-w-0">
+                            <div className="min-w-0">
+                              <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider leading-none mb-0.5">{cLabel}</div>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-[14px] font-medium text-salve-text font-montserrat leading-none">{cDisplay}</span>
+                                <span className="text-[9px] text-salve-textFaint font-montserrat">{cUnit}</span>
+                                {c.delta !== null && (
+                                  <span className="text-[11px] font-montserrat" style={{ color: cSignalColor }} aria-hidden="true">{cArrow}</span>
+                                )}
+                              </div>
+                            </div>
+                            {hasSparkline && (
+                              <AreaChart width={52} height={24} data={c.series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+                                <defs>
+                                  <linearGradient id={`chip-grad-${c.type}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={cSignalColor} stopOpacity={0.25} />
+                                    <stop offset="100%" stopColor={cSignalColor} stopOpacity={0} />
+                                  </linearGradient>
+                                </defs>
+                                <Area type="monotone" dataKey="value" stroke={cSignalColor} strokeWidth={1.5} strokeOpacity={0.65} fill={`url(#chip-grad-${c.type})`} dot={false} isAnimationActive={false} />
+                              </AreaChart>
                             )}
                           </div>
                         );
@@ -1056,6 +1090,62 @@ export default function Dashboard({ data, interactions, onNav }) {
               </section>
             );
           })()}
+          {/* Activity snapshot */}
+          {activitySnapshot && (
+            <section aria-label="Recent activity" className="dash-stagger dash-stagger-4 mb-2">
+              <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('activities')}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Activity</span>
+                    <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat">last 7 days</span>
+                  </div>
+                  <ChevronRight size={12} className="text-salve-textFaint" />
+                </div>
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span className="text-[28px] font-medium text-salve-text font-montserrat leading-none">{activitySnapshot.count}</span>
+                  <span className="text-[13px] text-salve-textMid font-montserrat">session{activitySnapshot.count !== 1 ? 's' : ''}</span>
+                  {activitySnapshot.totalMinutes > 0 && (
+                    <>
+                      <span className="text-salve-textFaint/40 text-[13px]">·</span>
+                      <span className="text-[13px] text-salve-textMid font-montserrat">
+                        {activitySnapshot.totalMinutes >= 60
+                          ? `${Math.floor(activitySnapshot.totalMinutes / 60)}h ${activitySnapshot.totalMinutes % 60}m`
+                          : `${activitySnapshot.totalMinutes}m`}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {/* 7-day bar chart */}
+                <div className="flex items-end gap-1 h-10 mb-1">
+                  {activitySnapshot.dayBars.map((bar, i) => {
+                    const maxMins = Math.max(...activitySnapshot.dayBars.map(b => b.mins), 1);
+                    const pct = bar.mins > 0 ? Math.max(bar.mins / maxMins, 0.12) : 0;
+                    const isToday = i === 6;
+                    return (
+                      <div key={bar.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                        <div
+                          className="w-full rounded-sm"
+                          style={{
+                            height: bar.mins > 0 ? `${Math.round(pct * 32)}px` : '2px',
+                            background: bar.mins > 0 ? (isToday ? C.sage : `${C.sage}55`) : `${C.border}`,
+                          }}
+                        />
+                        <span className="text-[8px] font-montserrat" style={{ color: isToday ? C.sage : C.textFaint }}>
+                          {bar.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {activitySnapshot.totalCalories > 0 && (
+                  <div className="mt-2 pt-2 border-t border-salve-border flex items-center gap-1.5">
+                    <Zap size={11} className="text-salve-amber" />
+                    <span className="text-[11px] text-salve-textFaint font-montserrat">{Math.round(activitySnapshot.totalCalories).toLocaleString()} cal active</span>
+                  </div>
+                )}
+              </Card>
+            </section>
+          )}
         </div>
       </div>
 
