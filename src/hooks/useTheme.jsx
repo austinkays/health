@@ -41,6 +41,8 @@ export function ThemeProvider({ children }) {
   const [themeId, setThemeIdInternal] = useState(initial);
 
   const isFirstRender = useRef(true);
+  // Tracks any in-flight rAF so rapid theme changes can cancel it
+  const rafRef = useRef(null);
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -51,16 +53,28 @@ export function ThemeProvider({ children }) {
       return;
     }
 
-    // Fade out → swap variables → fade in
     const root = document.documentElement;
-    root.classList.remove('theme-transitioned');
+
+    // Cancel any rAF still pending from a previous (interrupted) transition
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+
+    // Reset class state to a clean slate — both classes may be present if the
+    // user changed themes before the previous transition finished
+    root.classList.remove('theme-transitioning', 'theme-transitioned');
+    // Force a reflow so the removal is committed before we re-add
+    // eslint-disable-next-line no-unused-expressions
+    void root.offsetHeight;
     root.classList.add('theme-transitioning');
 
     const applyTimer = setTimeout(() => {
       // Apply vars synchronously while body is still at opacity:0 so colors
       // are in place before the fade-in begins (avoids one-frame color flash).
       applyThemeVariables(themeId, false);
-      requestAnimationFrame(() => {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
         root.classList.remove('theme-transitioning');
         root.classList.add('theme-transitioned');
       });
@@ -70,7 +84,14 @@ export function ThemeProvider({ children }) {
       root.classList.remove('theme-transitioned');
     }, 2600);
 
-    return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
+    return () => {
+      clearTimeout(applyTimer);
+      clearTimeout(cleanupTimer);
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
   }, [themeId]);
 
   // setTheme only previews (applies to DOM). Use saveTheme to persist.
