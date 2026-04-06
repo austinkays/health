@@ -272,6 +272,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     window.location.reload();
   };
   const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
+  const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
+
+  // Auto-revert experimental theme previews when free users navigate away from Settings.
+  // Use refs so the cleanup captures current values without needing them in dep array.
+  const revertRef = useRef(revertTheme);
+  revertRef.current = revertTheme;
+  const shouldRevertRef = useRef(false);
+  useEffect(() => {
+    shouldRevertRef.current = !canSaveExperimental && !!(allThemes[themeId]?.experimental);
+  }, [themeId, allThemes, canSaveExperimental]);
+  useEffect(() => {
+    return () => { if (shouldRevertRef.current) revertRef.current(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-set AI provider based on tier — premium gets Claude, free gets Gemini
   useEffect(() => {
