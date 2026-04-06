@@ -898,7 +898,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     </div>
                   </li>
                   <li>
-                    In the project's <strong className="text-salve-text">Project knowledge</strong> section, upload <code className="text-salve-textMid text-[10px]">salve-sync.jsx</code>.
+                    In the project's <strong className="text-salve-text">Files</strong> section (also called Project knowledge), upload <code className="text-salve-textMid text-[10px]">salve-sync.jsx</code>.
                     <div className="mt-2">
                       <a
                         href="/salve-sync.jsx"
