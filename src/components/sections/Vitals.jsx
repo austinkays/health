@@ -157,12 +157,12 @@ export default function Vitals({ data, addItem, removeItem }) {
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
       </div>
 
-      <div className="flex gap-1.5 flex-wrap mb-3.5">
+      <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
         {VITAL_TYPES.map(t => (
           <button
             key={t.id}
             onClick={() => setCt(t.id)}
-            className={`py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat ${
+            className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat transition-colors ${
               ct === t.id ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
@@ -173,10 +173,10 @@ export default function Vitals({ data, addItem, removeItem }) {
 
       {/* Source filter pills — only show when multiple sources */}
       {sources.length > 1 && (
-        <div className="flex gap-1.5 flex-wrap mb-3">
+        <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
           <button
             onClick={() => setSourceFilter('all')}
-            className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+            className={`flex-shrink-0 py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
               sourceFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >All sources</button>
@@ -184,7 +184,7 @@ export default function Vitals({ data, addItem, removeItem }) {
             const Icon = SOURCE_ICON[s];
             return (
               <button key={s} onClick={() => setSourceFilter(s)}
-                className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
+                className={`flex-shrink-0 py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
                   sourceFilter === s ? `border-salve-sage bg-salve-sage/15 text-salve-sage` : 'border-salve-border bg-transparent text-salve-textFaint'
                 }`}
               >
