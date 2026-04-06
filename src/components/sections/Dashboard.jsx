@@ -239,6 +239,26 @@ export default function Dashboard({ data, interactions, onNav }) {
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+
+  /* ── Desktop "made with love" scroll-reveal ── */
+  const [showTagline, setShowTagline] = useState(false);
+  useEffect(() => {
+    if (!isDesktop) return;
+    let hasScrolled = false;
+    let ticking = false;
+    const check = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      if (scrollY > 80) hasScrolled = true;
+      const nearBottom = window.innerHeight + scrollY >= document.body.scrollHeight - 40;
+      setShowTagline(hasScrolled && nearBottom);
+      ticking = false;
+    };
+    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(check); } };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+  }, [isDesktop]);
   const wellness = useWellnessMessage();
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
@@ -1680,6 +1700,11 @@ export default function Dashboard({ data, interactions, onNav }) {
           </div>
         </section>
       )}
+
+      {/* Desktop "made with love" tagline — mirrors mobile BottomNav behaviour */}
+      <p className={`hidden md:block text-center text-salve-textFaint text-[10px] tracking-wider py-6 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+        made with love for my best friend &amp; soulmate
+      </p>
 
     </div>
   );
