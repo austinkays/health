@@ -87,7 +87,10 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
       setLoading(false);
       setUsage(getDailyUsage());
       setCooldown(true);
-      setTimeout(() => setCooldown(false), 1500);
+      setTimeout(() => {
+        setCooldown(false);
+        inputRef.current?.focus();
+      }, 1500);
     }
   }, [input, loading, cooldown, messages, data]);
 
@@ -203,7 +206,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
                 onKeyDown={onKeyDown}
                 placeholder="Ask Sage…"
                 aria-label="Ask Sage"
-                disabled={loading || cooldown}
+                disabled={false}
                 className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-[13px] text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
               />
               <button
