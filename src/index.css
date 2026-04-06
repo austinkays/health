@@ -1448,3 +1448,48 @@ html.theme-crystal .border-salve-border {
   border: 1px solid rgb(var(--salve-border) / 0.5);
   border-radius: 16px;
 }
+
+/* ── Print styles ───────────────────────────────────────── */
+@media print {
+  /* Hide nav, header buttons, decorative elements */
+  nav, .fixed, button[aria-label="Go back"], button[aria-label="Search"],
+  button[aria-label="Open Sage"], .card-hover::before, .card-hover::after,
+  html::before, html::after, body::before, body::after {
+    display: none !important;
+  }
+
+  /* Remove sidebar offset */
+  .md\:ml-\[220px\] {
+    margin-left: 0 !important;
+  }
+
+  /* Full-width content */
+  .max-w-\[480px\], .md\:max-w-\[720px\], .lg\:max-w-\[960px\] {
+    max-width: 100% !important;
+  }
+
+  /* White background, black text for readability */
+  body, [class*="bg-salve-"] {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Force expand all collapsible sections */
+  .expand-section {
+    grid-template-rows: 1fr !important;
+  }
+
+  /* Remove shadows and transitions */
+  * {
+    box-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+  }
+
+  /* Page breaks */
+  section {
+    break-inside: avoid;
+  }
+}

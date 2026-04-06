@@ -11,12 +11,14 @@ import { EMPTY_PROVIDER } from '../../constants/defaults';
 import { searchProviders } from '../../services/npi';
 import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl } from '../../utils/links';
+import SplitView, { useIsDesktop } from '../layout/SplitView';
 
 export default function Providers({ data, addItem, updateItem, removeItem, highlightId }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_PROVIDER);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const isDesktop = useIsDesktop();
 
   useEffect(() => {
     if (highlightId && data.providers.some(p => p.id === highlightId)) {
@@ -120,6 +122,89 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
     [data.providers]
   );
 
+  const renderProviderDetail = (p) => {
+    const prescribedMeds = medsPerProvider[p.id] || [];
+    const treatedConditions = conditionsPerProvider[p.id] || [];
+    return (
+      <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+        {/* Desktop: show provider name + specialty as title in detail pane */}
+        {isDesktop && (
+          <div className="mb-3">
+            <h3 className="text-lg font-semibold text-salve-text font-playfair m-0 flex items-center gap-1.5">
+              {p.name}
+              {p.is_favorite && <Star size={14} className="text-salve-amber fill-salve-amber flex-shrink-0" />}
+            </h3>
+            {p.specialty && <div className="text-sm text-salve-lav font-medium mt-0.5">{p.specialty}</div>}
+          </div>
+        )}
+        {p.clinic && <div className="text-xs text-salve-textMid mb-0.5">{p.clinic}</div>}
+        {p.address && (
+          <div className="text-xs text-salve-textMid mt-0.5 flex items-center gap-1">
+            <MapPin size={12} strokeWidth={1.4} className="flex-shrink-0" />
+            <a href={mapsUrl(p.address)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline">{p.address}</a>
+          </div>
+        )}
+        {!p.address && p.clinic && (
+          <div className="text-xs text-salve-textFaint mt-0.5 flex items-center gap-1">
+            <MapPin size={11} strokeWidth={1.4} />
+            <a href={mapsUrl(p.clinic)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline text-[11px]">View on Maps</a>
+          </div>
+        )}
+        {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
+        {p.fax && <div className="text-xs text-salve-textFaint mt-0.5">Fax: {p.fax}</div>}
+        {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" aria-label={`Patient portal for ${p.name} (opens in new tab)`} className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
+        {p.npi && (
+          <div className="text-[10px] text-salve-textFaint mt-1 flex items-center gap-1">
+            <ExternalLink size={10} strokeWidth={1.4} aria-hidden="true" />
+            <span>NPI:</span>
+            <a
+              href={`https://npiregistry.cms.hhs.gov/provider-view/${p.npi}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`NPI ${p.npi} — view in CMS registry (opens in new tab)`}
+              className="text-salve-sage hover:underline"
+            >
+              {p.npi}
+            </a>
+            <span className="text-salve-textFaint/60">· CMS Registry</span>
+          </div>
+        )}
+        {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
+        {/* ── Prescribed medications ── */}
+        {prescribedMeds.length > 0 && (
+          <div className="mt-2.5 pt-2 border-t border-salve-border/30">
+            <div className="text-[11px] font-semibold text-salve-sage mb-1 flex items-center gap-1"><Pill size={11} /> Prescribed Medications ({prescribedMeds.length})</div>
+            {prescribedMeds.map(m => (
+              <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
+                <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" className="font-medium text-salve-text hover:text-salve-sage hover:underline transition-colors">{m.display_name || m.name}</a>
+                {m.dose && <span className="text-salve-textFaint">{m.dose}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+        {/* ── Treated conditions ── */}
+        {treatedConditions.length > 0 && (
+          <div className="mt-2 pt-2 border-t border-salve-border/30">
+            <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Stethoscope size={11} /> Conditions ({treatedConditions.length})</div>
+            {treatedConditions.map(c => (
+              <div key={c.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-salve-lav flex-shrink-0" />
+                <span className="font-medium text-salve-text">{c.name}</span>
+                <span className="text-[10px] text-salve-textFaint capitalize">{c.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2.5 mt-2.5">
+          <button onClick={() => toggleFavorite(p)} aria-label={p.is_favorite ? 'Remove from favorites' : 'Add to favorites'} className="bg-transparent border-none cursor-pointer text-salve-amber text-xs font-montserrat p-0 flex items-center gap-1"><Star size={12} className={p.is_favorite ? 'fill-salve-amber' : ''} /> {p.is_favorite ? 'Unfavorite' : 'Favorite'}</button>
+          <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit provider" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+          <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+        </div>
+      </div>
+    );
+  };
+
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Provider`} onBack={() => { setSubView(null); setForm(EMPTY_PROVIDER); setEditId(null); }}>
       <Card>
@@ -170,7 +255,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
     </FormWrap>
   );
 
-  return (
+  const listContent = (
     <div className="mt-2">
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
@@ -181,7 +266,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
           const prescribedMeds = medsPerProvider[p.id] || [];
           const treatedConditions = conditionsPerProvider[p.id] || [];
           return (
-          <Card key={p.id} id={`record-${p.id}`} onClick={() => setExpandedId(isExpanded ? null : p.id)} className={`cursor-pointer transition-all${highlightId === p.id ? ' highlight-ring' : ''}`}>
+          <Card key={p.id} id={`record-${p.id}`} onClick={() => setExpandedId(isExpanded ? null : p.id)} className={`cursor-pointer transition-all${highlightId === p.id ? ' highlight-ring' : ''}${isDesktop && expandedId === p.id ? ' ring-2 ring-salve-lav/30' : ''}`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text flex items-center gap-1.5">
@@ -207,79 +292,31 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
               </div>
               <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
             </div>
-            <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
-              <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                {p.clinic && <div className="text-xs text-salve-textMid mb-0.5">{p.clinic}</div>}
-                {p.address && (
-                  <div className="text-xs text-salve-textMid mt-0.5 flex items-center gap-1">
-                    <MapPin size={12} strokeWidth={1.4} className="flex-shrink-0" />
-                    <a href={mapsUrl(p.address)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline">{p.address}</a>
-                  </div>
-                )}
-                {!p.address && p.clinic && (
-                  <div className="text-xs text-salve-textFaint mt-0.5 flex items-center gap-1">
-                    <MapPin size={11} strokeWidth={1.4} />
-                    <a href={mapsUrl(p.clinic)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline text-[11px]">View on Maps</a>
-                  </div>
-                )}
-                {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
-                {p.fax && <div className="text-xs text-salve-textFaint mt-0.5">Fax: {p.fax}</div>}
-                {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" aria-label={`Patient portal for ${p.name} (opens in new tab)`} className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
-                {p.npi && (
-                  <div className="text-[10px] text-salve-textFaint mt-1 flex items-center gap-1">
-                    <ExternalLink size={10} strokeWidth={1.4} aria-hidden="true" />
-                    <span>NPI:</span>
-                    <a
-                      href={`https://npiregistry.cms.hhs.gov/provider-view/${p.npi}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`NPI ${p.npi} — view in CMS registry (opens in new tab)`}
-                      className="text-salve-sage hover:underline"
-                    >
-                      {p.npi}
-                    </a>
-                    <span className="text-salve-textFaint/60">· CMS Registry</span>
-                  </div>
-                )}
-                {p.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{p.notes}</div>}
-                {/* ── Prescribed medications ── */}
-                {prescribedMeds.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-salve-border/30">
-                    <div className="text-[11px] font-semibold text-salve-sage mb-1 flex items-center gap-1"><Pill size={11} /> Prescribed Medications ({prescribedMeds.length})</div>
-                    {prescribedMeds.map(m => (
-                      <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
-                        <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
-                        <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" className="font-medium text-salve-text hover:text-salve-sage hover:underline transition-colors">{m.display_name || m.name}</a>
-                        {m.dose && <span className="text-salve-textFaint">{m.dose}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* ── Treated conditions ── */}
-                {treatedConditions.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-salve-border/30">
-                    <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Stethoscope size={11} /> Conditions ({treatedConditions.length})</div>
-                    {treatedConditions.map(c => (
-                      <div key={c.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
-                        <span className="w-1 h-1 rounded-full bg-salve-lav flex-shrink-0" />
-                        <span className="font-medium text-salve-text">{c.name}</span>
-                        <span className="text-[10px] text-salve-textFaint capitalize">{c.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-2.5 mt-2.5">
-                  <button onClick={() => toggleFavorite(p)} aria-label={p.is_favorite ? 'Remove from favorites' : 'Add to favorites'} className="bg-transparent border-none cursor-pointer text-salve-amber text-xs font-montserrat p-0 flex items-center gap-1"><Star size={12} className={p.is_favorite ? 'fill-salve-amber' : ''} /> {p.is_favorite ? 'Unfavorite' : 'Favorite'}</button>
-                  <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit provider" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-                  <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
-                </div>
-              </div>
-            </div></div>
+            {/* Mobile: inline expand. Desktop: detail goes to side pane */}
+            {!isDesktop && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
+                {isExpanded && renderProviderDetail(p)}
+              </div></div>
+            )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('providers', id))} onCancel={del.cancel} itemId={p.id} />
           </Card>
           );
         })
       }
     </div>
+  );
+
+  const selectedProvider = isDesktop ? sortedProviders.find(p => p.id === expandedId) : null;
+
+  return (
+    <SplitView
+      list={listContent}
+      detail={selectedProvider ? (
+        <Card className="!mb-0">
+          {renderProviderDetail(selectedProvider)}
+        </Card>
+      ) : null}
+      emptyMessage="Select a provider to view details"
+    />
   );
 }

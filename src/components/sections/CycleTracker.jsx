@@ -8,6 +8,7 @@ import Field from '../ui/Field';
 import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
+import DropZone from '../ui/DropZone';
 import FormWrap from '../ui/FormWrap';
 import { fmtDate, todayISO, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
@@ -205,8 +206,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
   }, []);
 
   /* Flo import handler */
-  const handleFloImport = async (e) => {
-    const file = e.target.files?.[0];
+  const processFloFile = async (file) => {
     if (!file) return;
     setImporting(true); setImportResult(null);
     try {
@@ -325,7 +325,14 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
           <p className="text-sm text-salve-textMid mb-3 font-montserrat leading-relaxed">
             Upload your Flo GDPR data export (JSON). Go to Flo → Profile → Settings → Request My Data, then upload the file here.
           </p>
-          <input ref={fileRef} type="file" accept=".json" onChange={handleFloImport} className="block w-full text-sm text-salve-textMid file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-salve-rose/15 file:text-salve-rose file:cursor-pointer cursor-pointer font-montserrat" />
+          <DropZone
+            onFile={processFloFile}
+            accept=".json"
+            label="Drop Flo export here"
+            hint="Or click to browse — accepts .json"
+            className="mb-3"
+          />
+          <input ref={fileRef} type="file" accept=".json" onChange={(e) => processFloFile(e.target.files?.[0])} className="block w-full text-sm text-salve-textMid md:hidden file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-salve-rose/15 file:text-salve-rose file:cursor-pointer cursor-pointer font-montserrat" />
           {importing && <p className="text-xs text-salve-lav mt-2 font-montserrat animate-pulse">Importing…</p>}
           {importResult?.error && <p className="text-xs text-salve-rose mt-2 font-montserrat">{importResult.error}</p>}
           {importResult?.success && (

@@ -3,7 +3,7 @@ import {
   ChevronDown, ChevronRight, Pill, Stethoscope, Shield, AlertOctagon,
   User, Building2, Activity, Calendar, FlaskConical, Syringe, ShieldCheck,
   BadgeDollarSign, AlertTriangle, Scale, PlaneTakeoff, Star, Phone,
-  MapPin, ExternalLink,
+  MapPin, ExternalLink, Printer,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -192,6 +192,16 @@ export default function HealthSummary({ data, onNav }) {
 
   return (
     <div className="mt-2">
+      {/* ── Print button (desktop only) ── */}
+      <div className="hidden md:flex justify-end mb-3">
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-salve-card2 border border-salve-border text-salve-textMid text-sm font-montserrat cursor-pointer hover:bg-salve-border transition-colors"
+        >
+          <Printer size={14} />
+          Print Summary
+        </button>
+      </div>
 
       {/* ── Profile Header ─────────────────────── */}
       <Card className="!mb-3">

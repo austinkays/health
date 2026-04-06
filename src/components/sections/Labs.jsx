@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown, ExternalLink } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
+import SplitView, { useIsDesktop } from '../layout/SplitView';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Field from '../ui/Field';
@@ -36,6 +37,7 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
   const [interpretation, setInterpretation] = useState({});
   const [interpretLoading, setInterpretLoading] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const isDesktop = useIsDesktop();
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -99,7 +101,64 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
     return true;
   });
 
-  return (
+  /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
+  const renderLabDetail = (l) => {
+    const fc = flagColor(l.flag);
+    const refRange = findLabRange(l.test_name);
+    return (
+      <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+        {/* Desktop: show lab name + result as title in detail pane */}
+        {isDesktop && (
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-salve-text font-playfair m-0">{l.test_name}</h3>
+              {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} />}
+            </div>
+            {l.result && <div className="text-sm text-salve-textMid mt-0.5">{l.result}{l.unit ? ` ${l.unit}` : ''}</div>}
+          </div>
+        )}
+        {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? <>{' · '}<a href={providerLookupUrl(l.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{l.provider}</a></> : ''}</div>}
+        {l.range && <div className="text-xs text-salve-textFaint">Reference: {l.range}</div>}
+        {!l.range && refRange && (
+          <div className="text-xs text-salve-textFaint">
+            Reference: {refRange.low !== undefined && refRange.high !== undefined ? `${refRange.low}–${refRange.high}` : refRange.low !== undefined ? `≥ ${refRange.low}` : refRange.high !== undefined ? `≤ ${refRange.high}` : ''}{refRange.unit ? ` ${refRange.unit}` : ''}
+            <span className="text-salve-lav/60 ml-1">(standard)</span>
+          </div>
+        )}
+        {l.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{l.notes}</div>}
+        {hasAIConsent() && l.flag && l.flag !== 'normal' && l.flag !== 'completed' && (
+          <button
+            onClick={() => explainLab(l)}
+            aria-label="Explain lab result with Sage"
+            className="mt-2 flex items-center gap-1 bg-transparent border border-salve-lav/30 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-salve-lav/10 transition-colors"
+          >
+            <Sparkles size={12} color={C.lav} />
+            <span className="text-[11px] text-salve-lav font-montserrat">
+              {interpretLoading === l.id ? 'Analyzing...' : interpretation[l.id] ? (interpretId === l.id ? 'Hide' : 'Show') + ' interpretation' : 'Explain this result'}
+            </span>
+          </button>
+        )}
+        {interpretId === l.id && interpretation[l.id] && (
+          <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Interpretation</div>
+              <button onClick={() => { setInterpretation(p => { const n = {...p}; delete n[l.id]; return n; }); setInterpretId(null); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss interpretation">×</button>
+            </div>
+            <AIMarkdown compact>{interpretation[l.id]}</AIMarkdown>
+          </div>
+        )}
+        <div className="flex gap-2.5 mt-2.5">
+          <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} aria-label="Edit lab result" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+          <button onClick={() => del.ask(l.id, l.test_name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+        </div>
+      </div>
+    );
+  };
+
+  /* ── Selected lab for desktop detail pane ── */
+  const selectedLab = isDesktop ? fl.find(l => l.id === expandedId) : null;
+
+  const listContent = (
     <div className="mt-2">
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
@@ -120,9 +179,8 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
         fl.map(l => {
           const fc = flagColor(l.flag);
           const isExpanded = expandedId === l.id;
-          const refRange = findLabRange(l.test_name);
           return (
-            <Card key={l.id} id={`record-${l.id}`} onClick={() => setExpandedId(isExpanded ? null : l.id)} className={`cursor-pointer transition-all${highlightId === l.id ? ' highlight-ring' : ''}`}>
+            <Card key={l.id} id={`record-${l.id}`} onClick={() => setExpandedId(isExpanded ? null : l.id)} className={`cursor-pointer transition-all${highlightId === l.id ? ' highlight-ring' : ''}${isDesktop && expandedId === l.id ? ' ring-2 ring-salve-lav/30' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
@@ -137,49 +195,29 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
                 </div>
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ml-2 mt-1 ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
-              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
-                <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                  {l.date && <div className="text-xs text-salve-textFaint">{fmtDate(l.date)}{l.provider ? <>{' · '}<a href={providerLookupUrl(l.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{l.provider}</a></> : ''}</div>}
-                  {l.range && <div className="text-xs text-salve-textFaint">Reference: {l.range}</div>}
-                  {!l.range && refRange && (
-                    <div className="text-xs text-salve-textFaint">
-                      Reference: {refRange.low !== undefined && refRange.high !== undefined ? `${refRange.low}–${refRange.high}` : refRange.low !== undefined ? `≥ ${refRange.low}` : refRange.high !== undefined ? `≤ ${refRange.high}` : ''}{refRange.unit ? ` ${refRange.unit}` : ''}
-                      <span className="text-salve-lav/60 ml-1">(standard)</span>
-                    </div>
-                  )}
-                  {l.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{l.notes}</div>}
-                  {hasAIConsent() && l.flag && l.flag !== 'normal' && l.flag !== 'completed' && (
-                    <button
-                      onClick={() => explainLab(l)}
-                      aria-label="Explain lab result with Sage"
-                      className="mt-2 flex items-center gap-1 bg-transparent border border-salve-lav/30 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-salve-lav/10 transition-colors"
-                    >
-                      <Sparkles size={12} color={C.lav} />
-                      <span className="text-[11px] text-salve-lav font-montserrat">
-                        {interpretLoading === l.id ? 'Analyzing...' : interpretation[l.id] ? (interpretId === l.id ? 'Hide' : 'Show') + ' interpretation' : 'Explain this result'}
-                      </span>
-                    </button>
-                  )}
-                  {interpretId === l.id && interpretation[l.id] && (
-                    <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Interpretation</div>
-                        <button onClick={() => { setInterpretation(p => { const n = {...p}; delete n[l.id]; return n; }); setInterpretId(null); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss interpretation">×</button>
-                      </div>
-                      <AIMarkdown compact>{interpretation[l.id]}</AIMarkdown>
-                    </div>
-                  )}
-                  <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(l); setEditId(l.id); setSubView('form'); }} aria-label="Edit lab result" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-                    <button onClick={() => del.ask(l.id, l.test_name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
-                  </div>
-                </div>
-              </div></div>
+              {/* Mobile: inline expand. Desktop: detail goes to side pane */}
+              {!isDesktop && (
+                <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
+                  {isExpanded && renderLabDetail(l)}
+                </div></div>
+              )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />
           </Card>
           );
         })
       }
     </div>
+  );
+
+  return (
+    <SplitView
+      list={listContent}
+      detail={selectedLab ? (
+        <Card className="!mb-0">
+          {renderLabDetail(selectedLab)}
+        </Card>
+      ) : null}
+      emptyMessage="Select a lab result to view details"
+    />
   );
 }

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { Apple, Upload, Loader2, CheckCircle2, AlertTriangle, Clipboard } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
+import DropZone from './DropZone';
 import { C } from '../../constants/colors';
 import { detectAppleHealthFormat, detectAppleHealthJSON, parseAppleHealthExport, deduplicateAgainst, DEDUP_KEYS, parseFhirToLab } from '../../services/healthkit';
 import { db } from '../../services/db';
@@ -334,6 +335,14 @@ export default function AppleHealthImport({ data, reloadData }) {
         <li>Upload it below</li>
       </ol>
 
+      <DropZone
+        onFile={handleFile}
+        accept=".xml,.zip"
+        label="Drop Apple Health export here"
+        hint=".xml or .zip from Health app export"
+        className="mb-3"
+      />
+
       <input
         ref={fileRef}
         type="file"
@@ -344,7 +353,7 @@ export default function AppleHealthImport({ data, reloadData }) {
       <Button
         variant="lavender"
         onClick={() => fileRef.current?.click()}
-        className="w-full justify-center mb-2"
+        className="w-full justify-center mb-2 md:hidden"
       >
         <Upload size={15} /> Upload Apple Health Export
       </Button>

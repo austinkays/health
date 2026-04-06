@@ -21,6 +21,7 @@ import { drugAutocomplete, drugDetails } from '../../services/drugs';
 import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
 import { checkInteractions } from '../../utils/interactions';
+import SplitView, { useIsDesktop } from '../layout/SplitView';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -60,6 +61,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     if (!text) return text;
     return text.replace(/^[A-Z][A-Z &/,()-]+(?::\s*|\s+)/,'').replace(/^\s+/,'');
   };
+  const isDesktop = useIsDesktop();
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
@@ -404,7 +406,159 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     return counted > 0 ? { total, counted, of: active.length } : null;
   }, [data.meds, data.drug_prices]);
 
-  return (
+  /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
+  const renderMedDetail = (m) => (
+    <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+      {/* Desktop: show med name as title in detail pane */}
+      {isDesktop && (
+        <div className="mb-3">
+          <h3 className="text-lg font-semibold text-salve-text font-playfair m-0">{m.display_name || m.name}</h3>
+          {m.display_name && m.display_name !== m.name && <div className="text-xs text-salve-textFaint">{m.name}</div>}
+          <div className="text-sm text-salve-textMid mt-0.5">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+        </div>
+      )}
+      {m.route && <div className="text-xs text-salve-textMid mb-0.5">Route: {m.route}</div>}
+      {m.purpose && <div className="text-xs text-salve-textFaint">For: {m.purpose}</div>}
+      {m.prescriber && <div className="text-xs text-salve-textFaint flex items-center gap-1">Rx: <a href={providerLookupUrl(m.prescriber, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{m.prescriber}</a></div>}
+      {m.pharmacy && (() => {
+        const pLC = m.pharmacy.trim().toLowerCase();
+        const notMappable = ['otc', 'n/a', 'na', 'none', 'self', 'online', '-', '—', 'over the counter'].includes(pLC);
+        return notMappable
+          ? <div className="text-xs text-salve-textFaint">{m.pharmacy}</div>
+          : <div className="text-xs text-salve-textFaint flex items-center gap-1">
+              Pharmacy: <a href={mapsUrl(m.pharmacy)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5">{m.pharmacy} <MapPin size={10} /></a>
+            </div>;
+      })()}
+      {m.start_date && <div className="text-xs text-salve-textFaint">Started: {fmtDate(m.start_date)}</div>}
+      {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
+      {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
+      {/* ── NADAC price + classification ── */}
+      {(() => {
+        const prices = (data.drug_prices || []).filter(dp => dp.medication_id === m.id && dp.nadac_per_unit);
+        if (!prices.length) return null;
+        const latest = prices.sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at))[0];
+        const isGeneric = latest.classification === 'G';
+        return (
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 text-[11px] text-salve-sage font-medium">
+              <DollarSign size={10} /> ${Number(latest.nadac_per_unit).toFixed(4)}/{latest.pricing_unit || 'unit'}
+            </span>
+            <span className={`inline-flex items-center py-0.5 px-1.5 rounded text-[9px] font-semibold ${isGeneric ? 'bg-salve-sage/10 text-salve-sage border border-salve-sage/20' : 'bg-salve-amber/10 text-salve-amber border border-salve-amber/20'}`}>
+              {isGeneric ? 'Generic' : 'Brand'}
+            </span>
+          </div>
+        );
+      })()}
+      {/* ── Inline FDA summary ── */}
+      {m.fda_data && (
+        <div className="mt-2 p-2.5 rounded-lg bg-salve-sage/5 border border-salve-sage/15">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+            {m.fda_data.generic_name && m.fda_data.generic_name.toLowerCase() !== m.name.toLowerCase() && (
+              <span className="text-salve-textMid"><span className="font-medium">Generic:</span> {m.fda_data.generic_name}</span>
+            )}
+            {m.fda_data.brand_name && m.fda_data.brand_name.toLowerCase() !== m.name.toLowerCase() && (
+              <span className="text-salve-textMid"><span className="font-medium">Brand:</span> {m.fda_data.brand_name}</span>
+            )}
+            {m.fda_data.manufacturer && (
+              <span className="text-salve-textMid"><span className="font-medium">Mfr:</span> {m.fda_data.manufacturer}</span>
+            )}
+            {m.fda_data.pharm_class?.length > 0 && (
+              <span className="text-salve-textMid"><span className="font-medium">Class:</span> {m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
+            )}
+            {m.fda_data.pharm_class_moa?.length > 0 && (
+              <span className="text-salve-textMid"><span className="font-medium">How it works:</span> {m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
+            )}
+          </div>
+          {/* ── Boxed warning (expandable) ── */}
+          {m.fda_data.boxed_warning?.length > 0 && (
+            <div className="mt-1.5">
+              <div className="flex items-center gap-1 text-[10px] text-salve-rose font-medium">
+                <AlertTriangle size={10} /> FDA Black Box Warning
+              </div>
+              <div className={`mt-1 text-[10px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
+              {m.fda_data.boxed_warning[0].length > 500 && (
+                <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:warning`]: !prev[`${m.id}:warning`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors">
+                  {fdaExpanded[`${m.id}:warning`] ? 'Show less' : 'Show more'}
+                </button>
+              )}
+            </div>
+          )}
+          {/* ── Indications (always visible when available) ── */}
+          {m.fda_data.indications?.length > 0 && (
+            <div className="mt-1.5 text-[10px] text-salve-textMid leading-relaxed">
+              <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 500 ? 'line-clamp-4' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
+              {m.fda_data.indications[0].length > 500 && (
+                <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:indications`]: !prev[`${m.id}:indications`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors block">
+                  {fdaExpanded[`${m.id}:indications`] ? 'Show less' : 'Show more'}
+                </button>
+              )}
+            </div>
+          )}
+          {/* ── Drug Details toggle ── */}
+          {(m.fda_data.adverse_reactions?.length > 0 || m.fda_data.dosage?.length > 0 || m.fda_data.contraindications?.length > 0 || m.fda_data.drug_interactions?.length > 0 || m.fda_data.pregnancy?.length > 0 || m.fda_data.precautions?.length > 0 || m.fda_data.storage?.length > 0 || m.fda_data.overdosage?.length > 0) && (
+            <>
+              <button
+                onClick={() => setFdaDetailId(fdaDetailId === m.id ? null : m.id)}
+                className="mt-1.5 flex items-center gap-1 text-[10px] text-salve-sage font-medium bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
+              >
+                <Info size={10} />
+                {fdaDetailId === m.id ? 'Hide details' : 'More drug details'}
+                <ChevronDown size={9} className={`transition-transform ${fdaDetailId === m.id ? 'rotate-180' : ''}`} />
+              </button>
+              {fdaDetailId === m.id && (
+                <div className="mt-1.5 space-y-2 text-[10px] leading-relaxed">
+                  {[
+                    { key: 'adverse_reactions', label: 'Side Effects', color: 'text-salve-amber', data: m.fda_data.adverse_reactions },
+                    { key: 'dosage', label: 'Dosage & Administration', color: 'text-salve-text', data: m.fda_data.dosage },
+                    { key: 'contraindications', label: 'Contraindications', color: 'text-salve-rose', data: m.fda_data.contraindications },
+                    { key: 'drug_interactions', label: 'Drug Interactions', color: 'text-salve-amber', data: m.fda_data.drug_interactions },
+                    { key: 'precautions', label: 'Precautions', color: 'text-salve-text', data: m.fda_data.precautions },
+                    { key: 'pregnancy', label: 'Pregnancy', color: 'text-salve-lav', data: m.fda_data.pregnancy },
+                    { key: 'overdosage', label: 'Overdosage', color: 'text-salve-rose', data: m.fda_data.overdosage },
+                    { key: 'storage', label: 'Storage', color: 'text-salve-textMid', data: m.fda_data.storage },
+                  ].filter(s => s.data?.length > 0).map(s => {
+                    const sKey = `${m.id}:${s.key}`;
+                    const isOpen = !!fdaExpanded[sKey];
+                    const text = stripFdaHeader(s.data[0]);
+                    const isLong = text && text.length > 500;
+                    return (
+                      <div key={s.key}>
+                        <div className={`font-medium ${s.color} mb-0.5`}>{s.label}</div>
+                        <div className={`text-salve-textMid whitespace-pre-line ${!isOpen && isLong ? 'line-clamp-6' : ''}`}>{text}</div>
+                        {isLong && (
+                          <button
+                            onClick={() => setFdaExpanded(prev => ({ ...prev, [sKey]: !isOpen }))}
+                            className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
+                          >
+                            {isOpen ? 'Show less' : 'Show more'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2.5 mt-2.5 flex-wrap">
+        <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
+        <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+        {goodRxUrl(m.name) && (
+          <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" aria-label={`Compare prices for ${m.display_name || m.name} on GoodRx (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
+            <ExternalLink size={11} aria-hidden="true" /> Compare Prices
+          </a>
+        )}
+      </div>
+    </div>
+  );
+
+  /* ── Selected med for desktop detail pane ── */
+  const selectedMed = isDesktop ? fl.find(m => m.id === expandedId) : null;
+
+  const listContent = (
     <div className="mt-2">
       {interactions.length > 0 && (
         <>
@@ -559,7 +713,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         fl.map(m => {
           const isExpanded = expandedId === m.id;
           return (
-          <Card key={m.id} id={`record-${m.id}`} onClick={() => setExpandedId(isExpanded ? null : m.id)} className={`cursor-pointer transition-all${highlightId === m.id ? ' highlight-ring' : ''}`}>
+          <Card key={m.id} id={`record-${m.id}`} onClick={() => setExpandedId(isExpanded ? null : m.id)} className={`cursor-pointer transition-all${highlightId === m.id ? ' highlight-ring' : ''}${isDesktop && expandedId === m.id ? ' ring-2 ring-salve-lav/30' : ''}`}>
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
@@ -613,150 +767,29 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
             </div>
-            <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
-              <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-                {m.route && <div className="text-xs text-salve-textMid mb-0.5">Route: {m.route}</div>}
-                {m.purpose && <div className="text-xs text-salve-textFaint">For: {m.purpose}</div>}
-                {m.prescriber && <div className="text-xs text-salve-textFaint flex items-center gap-1">Rx: <a href={providerLookupUrl(m.prescriber, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{m.prescriber}</a></div>}
-                {m.pharmacy && (() => {
-                  const pLC = m.pharmacy.trim().toLowerCase();
-                  const notMappable = ['otc', 'n/a', 'na', 'none', 'self', 'online', '-', '—', 'over the counter'].includes(pLC);
-                  return notMappable
-                    ? <div className="text-xs text-salve-textFaint">{m.pharmacy}</div>
-                    : <div className="text-xs text-salve-textFaint flex items-center gap-1">
-                        Pharmacy: <a href={mapsUrl(m.pharmacy)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5">{m.pharmacy} <MapPin size={10} /></a>
-                      </div>;
-                })()}
-                {m.start_date && <div className="text-xs text-salve-textFaint">Started: {fmtDate(m.start_date)}</div>}
-                {m.refill_date && <div className="text-xs text-salve-amber mt-1 font-medium">Refill: {fmtDate(m.refill_date)} ({daysUntil(m.refill_date)})</div>}
-                {m.notes && <div className="text-xs text-salve-textFaint mt-1.5 leading-relaxed">{m.notes}</div>}
-                {/* ── NADAC price + classification ── */}
-                {(() => {
-                  const prices = (data.drug_prices || []).filter(dp => dp.medication_id === m.id && dp.nadac_per_unit);
-                  if (!prices.length) return null;
-                  const latest = prices.sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at))[0];
-                  const isGeneric = latest.classification === 'G';
-                  return (
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-[11px] text-salve-sage font-medium">
-                        <DollarSign size={10} /> ${Number(latest.nadac_per_unit).toFixed(4)}/{latest.pricing_unit || 'unit'}
-                      </span>
-                      <span className={`inline-flex items-center py-0.5 px-1.5 rounded text-[9px] font-semibold ${isGeneric ? 'bg-salve-sage/10 text-salve-sage border border-salve-sage/20' : 'bg-salve-amber/10 text-salve-amber border border-salve-amber/20'}`}>
-                        {isGeneric ? 'Generic' : 'Brand'}
-                      </span>
-                    </div>
-                  );
-                })()}
-                {/* ── Inline FDA summary ── */}
-                {m.fda_data && (
-                  <div className="mt-2 p-2.5 rounded-lg bg-salve-sage/5 border border-salve-sage/15">
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
-                      {m.fda_data.generic_name && m.fda_data.generic_name.toLowerCase() !== m.name.toLowerCase() && (
-                        <span className="text-salve-textMid"><span className="font-medium">Generic:</span> {m.fda_data.generic_name}</span>
-                      )}
-                      {m.fda_data.brand_name && m.fda_data.brand_name.toLowerCase() !== m.name.toLowerCase() && (
-                        <span className="text-salve-textMid"><span className="font-medium">Brand:</span> {m.fda_data.brand_name}</span>
-                      )}
-                      {m.fda_data.manufacturer && (
-                        <span className="text-salve-textMid"><span className="font-medium">Mfr:</span> {m.fda_data.manufacturer}</span>
-                      )}
-                      {m.fda_data.pharm_class?.length > 0 && (
-                        <span className="text-salve-textMid"><span className="font-medium">Class:</span> {m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
-                      )}
-                      {m.fda_data.pharm_class_moa?.length > 0 && (
-                        <span className="text-salve-textMid"><span className="font-medium">How it works:</span> {m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
-                      )}
-                    </div>
-                    {/* ── Boxed warning (expandable) ── */}
-                    {m.fda_data.boxed_warning?.length > 0 && (
-                      <div className="mt-1.5">
-                        <div className="flex items-center gap-1 text-[10px] text-salve-rose font-medium">
-                          <AlertTriangle size={10} /> FDA Black Box Warning
-                        </div>
-                        <div className={`mt-1 text-[10px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
-                        {m.fda_data.boxed_warning[0].length > 500 && (
-                          <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:warning`]: !prev[`${m.id}:warning`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors">
-                            {fdaExpanded[`${m.id}:warning`] ? 'Show less' : 'Show more'}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {/* ── Indications (always visible when available) ── */}
-                    {m.fda_data.indications?.length > 0 && (
-                      <div className="mt-1.5 text-[10px] text-salve-textMid leading-relaxed">
-                        <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 500 ? 'line-clamp-4' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
-                        {m.fda_data.indications[0].length > 500 && (
-                          <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:indications`]: !prev[`${m.id}:indications`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors block">
-                            {fdaExpanded[`${m.id}:indications`] ? 'Show less' : 'Show more'}
-                          </button>
-                        )}
-                      </div>
-                    )}
-                    {/* ── Drug Details toggle ── */}
-                    {(m.fda_data.adverse_reactions?.length > 0 || m.fda_data.dosage?.length > 0 || m.fda_data.contraindications?.length > 0 || m.fda_data.drug_interactions?.length > 0 || m.fda_data.pregnancy?.length > 0 || m.fda_data.precautions?.length > 0 || m.fda_data.storage?.length > 0 || m.fda_data.overdosage?.length > 0) && (
-                      <>
-                        <button
-                          onClick={() => setFdaDetailId(fdaDetailId === m.id ? null : m.id)}
-                          className="mt-1.5 flex items-center gap-1 text-[10px] text-salve-sage font-medium bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
-                        >
-                          <Info size={10} />
-                          {fdaDetailId === m.id ? 'Hide details' : 'More drug details'}
-                          <ChevronDown size={9} className={`transition-transform ${fdaDetailId === m.id ? 'rotate-180' : ''}`} />
-                        </button>
-                        {fdaDetailId === m.id && (
-                          <div className="mt-1.5 space-y-2 text-[10px] leading-relaxed">
-                            {[
-                              { key: 'adverse_reactions', label: 'Side Effects', color: 'text-salve-amber', data: m.fda_data.adverse_reactions },
-                              { key: 'dosage', label: 'Dosage & Administration', color: 'text-salve-text', data: m.fda_data.dosage },
-                              { key: 'contraindications', label: 'Contraindications', color: 'text-salve-rose', data: m.fda_data.contraindications },
-                              { key: 'drug_interactions', label: 'Drug Interactions', color: 'text-salve-amber', data: m.fda_data.drug_interactions },
-                              { key: 'precautions', label: 'Precautions', color: 'text-salve-text', data: m.fda_data.precautions },
-                              { key: 'pregnancy', label: 'Pregnancy', color: 'text-salve-lav', data: m.fda_data.pregnancy },
-                              { key: 'overdosage', label: 'Overdosage', color: 'text-salve-rose', data: m.fda_data.overdosage },
-                              { key: 'storage', label: 'Storage', color: 'text-salve-textMid', data: m.fda_data.storage },
-                            ].filter(s => s.data?.length > 0).map(s => {
-                              const sKey = `${m.id}:${s.key}`;
-                              const isOpen = !!fdaExpanded[sKey];
-                              const text = stripFdaHeader(s.data[0]);
-                              const isLong = text && text.length > 500;
-                              return (
-                                <div key={s.key}>
-                                  <div className={`font-medium ${s.color} mb-0.5`}>{s.label}</div>
-                                  <div className={`text-salve-textMid whitespace-pre-line ${!isOpen && isLong ? 'line-clamp-6' : ''}`}>{text}</div>
-                                  {isLong && (
-                                    <button
-                                      onClick={() => setFdaExpanded(prev => ({ ...prev, [sKey]: !isOpen }))}
-                                      className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
-                                    >
-                                      {isOpen ? 'Show less' : 'Show more'}
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-2.5 mt-2.5 flex-wrap">
-                  <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-                  <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
-                  {goodRxUrl(m.name) && (
-                    <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" aria-label={`Compare prices for ${m.display_name || m.name} on GoodRx (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
-                      <ExternalLink size={11} aria-hidden="true" /> Compare Prices
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div></div>
+            {/* Mobile: inline expand. Desktop: detail goes to side pane */}
+            {!isDesktop && (
+              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
+                {isExpanded && renderMedDetail(m)}
+              </div></div>
+            )}
           <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
           </Card>
           );
         })
       }
     </div>
+  );
+
+  return (
+    <SplitView
+      list={listContent}
+      detail={selectedMed ? (
+        <Card className="!mb-0">
+          {renderMedDetail(selectedMed)}
+        </Card>
+      ) : null}
+      emptyMessage="Select a medication to view details"
+    />
   );
 }

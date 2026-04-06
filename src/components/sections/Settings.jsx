@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart } from 'lucide-react';
 import Card from '../ui/Card';
+import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
 import Field from '../ui/Field';
 import Button from '../ui/Button';
@@ -376,8 +377,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     }
   }
 
-  function handleFileSelect(e) {
-    const file = e.target.files?.[0];
+  function processImportFile(file) {
     if (!file) return;
 
     setImportResult(null);
@@ -418,6 +418,10 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       }
     };
     reader.readAsText(file);
+  }
+
+  function handleFileSelect(e) {
+    processImportFile(e.target.files?.[0]);
   }
 
   async function executeImport() {
@@ -1225,12 +1229,20 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               Upload a backup file or a health sync file.
             </p>
 
+            <DropZone
+              onFile={processImportFile}
+              accept=".json"
+              label="Drop backup file here"
+              hint="Or click to browse — accepts .json backups"
+              className="mb-3"
+            />
+
             <input
               ref={fileInputRef}
               type="file"
               accept=".json"
               onChange={handleFileSelect}
-              className="block w-full text-sm text-salve-textMid
+              className="block w-full text-sm text-salve-textMid md:hidden
                 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0
                 file:text-sm file:font-medium file:bg-salve-card2 file:text-salve-lav
                 file:cursor-pointer hover:file:bg-salve-border cursor-pointer"
