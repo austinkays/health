@@ -16,6 +16,7 @@ export default function useHealthData(session, demoMode = false) {
     cycles: [],
     activities: [],
     genetic_results: [],
+    feedback: [],
     settings: { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
   });
   const [loading, setLoading] = useState(true);
@@ -166,6 +167,7 @@ function tableToKey(table) {
     cycles: 'cycles',
     activities: 'activities',
     genetic_results: 'genetic_results',
+    feedback: 'feedback',
   };
   return map[table] || table;
 }

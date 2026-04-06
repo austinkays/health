@@ -1504,13 +1504,13 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <Bug size={14} className="text-salve-textFaint" />
             Report a Bug
           </a>
-          <a
-            href="mailto:salveapp@proton.me"
-            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat no-underline hover:text-salve-lav transition-colors"
+          <button
+            onClick={() => onNav('feedback')}
+            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav transition-colors"
           >
             <MessageCircle size={14} className="text-salve-textFaint" />
-            Contact Developer
-          </a>
+            Send Feedback
+          </button>
           <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
             <Info size={14} />
             Salve v1.0

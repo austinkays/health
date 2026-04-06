@@ -147,7 +147,7 @@ const STARTER_TIPS = [
     color: 'amber',
     title: 'Share feedback or ideas',
     body: 'Salve is built with love and your input helps shape it. Let us know what features you\'d like to see.',
-    href: 'mailto:salveapp@proton.me?subject=Salve%20feedback',
+    action: 'feedback',
     actionLabel: 'Send feedback',
   },
 ];

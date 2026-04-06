@@ -67,6 +67,7 @@ const Hub = lazyWithRetry(() => import('./components/sections/Hub'));
 const OuraRing = lazyWithRetry(() => import('./components/sections/OuraRing'));
 const AppleHealthPage = lazyWithRetry(() => import('./components/sections/AppleHealthPage'));
 const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
+const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
 
 export default function App() {
   return (
@@ -339,6 +340,7 @@ function AppContent() {
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
       case 'legal':      return <Legal onNav={onNav} />;
+      case 'feedback':   return <Feedback {...shared} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
     }
   };

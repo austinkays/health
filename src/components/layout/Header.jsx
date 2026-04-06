@@ -37,6 +37,7 @@ const TAB_LABELS = {
   apple_health: 'Apple Health',
   summary: 'Health Summary',
   legal: 'Legal',
+  feedback: 'Feedback',
 };
 
 export default function Header({ tab, name, onBack, onSearch, onSage, action }) {
