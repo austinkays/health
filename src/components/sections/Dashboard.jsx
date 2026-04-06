@@ -482,7 +482,6 @@ export default function Dashboard({ data, interactions, onNav }) {
   }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, data.appts, activeMeds]);
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
-  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
 
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
@@ -508,6 +507,8 @@ export default function Dashboard({ data, interactions, onNav }) {
     })
       .filter(m => !seenSet.has(m.resource.id));
   }, [data.conditions, data.meds, data.journal, data.settings, seenResources]);
+
+  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
 
   const dismissResource = useCallback((resourceId) => {
     setSeenResources(prev => {
