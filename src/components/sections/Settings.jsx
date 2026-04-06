@@ -211,7 +211,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                         key={t.id}
                         theme={t}
                         isActive={themeId === t.id}
-                        isLocked={userTier === 'free'}
+                        isLocked={false}
                         onSelect={handleSelect}
                       />
                     ))}
@@ -228,7 +228,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                         key={t.id}
                         theme={t}
                         isActive={themeId === t.id}
-                        isLocked={userTier === 'free'}
+                        isLocked={false}
                         onSelect={handleSelect}
                       />
                     ))}

@@ -242,6 +242,21 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `setupOfflineSync()` is initialized in `App.jsx` on mount with a flush callback that replays pending operations through `db.js`; cleans up on unmount
 - `crypto.js` provides `encrypt()`, `decrypt()`, and `clearKeyCache()` used by both cache and export encryption
 
+**Settings sidecar (`hc:settings`)** — unencrypted plain JSON for non-PHI settings (name, ai_mode, etc.):
+- `cache.readSettingsSync()` reads synchronously (no async/crypto) — used in `useHealthData` `useState` initializer so name/prefs are available before any network or decrypt call
+- `cache.writeSettingsSync(settings)` is called inside `cache.write()` automatically whenever the encrypted cache is updated
+- `cache.clear()` also removes the sidecar key
+- Purpose: eliminates the flash where the Dashboard shows empty name/settings for several seconds on first render
+
+**PBKDF2 key pre-warming** — `crypto.js` exports `prewarmKey(token)`:
+- Called via `cache.prewarm()` in `App.jsx`'s `onAuthStateChange` handler immediately when a session arrives
+- Starts the 100k-iteration PBKDF2 derivation in the background so the key is cached in memory by the time `useHealthData` calls `cache.read()`
+- Without this, the first `cache.read()` call would block for ~200–500ms on the crypto work
+
+**Auth init pattern** — `App.jsx` uses `onAuthStateChange` exclusively (no competing `getSession()` call):
+- Supabase gotrue uses a storage lock; calling both `getSession()` and `onAuthStateChange` in React Strict Mode (double-mount) triggers a 5-second forced timeout
+- The `INITIAL_SESSION` event from `onAuthStateChange` is sufficient; `getSession()` was removed
+
 ### AI API Proxies (Tiered Provider System)
 
 The app uses a **tiered AI provider system** with smart model routing per feature complexity:
@@ -419,8 +434,8 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - **Tailwind:** `tailwind.config.js` maps `salve.*` to `rgb(var(--salve-*) / <alpha-value>)` — all opacity modifiers work
 - **Recharts/JS:** `import { C } from 'constants/colors'` returns a Proxy reading active theme hex values
 - **Persistence:** `localStorage` key `salve:theme` (default: `'lilac'`)
-- **FODT prevention:** Inline `<script>` in `index.html` applies saved theme background before React hydrates
-- **Experimental themes** are filtered by `.experimental` flag in Settings into a collapsed "Experimental themes (Premium)" `<details>` section with 🔒 lock for free-tier users
+- **FODT prevention:** Inline `<script>` in `index.html` applies **all** CSS custom properties synchronously before React hydrates — sets all 16 `--salve-*` color vars (as RGB triplets), `--salve-gradient-1/2/3`, all 4 `--ambiance-*` vars, and the `theme-X` class. All 15 themes are embedded as compact JSON in the script so no async work is needed. `useTheme.jsx`'s `applyThemeVariables()` accepts an `animate` flag — initial render calls it synchronously (no rAF) to stay in sync with the already-set vars; theme switches use rAF for the fade animation.
+- **Experimental themes** are filtered by `.experimental` flag in Settings into a collapsed "Experimental themes" section. **All users (including free) can click/preview experimental themes** — clicking applies the theme to the DOM immediately via `setTheme()`. Free users see a "🔒 Save · Premium" notification bar when previewing an experimental theme; the Save button is disabled. When a free user leaves Settings with an unsaved experimental theme active, `revertTheme()` auto-reverts to their saved (non-experimental) theme. Premium/admin users can save experimental themes normally.
 - **To add a new theme:** Add one object to `themes.js` with colors, ambiance, gradient, and optional CSS effect block in `index.css`. Nothing else changes.
 
 **15 Themes (6 core + 9 experimental):**
