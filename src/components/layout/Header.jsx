@@ -46,7 +46,7 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
   const isSage = tab === 'ai';
 
   return (
-    <header className="px-6 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] pb-5 relative md:pt-7">
+    <header className="px-6 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] pb-5 relative md:pt-8 md:pb-6">
       <div className="flex items-center gap-2.5">
         {/* Back button: visible on mobile, hidden on md+ (sidebar provides nav context) */}
         {!isDash && (
@@ -55,7 +55,7 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
           </button>
         )}
         <div className="flex-1">
-          <h1 className={`font-playfair font-semibold m-0 text-salve-text ${isDash ? 'text-2xl md:text-3xl' : 'text-xl md:text-2xl'}`}>
+          <h1 className={`font-playfair font-semibold m-0 text-salve-text ${isDash ? 'text-2xl md:text-4xl' : 'text-xl md:text-3xl'}`}>
             {isDash ? (
               <span className="text-gradient-magic">Hello, {name || 'there'}</span>
             ) : (
@@ -63,7 +63,7 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
             )}
           </h1>
           {isDash && (
-            <p className="m-0 mt-1 text-[13px] md:text-sm text-salve-textFaint font-light italic">
+            <p className="m-0 mt-1 text-[13px] md:text-base text-salve-textFaint font-light italic">
               Your health, your story, your power.
             </p>
           )}

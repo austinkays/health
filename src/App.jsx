@@ -348,11 +348,11 @@ function AppContent() {
   return (
     <div className="min-h-screen overflow-hidden relative">
       <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} name={data.settings.name} />
-      <div className="md:ml-[220px]">
+      <div className="md:ml-[260px]">
         {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
-        <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[720px] lg:max-w-[960px] xl:max-w-[1200px]">
+        <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">
           <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
-          <main className="px-4">
+          <main className="px-4 md:px-6 lg:px-8">
             <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
               <Suspense fallback={
                 <div className="flex items-center justify-center py-20">

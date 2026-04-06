@@ -36,9 +36,9 @@ export default function SplitView({ list, detail, emptyMessage = 'Select an item
 
   // Desktop: side-by-side
   return (
-    <div className="flex gap-5 min-h-[60vh]">
+    <div className="flex gap-6 min-h-[60vh]">
       {/* List column */}
-      <div className="w-[320px] lg:w-[360px] flex-shrink-0 overflow-y-auto max-h-[calc(100vh-140px)] pr-1 no-scrollbar">
+      <div className="w-[360px] lg:w-[420px] flex-shrink-0 overflow-y-auto max-h-[calc(100vh-140px)] pr-1 no-scrollbar">
         {list}
       </div>
       {/* Detail pane */}

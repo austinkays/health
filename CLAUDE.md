@@ -481,11 +481,11 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 ### Layout
 
 - **Mobile** (< 768px): Max width 480px, centered. Bottom navigation with 6 tabs. Unchanged from original mobile-first design.
-- **Tablet** (768px – 1023px, `md:`): SideNav replaces BottomNav (220px fixed left sidebar). Content column widens to 720px. SplitView list/detail for Medications, Conditions, Labs, Providers. Drag-and-drop file import zones appear.
-- **Desktop** (≥ 1024px, `lg:`): Content column widens to 960px. Dashboard tile grids expand to 5 columns. All md: features apply.
+- **Tablet** (768px – 1023px, `md:`): SideNav replaces BottomNav (260px fixed left sidebar). Content column widens to 820px. SplitView list/detail for Medications, Conditions, Labs, Providers. Drag-and-drop file import zones appear.
+- **Desktop** (≥ 1024px, `lg:`): Content column widens to 1060px. Dashboard tile grids expand to 5 columns. All md: features apply.
 - **Responsive strategy:** All desktop behavior is additive via Tailwind `md:`/`lg:` prefixes + `useIsDesktop()` hook. Mobile layout is completely untouched — no breakpoint changes affect < 768px.
-- **SideNav** (desktop): Fixed left, 220px wide, full viewport height. App branding + user name at top, Search button with ⌘K hint, 6 nav items (same as BottomNav) with left-border accent on active, Ask Sage button, footer tagline. BottomNav hidden at md+ (`md:hidden`).
-- **SplitView** (desktop): List on left (320-360px scrollable), detail pane on right (sticky). Used by Medications, Conditions, Labs, Providers. Selected card shows lavender ring. Mobile: passes through list content, sections handle inline expand as before.
+- **SideNav** (desktop): Fixed left, 260px wide, full viewport height. App branding + user name at top, Search button with ⌘K hint, 6 nav items (same as BottomNav) with left-border accent on active, Ask Sage button, footer tagline. BottomNav hidden at md+ (`md:hidden`).
+- **SplitView** (desktop): List on left (360-420px scrollable), detail pane on right (sticky). Used by Medications, Conditions, Labs, Providers. Selected card shows lavender ring. Mobile: passes through list content, sections handle inline expand as before.
 - **Keyboard shortcuts:** `Cmd/Ctrl+K` → open search, `Escape` → close Sage popup. Implemented via global keydown listener in App.jsx.
 - **Drag-and-drop import** (desktop): DropZone component in Settings (backup .json), AppleHealthImport (.xml/.zip), CycleTracker (Flo .json). Dashed border target with hover/active states. Hidden on mobile, existing file picker buttons remain.
 - **Print support:** Print button on HealthSummary (desktop only). Print CSS hides nav/sidebar/decorative elements, forces expand-sections open, white background, page breaks.

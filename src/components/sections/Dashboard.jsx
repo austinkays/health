@@ -741,7 +741,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       </section>
 
       {/* ── Two-column grid zone (desktop) ─────────── */}
-      <div className="md:grid md:grid-cols-[3fr_2fr] md:gap-5 md:items-start">
+      <div className="md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start">
         {/* ── Left column ── */}
         <div>
           {/* Alerts */}
@@ -1075,7 +1075,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               Hide all
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-3">
             {visibleTips.map((tip, i) => {
               const TipIcon = tip.icon;
               const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
@@ -1131,7 +1131,7 @@ export default function Dashboard({ data, interactions, onNav }) {
       {/* ── Pinned shortcuts (user-starred) ─────── */}
       {starredTiles.length > 0 && (
         <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-3">
-          <div className="grid grid-cols-3 gap-2 md:gap-3">
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4">
             {starredTiles.map((t, i) => {
               const remainder = starredTiles.length % 3;
               const isLast = i === starredTiles.length - 1;
@@ -1140,13 +1140,13 @@ export default function Dashboard({ data, interactions, onNav }) {
                 <button
                   key={t.id}
                   onClick={() => onNav(t.id)}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2' : span === 3 ? ' col-span-3' : ''}`}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
                 >
                   <div className="absolute top-1.5 right-1.5">
                     <span className="text-salve-amber text-[8px]">★</span>
                   </div>
-                  <t.icon size={20} color={C.lav} strokeWidth={1.5} />
-                  <span className="text-[11px] text-salve-textMid font-montserrat">{t.label}</span>
+                  <t.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
+                  <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{t.label}</span>
                 </button>
               );
             })}
@@ -1159,7 +1159,7 @@ export default function Dashboard({ data, interactions, onNav }) {
         {starredTiles.length > 0 && (
           <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
         )}
-        <div className="grid grid-cols-3 gap-2 md:gap-3 mb-4">
+        <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4 mb-4">
           {hubTiles.map((h, i) => {
             const remainder = hubTiles.length % 3;
             const isLast = i === hubTiles.length - 1;
@@ -1168,10 +1168,10 @@ export default function Dashboard({ data, interactions, onNav }) {
               <button
                 key={h.id}
                 onClick={() => onNav(h.navId)}
-                className={`bg-salve-card border border-salve-border rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2' : span === 3 ? ' col-span-3' : ''}`}
+                className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
               >
-                <h.icon size={20} color={C.lav} strokeWidth={1.5} />
-                <span className="text-[11px] text-salve-textMid font-montserrat">{h.label}</span>
+                <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
+                <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{h.label}</span>
               </button>
             );
           })}

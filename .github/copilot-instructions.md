@@ -23,7 +23,7 @@ proactively surface the unchecked items — don't wait to be asked.
 - Vite + React 18 + Tailwind v3, Supabase (PostgreSQL + RLS), Vercel serverless
   API proxies (`api/chat.js`, `api/gemini.js`, `api/drug.js`, `api/provider.js`,
   `api/oura.js`), PWA via `vite-plugin-pwa`.
-- **Mobile-first, max-width 480px, phone-optimized.** Desktop is not a target.
+- **Mobile-first, max-width 480px, phone-optimized.** Desktop is additive: 260px sidebar, wider content columns (820px md / 1060px lg / 1280px xl), 15-16px base font.
 - Code-split sections via `lazyWithRetry()` + `Suspense`.
 - Encrypted localStorage cache (AES-GCM + PBKDF2 from session token).
 - Tiered AI: Gemini (free) + Anthropic Claude (premium) via smart per-feature
