@@ -119,7 +119,7 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
    • Save/Revert bar anchored at the TOP of the section so it's always visible
    • Experimental themes in a collapsible panel (no jarring <details> shift)
 ──────────────────────────────────────────────────────────────────────────── */
-function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, userTier }) {
+function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
   const [showExperimental, setShowExperimental] = useState(false);
 
   const core = Object.values(allThemes).filter(t => !t.experimental)
@@ -127,49 +127,30 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
   const experimentalLight = Object.values(allThemes).filter(t => t.experimental && t.type === 'light');
   const experimentalDark  = Object.values(allThemes).filter(t => t.experimental && t.type === 'dark');
   const experimental = [...experimentalLight, ...experimentalDark];
+  const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
 
   const handleSelect = (id) => {
-    setTheme(id);
+    const isExperimental = allThemes[id]?.experimental;
+    if (!isExperimental || canSaveExperimental) {
+      saveTheme(id); // auto-save immediately
+    } else {
+      setTheme(id);  // preview only — auto-reverts when user leaves Settings
+    }
   };
 
-  const previewed = allThemes[themeId];
-  // Saving experimental themes requires premium or admin — but anyone can preview
-  const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
-  const isPremiumOnly = previewed?.experimental && !canSaveExperimental;
-  const hasUnsaved = hasUnsavedChanges;
+  const isPreviewing = !canSaveExperimental && allThemes[themeId]?.experimental;
 
   return (
     <div>
-      {/* ── Save / Revert bar — lives at the TOP so it's always in view ── */}
-      {hasUnsaved && (
-        <div className="mb-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5 flex items-center justify-between gap-3">
-          <p className="text-xs text-salve-text font-montserrat min-w-0 truncate">
-            Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
-            {isPremiumOnly && <span className="text-salve-textFaint"> · Premium to save</span>}
-          </p>
-          <div className="flex gap-2 flex-shrink-0">
-            <button
-              onClick={() => !isPremiumOnly && saveTheme()}
-              disabled={isPremiumOnly}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg border font-montserrat transition-colors ${
-                isPremiumOnly
-                  ? 'text-salve-textFaint bg-transparent border-salve-border cursor-not-allowed'
-                  : 'text-salve-lav bg-salve-lav/15 border-salve-lav/30 cursor-pointer hover:bg-salve-lav/25'
-              }`}
-              title={isPremiumOnly ? 'Upgrade to premium to keep this theme' : 'Save this theme'}
-            >
-              {isPremiumOnly ? '🔒 Save' : 'Save'}
-            </button>
-            <button
-              onClick={revertTheme}
-              className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat hover:border-salve-border2 transition-colors"
-            >
-              Revert
-            </button>
-          </div>
+      {/* Hint bar when free user is previewing an experimental theme */}
+      {isPreviewing && (
+        <div className="mb-3 flex items-center justify-between px-3 py-2 rounded-xl border border-salve-amber/25 bg-salve-amber/5">
+          <span className="text-[11px] text-salve-textMid font-montserrat">
+            Previewing <strong className="text-salve-amber">{allThemes[themeId]?.label}</strong> — resets when you leave
+          </span>
+          <span className="text-[9px] text-salve-textFaint font-montserrat">Premium to keep</span>
         </div>
       )}
-
       {/* ── Core themes — 3-col grid (6 themes = 2 perfect rows, no orphans) ── */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {core.map(t => (
@@ -594,8 +575,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           themeId={themeId}
           setTheme={setTheme}
           saveTheme={saveTheme}
-          revertTheme={revertTheme}
-          hasUnsavedChanges={hasUnsavedChanges}
           userTier={userTier}
         />
       </Card>
