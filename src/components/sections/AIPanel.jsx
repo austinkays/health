@@ -1059,7 +1059,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       </div>
       {usage.remaining <= 3 && (
         <div className="text-center mb-2">
-          <span className={`text-[10px] font-montserrat ${usage.remaining === 0 ? 'text-salve-rose' : 'text-salve-amber'}`}>
+          <span className="text-[10px] font-montserrat text-salve-rose">
             {usage.remaining === 0 ? 'Daily limit reached — resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
           </span>
         </div>

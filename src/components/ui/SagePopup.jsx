@@ -190,7 +190,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
           <div className="border-t border-salve-border">
             {usage.remaining <= 3 && (
               <div className="px-3 pt-2 text-center">
-                <span className={`text-[10px] font-montserrat ${usage.remaining === 0 ? 'text-salve-rose' : 'text-salve-amber'}`}>
+                <span className="text-[10px] font-montserrat text-salve-rose">
                   {usage.remaining === 0 ? 'Daily limit reached — resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
                 </span>
               </div>
