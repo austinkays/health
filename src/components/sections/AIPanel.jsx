@@ -8,7 +8,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchHouseConsultation, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -605,106 +605,98 @@ function CostResult({ result, savedInsights }) {
   );
 }
 
-/* ── House Consultation Result (dual-AI debate) ──────────── */
+/* ── House Consultation Chat Room ──────────────────────────── */
 
-function HouseRound({ round, roundNum, label }) {
-  const [activeTab, setActiveTab] = useState('claude');
-  return (
-    <div className="mb-4">
-      <div className="flex items-center gap-2 mb-2.5">
-        <span className="text-[11px] font-semibold text-salve-textMid font-montserrat uppercase tracking-wider">{label}</span>
-        <div className="flex-1 h-px bg-salve-border/40" />
-      </div>
-      <div className="flex gap-1 mb-2.5">
-        <button
-          onClick={() => setActiveTab('claude')}
-          className={`flex items-center gap-1.5 text-[11px] font-medium font-montserrat px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-            activeTab === 'claude'
-              ? 'border-salve-lav/50 bg-salve-lav/15 text-salve-lav'
-              : 'border-salve-border bg-salve-card2 text-salve-textFaint hover:text-salve-text'
-          }`}
-        >
-          <div className="w-1.5 h-1.5 rounded-full bg-salve-lav" />
-          Claude
-        </button>
-        <button
-          onClick={() => setActiveTab('gemini')}
-          className={`flex items-center gap-1.5 text-[11px] font-medium font-montserrat px-3 py-1.5 rounded-full border transition-all cursor-pointer ${
-            activeTab === 'gemini'
-              ? 'border-salve-sage/50 bg-salve-sage/15 text-salve-sage'
-              : 'border-salve-border bg-salve-card2 text-salve-textFaint hover:text-salve-text'
-          }`}
-        >
-          <div className="w-1.5 h-1.5 rounded-full bg-salve-sage" />
-          Gemini
-        </button>
-      </div>
-      <div className={`rounded-xl border overflow-hidden transition-colors ${
-        activeTab === 'claude' ? 'border-salve-lav/20 bg-salve-lav/5' : 'border-salve-sage/20 bg-salve-sage/5'
-      }`}>
-        <div className={`border-l-[3px] p-4 pl-5 ${
-          activeTab === 'claude' ? 'border-salve-lav/40' : 'border-salve-sage/40'
-        }`}>
-          <div className="flex items-center gap-1.5 mb-2">
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center ${
-              activeTab === 'claude' ? 'bg-salve-lav/15' : 'bg-salve-sage/15'
-            }`}>
-              {activeTab === 'claude'
-                ? <Sparkles size={10} className="text-salve-lav" />
-                : <Shield size={10} className="text-salve-sage" />
-              }
-            </div>
-            <span className={`text-[10px] font-semibold font-montserrat tracking-wide ${
-              activeTab === 'claude' ? 'text-salve-lav' : 'text-salve-sage'
-            }`}>
-              {activeTab === 'claude' ? 'Claude Opus' : 'Gemini Pro'}
-            </span>
-          </div>
-          <AIMarkdown compact>{activeTab === 'claude' ? round.claude : round.gemini}</AIMarkdown>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function HouseConsultationResult({ result, savedInsights }) {
-  const text = typeof result === 'string'
-    ? result
-    : result?.rounds
-      ? result.rounds.map((r, i) => `Round ${i + 1}:\nClaude: ${r.claude}\nGemini: ${r.gemini}`).join('\n\n')
-      : '';
-
-  if (!result?.rounds) {
-    return (
-      <div>
-        <ResultHeader icon={Stethoscope} label="House Consultation" color={C.amber} text={text} featureType="house" savedInsights={savedInsights} />
-        <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 overflow-hidden">
-          <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
-            <AIMarkdown>{typeof result === 'string' ? result : result?.text || ''}</AIMarkdown>
-          </div>
-        </div>
-        <Disclaimer />
-      </div>
-    );
-  }
-
+function HouseChatRoom({ messages, loading, input, onInputChange, onSend, inputRef, endRef }) {
   return (
     <div>
-      <ResultHeader icon={Stethoscope} label="House Consultation" color={C.amber} text={text} featureType="house" savedInsights={savedInsights} />
-      <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 p-4 mb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Stethoscope size={16} className="text-salve-amber" />
-          <span className="text-[13px] font-semibold font-playfair text-salve-text">Differential Diagnosis Team</span>
+      <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 p-4 mb-4">
+        <div className="flex items-center gap-2 mb-1.5">
+          <Stethoscope size={15} className="text-salve-amber" />
+          <span className="text-[12px] font-semibold font-montserrat text-salve-amber">Dual AI Consultation</span>
         </div>
         <p className="text-[11px] text-salve-textFaint leading-relaxed font-montserrat">
-          Two AI models independently analyzed your health profile, then debated each other's findings — like a medical team bouncing ideas off each other.
+          Claude and Gemini both see your full health profile and will respond independently. Ask anything — they may agree, disagree, or surface different insights.
         </p>
       </div>
 
-      <HouseRound round={result.rounds[0]} roundNum={1} label="Round 1 — Independent Analysis" />
-      <HouseRound round={result.rounds[1]} roundNum={2} label="Round 2 — Rebuttal & Debate" />
+      <div className="flex flex-col gap-4 mb-4 max-h-[60vh] overflow-y-auto no-scrollbar">
+        {messages.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-[12px] text-salve-textFaint font-montserrat italic">Type a question below to start your consultation.</p>
+          </div>
+        )}
+        {messages.map((msg, i) => (
+          msg.type === 'user' ? (
+            <div key={i} className="self-end max-w-[80%] bg-salve-lav/10 border border-salve-lav/20 rounded-xl px-4 py-2.5">
+              <p className="text-[13px] text-salve-text font-montserrat">{msg.content}</p>
+            </div>
+          ) : (
+            <div key={i} className="flex flex-col gap-2 md:flex-row">
+              <div className="flex-1 rounded-xl border border-salve-lav/20 bg-salve-lav/5 overflow-hidden">
+                <div className="border-l-[3px] border-salve-lav/40 p-3.5 pl-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="w-4 h-4 rounded-full bg-salve-lav/15 flex items-center justify-center">
+                      <Sparkles size={9} className="text-salve-lav" />
+                    </div>
+                    <span className="text-[10px] font-semibold font-montserrat text-salve-lav tracking-wide uppercase">Claude</span>
+                  </div>
+                  <AIMarkdown>{msg.claude}</AIMarkdown>
+                </div>
+              </div>
+              <div className="flex-1 rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
+                <div className="border-l-[3px] border-salve-sage/40 p-3.5 pl-4">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <div className="w-4 h-4 rounded-full bg-salve-sage/15 flex items-center justify-center">
+                      <Shield size={9} className="text-salve-sage" />
+                    </div>
+                    <span className="text-[10px] font-semibold font-montserrat text-salve-sage tracking-wide uppercase">Gemini</span>
+                  </div>
+                  <AIMarkdown>{msg.gemini}</AIMarkdown>
+                </div>
+              </div>
+            </div>
+          )
+        ))}
+        {loading && (
+          <div className="flex flex-col gap-2 md:flex-row">
+            <div className="flex-1 rounded-xl border border-salve-lav/20 bg-salve-lav/5 overflow-hidden">
+              <div className="border-l-[3px] border-salve-lav/40 p-3.5 pl-4">
+                <div className="flex items-center gap-1.5">
+                  <Loader2 size={11} className="text-salve-lav animate-spin" />
+                  <span className="text-[11px] font-montserrat text-salve-lav/80">Claude is thinking...</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
+              <div className="border-l-[3px] border-salve-sage/40 p-3.5 pl-4">
+                <div className="flex items-center gap-1.5">
+                  <Loader2 size={11} className="text-salve-sage animate-spin" />
+                  <span className="text-[11px] font-montserrat text-salve-sage/80">Gemini is thinking...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
 
       <Disclaimer />
+
+      <div className="flex gap-2 mt-3">
+        <input
+          ref={inputRef}
+          className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[13px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
+          value={input}
+          onChange={e => onInputChange(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()}
+          placeholder="Ask both your AI consultants..."
+          disabled={loading}
+        />
+        <Button onClick={onSend} disabled={!input.trim() || loading} className="!px-3" aria-label="Send to both AI consultants">
+          <Send size={16} />
+        </Button>
+      </div>
     </div>
   );
 }
@@ -911,6 +903,15 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const toolExecutionsRef = useRef([]);
   const pendingConfirmRef = useRef(null);
 
+  // House Consultation chat state
+  const [houseMessages, setHouseMessages] = useState([]);
+  const [claudeHistory, setClaudeHistory] = useState([]);
+  const [geminiHistory, setGeminiHistory] = useState([]);
+  const [houseInput, setHouseInput] = useState('');
+  const [houseLoading, setHouseLoading] = useState(false);
+  const houseEndRef = useRef(null);
+  const houseInputRef = useRef(null);
+
   // Keep ref in sync with state
   useEffect(() => { toolExecutionsRef.current = toolExecutions; }, [toolExecutions]);
 
@@ -968,6 +969,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
   const profile = buildProfile(data);
 
+  // Auto-scroll house chat to latest message
+  useEffect(() => {
+    houseEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [houseMessages]);
+
   // Load most recent conversation on entering chat mode
   useEffect(() => {
     if (mode !== 'ask') return;
@@ -995,6 +1001,26 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     } catch {}
   };
 
+  const handleHouseChat = async () => {
+    if (!houseInput.trim() || houseLoading) return;
+    const msg = houseInput.trim();
+    setHouseInput('');
+    setHouseLoading(true);
+    const display = [...houseMessages, { type: 'user', content: msg }];
+    setHouseMessages(display);
+    try {
+      const { claude, gemini } = await sendHouseChat(claudeHistory, geminiHistory, msg, profile);
+      setClaudeHistory(prev => [...prev, { role: 'user', content: msg }, { role: 'assistant', content: claude }]);
+      setGeminiHistory(prev => [...prev, { role: 'user', content: msg }, { role: 'assistant', content: gemini }]);
+      setHouseMessages([...display, { type: 'pair', claude, gemini }]);
+    } catch (e) {
+      setHouseMessages([...display, { type: 'pair', claude: `Error: ${e.message}`, gemini: `Error: ${e.message}` }]);
+    } finally {
+      setHouseLoading(false);
+      setTimeout(() => houseInputRef.current?.focus(), 50);
+    }
+  };
+
   const startNewChat = () => {
     setChatMessages([]);
     setConversationId(null);
@@ -1002,6 +1028,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   };
 
   const runFeature = async (id) => {
+    if (id === 'house') {
+      setMode('house');
+      setLoading(false);
+      return;
+    }
     setMode(id);
     setResult(null);
     setRevealed(false);
@@ -1044,9 +1075,6 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         const cycleProfile = `Cycle stats: avg length ${stats.avgLength} days, last period ${stats.lastPeriod}, ${stats.periodStarts.length} tracked cycles\n\nRecent vitals (last 3 months, tagged by cycle phase):\n${recentVitals.join('\n') || 'No recent vitals'}\n\nRecent journal entries (last 3 months, tagged by cycle phase):\n${recentJournal.join('\n') || 'No recent journal entries'}\n\nActive medications: ${activeMeds || 'None'}`;
 
         const r = await fetchCyclePatterns(cycleProfile);
-        setResult(r);
-      } else if (id === 'house') {
-        const r = await fetchHouseConsultation(profile);
         setResult(r);
       } else {
         const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
@@ -1196,10 +1224,20 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   if (mode && mode !== 'ask') return (
     <AIConsentGate>
     <div className="mt-2">
-      <SectionTitle action={<button onClick={() => { setMode(null); setResult(null); setRevealed(false); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
+      <SectionTitle action={<button onClick={() => { setMode(null); setResult(null); setRevealed(false); if (mode === 'house') { setHouseMessages([]); setClaudeHistory([]); setGeminiHistory([]); } }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
         {FEATURES.find(f => f.id === mode)?.label}
       </SectionTitle>
-      {(loading || (result && !revealed)) ? (
+      {mode === 'house' ? (
+        <HouseChatRoom
+          messages={houseMessages}
+          loading={houseLoading}
+          input={houseInput}
+          onInputChange={setHouseInput}
+          onSend={handleHouseChat}
+          inputRef={houseInputRef}
+          endRef={houseEndRef}
+        />
+      ) : (loading || (result && !revealed)) ? (
         <FeatureLoading ready={!loading && !!result} onReveal={() => setRevealed(true)} />
       ) : result && revealed ? (
         mode === 'insight' ? <InsightResult result={result} savedInsights={savedInsights} /> :
@@ -1219,7 +1257,6 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
             <Disclaimer />
           </div>
         ) :
-        mode === 'house' ? <HouseConsultationResult result={result} savedInsights={savedInsights} /> :
         null
       ) : null}
     </div>

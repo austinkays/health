@@ -166,25 +166,19 @@ RULES:
     'You are a medication cost specialist. Given this patient\'s health profile with NADAC wholesale drug prices, analyze their medication costs and provide actionable suggestions. Consider: generic alternatives for brand-name drugs, therapeutic substitutes that may be cheaper, patient assistance programs (PAPs) from manufacturers, pharmacy discount cards (GoodRx, RxSaver, Cost Plus Drugs), 90-day supply savings, mail-order pharmacy options, state prescription assistance programs, and manufacturer savings cards/coupons. For each suggestion, be specific: name the program, estimate potential savings, and note any eligibility requirements. Organize by medication. Be warm and practical. End with total potential monthly savings estimate.',
 
   houseConsultation:
-    `You are a brilliant, sharp-witted medical analyst on a differential diagnosis team — think Dr. House's team. You are direct, insightful, and not afraid to challenge assumptions. Given this patient's complete health profile, provide your independent analysis:
+    `You are a thoughtful, evidence-based health advisor in a dual-AI consultation. You and a colleague AI model independently review the same patient's health profile and respond to their questions, offering complementary perspectives.
 
-1. **Key observations** — What stands out? What patterns do others miss?
-2. **Differential considerations** — What could explain the combination of their conditions, symptoms, and medication effects?
-3. **Red flags or concerns** — Anything that warrants attention based on drug interactions, condition progression, or gaps in care?
-4. **Unconventional connections** — Any non-obvious links between their conditions, meds, vitals, or lifestyle?
-5. **Recommendations** — What would you push for if this were your patient?
+Your approach:
+- Be specific and insightful — reference actual data points from the profile
+- Be warm and direct — helpful without being preachy or overly cautious
+- Highlight patterns and connections that genuinely matter for this patient
+- Be concise — keep responses under 250 words unless the question warrants more depth
+- You are one voice in an ongoing conversation; the user may ask follow-up questions
 
-Be specific. Reference their actual data. Be bold in your analysis but always ground it in evidence. Keep it under 400 words.`,
+Engage genuinely with whatever the user asks. You have their full health profile as context.`,
 
   houseRebuttal:
-    `You are a brilliant medical analyst on a differential diagnosis team — think Dr. House's team. Your colleague just presented their analysis of this patient. You've seen the same health profile. Now:
-
-1. **Where you AGREE** — Which of their points are spot-on?
-2. **Where you DISAGREE or see it differently** — Challenge their reasoning. Offer alternative explanations.
-3. **What they MISSED** — Important patterns or connections they overlooked.
-4. **Your final take** — What's the most important thing this patient should focus on?
-
-Be direct and specific. This is a professional debate, not a polite summary. Reference the patient's actual data. Keep it under 300 words.`,
+    `You are a thoughtful medical analyst reviewing a colleague's health analysis. Be direct and specific. Reference the patient's actual data. Keep it under 300 words.`,
 };
 
 const DISCLAIMER = '\n\n---\n*Sage\'s suggestions are not medical advice. Always consult your healthcare providers.*';
@@ -549,6 +543,24 @@ export async function fetchHouseConsultation(profileText) {
       { claude: claudeR2, gemini: geminiR2 },
     ],
   };
+}
+
+export async function sendHouseChat(claudeMessages, geminiMessages, userMessage, profileText) {
+  if (_demoMode) return { claude: 'Demo mode: House Consultation unavailable. Sign in to chat with both AIs.', gemini: 'Demo mode: House Consultation unavailable. Sign in to chat with both AIs.' };
+  if (!_adminActive) throw new Error('Admin feature. House Consultation requires admin tier.');
+
+  const claudeMsgs = [...claudeMessages, { role: 'user', content: userMessage }];
+  const geminiMsgs = [...geminiMessages, { role: 'user', content: userMessage }];
+
+  const claudeSystem = PROMPTS.houseConsultation + '\n\nYou are "Claude" on this team.\n\n' + profileText;
+  const geminiSystem = PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team.\n\n' + profileText;
+
+  const [claudeText, geminiText] = await Promise.all([
+    callProvider('/api/chat', 'claude-opus-4-6', claudeMsgs, claudeSystem, 800),
+    callProvider('/api/gemini', 'gemini-2.5-pro', geminiMsgs, geminiSystem, 800),
+  ]);
+
+  return { claude: claudeText, gemini: geminiText };
 }
 
 export async function fetchCrossReactivity(medName, allergies, profileText) {
