@@ -9,6 +9,9 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
+const MOD_KEY = isMac ? '⌘' : 'Ctrl+';
+
 export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, onExitDemo }) {
   return (
     <nav
@@ -30,6 +33,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
       >
         <Search size={16} />
         <span className="flex-1 text-left">Search</span>
+        <kbd className="text-[10px] text-salve-textFaint bg-salve-bg px-1.5 py-0.5 rounded border border-salve-border font-montserrat">{MOD_KEY}K</kbd>
       </button>
 
       {/* Nav items */}
