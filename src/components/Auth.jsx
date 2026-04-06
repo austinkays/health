@@ -113,15 +113,15 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
 
   return (
     <div className="min-h-screen bg-salve-bg flex items-center justify-center px-6">
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm md:max-w-md">
 
         {/* Decorative header */}
         <div className="text-center mb-10">
-          <div className="text-salve-textFaint text-sm tracking-widest mb-2">✶ · ✶</div>
-          <h1 className="font-playfair text-3xl font-semibold text-salve-lav mb-2">
+          <div className="text-salve-textFaint text-sm md:text-base tracking-widest mb-2">✶ · ✶</div>
+          <h1 className="font-playfair text-3xl md:text-4xl font-semibold text-salve-lav mb-2">
             Salve
           </h1>
-          <p className="text-salve-textMid text-sm">
+          <p className="text-salve-textMid text-sm md:text-base">
             Your health, your story, your power.
           </p>
         </div>
@@ -134,16 +134,16 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
         )}
 
         {sent ? (
-          <div className="bg-salve-card rounded-xl border border-salve-border p-6 text-center">
-            <div className="text-2xl mb-3">✉️</div>
-            <h2 className="font-playfair text-lg text-salve-text font-semibold mb-2">
+          <div className="bg-salve-card rounded-xl border border-salve-border p-6 md:p-8 text-center">
+            <div className="text-2xl md:text-3xl mb-3">✉️</div>
+            <h2 className="font-playfair text-lg md:text-xl text-salve-text font-semibold mb-2">
               Enter your login code
             </h2>
-            <p className="text-salve-textMid text-sm mb-1">
+            <p className="text-salve-textMid text-sm md:text-base mb-1">
               We sent an 8-digit code to <span className="text-salve-lav">{email}</span>
             </p>
             {/* OTP expiry countdown */}
-            <p className={`text-xs mb-4 ${otpSecondsLeft <= 60 ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
+            <p className={`text-xs md:text-sm mb-4 ${otpSecondsLeft <= 60 ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
               {otpSecondsLeft > 0
                 ? `Code expires in ${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`
                 : 'Code expired — please request a new one'
@@ -151,7 +151,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             </p>
 
             {/* 6-digit code inputs */}
-            <div className="flex justify-center gap-1.5 mb-4" onPaste={handleCodePaste}>
+            <div className="flex justify-center gap-1.5 md:gap-2.5 mb-4" onPaste={handleCodePaste}>
               {code.map((digit, i) => (
                 <input
                   key={i}
@@ -164,7 +164,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
                   onChange={e => handleCodeChange(i, e.target.value)}
                   onKeyDown={e => handleCodeKeyDown(i, e)}
                   disabled={verifying}
-                  className="w-10 h-13 text-center text-xl font-medium bg-salve-card2 border border-salve-border rounded-lg text-salve-text focus:outline-none focus:border-salve-lav transition-colors disabled:opacity-50"
+                  className="w-10 h-13 md:w-12 md:h-14 text-center text-xl md:text-2xl font-medium bg-salve-card2 border border-salve-border rounded-lg text-salve-text focus:outline-none focus:border-salve-lav transition-colors disabled:opacity-50"
                 />
               ))}
             </div>
@@ -176,12 +176,12 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             <button
               onClick={() => handleVerify()}
               disabled={verifying || code.some(d => d === '') || otpSecondsLeft <= 0}
-              className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 text-sm hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+              className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
             >
               {verifying ? 'Verifying...' : otpSecondsLeft <= 0 ? 'Code expired' : 'Sign in'}
             </button>
 
-            <p className="text-salve-textFaint text-xs mb-3">
+            <p className="text-salve-textFaint text-xs md:text-sm mb-3">
               You can also tap the magic link in the email.
             </p>
 
@@ -203,7 +203,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             </div>
           </div>
         ) : (
-          <div className="bg-salve-card rounded-xl border border-salve-border p-6">
+          <div className="bg-salve-card rounded-xl border border-salve-border p-6 md:p-8">
             {/* Google Sign In */}
             <button
               onClick={async () => {
@@ -211,7 +211,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
                 try { await signInWithGoogle(); }
                 catch (err) { setError(err.message || 'Google sign-in failed'); }
               }}
-              className="w-full flex items-center justify-center gap-2.5 bg-salve-card2 border border-salve-border rounded-lg py-3 text-sm font-medium text-salve-text hover:border-salve-lav/50 hover:bg-salve-card2/80 transition-colors cursor-pointer mb-4"
+              className="w-full flex items-center justify-center gap-2.5 bg-salve-card2 border border-salve-border rounded-lg py-3 md:py-3.5 text-sm md:text-base font-medium text-salve-text hover:border-salve-lav/50 hover:bg-salve-card2/80 transition-colors cursor-pointer mb-4"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -231,7 +231,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
 
             {/* Email OTP form */}
             <form onSubmit={handleSubmit}>
-              <label className="block text-salve-textMid text-sm mb-2" htmlFor="email">
+              <label className="block text-salve-textMid text-sm md:text-base mb-2" htmlFor="email">
                 Email address
               </label>
               <input
@@ -242,15 +242,15 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
                 placeholder="amber@example.com"
                 required
                 autoComplete="email"
-                className="w-full bg-salve-card2 border border-salve-border rounded-lg px-4 py-3 text-salve-text placeholder-salve-textFaint text-sm focus:outline-none focus:border-salve-lav transition-colors mb-4"
+                className="w-full bg-salve-card2 border border-salve-border rounded-lg px-4 py-3 md:py-3.5 text-salve-text placeholder-salve-textFaint text-sm md:text-base focus:outline-none focus:border-salve-lav transition-colors mb-4"
               />
               {error && (
-                <p className="text-salve-rose text-sm mb-4">{error}</p>
+                <p className="text-salve-rose text-sm md:text-base mb-4">{error}</p>
               )}
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 text-sm hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Sending...' : 'Send login code'}
               </button>
@@ -258,21 +258,21 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
           </div>
         )}
 
-        <p className="text-center text-salve-textFaint text-xs mt-6">
+        <p className="text-center text-salve-textFaint text-xs md:text-sm mt-6">
           No password needed — we'll send a code to your email.
         </p>
 
         {/* Demo mode — explore without signing up */}
         {onEnterDemo && (
           <div className="mt-8 pt-6 border-t border-salve-border text-center">
-            <p className="text-salve-textFaint text-xs mb-3">Not ready to sign up?</p>
+            <p className="text-salve-textFaint text-xs md:text-sm mb-3">Not ready to sign up?</p>
             <button
               onClick={onEnterDemo}
-              className="inline-flex items-center gap-2 text-sm font-medium text-salve-lav hover:text-salve-text bg-transparent border border-salve-lav/30 hover:border-salve-lav/60 cursor-pointer px-5 py-2.5 rounded-lg transition-colors font-montserrat"
+              className="inline-flex items-center gap-2 text-sm md:text-base font-medium text-salve-lav hover:text-salve-text bg-transparent border border-salve-lav/30 hover:border-salve-lav/60 cursor-pointer px-5 py-2.5 md:px-6 md:py-3 rounded-lg transition-colors font-montserrat"
             >
               Explore without signing in <span aria-hidden="true">→</span>
             </button>
-            <p className="text-salve-textFaint text-[10px] mt-2.5 leading-relaxed max-w-[320px] mx-auto">
+            <p className="text-salve-textFaint text-[10px] md:text-xs mt-2.5 leading-relaxed max-w-[320px] md:max-w-[380px] mx-auto">
               Browse the app with an example user's data. Nothing saves until you sign up.
             </p>
           </div>
