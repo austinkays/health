@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
-export default function SideNav({ tab, onNav, onSearch, name }) {
+export default function SideNav({ tab, onNav, onSearch, onSage, name }) {
   return (
     <nav
       aria-label="Main navigation"
@@ -57,6 +57,15 @@ export default function SideNav({ tab, onNav, onSearch, name }) {
           );
         })}
       </div>
+
+      {/* Quick Sage chat */}
+      <button
+        onClick={onSage}
+        className="mx-3 mb-3 px-3 py-2 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-sage transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
+      >
+        <Leaf size={16} />
+        <span className="flex-1 text-left">Ask Sage</span>
+      </button>
 
       {/* Footer tagline */}
       <div className="px-5 pb-5 pt-3">
