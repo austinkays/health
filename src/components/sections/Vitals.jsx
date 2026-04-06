@@ -99,12 +99,34 @@ export default function Vitals({ data, addItem, removeItem }) {
     setSubView(null);
   };
 
-  const cd = data.vitals.filter(v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter)).map(v => ({
-    date: fmtDate(v.date),
-    value: Number(v.value),
-    ...(v.value2 ? { value2: Number(v.value2) } : {}),
-  }));
   const vi = VITAL_TYPES.find(t => t.id === ct);
+
+  // Aggregate to daily averages — prevents high-frequency wearable data (hundreds of HR/resp readings)
+  // from rendering as an unreadable blob. One point per day per type.
+  const integerTypes = new Set(['hr', 'bp', 'glucose']);
+  const cd = useMemo(() => {
+    const filtered = data.vitals.filter(
+      v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter)
+    );
+    const byDate = new Map();
+    for (const v of filtered) {
+      if (!byDate.has(v.date)) byDate.set(v.date, { vals: [], vals2: [] });
+      const e = byDate.get(v.date);
+      const n = Number(v.value);
+      if (!isNaN(n)) e.vals.push(n);
+      if (v.value2) { const n2 = Number(v.value2); if (!isNaN(n2)) e.vals2.push(n2); }
+    }
+    const round = (n) => integerTypes.has(ct) ? Math.round(n) : Math.round(n * 10) / 10;
+    const avg = arr => arr.length ? round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+    return [...byDate.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, { vals, vals2 }]) => ({
+        date: fmtDate(date),
+        value: avg(vals),
+        ...(vals2.length > 0 ? { value2: avg(vals2) } : {}),
+      }))
+      .filter(d => d.value !== null);
+  }, [data.vitals, ct, sourceFilter]);
 
   const phaseBands = useMemo(() => {
     if (!cycleOverlay || !data.cycles?.length || cd.length < 2) return [];
@@ -216,9 +238,11 @@ export default function Vitals({ data, addItem, removeItem }) {
       {cd.length > 1 ? (
         <Card className="!p-3.5">
           <div className="font-playfair text-sm font-medium mb-2.5 pl-1.5 text-salve-text">
-            {vi?.label} <span className="font-normal text-salve-textFaint text-xs">over time</span>
+            {vi?.label} <span className="font-normal text-salve-textFaint text-xs">
+              {cd.length > 14 ? 'daily avg' : 'over time'}
+            </span>
           </div>
-          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} readings from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
+          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} daily averages from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={cd}>
               <defs>
@@ -229,8 +253,8 @@ export default function Vitals({ data, addItem, removeItem }) {
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: C.textFaint }} />
               <YAxis tick={{ fontSize: 10, fill: C.textFaint }} />
               <Tooltip contentStyle={{ fontFamily: 'Montserrat', fontSize: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }} />
-              <Area type="monotone" dataKey="value" stroke={C.sage} fill="url(#sf)" strokeWidth={2.5} dot={{ r: 3, fill: C.sage }} />
-              {ct === 'bp' && <Area type="monotone" dataKey="value2" stroke={C.lav} fill="url(#lf)" strokeWidth={2} dot={{ r: 3, fill: C.lav }} />}
+              <Area type="monotone" dataKey="value" stroke={C.sage} fill="url(#sf)" strokeWidth={2} dot={cd.length > 30 ? false : { r: 3, fill: C.sage }} />
+              {ct === 'bp' && <Area type="monotone" dataKey="value2" stroke={C.lav} fill="url(#lf)" strokeWidth={2} dot={cd.length > 30 ? false : { r: 3, fill: C.lav }} />}
               {vi?.normalHigh && <ReferenceLine y={vi.normalHigh} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
               {vi?.normalLow && <ReferenceLine y={vi.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
               {phaseBands.map((band, i) => (
