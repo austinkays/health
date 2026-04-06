@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader, Apple } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
@@ -52,13 +52,30 @@ const SOURCE_COLOR = { oura: C.sage, apple_health: C.lav, manual: C.textFaint };
 export default function Vitals({ data, addItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_VITAL });
-  const [ct, setCt] = useState('pain');
+  const [ct, setCt] = useState(() => {
+    if (!data?.vitals?.length) return 'pain';
+    const counts = {};
+    data.vitals.forEach(v => { counts[v.type] = (counts[v.type] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'pain';
+  });
   const [sourceFilter, setSourceFilter] = useState('all');
   const [trendAI, setTrendAI] = useState(null);
   const [trendLoading, setTrendLoading] = useState(false);
   const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // Auto-select the most-populated type when data loads after initial render
+  const ctAutoSet = useRef(false);
+  useEffect(() => {
+    if (!ctAutoSet.current && data.vitals.length > 0 && !data.vitals.some(v => v.type === ct)) {
+      ctAutoSet.current = true;
+      const counts = {};
+      data.vitals.forEach(v => { counts[v.type] = (counts[v.type] || 0) + 1; });
+      const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
+      if (best) setCt(best);
+    }
+  }, [data.vitals]);
 
   // Detect which sources exist in the data
   const getSource = (v) => {
@@ -82,7 +99,7 @@ export default function Vitals({ data, addItem, removeItem }) {
     setSubView(null);
   };
 
-  const cd = data.vitals.filter(v => v.type === ct).map(v => ({
+  const cd = data.vitals.filter(v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter)).map(v => ({
     date: fmtDate(v.date),
     value: Number(v.value),
     ...(v.value2 ? { value2: Number(v.value2) } : {}),
