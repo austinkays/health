@@ -235,9 +235,13 @@ html.theme-ember body::before {
 html.theme-ember body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300vh;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     radial-gradient(circle 3px at 12% 94%, rgba(255, 154, 77, 0.95), transparent 70%),
     radial-gradient(circle 2px at 28% 78%, rgba(255, 210, 77, 0.85), transparent 70%),
@@ -259,8 +263,8 @@ html.theme-ember body::after {
   80% { opacity: 0.92; }
 }
 @keyframes ember-sparks {
-  from { background-position: 0 0; }
-  to { background-position: 0 -200vh; }
+  from { transform: translateY(0); }
+  to   { transform: translateY(-200vh); }
 }
 
 /* ── Blaze: ember cranked to eleven — raging inferno ── */
@@ -283,9 +287,13 @@ html.theme-blaze body::before {
 html.theme-blaze body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 260vh;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     /* Storm of flying embers — denser, brighter, whiter-hot than ember */
     radial-gradient(circle 4px at 6% 96%, rgba(255, 255, 255, 1), transparent 60%),
@@ -314,8 +322,8 @@ html.theme-blaze body::after {
   100% { opacity: 0.88; }
 }
 @keyframes blaze-sparks {
-  from { background-position: 0 0; }
-  to { background-position: 0 -160vh; }
+  from { transform: translateY(0); }
+  to   { transform: translateY(-160vh); }
 }
 html.theme-blaze h1,
 html.theme-blaze h2,
@@ -343,9 +351,13 @@ html.theme-cherry body::before {
 html.theme-cherry body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: -180vh;
+  left: 0;
+  right: 0;
+  height: 280vh;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     /* Scattered petals — random-feeling positions, varied sizes, pink + white */
     radial-gradient(circle 5px at 7% 3%,   rgba(224, 132, 168, 0.75), transparent 62%),
@@ -372,7 +384,7 @@ html.theme-cherry body::after {
     radial-gradient(circle 5px at 45% 96%, rgba(248, 200, 220, 0.72), transparent 62%);
   background-size: 100vw 180vh;
   background-repeat: repeat;
-  animation: cherry-petals 24s linear infinite, cherry-sway 9s ease-in-out infinite;
+  animation: cherry-petals 24s linear infinite;
 }
 @keyframes cherry-breeze {
   0%   { transform: translateX(0);     opacity: 0.95; }
@@ -380,12 +392,8 @@ html.theme-cherry body::after {
   100% { transform: translateX(-8px);  opacity: 0.92; }
 }
 @keyframes cherry-petals {
-  from { background-position: 0 0; }
-  to   { background-position: 0 180vh; }
-}
-@keyframes cherry-sway {
-  0%, 100% { transform: translateX(0); }
-  50%      { transform: translateX(8px); }
+  from { transform: translateY(0); }
+  to   { transform: translateY(180vh); }
 }
 
 /* ── Sunny Day: warm sunbeams + drifting dust motes on blue sky ── */
@@ -409,6 +417,7 @@ html.theme-sunbeam body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     /* Diagonal sun rays radiating from top-right */
     linear-gradient(200deg, transparent 45%, rgba(255, 232, 140, 0.10) 48%, transparent 52%),
