@@ -133,7 +133,9 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
   };
 
   const previewed = allThemes[themeId];
-  const isPremiumOnly = previewed?.experimental && userTier !== 'premium';
+  // Saving experimental themes requires premium or admin — but anyone can preview
+  const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
+  const isPremiumOnly = previewed?.experimental && !canSaveExperimental;
   const hasUnsaved = hasUnsavedChanges;
 
   return (
@@ -143,7 +145,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
         <div className="mb-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5 flex items-center justify-between gap-3">
           <p className="text-xs text-salve-text font-montserrat min-w-0 truncate">
             Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
-            {isPremiumOnly && <span className="text-salve-textFaint"> · Premium</span>}
+            {isPremiumOnly && <span className="text-salve-textFaint"> · Premium to save</span>}
           </p>
           <div className="flex gap-2 flex-shrink-0">
             <button
@@ -154,7 +156,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                   ? 'text-salve-textFaint bg-transparent border-salve-border cursor-not-allowed'
                   : 'text-salve-lav bg-salve-lav/15 border-salve-lav/30 cursor-pointer hover:bg-salve-lav/25'
               }`}
-              title={isPremiumOnly ? 'Upgrade to premium to save this theme' : 'Save this theme'}
+              title={isPremiumOnly ? 'Upgrade to premium to keep this theme' : 'Save this theme'}
             >
               {isPremiumOnly ? '🔒 Save' : 'Save'}
             </button>
@@ -192,7 +194,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
             <span className="flex items-center gap-1.5 text-[11px] text-salve-textMid">
               <Sparkles size={11} className="text-salve-lav" aria-hidden="true" />
               Experimental themes
-              <span className="px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav text-[9px]">Premium</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav text-[9px]">Preview free · Save with Premium</span>
             </span>
             {showExperimental
               ? <ChevronUp size={14} className="text-salve-textFaint" aria-hidden="true" />
@@ -211,7 +213,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                         key={t.id}
                         theme={t}
                         isActive={themeId === t.id}
-                        isLocked={userTier !== 'premium'}
+                        isLocked={false}
                         onSelect={handleSelect}
                       />
                     ))}
@@ -228,7 +230,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                         key={t.id}
                         theme={t}
                         isActive={themeId === t.id}
-                        isLocked={userTier !== 'premium'}
+                        isLocked={false}
                         onSelect={handleSelect}
                       />
                     ))}
