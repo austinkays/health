@@ -220,6 +220,46 @@ export function isDemoMode() { return _demoMode; }
 let _premiumActive = false;
 export function setPremiumActive(v) { _premiumActive = !!v; }
 
+// ── Message History Cap ──
+// Prevent unbounded token growth in multi-turn chats by keeping only the
+// most recent messages. Always preserves the latest user message.
+const MAX_CHAT_MESSAGES = 20;
+function capMessages(messages) {
+  if (!messages || messages.length <= MAX_CHAT_MESSAGES) return messages;
+  return messages.slice(-MAX_CHAT_MESSAGES);
+}
+
+// ── Daily Usage Tracker ──
+// Client-side counter so the UI can show "X/10 calls remaining today".
+// Authoritative limit enforcement stays server-side; this is purely for UX.
+const USAGE_KEY = 'salve:ai-usage-today';
+const DAILY_CAP = 10; // matches free-tier Gemini limit
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function getUsageToday() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(USAGE_KEY) || '{}');
+    const today = getTodayKey();
+    return raw.date === today ? raw.count : 0;
+  } catch { return 0; }
+}
+
+function incrementUsage() {
+  const today = getTodayKey();
+  const count = getUsageToday() + 1;
+  localStorage.setItem(USAGE_KEY, JSON.stringify({ date: today, count }));
+  return count;
+}
+
+/** Returns { used, limit, remaining } for today's AI calls. */
+export function getDailyUsage() {
+  const used = getUsageToday();
+  return { used, limit: DAILY_CAP, remaining: Math.max(0, DAILY_CAP - used) };
+}
+
 async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false, feature = 'chat') {
   if (_demoMode) return demoResponseFor(feature, messages);
 
@@ -235,7 +275,7 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false,
   }
 
   const { endpoint, model } = getModel(feature);
-  const body = { messages, system, max_tokens: maxTokens, model };
+  const body = { messages: capMessages(messages), system, max_tokens: maxTokens, model };
   if (useWebSearch) body.use_web_search = true;
 
   const controller = new AbortController();
@@ -253,7 +293,8 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false,
     });
 
     if (res.status === 429) {
-      throw new Error('Too many requests. Please wait a moment and try again.');
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Too many requests. Please wait a moment and try again.');
     }
 
     if (!res.ok) {
@@ -264,6 +305,7 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false,
 
     const data = await res.json();
     if (data.content) {
+      incrementUsage();
       const text = data.content
         .filter(b => b.type === 'text')
         .map(b => b.text)
@@ -466,7 +508,7 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
   if (!token) throw new Error('You must be signed in to use AI features.');
 
   const { endpoint, model } = getModel('chat');
-  let currentMessages = [...messages];
+  let currentMessages = [...capMessages(messages)];
   let loopCount = 0;
   let finalText = '';
 
@@ -503,6 +545,7 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
         throw new Error(msg);
       }
       data = await res.json();
+      incrementUsage();
     } catch (e) {
       if (e.name === 'AbortError') throw new Error('Request timed out. Try again.');
       throw e;

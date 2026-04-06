@@ -8,7 +8,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -782,6 +782,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [cooldown, setCooldown] = useState(false);
+  const [usage, setUsage] = useState(() => getDailyUsage());
   const [revealed, setRevealed] = useState(false);
   const savedInsights = useSavedInsights();
   const [chatMessages, setChatMessages] = useState([]);
@@ -958,7 +960,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   };
 
   const handleChat = async () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim() || cooldown) return;
     const msgs = [...chatMessages, { role: 'user', content: chatInput }];
     setChatMessages(msgs);
     setChatInput('');
@@ -989,6 +991,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     } finally {
       setLoading(false);
       setToolExecutions([]);
+      setUsage(getDailyUsage());
+      setCooldown(true);
+      setTimeout(() => setCooldown(false), 1500);
     }
   };
 
@@ -1052,6 +1057,13 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         {loading && <ChatThinking />}
         <div ref={chatEndRef} />
       </div>
+      {usage.remaining <= 3 && (
+        <div className="text-center mb-2">
+          <span className={`text-[10px] font-montserrat ${usage.remaining === 0 ? 'text-salve-rose' : 'text-salve-amber'}`}>
+            {usage.remaining === 0 ? 'Daily limit reached — resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
+          </span>
+        </div>
+      )}
       <div className="flex gap-2">
         <input
           ref={chatInputRef}
@@ -1060,8 +1072,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           onChange={e => setChatInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
           placeholder="Ask Sage about your health..."
+          disabled={loading || cooldown}
         />
-        <Button onClick={handleChat} disabled={!chatInput.trim() || loading} className="!px-3" aria-label="Send message">
+        <Button onClick={handleChat} disabled={!chatInput.trim() || loading || cooldown} className="!px-3" aria-label="Send message">
           <Send size={16} />
         </Button>
       </div>

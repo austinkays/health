@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { X, Send, Leaf, MessageSquare } from 'lucide-react';
-import { sendChat } from '../../services/ai';
+import { sendChat, getDailyUsage } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from './AIConsentGate';
 import AIMarkdown from './AIMarkdown';
@@ -13,6 +13,8 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [cooldown, setCooldown] = useState(false);
+  const [usage, setUsage] = useState(() => getDailyUsage());
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const panelRef = useRef(null);
@@ -67,7 +69,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
 
   const send = useCallback(async () => {
     const q = input.trim();
-    if (!q || loading) return;
+    if (!q || loading || cooldown) return;
     setError(null);
     const userMsg = { role: 'user', content: q };
     const next = [...messages, userMsg];
@@ -83,8 +85,11 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
       setError(e?.message || 'Something went wrong');
     } finally {
       setLoading(false);
+      setUsage(getDailyUsage());
+      setCooldown(true);
+      setTimeout(() => setCooldown(false), 1500);
     }
-  }, [input, loading, messages, data]);
+  }, [input, loading, cooldown, messages, data]);
 
   const onKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -182,25 +187,34 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
 
         {/* Input */}
         {consented && (
-          <div className="border-t border-salve-border p-3 flex gap-2 items-center">
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={onKeyDown}
-              placeholder="Ask Sage…"
-              aria-label="Ask Sage"
-              disabled={loading}
-              className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-[13px] text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
-            />
-            <button
-              onClick={send}
-              disabled={!input.trim() || loading}
-              aria-label="Send"
-              className="w-10 h-10 rounded-full bg-salve-sage/20 border border-salve-sage/30 text-salve-sage hover:bg-salve-sage/30 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors flex-shrink-0"
-            >
-              <Send size={15} />
-            </button>
+          <div className="border-t border-salve-border">
+            {usage.remaining <= 3 && (
+              <div className="px-3 pt-2 text-center">
+                <span className={`text-[10px] font-montserrat ${usage.remaining === 0 ? 'text-salve-rose' : 'text-salve-amber'}`}>
+                  {usage.remaining === 0 ? 'Daily limit reached — resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
+                </span>
+              </div>
+            )}
+            <div className="p-3 flex gap-2 items-center">
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={onKeyDown}
+                placeholder="Ask Sage…"
+                aria-label="Ask Sage"
+                disabled={loading || cooldown}
+                className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-[13px] text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
+              />
+              <button
+                onClick={send}
+                disabled={!input.trim() || loading || cooldown}
+                aria-label="Send"
+                className="w-10 h-10 rounded-full bg-salve-sage/20 border border-salve-sage/30 text-salve-sage hover:bg-salve-sage/30 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer transition-colors flex-shrink-0"
+              >
+                <Send size={15} />
+              </button>
+            </div>
           </div>
         )}
       </div>
