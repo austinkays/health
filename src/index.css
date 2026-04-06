@@ -43,6 +43,13 @@ html {
   background: rgb(var(--salve-bg));
 }
 
+/* ── Legibility: ensure label text stays readable ─── */
+/* textFaint at 9-11px needs extra weight to remain visible */
+.text-salve-textFaint,
+.text-salve-textMid {
+  font-weight: 500;
+}
+
 /* ── Theme CSS variable defaults (Lilac) ───── */
 /* Overridden by ThemeProvider JS on mount        */
 :root {
