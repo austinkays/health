@@ -347,7 +347,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} name={data.settings.name} />
+      <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} name={data.settings.name} demoMode={demoMode} onExitDemo={() => setDemoMode(false)} />
       <div className="md:ml-[260px]">
         {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">

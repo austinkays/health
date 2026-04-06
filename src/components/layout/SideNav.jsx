@@ -1,4 +1,4 @@
-import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search } from 'lucide-react';
+import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home },
@@ -9,7 +9,7 @@ const NAV_ITEMS = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
-export default function SideNav({ tab, onNav, onSearch, onSage, name }) {
+export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, onExitDemo }) {
   return (
     <nav
       aria-label="Main navigation"
@@ -66,6 +66,25 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name }) {
         <Leaf size={16} />
         <span className="flex-1 text-left">Ask Sage</span>
       </button>
+
+      {/* Demo mode card */}
+      {demoMode && (
+        <div className="mx-3 mb-2 px-3 py-2.5 bg-salve-lav/10 border border-salve-lav/25 rounded-xl">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <Sparkles size={12} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
+            <span className="text-xs font-semibold text-salve-text">Demo mode</span>
+          </div>
+          <p className="text-xs text-salve-textFaint leading-snug m-0 mb-2">
+            Exploring with an example user's data.
+          </p>
+          <button
+            onClick={onExitDemo}
+            className="w-full bg-salve-lav text-white rounded-lg text-xs font-semibold py-1.5 border-none cursor-pointer hover:opacity-90 transition-opacity font-montserrat"
+          >
+            Sign up →
+          </button>
+        </div>
+      )}
 
       {/* Footer tagline */}
       <div className="px-6 pb-5 pt-3">
