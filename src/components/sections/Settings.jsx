@@ -9,6 +9,7 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import { getAIProvider, setAIProvider, isPremiumActive, trialDaysRemaining } from '../../services/ai';
+// Auto-set AI provider based on tier — no manual model picker needed
 import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
@@ -78,36 +79,34 @@ function CopyButton({ text, label, copiedLabel = 'Copied!', ariaLabel }) {
    light/dark indicator. Supports hover-to-preview callbacks.
 ──────────────────────────────────────────────────────────────────────────── */
 function ThemeTile({ theme, isActive, isLocked, onSelect }) {
+  const c = theme.colors;
   return (
     <button
       onClick={() => !isLocked && onSelect(theme.id)}
       aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ' — premium' : ''}`}
       aria-pressed={isActive}
-      className={`relative p-2.5 rounded-xl border transition-all font-montserrat text-center ${
+      style={{ backgroundColor: c.bg, borderColor: isActive ? undefined : c.border }}
+      className={`relative p-2 rounded-xl border transition-all font-montserrat text-center ${
         isActive
-          ? 'border-salve-lav/50 bg-salve-lav/10 ring-1 ring-salve-lav/30'
+          ? 'border-salve-lav/50 ring-2 ring-salve-lav/50'
           : isLocked
-            ? 'border-salve-border bg-salve-card2 opacity-60 cursor-not-allowed'
-            : 'border-salve-border bg-salve-card2 hover:border-salve-border2 cursor-pointer'
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:brightness-110 cursor-pointer'
       }`}
     >
       {isLocked && (
-        <div className="absolute top-1.5 right-1.5 text-[9px] text-salve-lav/60" aria-hidden="true">🔒</div>
+        <div className="absolute top-1 right-1.5 text-[9px]" style={{ color: c.lav }} aria-hidden="true">🔒</div>
       )}
-      {/* Colour swatches — bg, lav, sage, rose */}
-      <div className="flex justify-center gap-1 mb-1.5">
-        {['bg', 'lav', 'sage', 'rose'].map(key => (
-          <span
-            key={key}
-            className="w-3.5 h-3.5 rounded-full border border-black/10"
-            style={{ backgroundColor: theme.colors[key] }}
-          />
+      {/* Palette bar — accent colours as segmented strip */}
+      <div className="flex gap-px mb-1.5 rounded-md overflow-hidden h-1.5">
+        {['lav', 'sage', 'amber', 'rose'].map(key => (
+          <span key={key} className="flex-1 h-full" style={{ backgroundColor: c[key] }} />
         ))}
       </div>
-      <span className="text-[11px] text-salve-text font-medium block leading-tight">{theme.label}</span>
+      <span className="text-[11px] font-medium block leading-tight" style={{ color: c.text }}>{theme.label}</span>
       {theme.type === 'light'
-        ? <span className="text-[8px] text-salve-amber/80 block mt-0.5">☀ Light</span>
-        : <span className="text-[8px] text-salve-textFaint block mt-0.5">◑ Dark</span>
+        ? <span className="text-[8px] block mt-0.5" style={{ color: c.amber }}>☀ Light</span>
+        : <span className="text-[8px] block mt-0.5" style={{ color: c.textFaint }}>◑ Dark</span>
       }
     </button>
   );
@@ -167,8 +166,8 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
         </div>
       )}
 
-      {/* ── Core themes ── */}
-      <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}>
+      {/* ── Core themes — 3-col grid (6 themes = 2 perfect rows, no orphans) ── */}
+      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {core.map(t => (
           <ThemeTile
             key={t.id}
@@ -199,7 +198,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
             }
           </button>
           {showExperimental && (
-            <div className="grid gap-2 mt-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))' }}>
+            <div className="grid grid-cols-3 gap-2 mt-2">
               {experimental.map(t => (
                 <ThemeTile
                   key={t.id}
@@ -227,7 +226,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [deleteError, setDeleteError] = useState(null);
   const [dedupStatus, setDedupStatus] = useState(null); // null | 'running' | { results }
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
-  const [aiProvider, setAiProviderLocal] = useState(() => getAIProvider());
   // Effective tier — factors in trial expiry + localStorage dev override
   const userTier = isPremiumActive(s) ? 'premium' : 'free';
   const trialDays = trialDaysRemaining(s);
@@ -245,6 +243,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     window.location.reload();
   };
   const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
+
+  // Auto-set AI provider based on tier — premium gets Claude, free gets Gemini
+  useEffect(() => {
+    const shouldBe = userTier === 'premium' ? 'anthropic' : 'gemini';
+    if (getAIProvider() !== shouldBe) setAIProvider(shouldBe);
+  }, [userTier]);
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
@@ -554,10 +558,18 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         />
       </Card>
 
-      {/* ══════════════ 3. Sage & AI ══════════════ */}
-      <SectionTitle>Sage & AI</SectionTitle>
+      {/* ══════════════ 3. Sage ══════════════ */}
+      <SectionTitle>Sage</SectionTitle>
       <Card>
-        <label className="block text-xs font-medium text-salve-textMid mb-1.5 font-montserrat">Sage Mode</label>
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-salve-sage" aria-hidden="true" />
+            <span className="text-sm text-salve-text font-medium font-montserrat">Your health assistant</span>
+          </div>
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${(s.ai_mode || 'onDemand') === 'alwaysOn' ? 'bg-salve-lav/15 text-salve-lav' : 'bg-salve-sage/15 text-salve-sage'}`}>
+            {(s.ai_mode || 'onDemand') === 'alwaysOn' ? 'Always On' : 'On Demand'}
+          </span>
+        </div>
         <div className="space-y-2">
           <button
             onClick={() => set('ai_mode', 'onDemand')}
@@ -569,11 +581,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           >
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${(s.ai_mode || 'onDemand') === 'onDemand' ? 'bg-salve-sage' : 'bg-salve-textFaint/40'}`} />
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-salve-text font-medium">☽ On Demand</span>
-              </div>
+              <span className="text-sm text-salve-text font-medium">☽ On Demand</span>
               <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                Sage responds only when you ask
+                Sage responds when you ask — included free
               </p>
             </div>
           </button>
@@ -591,64 +601,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-salve-text font-medium">✨ Always On</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium">Premium</span>
+                {userTier !== 'premium' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium">Premium</span>}
               </div>
               <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
                 {userTier === 'premium'
                   ? 'Sage proactively surfaces insights throughout the app'
-                  : 'Upgrade to premium for proactive insights'}
-              </p>
-            </div>
-          </button>
-        </div>
-        <p className="text-xs text-salve-textFaint italic leading-relaxed mt-2">
-          Sage uses your health profile for personalized insights.
-        </p>
-
-        <div className="my-3 border-t border-salve-border/50" />
-
-        <div className="space-y-2">
-          <button
-            onClick={() => { setAIProvider('gemini'); setAiProviderLocal('gemini'); }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all cursor-pointer font-montserrat text-left ${
-              aiProvider === 'gemini'
-                ? 'border-salve-sage/50 bg-salve-sage/10'
-                : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${aiProvider === 'gemini' ? 'bg-salve-sage' : 'bg-salve-textFaint/40'}`} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-salve-text font-medium">Gemini</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-sage/15 text-salve-sage font-medium">Free</span>
-              </div>
-              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                Automatically matches speed and depth to each task
-              </p>
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              if (userTier === 'premium') { setAIProvider('anthropic'); setAiProviderLocal('anthropic'); }
-            }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all font-montserrat text-left ${
-              aiProvider === 'anthropic' && userTier === 'premium'
-                ? 'border-salve-lav/50 bg-salve-lav/10 cursor-pointer'
-                : userTier === 'premium'
-                  ? 'border-salve-border bg-salve-card2 hover:border-salve-border2 cursor-pointer'
-                  : 'border-salve-border bg-salve-card2 opacity-50 cursor-not-allowed'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${aiProvider === 'anthropic' && userTier === 'premium' ? 'bg-salve-lav' : 'bg-salve-textFaint/40'}`} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-salve-text font-medium">Claude</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium">Premium</span>
-              </div>
-              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                {userTier === 'premium'
-                  ? 'Premium models, automatically matched to each task'
-                  : 'Upgrade to premium to use Claude'}
+                  : 'Proactive insights, smarter analysis, and more'}
               </p>
             </div>
           </button>
@@ -660,7 +618,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Shield size={14} className="text-salve-sage" />
-                <span className="text-[13px] text-salve-textMid">Sage data sharing enabled</span>
+                <span className="text-[11px] text-salve-textMid font-montserrat">Data sharing enabled</span>
               </div>
               <button
                 onClick={() => { revokeAIConsent(); setAiConsent(false); }}
@@ -708,21 +666,31 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               Your trial ended. You're now on the free plan.
             </p>
             <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
-              Upgrading keeps Claude AI, advanced insights, experimental themes, and unlimited AI access.
+              Upgrading keeps advanced insights, experimental themes, and unlimited access.
               <br />
               <em className="text-salve-textFaint">Payment coming soon — reach out at <a href="mailto:salveapp@proton.me" className="text-salve-lav no-underline hover:underline">salveapp@proton.me</a> if you'd like early access.</em>
             </p>
           </div>
         )}
         {userTier === 'free' && !trialExpired && (
-          <div className="space-y-1.5 mt-2">
-            <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">Premium includes:</p>
-            <ul className="text-[11px] text-salve-textMid font-montserrat space-y-1 pl-4 list-disc">
-              <li>Claude AI models (Haiku, Sonnet, Opus)</li>
-              <li>Advanced features: connections, care gaps, cost savings, cycle patterns</li>
-              <li>Experimental themes</li>
-              <li>No daily AI limit</li>
-            </ul>
+          <div className="mt-2">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-montserrat">
+              <div className="text-salve-textFaint font-medium col-span-2 border-b border-salve-border/50 pb-1 mb-0.5">Free vs Premium</div>
+              <span className="text-salve-textMid">☽ On Demand Sage</span>
+              <span className="text-salve-sage text-right">✓ Included</span>
+              <span className="text-salve-textMid">✨ Always On Sage</span>
+              <span className="text-salve-lav text-right">Premium</span>
+              <span className="text-salve-textMid">Smarter AI models</span>
+              <span className="text-salve-lav text-right">Premium</span>
+              <span className="text-salve-textMid">Connections & patterns</span>
+              <span className="text-salve-lav text-right">Premium</span>
+              <span className="text-salve-textMid">Care gaps & cost savings</span>
+              <span className="text-salve-lav text-right">Premium</span>
+              <span className="text-salve-textMid">Experimental themes</span>
+              <span className="text-salve-lav text-right">Premium</span>
+              <span className="text-salve-textMid">Daily AI limit</span>
+              <span className="text-salve-textFaint text-right">10 / day → Unlimited</span>
+            </div>
           </div>
         )}
         {/* Dev-mode tier override — lets you preview the free/expired state without waiting */}
@@ -753,8 +721,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         )}
       </Card>
 
-      {/* ══════════════ 5. Health Info ══════════════ */}
-      <SectionTitle>Health Info</SectionTitle>
+      </div>
+      {/* ── Right Column ── */}
+      <div>
+      {/* ══════════════ 5. Profile ══════════════ */}
+      <SectionTitle>Profile</SectionTitle>
       <Card>
         <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
         <div className="relative">
@@ -796,6 +767,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             {locationStatus === 'detecting' ? 'Detecting...' : locationStatus === 'success' ? 'Done' : locationStatus === 'error' ? 'Failed' : 'Detect'}
           </button>
         </div>
+        <Field
+          label="Health Background"
+          value={s.health_background || ''}
+          onChange={v => set('health_background', v)}
+          textarea
+          placeholder="Context for Sage — e.g. chronic fatigue since 2019, pain flares in cold weather..."
+        />
+        <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
       </Card>
 
       <Card className="!mt-2">
@@ -829,29 +808,17 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             No pharmacies added yet. Add pharmacies in the Pharmacies section to pick a preferred one here.
           </p>
         )}
+
+        <div className="mt-3 pt-3 border-t border-salve-border/50">
+          <Field label="Insurance Plan" value={s.insurance_plan || ''} onChange={v => set('insurance_plan', v)} placeholder="e.g. Kaiser HMO" />
+          <div className="grid grid-cols-2 gap-2">
+            <Field label="Member ID" value={s.insurance_id || ''} onChange={v => set('insurance_id', v)} placeholder="Member ID" />
+            <Field label="Group #" value={s.insurance_group || ''} onChange={v => set('insurance_group', v)} placeholder="Group #" />
+          </div>
+          <Field label="Member Services" value={s.insurance_phone || ''} onChange={v => set('insurance_phone', v)} type="tel" placeholder="Phone" />
+        </div>
       </Card>
 
-      <Card className="!mt-2">
-        <Field label="Plan" value={s.insurance_plan || ''} onChange={v => set('insurance_plan', v)} placeholder="e.g. Kaiser HMO" />
-        <Field label="Member ID" value={s.insurance_id || ''} onChange={v => set('insurance_id', v)} placeholder="Member ID" />
-        <Field label="Group #" value={s.insurance_group || ''} onChange={v => set('insurance_group', v)} placeholder="Group number" />
-        <Field label="Member Services" value={s.insurance_phone || ''} onChange={v => set('insurance_phone', v)} type="tel" placeholder="Phone" />
-      </Card>
-
-      <Card className="!mt-2">
-        <Field
-          label="Health Background"
-          value={s.health_background || ''}
-          onChange={v => set('health_background', v)}
-          textarea
-          placeholder="Context for Sage — e.g. chronic fatigue since 2019, pain flares in cold weather..."
-        />
-        <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
-      </Card>
-
-      </div>
-      {/* ── Right Column ── */}
-      <div>
       {/* ══════════════ 6. Connected Sources ══════════════ */}
       <SectionTitle>Connected Sources</SectionTitle>
 
