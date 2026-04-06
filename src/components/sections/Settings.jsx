@@ -119,7 +119,7 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
    • Save/Revert bar anchored at the TOP of the section so it's always visible
    • Experimental themes in a collapsible panel (no jarring <details> shift)
 ──────────────────────────────────────────────────────────────────────────── */
-function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, userTier }) {
+function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, userTier }) {
   const [showExperimental, setShowExperimental] = useState(false);
 
   const core = Object.values(allThemes).filter(t => !t.experimental)
@@ -128,46 +128,32 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
   const experimentalDark  = Object.values(allThemes).filter(t => t.experimental && t.type === 'dark');
   const experimental = [...experimentalLight, ...experimentalDark];
 
-  const handleSelect = (id) => {
-    setTheme(id);
-  };
-
   const previewed = allThemes[themeId];
   const isPremiumOnly = previewed?.experimental && userTier === 'free';
-  const hasUnsaved = hasUnsavedChanges;
+
+  // Auto-save on click: premium/admin save immediately; free saves core immediately but
+  // only previews experimental (will revert on unmount).
+  const handleSelect = (id) => {
+    const isExperimental = !!allThemes[id]?.experimental;
+    if (isExperimental && userTier === 'free') {
+      setTheme(id); // preview only
+    } else {
+      saveTheme(id); // persist immediately
+    }
+  };
+
+  // When a free user leaves Settings while previewing an experimental theme, revert.
+  const cleanupRef = useRef(null);
+  cleanupRef.current = { isPremiumOnly, revertTheme };
+  useEffect(() => {
+    return () => {
+      const { isPremiumOnly, revertTheme } = cleanupRef.current;
+      if (isPremiumOnly) revertTheme();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div>
-      {/* ── Save / Revert bar — lives at the TOP so it's always in view ── */}
-      {hasUnsaved && (
-        <div className="mb-3 p-3 rounded-xl border border-salve-lav/30 bg-salve-lav/5 flex items-center justify-between gap-3">
-          <p className="text-xs text-salve-text font-montserrat min-w-0 truncate">
-            Previewing <strong className="text-salve-lav">{previewed?.label}</strong>
-            {isPremiumOnly && <span className="text-salve-textFaint"> · Premium</span>}
-          </p>
-          <div className="flex gap-2 flex-shrink-0">
-            <button
-              onClick={() => !isPremiumOnly && saveTheme()}
-              disabled={isPremiumOnly}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg border font-montserrat transition-colors ${
-                isPremiumOnly
-                  ? 'text-salve-textFaint bg-transparent border-salve-border cursor-not-allowed'
-                  : 'text-salve-lav bg-salve-lav/15 border-salve-lav/30 cursor-pointer hover:bg-salve-lav/25'
-              }`}
-              title={isPremiumOnly ? 'Upgrade to premium to save this theme' : 'Save this theme'}
-            >
-              {isPremiumOnly ? '🔒 Save' : 'Save'}
-            </button>
-            <button
-              onClick={revertTheme}
-              className="text-xs text-salve-textMid bg-transparent px-3 py-1.5 rounded-lg border border-salve-border cursor-pointer font-montserrat hover:border-salve-border2 transition-colors"
-            >
-              Revert
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Core themes — 3-col grid (6 themes = 2 perfect rows, no orphans) ── */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {core.map(t => (
@@ -201,7 +187,6 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
           </button>
           {showExperimental && (
             <div className="mt-2 space-y-2">
-              {/* Light experimental themes */}
               {experimentalLight.length > 0 && (
                 <>
                   <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">☀ Light</p>
@@ -218,7 +203,6 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                   </div>
                 </>
               )}
-              {/* Dark experimental themes */}
               {experimentalDark.length > 0 && (
                 <>
                   <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">◑ Dark</p>
@@ -234,6 +218,11 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, h
                     ))}
                   </div>
                 </>
+              )}
+              {isPremiumOnly && (
+                <p className="text-[10px] text-salve-textFaint font-montserrat px-0.5 pt-1">
+                  ✦ Preview only · Upgrade to Premium to keep this theme
+                </p>
               )}
             </div>
           )}
@@ -580,7 +569,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           setTheme={setTheme}
           saveTheme={saveTheme}
           revertTheme={revertTheme}
-          hasUnsavedChanges={hasUnsavedChanges}
           userTier={userTier}
         />
       </Card>

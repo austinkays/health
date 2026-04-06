@@ -60,11 +60,11 @@ export function ThemeProvider({ children }) {
       applyThemeVariables(themeId, true);
       root.classList.remove('theme-transitioning');
       root.classList.add('theme-transitioned');
-    }, 500);
+    }, 800);
 
     const cleanupTimer = setTimeout(() => {
       root.classList.remove('theme-transitioned');
-    }, 1100);
+    }, 2000);
 
     return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
   }, [themeId]);
