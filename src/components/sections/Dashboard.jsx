@@ -6,7 +6,7 @@ import {
   TrendingUp, ShieldAlert, Heart, Leaf, CheckSquare, Zap,
   Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
-  Compass, ExternalLink,
+  Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -84,6 +84,79 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
 
 const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
 const SEEN_RESOURCES_KEY = 'salve:seen-resources';
+const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
+
+const STARTER_TIPS = [
+  {
+    id: 'add-meds',
+    icon: Pill,
+    color: 'lav',
+    title: 'Add your medications',
+    body: 'Start by adding your current meds to get drug interaction checks, refill tracking, and AI-powered insights.',
+    action: 'meds',
+    actionLabel: 'Add medications',
+  },
+  {
+    id: 'chat-sage',
+    icon: Leaf,
+    color: 'sage',
+    title: 'Meet Sage, your health companion',
+    body: 'Tap the leaf icon to chat with Sage. Ask health questions, add records by voice, or get personalized insights.',
+    action: 'ai',
+    actionLabel: 'Open Sage',
+  },
+  {
+    id: 'connect-oura',
+    icon: Watch,
+    color: 'amber',
+    title: 'Connect a wearable',
+    body: 'Link your Oura Ring to automatically sync sleep, heart rate, temperature, and readiness data.',
+    action: 'settings',
+    actionLabel: 'Connect in Settings',
+  },
+  {
+    id: 'import-data',
+    icon: Upload,
+    color: 'lav',
+    title: 'Import existing health data',
+    body: 'Bring in data from Apple Health exports, Flo period tracker, or a previous Salve backup file.',
+    action: 'settings',
+    actionLabel: 'Import in Settings',
+  },
+  {
+    id: 'claude-sync',
+    icon: Sparkles,
+    color: 'sage',
+    title: 'Sync from Claude AI',
+    body: 'Use the Salve Sync artifact in Claude.ai to push health data directly into your account. Grab it from Settings → Claude Sync.',
+    action: 'settings',
+    actionLabel: 'Get artifact',
+  },
+  {
+    id: 'add-providers',
+    icon: User,
+    color: 'lav',
+    title: 'Add your care team',
+    body: 'Add doctors and providers to cross-reference medications, auto-fill appointments, and look up NPI registry info.',
+    action: 'providers',
+    actionLabel: 'Add providers',
+  },
+  {
+    id: 'feedback',
+    icon: Mail,
+    color: 'amber',
+    title: 'Share feedback or ideas',
+    body: 'Salve is built with love and your input helps shape it. Let us know what features you\'d like to see.',
+    href: 'mailto:salveapp@proton.me?subject=Salve%20feedback',
+    actionLabel: 'Send feedback',
+  },
+];
+
+function getDismissedTips() {
+  try {
+    return JSON.parse(localStorage.getItem(DISMISSED_TIPS_KEY) || '[]');
+  } catch { return []; }
+}
 
 function getSeenResources() {
   try {
@@ -516,6 +589,37 @@ export default function Dashboard({ data, interactions, onNav }) {
       localStorage.setItem(SEEN_RESOURCES_KEY, JSON.stringify(next));
       return next;
     });
+  }, []);
+
+  /* ── Getting Started tips ──────────────────── */
+  const [dismissedTips, setDismissedTips] = useState(() => getDismissedTips());
+  const totalRecords = useMemo(() =>
+    (data.meds?.length || 0) + (data.conditions?.length || 0) + (data.vitals?.length || 0) +
+    (data.providers?.length || 0) + (data.allergies?.length || 0) + (data.journal?.length || 0),
+  [data.meds, data.conditions, data.vitals, data.providers, data.allergies, data.journal]);
+
+  const visibleTips = useMemo(() => {
+    const dismissed = new Set(dismissedTips);
+    // Hide tips the user has already acted on
+    const acted = new Set();
+    if ((data.meds?.length || 0) >= 1) acted.add('add-meds');
+    if ((data.providers?.length || 0) >= 1) acted.add('add-providers');
+    if (isOuraConnected()) acted.add('connect-oura');
+    return STARTER_TIPS.filter(t => !dismissed.has(t.id) && !acted.has(t.id));
+  }, [dismissedTips, data.meds, data.providers]);
+
+  const dismissTip = useCallback((tipId) => {
+    setDismissedTips(prev => {
+      const next = [...prev, tipId];
+      localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  const dismissAllTips = useCallback(() => {
+    const allIds = STARTER_TIPS.map(t => t.id);
+    localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(allIds));
+    setDismissedTips(allIds);
   }, []);
 
 
@@ -963,6 +1067,74 @@ export default function Dashboard({ data, interactions, onNav }) {
           })()}
         </div>
       </div>
+
+      {/* ── Getting Started tips (sparse dashboard) ─── */}
+      {visibleTips.length > 0 && totalRecords < 10 && (
+        <section aria-label="Getting started" className="dash-stagger dash-stagger-4 mb-4 mt-4">
+          <Card className="!p-0 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-salve-border/50">
+              <div className="flex items-center gap-2">
+                <Lightbulb size={13} className="text-salve-amber" />
+                <span className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
+              </div>
+              <button
+                onClick={dismissAllTips}
+                className="text-[10px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
+                aria-label="Dismiss all tips"
+              >
+                Hide all
+              </button>
+            </div>
+            {visibleTips.map((tip, i) => {
+              const TipIcon = tip.icon;
+              const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
+              return (
+                <div
+                  key={tip.id}
+                  className={`flex items-start gap-3 px-4 py-3 ${i < visibleTips.length - 1 ? 'border-b border-salve-border/40' : ''}`}
+                >
+                  <div
+                    className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
+                    style={{ background: `${colorVar}15` }}
+                  >
+                    <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12.5px] text-salve-text font-medium mb-0.5">{tip.title}</div>
+                    <p className="text-[11px] text-salve-textFaint leading-relaxed m-0 mb-1.5">{tip.body}</p>
+                    {tip.href ? (
+                      <a
+                        href={tip.href}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium font-montserrat no-underline transition-colors"
+                        style={{ color: colorVar }}
+                      >
+                        {tip.actionLabel}
+                        <ExternalLink size={10} />
+                      </a>
+                    ) : (
+                      <button
+                        onClick={() => onNav(tip.action)}
+                        className="inline-flex items-center gap-1 text-[11px] font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors"
+                        style={{ color: colorVar }}
+                      >
+                        {tip.actionLabel}
+                        <ChevronRight size={11} />
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => dismissTip(tip.id)}
+                    className="p-1.5 -mr-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/40 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors flex-shrink-0"
+                    aria-label={`Dismiss ${tip.title}`}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              );
+            })}
+          </Card>
+        </section>
+      )}
 
       <Divider />
 
