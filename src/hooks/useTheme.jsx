@@ -57,14 +57,18 @@ export function ThemeProvider({ children }) {
     root.classList.add('theme-transitioning');
 
     const applyTimer = setTimeout(() => {
-      applyThemeVariables(themeId, true);
-      root.classList.remove('theme-transitioning');
-      root.classList.add('theme-transitioned');
+      // Apply vars synchronously while body is still at opacity:0 so colors
+      // are in place before the fade-in begins (avoids one-frame color flash).
+      applyThemeVariables(themeId, false);
+      requestAnimationFrame(() => {
+        root.classList.remove('theme-transitioning');
+        root.classList.add('theme-transitioned');
+      });
     }, 800);
 
     const cleanupTimer = setTimeout(() => {
       root.classList.remove('theme-transitioned');
-    }, 2000);
+    }, 2600);
 
     return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
   }, [themeId]);

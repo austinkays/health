@@ -48,7 +48,7 @@ html.theme-transitioning body {
 }
 html.theme-transitioned body {
   opacity: 1;
-  transition: opacity 1s ease-in;
+  transition: opacity 1.6s ease-in;
 }
 
 /* ── Theme CSS variable defaults (Lilac) ───── */
