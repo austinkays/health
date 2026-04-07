@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader, Apple } from 'lucide-react';
+import { Plus, Check, Heart, Trash2, AlertTriangle, TrendingUp, Loader, Apple, ChevronDown } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, ReferenceArea } from 'recharts';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
@@ -64,6 +64,7 @@ export default function Vitals({ data, addItem, removeItem }) {
   const [trendLoading, setTrendLoading] = useState(false);
   const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
   const [timeRange, setTimeRange] = useState('30d');
+  const [expandedDays, setExpandedDays] = useState(() => new Set([todayISO()]));
   const del = useConfirmDelete();
   const [errors, setErrors] = useState({});
   const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
@@ -445,22 +446,56 @@ export default function Vitals({ data, addItem, removeItem }) {
           }
           return <div className="md:grid md:grid-cols-2 md:gap-3">{byDate.map(({ date, entries }) => {
             const cp = data.cycles?.length > 0 ? getCyclePhaseForDate(date, data.cycles) : null;
+            const isOpen = expandedDays.has(date);
+            const toggleDay = () => setExpandedDays(prev => {
+              const next = new Set(prev);
+              if (next.has(date)) next.delete(date); else next.add(date);
+              return next;
+            });
+            // Build collapsed summary chips
+            const flagCount = entries.filter(v => getVitalFlag(v.type, v.value, v.value2)).length;
+            const typeSet = new Set(entries.map(v => v.type));
+            const summaryChips = [...typeSet].slice(0, 4).map(vtype => {
+              const t = VITAL_TYPES.find(x => x.id === vtype);
+              const latest = entries.find(v => v.type === vtype);
+              const val = vtype === 'bp' ? `${latest.value}/${latest.value2}` : latest.value;
+              return `${t?.label || vtype} ${val}`;
+            });
             return (
               <Card key={date} className="!p-0 !mb-2.5 overflow-hidden">
-                {/* Date header */}
-                <div className="flex items-baseline justify-between px-3.5 py-2 bg-salve-card2/40 border-b border-salve-border/50">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
-                  <div className="flex items-baseline gap-2">
-                    {cp && (
-                      <span className="text-[10px] font-montserrat" style={{ color: cp.color }}>
-                        {cp.phase} day {cp.dayOfCycle}
+                {/* Date header — clickable to expand/collapse */}
+                <button
+                  onClick={toggleDay}
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 bg-salve-card2/40 border-none cursor-pointer text-left transition-colors hover:bg-salve-card2/70"
+                  aria-expanded={isOpen}
+                  aria-label={`${fmtDateRelative(date)} — ${entries.length} entries`}
+                >
+                  <div className="flex items-baseline gap-2 min-w-0">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
+                    {!isOpen && (
+                      <span className="text-[10px] text-salve-textFaint font-montserrat truncate">
+                        {summaryChips.join(' · ')}{typeSet.size > 4 ? ` +${typeSet.size - 4}` : ''}
                       </span>
                     )}
-                    <span className="text-[10px] text-salve-textFaint font-montserrat">{fmtDate(date)}</span>
                   </div>
-                </div>
-                {/* Entries for this date — group same-type entries when there are many (hourly imports) */}
-                <div className="divide-y divide-salve-border/40">
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {flagCount > 0 && (
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full font-montserrat" style={{ color: C.amber, background: `${C.amber}18` }}>
+                        {flagCount} flag{flagCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                    {cp && (
+                      <span className="text-[10px] font-montserrat" style={{ color: cp.color }}>
+                        {cp.phase}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-salve-textFaint font-montserrat hidden md:inline">{fmtDate(date)}</span>
+                    <ChevronDown size={13} className={`text-salve-textFaint transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  </div>
+                </button>
+                {/* Entries for this date */}
+                {isOpen && (
+                <div className="divide-y divide-salve-border/40 border-t border-salve-border/50">
                   {(() => {
                     // Sub-group by type within this date
                     const typeMap = new Map();
@@ -544,6 +579,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                     });
                   })()}
                 </div>
+                )}
               </Card>
             );
           })}</div>;
