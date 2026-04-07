@@ -44,7 +44,7 @@ health/
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
 ├── api/
-│   ├── _prompts.js               # Server-side prompt allowlist: PROMPTS object (18 prompt keys), buildSystemPrompt(key, profileText, opts), isValidPromptKey(), sanProfile() sanitizer, TOOLS_ADDENDUM constant — clients send prompt_key not raw system prompts
+│   ├── _prompts.js               # Server-side prompt allowlist: PROMPTS object (19 prompt keys), buildSystemPrompt(key, profileText, opts), isValidPromptKey(), sanProfile() sanitizer, TOOLS_ADDENDUM constant — clients send prompt_key not raw system prompts
 │   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier); server-side prompt construction via _prompts.js (raw system only for admin tier)
 │   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier); server-side prompt construction via _prompts.js
@@ -148,7 +148,7 @@ health/
 │   │   │   ├── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow. Hidden on desktop (md:hidden) — SideNav takes over
 │   │   │   ├── SideNav.jsx       # Desktop sidebar navigation (hidden md:flex, 260px fixed left). App branding + user name at top, Search button (full-width, standalone), 6 nav items with active left-border accent + background tint + dimmed number key hint (1–6) on inactive items for discoverability. Replaces BottomNav at md+ breakpoint
 │   │   │   └── SplitView.jsx     # Desktop list/detail layout primitive + useIsDesktop() hook. Mobile: passes through list content (sections handle inline expand). Desktop (md+): side-by-side with scrollable list on left (360-420px, min-h-[300px]) and sticky detail pane on right. `detailKey` prop triggers `splitview-detail-enter` fade+slide animation (0.14s) when selection changes. Empty state shows themed icon + message instead of plain text. Used by Medications, Conditions, Labs, Providers
-│   │   └── sections/             # One file per app section (27 total)
+│   │   └── sections/             # One file per app section (28 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting + tagline, "Today at a glance" chips row (next appt, refills due this week, overdue todos), live search centerpiece (animated gradient border, rotating placeholders, inline results), Quick Navigation Hub (6 hub tiles: Records/Care Team/Tracking/Safety/Plans/Devices), Recent Vitals card + Activity snapshot side-by-side, Health Trends section (sleep bar chart + HR band chart + SpO2 chart), Getting Started tips (dismissible, data-aware, snooze/permanent per tip), unified timeline, Pinned shortcuts (user-starred). Desktop-only "made with love" tagline at bottom of page — scroll-reveal (fades in when scrolled past 80px AND near bottom, `hidden md:block`). Getting Started tips use `dismissBehavior` ('auto'/'snooze'/'permanent') stored as `[{id, permanent?, snoozedUntil?}]` in localStorage `salve:dismissed-tips` with migration from old string-array format; data-aware (add-meds/add-providers auto-hide when data exists); feedback tip removed as card → persistent footer button inside the tips section
 │   │       ├── Search.jsx        # Full search view: debounced client-side search across all 16 entity types, filter pills, highlighted match text, deep-link navigation to specific records (uses shared utils from search.jsx)
 │   │       ├── Medications.jsx   # Med list + add/edit + display_name + RxNorm autocomplete + OpenFDA drug info + NLM link status flags + bulk RxCUI linking + bulk FDA enrichment (reports failed med names) + auto-enrich on link + maps links (skips non-physical like OTC/N/A) + pharmacy picker + pharmacy filter (excludes non-physical) + GoodRx price links + NADAC price lookup + price sparklines + price history + bulk price check + compare prices (Cost Plus, Amazon, Blink) + interaction warnings on add + expandable per-section FDA details with Show more/less toggles (side effects, dosing, contraindications, drug interactions, precautions, pregnancy, overdosage, storage) + stripFdaHeader() removes redundant section titles + NADAC price + Generic/Brand badge on cards + monthly wholesale cost estimate + mechanism of action display + **Desktop SplitView**: list/detail side-by-side via SplitView + renderMedDetail() extracted function, lavender selection ring on active card
@@ -175,6 +175,7 @@ health/
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view + Print Summary button (desktop only, triggers window.print())
+│   │       ├── FormHelper.jsx      # AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading
 │   │       ├── Feedback.jsx        # In-app feedback form: type selector pills (feedback/bug/suggestion), message textarea, submit with confirmation, previously submitted list with expand/delete
 │   │       ├── Legal.jsx          # Privacy Policy, Terms of Service, HIPAA Notice (tabbed interface)
 │   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt, Support section (Report a Bug → GitHub issues, Send Feedback → in-app Feedback section)
@@ -237,7 +238,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 - `auth.js` wraps Supabase auth: `signIn(email)` sends 8-digit OTP, `signOut()`, `getSession()`, `onAuthChange(event, session)` (passes event for expiry detection)
 - `App.jsx` manages session state, handles OAuth code exchange from URL params, gates the app behind auth; listens for `SIGNED_OUT`/`TOKEN_REFRESHED` events to show session-expired banner
 - Unauthenticated users see the sign-in screen with session-expired notice when applicable; authenticated users see the full app
-- All 27 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
+- All 28 section components are **code-split** with `lazyWithRetry()` (wraps `React.lazy()`) + `Suspense` — only loaded when first visited; on chunk load failure (stale deploy), does a one-time `sessionStorage`-guarded page reload to fetch updated chunks
 
 ### Offline Cache
 
@@ -361,6 +362,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 13. **Medication cross-reactivity** - AI analysis of drug-class relationships when adding meds with known allergies (e.g., penicillin→cephalosporin)
 14. **Cost optimization** - web-search-powered analysis of medication costs with generic alternatives, PAPs, discount programs, and savings strategies
 15. **AI-powered data control** - natural language CRUD via Anthropic tool-use API in chat; 26 tools (add/update/remove medications, conditions, allergies, appointments, providers, todos; add vitals/journal/cycle entries/activities/genetic results; remove cycle entries; update profile; search/list records); destructive actions require inline confirmation; tool execution cards show live status; 10-iteration agentic loop cap
+16. **Form Helper** - paste medical intake form questions, Sage generates first-person answers from health profile; per-answer copy buttons + Copy All; sensitive questions (self-harm, trauma, substance use, relationships) flagged with ⚠ for user to answer personally; facts-only from profile, never fabricates
 
 ### Vercel Configuration
 
@@ -556,7 +558,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] Service worker registered in production build (PWA installable)
 - [ ] App works offline for cached data (service worker cache-first for static assets)
 - [ ] Auth: magic link sends, sign-in works, session persists
-- [ ] All 27 sections render without errors (including Auth screen)
+- [ ] All 28 sections render without errors (including Auth screen)
 - [ ] Data persists across sessions (Supabase)
 - [ ] Add/edit/delete works for: meds, conditions, allergies, providers, vitals, appointments, journal entries, labs, procedures, immunizations, care gaps, anesthesia flags, appeals, surgical planning, insurance
 - [ ] Delete confirmation appears and can be cancelled
@@ -611,7 +613,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] Import Merge adds new records, skips existing
 - [ ] Import rejects non-JSON, non-Salve, and empty files
 - [ ] Bottom nav switches between all tabs
-- [ ] All 27 sections reachable via Quick Access (6+ primary tiles, expandable up to all 20, + 6 in bottom nav)
+- [ ] All 28 sections reachable via Quick Access (6+ primary tiles, expandable up to all 20, + 6 in bottom nav)
 - [ ] Back button returns to Dashboard from any section
 - [ ] Layout is correct at 375px width (iPhone SE) and 480px width
 - [ ] Fonts load (per-theme heading font + Montserrat body); switching theme swaps heading typeface without flash
@@ -759,6 +761,21 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] Feedback: delete requires ConfirmBar confirmation before removing
 - [ ] Settings: "Send Feedback" button navigates to Feedback section (not mailto)
 - [ ] Dashboard: Getting Started feedback tip navigates to Feedback section (not mailto)
+
+### Form Helper Tests
+- [ ] FormHelper: section reachable via Quick Access tile (Form Helper with ClipboardPaste icon)
+- [ ] FormHelper: AIConsentGate appears if AI consent not yet granted
+- [ ] FormHelper: Paste button reads from clipboard and populates textarea
+- [ ] FormHelper: question count detects lines ending with "?"
+- [ ] FormHelper: "Generate Answers" calls AI with health profile and form questions
+- [ ] FormHelper: loading state shows Sage leaf animation + cycling wellness messages
+- [ ] FormHelper: results display as expandable Q&A cards with per-answer copy buttons
+- [ ] FormHelper: "Copy all" copies all Q&A pairs to clipboard
+- [ ] FormHelper: sensitive questions (self-harm, trauma, substance use, relationships) show ⚠ flag with amber border
+- [ ] FormHelper: "New form" button resets to input state
+- [ ] FormHelper: answers use first-person voice ("I", "my", "me")
+- [ ] FormHelper: questions with no matching profile data show ⚠ "answer this one yourself"
+- [ ] FormHelper: disclaimer card appears below results
 
 ## Environment Variables
 
