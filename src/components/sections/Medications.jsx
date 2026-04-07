@@ -556,6 +556,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       <div className="flex gap-2.5 mt-2.5 flex-wrap">
         <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
         <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+        <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" aria-label={`View ${m.display_name || m.name} on DailyMed (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
+          <ExternalLink size={11} aria-hidden="true" /> DailyMed
+        </a>
         {goodRxUrl(m.name) && (
           <a href={goodRxUrl(m.name)} target="_blank" rel="noopener noreferrer" aria-label={`Compare prices for ${m.display_name || m.name} on GoodRx (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
             <ExternalLink size={11} aria-hidden="true" /> Compare Prices
@@ -767,9 +770,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             <div className="flex justify-between items-start">
               <div className="flex-1 min-w-0">
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
-                  <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" aria-label={`View ${m.display_name || m.name} on DailyMed (opens in new tab)`} className="text-salve-text hover:text-salve-sage transition-colors hover:underline">
-                    {m.display_name || m.name}
-                  </a>
+                  {m.display_name || m.name}
                 </div>
                 {m.display_name && m.display_name !== m.name && <div className="text-[11px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
