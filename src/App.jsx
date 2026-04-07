@@ -71,6 +71,7 @@ const AppleHealthPage = lazyWithRetry(() => import('./components/sections/AppleH
 const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
 const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
 const FormHelper = lazyWithRetry(() => import('./components/sections/FormHelper'));
+const AboutMe = lazyWithRetry(() => import('./components/sections/AboutMe'));
 
 export default function App() {
   return (
@@ -356,6 +357,7 @@ function AppContent() {
       case 'legal':      return <Legal onNav={onNav} />;
       case 'feedback':   return <Feedback {...shared} />;
       case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
+      case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
   };

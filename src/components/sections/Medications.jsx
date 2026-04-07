@@ -8,7 +8,7 @@ import Badge, { SevBadge } from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
-import { EMPTY_MED, getCycleRelatedLabel } from '../../constants/defaults';
+import { EMPTY_MED, MED_CATEGORIES, getCycleRelatedLabel } from '../../constants/defaults';
 import { fmtDate, daysUntil } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { Building2 } from 'lucide-react';
@@ -280,6 +280,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier — links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
         </div>
         <Field label="Display Name (optional)" value={form.display_name} onChange={v => sf('display_name', v)} placeholder="e.g. my morning pill" />
+        <Field label="Type" value={form.category || 'medication'} onChange={v => sf('category', v)} options={MED_CATEGORIES} />
         <Field label="Dose" value={form.dose} onChange={v => sf('dose', v)} placeholder="e.g. 50mg" />
         <Field label="Frequency" value={form.frequency} onChange={v => sf('frequency', v)} options={FREQ} />
         <Field label="Route" value={form.route} onChange={v => sf('route', v)} options={ROUTES} />
@@ -378,11 +379,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     return [...names].sort();
   }, [data.meds]);
   const [pharmacyFilter, setPharmacyFilter] = useState('all');
+  const [catFilter, setCatFilter] = useState('all');
+
+  // Check if any meds have non-default categories (show filter pills only when relevant)
+  const hasCategories = data.meds.some(m => m.category && m.category !== 'medication');
 
   const fl = data.meds.filter(m => {
     const statusOk = filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false;
     const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
-    return statusOk && pharmaOk;
+    const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
+    return statusOk && pharmaOk && catOk;
   });
 
   /* ── Monthly cost estimate from NADAC prices ── */
@@ -648,6 +654,25 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </div>
       )}
 
+      {/* ── Category filter ── */}
+      {hasCategories && (
+        <div className="flex gap-1.5 mb-3.5 flex-wrap">
+          {[{ value: 'all', label: 'All' }, ...MED_CATEGORIES].map(c => (
+            <button
+              key={c.value}
+              onClick={() => setCatFilter(c.value)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-montserrat font-medium border transition-all cursor-pointer ${
+                catFilter === c.value
+                  ? 'border-salve-lav/40 bg-salve-lav/10 text-salve-text'
+                  : 'border-salve-border bg-transparent text-salve-textFaint hover:border-salve-border2'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ── Consolidated maintenance banner ── */}
       {(() => {
         const unenrichedCount = data.meds.filter(m => m.rxcui && (!m.fda_data || !m.fda_data.spl_set_id)).length;
@@ -748,6 +773,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 </div>
                 {m.display_name && m.display_name !== m.name && <div className="text-[11px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
                 <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+                {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
                 {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
                 {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">

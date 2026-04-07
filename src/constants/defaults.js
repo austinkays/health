@@ -6,7 +6,15 @@ export const EMPTY_MED = {
   name: '', display_name: '', dose: '', frequency: '', route: 'Oral',
   prescriber: '', pharmacy: '', start_date: '', purpose: '',
   refill_date: '', active: true, notes: '', rxcui: '', fda_data: null,
+  category: 'medication',
 };
+
+export const MED_CATEGORIES = [
+  { value: 'medication', label: 'Medication' },
+  { value: 'supplement', label: 'Supplement' },
+  { value: 'vitamin', label: 'Vitamin' },
+  { value: 'herbal', label: 'Herbal' },
+];
 
 export const EMPTY_CONDITION = {
   name: '', diagnosed_date: '', status: 'active',

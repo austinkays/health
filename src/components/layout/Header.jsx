@@ -39,6 +39,7 @@ const TAB_LABELS = {
   legal: 'Legal',
   feedback: 'Feedback',
   formhelper: 'Form Helper',
+  aboutme: 'About Me',
 };
 
 export default function Header({ tab, name, onBack, onSearch, onSage, action }) {

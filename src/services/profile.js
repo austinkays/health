@@ -122,12 +122,39 @@ export function buildProfile(data) {
   if (s.name) p += 'Patient name: ' + san(s.name) + '\n';
   if (s.location) p += 'Location: ' + san(s.location) + '\n';
 
+  // About Me — personal context for form filling and AI
+  const about = s.about_me || {};
+  const aboutEntries = Object.entries(about).filter(([, v]) => v && String(v).trim());
+  if (aboutEntries.length > 0) {
+    p += '\n— ABOUT ME —\n';
+    const labels = {
+      pronouns: 'Pronouns', occupation: 'Occupation', employer: 'Employer/School',
+      education: 'Education', living_situation: 'Living Situation',
+      relationship_status: 'Relationship Status', children: 'Children',
+      religion: 'Religion/Spirituality', identities: 'Identities',
+      previous_therapy: 'Previous Therapy', psych_diagnoses: 'Psychiatric Diagnoses',
+      psych_hospitalizations: 'Psychiatric Hospitalizations',
+      past_psych_meds: 'Past Psychiatric Medications', therapy_goals: 'Therapy Goals',
+      family_mental_health: 'Family Mental Health History',
+      family_substance_use: 'Family Substance Use History',
+      family_medical: 'Family Medical History',
+      alcohol: 'Alcohol Use', caffeine: 'Caffeine', tobacco: 'Tobacco Use',
+      recreational_drugs: 'Recreational Drug Use',
+      hobbies: 'Hobbies & Interests', strengths: 'Strengths',
+      whats_going_well: 'What\'s Going Well', support_system: 'Support System',
+    };
+    for (const [k, v] of aboutEntries) {
+      p += (labels[k] || k) + ': ' + san(String(v), 500) + '\n';
+    }
+  }
+
   // Active medications — condensed FDA data
   p += '\n— ACTIVE MEDICATIONS —\n';
   const active = (data.meds || []).filter(m => m.active !== false);
   if (active.length === 0) p += '(none)\n';
   active.forEach(m => {
     p += '- ' + m.name;
+    if (m.category && m.category !== 'medication') p += ' [' + m.category + ']';
     if (m.display_name && m.display_name !== m.name) p += ' (patient calls it: "' + san(m.display_name) + '")';
     if (m.dose) p += ' ' + m.dose;
     if (m.frequency) p += ', ' + m.frequency;

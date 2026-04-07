@@ -67,7 +67,7 @@ const SECTION_NAV_MAP = {
   'providers': 'providers', 'vitals': 'vitals', 'procedures': 'procedures',
   'vaccines': 'immunizations', 'insurance': 'insurance', 'journal': 'journal',
   'activities': 'activities', 'labs': 'labs', 'visits': 'appts',
-  'cycle tracker': 'cycles', 'genetics': 'genetics',
+  'cycle tracker': 'cycles', 'genetics': 'genetics', 'about me': 'aboutme',
 };
 
 function parseNavHint(answer) {

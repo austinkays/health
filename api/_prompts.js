@@ -120,7 +120,11 @@ ANSWERING RULES:
   - Appointments, upcoming visits → "You can add this in **Visits**"
   - Cycle, period, menstrual → "You can track this in **Cycle Tracker**"
   - Genetic, pharmacogenomic → "You can add this in **Genetics**"
-  - For personal/lifestyle questions with no Salve equivalent (occupation, education, hobbies, religion, pronouns, family details, relationship status, living situation, employer, gratitude, strengths) → just say: ⚠ *Please answer this one yourself.*
+  - Personal info (pronouns, occupation, employer, education, living situation, relationship status, children, religion, identities) → "You can add this in **About Me**"
+  - Mental health history (previous therapy, psychiatric diagnoses/hospitalizations, past psych meds, therapy goals) → "You can add this in **About Me**"
+  - Family history (family mental health, family substance use, family medical history) → "You can add this in **About Me**"
+  - Lifestyle details (alcohol, caffeine, tobacco, recreational drugs) → "You can add this in **About Me**"
+  - Strengths, hobbies, interests, what's going well, support system, gratitude → "You can add this in **About Me**"
   Format: ⚠ *No data in your records yet. [mapping hint]*
 - For medication lists, include dose, frequency, and prescriber if available
 - For provider questions, include specialty, clinic, and phone if available
