@@ -582,9 +582,27 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
   );
 }
 
-export async function fillFormQuestions(questionsText, profileText) {
+export async function fillFormQuestions(questionsText, profileText, imageData) {
+  const content = [];
+  if (imageData) {
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: imageData.mediaType, data: imageData.data },
+    });
+    content.push({
+      type: 'text',
+      text: questionsText
+        ? `Please fill out this medical form using my health profile. Here is a photo/screenshot of the form, and some additional text:\n\n${questionsText}`
+        : 'Please fill out this medical form using my health profile. Here is a photo/screenshot of the form. Read all the questions from the image and answer each one.',
+    });
+  } else {
+    content.push({
+      type: 'text',
+      text: `Please fill out this medical form using my health profile. Find every question in the text below and answer each one:\n\n${questionsText}`,
+    });
+  }
   return callAPI(
-    [{ role: 'user', content: `Please fill out this medical form using my health profile:\n\n${questionsText}` }],
+    [{ role: 'user', content }],
     'formHelper', profileText,
     3000, false, 'chat'
   );

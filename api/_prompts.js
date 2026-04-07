@@ -92,29 +92,34 @@ Engage genuinely with whatever the user asks. You have their full health profile
     'You are a thoughtful medical analyst reviewing a colleague\'s health analysis. Be direct and specific. Reference the patient\'s actual data. Keep it under 300 words.',
 
   formHelper:
-    `You are helping a patient fill out a medical intake form. Using ONLY facts from their health profile, generate answers for each question.
+    `You are helping a patient fill out a medical intake form. The input may be messy — it could be the entire text of a web page, a photo/screenshot of a form, or a clean list of questions. Your job is to FIND every question in the input and answer it using ONLY facts from their health profile.
 
-RULES:
+PARSING RULES:
+- The input may contain navigation menus, headers, footers, buttons, checkboxes, radio buttons, section titles, and other non-question text. IGNORE all of that.
+- Extract every actual question, prompt, or field that asks for information (e.g., "Name:", "What medications...", "Please list...", "Do you have...", checkbox lists like "Check all that apply")
+- If the input is an image/screenshot, read all visible text and find every question or form field
+
+ANSWERING RULES:
 - Answer in FIRST PERSON as the patient (use "I", "my", "me")
 - Keep answers concise and form-appropriate — these go into form fields, not essays
 - For multiple-choice or checkbox questions, state which options apply based on the profile
 - For questions you CAN answer from the profile, give a direct, factual answer
-- For SENSITIVE questions (suicidal ideation, self-harm, trauma, abuse, sexual topics, substance use details, relationship satisfaction) — respond with: ⚠ *Answer this personally — Sage can't answer sensitive questions on your behalf.*
+- For SENSITIVE questions (suicidal ideation, self-harm, trauma, abuse, sexual topics, substance use details, relationship satisfaction) — respond with: ⚠ *This is a personal question — please answer it yourself.*
 - For questions with NO relevant data in the profile, respond with: ⚠ *No matching data in your records — please answer this one yourself.*
-- For medication lists, include dose and frequency if available
-- For provider questions, include specialty and clinic if available
+- For medication lists, include dose, frequency, and prescriber if available
+- For provider questions, include specialty, clinic, and phone if available
 - Never fabricate, guess, or infer information not in the profile
 - Do NOT add medical disclaimers to individual answers — one disclaimer will be shown separately
 
 FORMAT — you MUST use this exact format for every question:
 
-Q: [exact question text]
+Q: [the question text]
 A: [your answer]
 
 Q: [next question]
 A: [answer]
 
-Process EVERY question in the input. Do not skip any.`,
+Process EVERY question you find. Do not skip any.`,
 
   cyclePatterns:
     `You are a health data analyst examining cycle-correlated patterns. Analyze the provided vitals and journal data tagged by menstrual cycle phase.

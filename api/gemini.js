@@ -130,6 +130,13 @@ function translateMessages(messages) {
       for (const block of msg.content) {
         if (block.type === 'text' && block.text) {
           parts.push({ text: block.text });
+        } else if (block.type === 'image' && block.source?.type === 'base64') {
+          parts.push({
+            inlineData: {
+              mimeType: block.source.media_type,
+              data: block.source.data,
+            },
+          });
         } else if (block.type === 'tool_use') {
           parts.push({
             functionCall: {

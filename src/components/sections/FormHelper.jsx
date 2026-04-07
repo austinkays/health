@@ -1,8 +1,7 @@
 import { useState, useRef } from 'react';
-import { ClipboardPaste, Sparkles, Copy, Check, ChevronDown, AlertTriangle, Leaf, RotateCcw } from 'lucide-react';
+import { Camera, ClipboardPaste, Sparkles, Copy, Check, ChevronDown, AlertTriangle, Leaf, RotateCcw, X, Image } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
-import Field from '../ui/Field';
 import AIConsentGate from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { buildProfile } from '../../services/profile';
@@ -11,7 +10,6 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 
 // Parse AI response into structured Q&A pairs
 function parseAnswers(text) {
-  // Expected format from AI: lines starting with Q: and A: (or **Q:** / **A:**)
   const pairs = [];
   const lines = text.split('\n');
   let currentQ = null;
@@ -22,7 +20,6 @@ function parseAnswers(text) {
     const aMatch = line.match(/^\*{0,2}A\d*[:.]\*{0,2}\s*(.*)/i);
 
     if (qMatch) {
-      // Save previous pair
       if (currentQ && currentA.length > 0) {
         pairs.push({ question: currentQ, answer: currentA.join('\n').trim() });
       }
@@ -30,12 +27,10 @@ function parseAnswers(text) {
       currentA = [];
     } else if (aMatch) {
       currentA.push(aMatch[1]);
-    } else if (currentA.length > 0 || (currentQ && !line.match(/^---/))) {
-      // Continuation line for the current answer
-      if (currentQ) currentA.push(line);
+    } else if (currentQ && !line.match(/^---/)) {
+      currentA.push(line);
     }
   }
-  // Save last pair
   if (currentQ && currentA.length > 0) {
     pairs.push({ question: currentQ, answer: currentA.join('\n').trim() });
   }
@@ -115,94 +110,220 @@ function AnswerCard({ pair, index }) {
   );
 }
 
+// Read a file as base64 data URL
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const [header, data] = dataUrl.split(',');
+      const mediaType = header.match(/data:(.+);/)?.[1] || 'image/png';
+      resolve({ data, mediaType });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
 export default function FormHelper({ data }) {
   const [questions, setQuestions] = useState('');
-  const [results, setResults] = useState(null); // { pairs, raw }
+  const [imageFile, setImageFile] = useState(null); // { file, preview, data, mediaType }
+  const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
   const wellness = useWellnessMessage(10000);
+
+  const handleImageSelect = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file (photo, screenshot, or PDF scan).');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      setError('Image is too large. Please use an image under 5MB.');
+      return;
+    }
+    setError('');
+    try {
+      const { data: b64data, mediaType } = await readFileAsBase64(file);
+      setImageFile({
+        file,
+        preview: URL.createObjectURL(file),
+        data: b64data,
+        mediaType,
+      });
+    } catch {
+      setError('Could not read that image. Please try another one.');
+    }
+  };
+
+  const removeImage = () => {
+    if (imageFile?.preview) URL.revokeObjectURL(imageFile.preview);
+    setImageFile(null);
+  };
 
   const handlePaste = async () => {
     try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        // Check for image in clipboard first
+        const imageType = item.types.find(t => t.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          const file = new File([blob], 'pasted-image.png', { type: imageType });
+          await handleImageSelect(file);
+          return;
+        }
+      }
+      // Fall back to text
       const text = await navigator.clipboard.readText();
-      if (text) setQuestions(text);
-    } catch { /* clipboard not available */ }
+      if (text) setQuestions(prev => prev ? prev + '\n' + text : text);
+    } catch {
+      // Fallback for browsers that don't support clipboard.read()
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text) setQuestions(prev => prev ? prev + '\n' + text : text);
+      } catch { /* clipboard not available */ }
+    }
   };
 
+  const hasInput = questions.trim() || imageFile;
+
   const handleGenerate = async () => {
-    if (!questions.trim()) return;
+    if (!hasInput) return;
     setLoading(true);
     setError('');
     setResults(null);
     try {
       const profile = buildProfile(data);
-      const raw = await fillFormQuestions(questions, profile);
+      const imageData = imageFile ? { data: imageFile.data, mediaType: imageFile.mediaType } : null;
+      const raw = await fillFormQuestions(questions, profile, imageData);
       const pairs = parseAnswers(raw);
       if (pairs.length === 0) {
-        // Fallback: show raw response if parsing fails
         setResults({ pairs: [{ question: 'Form responses', answer: raw }], raw });
       } else {
         setResults({ pairs, raw });
       }
     } catch (e) {
-      setError(e.message || 'Failed to generate answers. Please try again.');
+      setError(e.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const copyAll = () => {
-    if (!results) return;
-    const text = results.pairs
-      .map((p, i) => `${i + 1}. ${p.question}\n${p.answer.replace(/⚠\s*/g, '')}`)
-      .join('\n\n');
-    navigator.clipboard.writeText(text).catch(() => {});
+  const handleStartOver = () => {
+    setResults(null);
+    setQuestions('');
+    removeImage();
   };
 
   return (
     <AIConsentGate>
       <div className="space-y-4">
-        <p className="text-sm text-salve-textFaint font-montserrat px-1 mt-1 mb-0">
-          Paste questions from a new patient form and Sage will draft answers from your health records. Review each answer before submitting.
-        </p>
+        {/* Friendly intro */}
+        <div className="px-1 mt-1 mb-0">
+          <p className="text-sm text-salve-textMid font-montserrat mb-2">
+            New doctor or therapist form? Sage can fill it out for you using your health records.
+          </p>
+          <div className="text-[12px] text-salve-textFaint font-montserrat space-y-1">
+            <p className="m-0"><strong className="text-salve-textMid">How to use:</strong></p>
+            <p className="m-0">1. Take a <strong className="text-salve-textMid">screenshot</strong> of the form, or <strong className="text-salve-textMid">select all</strong> the text on the page (Ctrl+A / Cmd+A) and copy it</p>
+            <p className="m-0">2. Paste it here — don't worry about formatting, Sage will figure out the questions</p>
+            <p className="m-0">3. Review the answers and copy them into the form</p>
+          </div>
+        </div>
 
-        {/* Input */}
+        {/* Input area */}
         {!results && (
           <Card>
             <div className="space-y-3">
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-montserrat font-semibold text-salve-text">
-                  Form questions
-                </label>
-                <button
-                  onClick={handlePaste}
-                  className="flex items-center gap-1 text-[10px] text-salve-lav hover:text-salve-lavDim bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
-                  aria-label="Paste from clipboard"
-                >
-                  <ClipboardPaste size={11} />
-                  Paste
-                </button>
-              </div>
-              <textarea
-                ref={textareaRef}
-                value={questions}
-                onChange={e => setQuestions(e.target.value)}
-                placeholder={'Paste the form questions here...\n\nExample:\nWhat medications are you currently taking?\nDo you have any allergies?\nWho is your primary care physician?'}
-                rows={10}
-                className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
-              />
+              {/* Image upload area */}
+              {imageFile ? (
+                <div className="relative">
+                  <img
+                    src={imageFile.preview}
+                    alt="Form screenshot"
+                    className="w-full max-h-[200px] object-contain rounded-lg border border-salve-border bg-salve-card2"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-salve-card border border-salve-border flex items-center justify-center cursor-pointer hover:bg-salve-rose/10 hover:border-salve-rose/30 transition-colors"
+                    aria-label="Remove image"
+                  >
+                    <X size={12} className="text-salve-textMid" />
+                  </button>
+                  <p className="text-[10px] text-salve-sage font-montserrat mt-1.5 m-0 flex items-center gap-1">
+                    <Check size={10} /> Screenshot attached — Sage will read the questions from it
+                  </p>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex-1 flex flex-col items-center gap-1.5 px-3 py-4 rounded-lg border border-dashed border-salve-border hover:border-salve-lav/50 hover:bg-salve-lav/5 transition-all cursor-pointer bg-transparent"
+                  >
+                    <Camera size={20} className="text-salve-lav" />
+                    <span className="text-[11px] text-salve-textMid font-montserrat font-medium">Upload photo</span>
+                    <span className="text-[10px] text-salve-textFaint font-montserrat">screenshot or photo of form</span>
+                  </button>
+                  <button
+                    onClick={handlePaste}
+                    className="flex-1 flex flex-col items-center gap-1.5 px-3 py-4 rounded-lg border border-dashed border-salve-border hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all cursor-pointer bg-transparent"
+                  >
+                    <ClipboardPaste size={20} className="text-salve-sage" />
+                    <span className="text-[11px] text-salve-textMid font-montserrat font-medium">Paste from clipboard</span>
+                    <span className="text-[10px] text-salve-textFaint font-montserrat">text or screenshot</span>
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={e => { if (e.target.files?.[0]) handleImageSelect(e.target.files[0]); e.target.value = ''; }}
+                    className="hidden"
+                  />
+                </div>
+              )}
 
+              {/* Text input */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-[11px] font-montserrat text-salve-textFaint">
+                    {imageFile ? 'Any additional text from the form (optional)' : 'Or type / paste the form text here'}
+                  </label>
+                </div>
+                <textarea
+                  value={questions}
+                  onChange={e => setQuestions(e.target.value)}
+                  onPaste={(e) => {
+                    // Handle pasted images directly into textarea
+                    const items = e.clipboardData?.items;
+                    if (items) {
+                      for (const item of items) {
+                        if (item.type.startsWith('image/')) {
+                          e.preventDefault();
+                          const file = item.getAsFile();
+                          if (file) handleImageSelect(file);
+                          return;
+                        }
+                      }
+                    }
+                  }}
+                  placeholder="Select all the text on the form page (Ctrl+A / Cmd+A), copy it (Ctrl+C / Cmd+C), then paste it here (Ctrl+V / Cmd+V). It's okay if extra stuff gets copied — Sage will find the questions."
+                  rows={imageFile ? 3 : 6}
+                  className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
+                />
+              </div>
+
+              {/* Generate button */}
               <div className="flex items-center gap-3">
-                <Button onClick={handleGenerate} disabled={!questions.trim() || loading}>
+                <Button onClick={handleGenerate} disabled={!hasInput || loading}>
                   <Sparkles size={14} />
-                  {loading ? 'Generating...' : 'Generate Answers'}
+                  {loading ? 'Working on it...' : 'Fill Out My Form'}
                 </Button>
-                {questions.trim() && !loading && (
-                  <span className="text-[10px] text-salve-textFaint font-montserrat">
-                    {questions.split('\n').filter(l => l.trim() && l.trim().endsWith('?')).length || '—'} questions detected
-                  </span>
-                )}
               </div>
             </div>
           </Card>
@@ -216,7 +337,7 @@ export default function FormHelper({ data }) {
                 <Leaf size={20} className="text-salve-sage" />
               </div>
               <p className="text-sm text-salve-textMid font-montserrat text-center">
-                Sage is reviewing your records...
+                Sage is reading the form and looking up your records...
               </p>
               <p className="text-xs text-salve-textFaint font-montserrat text-center italic max-w-[260px]">
                 {wellness.message}
@@ -237,14 +358,14 @@ export default function FormHelper({ data }) {
           <>
             <div className="flex items-center justify-between px-1">
               <p className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase m-0">
-                {results.pairs.length} answer{results.pairs.length !== 1 ? 's' : ''} generated
+                {results.pairs.length} answer{results.pairs.length !== 1 ? 's' : ''} ready
               </p>
               <div className="flex items-center gap-3">
                 <CopyButton text={results.pairs.map((p, i) => `${i + 1}. ${p.question}\n${p.answer.replace(/⚠\s*/g, '')}`).join('\n\n')} label="Copy all" />
                 <button
-                  onClick={() => { setResults(null); setQuestions(''); }}
+                  onClick={handleStartOver}
                   className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
-                  aria-label="Start over"
+                  aria-label="Start over with a new form"
                 >
                   <RotateCcw size={10} />
                   New form
@@ -260,7 +381,7 @@ export default function FormHelper({ data }) {
 
             <Card className="!border-salve-border/50">
               <p className="text-[10px] text-salve-textFaint font-montserrat italic text-center m-0 leading-relaxed">
-                Review all answers before submitting. Sage drafts responses from your health records — some questions may need your personal input. Answers marked with ⚠ require you to respond directly.
+                Always review before submitting — Sage fills in what it can from your records. Answers marked with ⚠ are personal questions only you can answer.
               </p>
             </Card>
           </>
