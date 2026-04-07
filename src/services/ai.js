@@ -564,7 +564,7 @@ export async function sendHouseChat(sharedHistory, userMessage, profileText, onC
 
   // Step 1: Claude responds first
   const claudeMsgs = [...sharedHistory, { role: 'user', content: userMessage }];
-  const claudeText = await callProvider('/api/chat', 'claude-opus-4-6', claudeMsgs, claudeSystem, 800);
+  const claudeText = await callProvider('/api/chat', 'claude-opus-4-6', claudeMsgs, claudeSystem, 1500);
 
   // Notify UI so Claude's bubble appears immediately
   if (onClaudeReply) onClaudeReply(claudeText);
@@ -576,7 +576,7 @@ export async function sendHouseChat(sharedHistory, userMessage, profileText, onC
     { role: 'assistant', content: `[Claude's response]: ${claudeText}` },
     { role: 'user', content: 'Now give your perspective. You can agree, disagree, or add to what Claude said.' },
   ];
-  const geminiText = await callProvider('/api/gemini', 'gemini-2.5-pro', geminiMsgs, geminiSystem, 800);
+  const geminiText = await callProvider('/api/gemini', 'gemini-2.5-pro', geminiMsgs, geminiSystem, 1500);
 
   return { claude: claudeText, gemini: geminiText };
 }
