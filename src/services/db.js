@@ -173,8 +173,51 @@ export const db = {
     },
   },
 
-  // Load all data at once (initial hydration)
+  // Load all data at once (initial hydration) — single RPC call instead of 24 parallel queries
   async loadAll() {
+    const { data, error } = await supabase.rpc('load_all_data');
+
+    if (error) {
+      // Fallback to parallel queries if RPC not available (e.g. migration not applied)
+      console.warn('load_all_data RPC failed, falling back to parallel queries:', error.message);
+      return db._loadAllFallback();
+    }
+
+    const d = data || {};
+    const profile = d.profile || {};
+    // Strip Supabase metadata from profile
+    const { created_at, updated_at, ...settings } = profile;
+
+    return {
+      settings,
+      meds: cleanAll(d.medications),
+      conditions: cleanAll(d.conditions),
+      allergies: cleanAll(d.allergies),
+      providers: cleanAll(d.providers),
+      pharmacies: cleanAll(d.pharmacies),
+      vitals: cleanAll(d.vitals),
+      appts: cleanAll(d.appointments),
+      journal: cleanAll(d.journal_entries),
+      labs: cleanAll(d.labs),
+      procedures: cleanAll(d.procedures),
+      immunizations: cleanAll(d.immunizations),
+      care_gaps: cleanAll(d.care_gaps),
+      anesthesia_flags: cleanAll(d.anesthesia_flags),
+      appeals_and_disputes: cleanAll(d.appeals_and_disputes),
+      surgical_planning: cleanAll(d.surgical_planning),
+      insurance: cleanAll(d.insurance),
+      insurance_claims: cleanAll(d.insurance_claims),
+      drug_prices: cleanAll(d.drug_prices),
+      todos: cleanAll(d.todos),
+      cycles: cleanAll(d.cycles),
+      activities: cleanAll(d.activities),
+      genetic_results: cleanAll(d.genetic_results),
+      feedback: cleanAll(d.feedback),
+    };
+  },
+
+  // Fallback: 24 parallel queries (used if RPC not available)
+  async _loadAllFallback() {
     const results = await Promise.allSettled([
       db.profile.get(),
       db.medications.list(),
