@@ -21,6 +21,7 @@ import SageIntroChat from './components/ui/SageIntro';
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
@@ -81,6 +82,7 @@ export default function App() {
     <ThemeProvider>
       <ToastProvider>
         <AppContent />
+        <SpeedInsights />
       </ToastProvider>
     </ThemeProvider>
   );
