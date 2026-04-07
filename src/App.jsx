@@ -17,6 +17,7 @@ import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
 import SageIntroChat from './components/ui/SageIntro';
+import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
@@ -98,7 +99,15 @@ function AppContent() {
   const [navHistory, setNavHistory] = useState([]);
   const [sageOpen, setSageOpen] = useState(false);
   const [sageIntroOpen, setSageIntroOpen] = useState(false);
+  const [showWhatsNew, setShowWhatsNew] = useState(false);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
+
+  // Show What's New modal on first load if version changed
+  useEffect(() => {
+    if (!authLoading && (session || demoMode) && hasUnseenChanges()) {
+      setShowWhatsNew(true);
+    }
+  }, [authLoading, session, demoMode]);
 
   // Sync premium status into services/ai.js so isFeatureLocked() sees it.
   // Pro features unlock for premium users regardless of provider choice.
@@ -403,6 +412,7 @@ function AppContent() {
           onNav={onNav}
         />
       )}
+      {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
     </div>
   );
 }
