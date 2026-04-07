@@ -239,7 +239,7 @@ const HUB_TILES = [
 
 const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
-export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro }) {
+export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro, dataLoading }) {
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -1006,7 +1006,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       </section>
 
       {/* ── Introduce Yourself to Sage (shown when profile is sparse) ── */}
-      {onSageIntro && shouldShowIntro(data) && (
+      {onSageIntro && shouldShowIntro(data, dataLoading) && (
         <section className="dash-stagger dash-stagger-3 mb-5 md:mb-6">
           <SageIntroButton onClick={onSageIntro} />
         </section>

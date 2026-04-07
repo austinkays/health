@@ -319,7 +319,7 @@ function AppContent() {
   const renderSection = () => {
     const shared = { data, addItem: addItemT, addItemSilent: addItem, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} dataLoading={dataLoading} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;

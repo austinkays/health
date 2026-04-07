@@ -66,7 +66,9 @@ export function SageIntroButton({ onClick, compact = false }) {
 }
 
 // Check whether to show the intro prompt
-export function shouldShowIntro(data) {
+export function shouldShowIntro(data, dataLoading) {
+  // Don't flash the button while data is still loading from Supabase
+  if (dataLoading) return false;
   if (!data) return false;
   const about = data.settings?.about_me || {};
   const filledAbout = Object.values(about).filter(v => v && String(v).trim()).length;
