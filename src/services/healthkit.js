@@ -1,6 +1,7 @@
 // Apple Health XML export parser
 // Handles large files (50-200MB) via chunked regex extraction
-// Aggregates high-frequency data (HR, steps) to daily summaries
+// Aggregates high-frequency data (HR, SpO2, resp) to hourly buckets per day
+// Steps/energy → daily totals for activities table
 
 /* ── HealthKit type → Salve type mapping ──────────────── */
 
@@ -224,6 +225,9 @@ function parseAttributes(attrStr) {
 
 /* ── Record processing ────────────────────────────────── */
 
+// Types stored with hourly resolution (continuous wearable sensors)
+const HOURLY_TYPES = new Set(['hr', 'spo2', 'resp']);
+
 function processRecord(attrs, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, counts) {
   const type = HK_TYPE_MAP[attrs.type];
   if (!type) { counts.skipped++; return; }
@@ -264,36 +268,56 @@ function processRecord(attrs, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, c
   if (type === 'weight') finalValue = convertWeight(value, attrs.unit);
   if (type === 'temp') finalValue = convertTemp(value, attrs.unit);
 
-  const key = `${type}|${date}`;
-  if (!rawVitals[key]) rawVitals[key] = [];
-  rawVitals[key].push(finalValue);
+  if (HOURLY_TYPES.has(type)) {
+    // Continuous sensors: bucket by hour so the chart shows intraday shape
+    // Key: type|date|HH  →  up to 24 buckets per day
+    const hour = attrs.startDate ? String(new Date(attrs.startDate).getHours()).padStart(2, '0') : '00';
+    const key = `${type}|${date}|${hour}`;
+    if (!rawVitals[key]) rawVitals[key] = [];
+    rawVitals[key].push(finalValue);
+  } else {
+    // Point measurements (weight, temp, glucose): one record per day (last reading)
+    const key = `${type}|${date}`;
+    if (!rawVitals[key]) rawVitals[key] = [];
+    rawVitals[key].push(finalValue);
+  }
 }
 
 /* ── Aggregation ──────────────────────────────────────── */
 
+const UNIT_MAP = { hr: 'bpm', weight: 'lbs', temp: '°F', glucose: 'mg/dL', spo2: '%', resp: 'rpm' };
+
 function aggregateVitals(rawVitals, rawBP, rawSleep) {
   const vitals = [];
 
-  // Aggregate by type+date
   for (const [key, values] of Object.entries(rawVitals)) {
-    const [type, date] = key.split('|');
+    const parts = key.split('|');
+    const type = parts[0];
+    const date = parts[1];
+    const hour = parts[2]; // present for HOURLY_TYPES, undefined for point types
 
-    if (type === 'hr') {
-      // Heart rate: daily average, with min/max in notes
+    if (HOURLY_TYPES.has(type)) {
+      // Continuous sensor: emit one record per hour bucket
+      // avg is the chart value; min/max surfaced in notes for the list row
       const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
       const min = Math.min(...values);
       const max = Math.max(...values);
+      const time = `${hour}:00`;
       vitals.push({
-        date, type: 'hr', value: String(avg), value2: '', unit: 'bpm',
-        notes: `${values.length} readings. Min: ${min}, Max: ${max}`,
+        date,
+        time,
+        type,
+        value: String(avg),
+        value2: '',
+        unit: UNIT_MAP[type] || '',
+        notes: min !== max ? `${min}–${max} range` : '',
         source: 'apple_health',
       });
     } else {
-      // Weight, temp, glucose, etc: last reading of the day
+      // Point measurement: last reading of the day, no time field
       const last = values[values.length - 1];
-      const unitMap = { weight: 'lbs', temp: '°F', glucose: 'mg/dL', spo2: '%', resp: 'rpm' };
       vitals.push({
-        date, type, value: String(last), value2: '', unit: unitMap[type] || '', notes: '',
+        date, type, value: String(last), value2: '', unit: UNIT_MAP[type] || '', notes: '',
         source: 'apple_health',
       });
     }
@@ -450,7 +474,7 @@ export function deduplicateAgainst(newRecords, existing, keyFn) {
 }
 
 export const DEDUP_KEYS = {
-  vitals: r => `${r.date}|${r.type}|${r.value}`,
+  vitals: r => `${r.date}|${r.type}|${r.time || ''}|${r.value}`,
   labs: r => `${r.date}|${r.test_name}|${r.result}`,
   activities: r => `${r.date}|${r.type}|${r.duration_minutes}`,
 };

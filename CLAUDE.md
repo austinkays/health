@@ -109,7 +109,7 @@ health/
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
-│   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, daily aggregation (HR/steps/sleep/BP pairing), workout + FHIR lab parsing, deduplicateAgainst()
+│   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, **hourly bucketing for HR/SpO2/resp** (up to 24 records/day with `time: 'HH:00'` field) vs. daily for steps/sleep/weight/glucose/BP; workout + FHIR lab parsing, deduplicateAgainst(); DEDUP_KEYS includes time field
 │   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
 │   │   └── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness/spo2/stress/workouts via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), syncAllOuraData() bulk sync (temperature→cycles BBT, sleep/HR/SpO2/readiness/stress→vitals, workouts→activities), manual entry override protection, per-data-type dedup
 │   ├── hooks/
@@ -197,7 +197,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `conditions` | name, diagnosed_date, status (active/managed/remission/resolved), provider, linked_meds, notes | |
 | `allergies` | substance, reaction, severity (mild/moderate/severe), type (medication/food/environmental/latex/dye/insect/other), notes | |
 | `providers` | name, specialty, clinic, phone, fax, portal_url, notes, npi, address | npi links to NPPES registry; address enables maps |
-| `vitals` | date, type (pain/mood/energy/sleep/bp/hr/weight/temp/glucose), value, value2, unit, notes | |
+| `vitals` | date, time (nullable, 'HH:00' for hourly import records), type (pain/mood/energy/sleep/bp/hr/weight/temp/glucose/spo2/resp), value, value2, unit, notes | `time` column added in migration 022; HR/SpO2/resp from Apple Health stored as hourly buckets (up to 24/day); chart uses datetime x-axis when `time` present showing intraday curve; list collapses ≥3 same-type same-day entries to avg/min/max summary row |
 | `appointments` | date, time, provider, location, reason, questions, post_notes, video_call_url | |
 | `journal_entries` | date, title, mood, severity, content, tags | |
 | `ai_conversations` | title, messages (JSONB) | |

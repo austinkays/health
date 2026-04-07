@@ -1441,22 +1441,36 @@ export default function Dashboard({ data, interactions, onNav, onSage }) {
                     <span className="text-[11px] text-salve-textFaint font-montserrat">hrs avg</span>
                   </div>
                 </div>
-                <div className="flex items-end gap-[3px] h-12 mt-2">
-                  {sleepTrend.days.map((d, i) => {
+                <div className="relative flex items-end gap-[3px] h-12 mt-2">
+                  {(() => {
                     const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
-                    const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
-                    const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
-                    const isLast = i === sleepTrend.days.length - 1;
-                    return (
-                      <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
-                        <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
-                        {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
+                    // Goal line at 7h — positioned proportionally within the 36px bar area (10px label offset)
+                    const goalBottom = Math.round((7 / maxVal) * 36) + 10;
+                    return (<>
+                      <div
+                        className="absolute left-0 right-0 pointer-events-none z-10 flex items-center"
+                        style={{ bottom: `${goalBottom}px` }}
+                        aria-hidden="true"
+                      >
+                        <div className="flex-1 border-t border-dashed" style={{ borderColor: `${C.sage}70` }} />
+                        <span className="text-[7px] font-montserrat pl-1 leading-none" style={{ color: `${C.sage}90` }}>7h</span>
                       </div>
-                    );
-                  })}
+                      {sleepTrend.days.map((d, i) => {
+                        const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
+                        const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
+                        const isLast = i === sleepTrend.days.length - 1;
+                        return (
+                          <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
+                            <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
+                            {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
+                          </div>
+                        );
+                      })}
+                    </>);
+                  })()}
                 </div>
                 <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h goal</span></div>
                   <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
                   <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
                   {sleepTrend.last && (
