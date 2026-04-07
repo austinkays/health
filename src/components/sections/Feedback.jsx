@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, MessageSquare, Bug, Lightbulb, Check, ChevronDown, Trash2 } from 'lucide-react';
+import { Send, MessageSquare, Bug, Lightbulb, Check, ChevronDown, Trash2, Leaf } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import Badge from '../ui/Badge';
@@ -15,6 +15,14 @@ const TYPES = [
 ];
 
 const TYPE_META = Object.fromEntries(TYPES.map(t => [t.value, t]));
+
+const STATUS_META = {
+  open:        { label: 'Open',        color: C.textFaint },
+  seen:        { label: 'Seen',        color: C.lav },
+  in_progress: { label: 'In Progress', color: C.amber },
+  resolved:    { label: 'Resolved',    color: C.sage },
+  wont_fix:    { label: 'Noted',       color: C.textFaint },
+};
 
 export default function Feedback({ data, addItem, removeItem }) {
   const [type, setType] = useState('feedback');
@@ -142,10 +150,21 @@ export default function Feedback({ data, addItem, removeItem }) {
                       <Icon size={12} color={meta.color} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
+                      <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                         <Badge style={{ background: `${meta.color}18`, color: meta.color, fontSize: '9px' }}>
                           {meta.label}
                         </Badge>
+                        {item.status && item.status !== 'open' && (() => {
+                          const s = STATUS_META[item.status] || STATUS_META.open;
+                          return (
+                            <Badge style={{ background: `${s.color}18`, color: s.color, fontSize: '9px' }}>
+                              {s.label}
+                            </Badge>
+                          );
+                        })()}
+                        {item.response && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-salve-sage shrink-0" title="Response received" />
+                        )}
                         {dateStr && (
                           <span className="text-[10px] text-salve-textFaint font-montserrat">{dateStr}</span>
                         )}
@@ -159,6 +178,23 @@ export default function Feedback({ data, addItem, removeItem }) {
                       className={`text-salve-textFaint shrink-0 mt-1 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
                     />
                   </button>
+                  {/* Admin response */}
+                  {isExpanded && item.response && (
+                    <div className="mt-2.5 mx-0.5 px-3 py-2.5 rounded-lg bg-salve-sage/8 border border-salve-sage/15">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Leaf size={10} className="text-salve-sage" />
+                        <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Salve Team</span>
+                        {item.responded_at && (
+                          <span className="text-[9px] text-salve-textFaint font-montserrat ml-auto">
+                            {new Date(item.responded_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[12px] text-salve-textMid font-montserrat m-0 leading-relaxed">
+                        {item.response}
+                      </p>
+                    </div>
+                  )}
                   {isExpanded && (
                     <div className="mt-2 pt-2 border-t border-salve-border/50 flex justify-end">
                       {del.confirmingId === item.id ? (
