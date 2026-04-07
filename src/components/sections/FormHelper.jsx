@@ -229,7 +229,18 @@ export default function FormHelper({ data, onNav }) {
     }
   };
 
+  const [dragOver, setDragOver] = useState(false);
   const hasInput = questions.trim() || imageFile;
+
+  const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragOver(false); };
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) handleImageSelect(file);
+  };
 
   const handleGenerate = async () => {
     if (!hasInput) return;
@@ -277,8 +288,20 @@ export default function FormHelper({ data, onNav }) {
 
         {/* Input area */}
         {!results && (
-          <Card>
-            <div className="space-y-3">
+          <Card
+            className={dragOver ? '!border-salve-lav !bg-salve-lav/5 transition-colors' : 'transition-colors'}
+            onDragOver={handleDragOver}
+            onDragEnter={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {dragOver && (
+              <div className="flex flex-col items-center gap-2 py-6 text-center pointer-events-none">
+                <Camera size={28} className="text-salve-lav" />
+                <span className="text-sm font-medium text-salve-lav font-montserrat">Drop your screenshot here</span>
+              </div>
+            )}
+            {!dragOver && <div className="space-y-3">
               {/* Image upload area */}
               {imageFile ? (
                 <div className="relative">
@@ -364,7 +387,7 @@ export default function FormHelper({ data, onNav }) {
                   {loading ? 'Working on it...' : 'Fill Out My Form'}
                 </Button>
               </div>
-            </div>
+            </div>}
           </Card>
         )}
 
