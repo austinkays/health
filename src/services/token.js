@@ -5,6 +5,14 @@ let tokenExpiry = 0;
 let inflightPromise = null;
 const CACHE_DURATION = 5_000; // 5 seconds
 
+// Seed the token from onAuthStateChange so getAuthToken() can return
+// immediately without calling supabase.auth.getSession() (which acquires
+// the navigator lock and contends with parallel db queries).
+export function seedToken(accessToken) {
+  cachedToken = accessToken || null;
+  tokenExpiry = accessToken ? Date.now() + CACHE_DURATION : 0;
+}
+
 export async function getAuthToken() {
   if (cachedToken && Date.now() < tokenExpiry) return cachedToken;
   // Deduplicate concurrent calls

@@ -3,6 +3,7 @@ import { getSession, onAuthChange } from './services/auth';
 import { supabase } from './services/supabase';
 import { cache, setupOfflineSync } from './services/cache';
 import { db } from './services/db';
+import { seedToken, clearTokenCache } from './services/token';
 import Auth from './components/Auth';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
@@ -249,8 +250,11 @@ function AppContent() {
         setSageOpen(false);
         setSageIntroOpen(false);
         clearSentryUser();
+        clearTokenCache();
       } else if (s?.user?.id) {
         setSentryUser(s.user.id);
+        // Seed the token cache so services don't call getSession() independently.
+        seedToken(s.access_token);
         // Pre-derive the cache encryption key while React is re-rendering,
         // so cache.read() in useHealthData finds the key already cached.
         cache.setToken(s.access_token);
