@@ -39,7 +39,16 @@
     <title>Salve</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Instant loading screen — shown before React bundle loads/parses/mounts.
+           Removed automatically by React when it renders into #root. -->
+      <div id="splash" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:Montserrat,system-ui,sans-serif;background:rgb(var(--salve-bg));color:rgb(var(--salve-textMid))">
+        <div style="font-size:22px;font-weight:600;letter-spacing:0.08em;color:rgb(var(--salve-text));margin-bottom:8px">SALVE</div>
+        <div style="font-size:12px;opacity:0.6">Loading your health data...</div>
+        <div style="margin-top:20px;width:32px;height:32px;border:2px solid rgb(var(--salve-border));border-top-color:rgb(var(--salve-lav));border-radius:50%;animation:sp .7s linear infinite"></div>
+        <style>@keyframes sp{to{transform:rotate(360deg)}}</style>
+      </div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
