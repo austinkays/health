@@ -65,6 +65,11 @@ export async function decrypt(b64, token) {
   return new TextDecoder().decode(decrypted);
 }
 
+// Pre-derive the key for a given token so subsequent encrypt/decrypt calls are instant.
+export async function prewarmKey(token) {
+  try { await deriveKey(token); } catch { /* ignore */ }
+}
+
 // Clear cached key on sign-out
 export function clearKeyCache() {
   cachedKey = null;

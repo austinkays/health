@@ -28,7 +28,6 @@
     color: rgb(var(--salve-text));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.6s ease, color 0.4s ease;
   }
 
   * {
@@ -37,18 +36,18 @@
 }
 
 /* ── Theme transition ──────────────────────────── */
-/* Smooth crossfade when switching themes           */
-html.theme-transitioning,
-html.theme-transitioned {
-  background-color: #000;
+/* When body is invisible during a theme switch,    */
+/* html's bg shows through — match the theme bg so  */
+/* there's no flash of white/wrong color.           */
+html {
+  background: rgb(var(--salve-bg));
 }
-html.theme-transitioning body {
-  opacity: 0;
-  transition: opacity 0.5s ease-out;
-}
-html.theme-transitioned body {
-  opacity: 1;
-  transition: opacity 0.6s ease-in;
+
+/* ── Legibility: ensure label text stays readable ─── */
+/* textFaint at 9-11px needs extra weight to remain visible */
+.text-salve-textFaint,
+.text-salve-textMid {
+  font-weight: 500;
 }
 
 /* ── Theme CSS variable defaults (Lilac) ───── */
@@ -95,6 +94,7 @@ html[class*="theme-"] body::before {
 
 /* ── Neon: grid + hot pink/cyan glows + text glow ── */
 html.theme-neon body::before {
+  will-change: opacity;
   background-image:
     /* hot pink corner glow */
     radial-gradient(circle 400px at 10% 20%, rgba(255, 77, 184, 0.22), transparent 70%),
@@ -114,8 +114,8 @@ html.theme-neon body::before {
   to { background-position: 0 0, 0 0, 0 0, 36px 36px, -36px 36px; }
 }
 @keyframes neon-pulse {
-  0%, 100% { filter: brightness(1) saturate(1); }
-  50% { filter: brightness(1.15) saturate(1.25); }
+  0%, 100% { opacity: 0.88; }
+  50% { opacity: 1; }
 }
 html.theme-neon h1,
 html.theme-neon h2,
@@ -128,6 +128,7 @@ html.theme-neon .font-playfair {
 
 /* ── Aurora: drifting northern-lights curtains + neon stars ── */
 html.theme-aurora body::before {
+  will-change: transform, opacity;
   background-image:
     /* Aurora curtain 1 — green sheet, upper left */
     radial-gradient(ellipse 90% 28% at 20% 22%, rgba(132, 220, 180, 0.28), transparent 65%),
@@ -234,9 +235,13 @@ html.theme-ember body::before {
 html.theme-ember body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 300vh;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     radial-gradient(circle 3px at 12% 94%, rgba(255, 154, 77, 0.95), transparent 70%),
     radial-gradient(circle 2px at 28% 78%, rgba(255, 210, 77, 0.85), transparent 70%),
@@ -258,12 +263,13 @@ html.theme-ember body::after {
   80% { opacity: 0.92; }
 }
 @keyframes ember-sparks {
-  from { background-position: 0 0; }
-  to { background-position: 0 -200vh; }
+  from { transform: translateY(0); }
+  to   { transform: translateY(-200vh); }
 }
 
 /* ── Blaze: ember cranked to eleven — raging inferno ── */
 html.theme-blaze body::before {
+  will-change: opacity;
   background-image:
     /* White-hot core at the bottom */
     radial-gradient(ellipse 180% 70% at 50% 118%, rgba(255, 234, 0, 0.55), transparent 72%),
@@ -281,9 +287,13 @@ html.theme-blaze body::before {
 html.theme-blaze body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 260vh;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     /* Storm of flying embers — denser, brighter, whiter-hot than ember */
     radial-gradient(circle 4px at 6% 96%, rgba(255, 255, 255, 1), transparent 60%),
@@ -305,15 +315,15 @@ html.theme-blaze body::after {
   animation: blaze-sparks 5s linear infinite;
 }
 @keyframes blaze-breathe {
-  0%   { opacity: 0.96; filter: brightness(1.18) saturate(1.4)  hue-rotate(0deg); }
-  20%  { opacity: 1;    filter: brightness(1.28) saturate(1.55) hue-rotate(-18deg); }
-  45%  { opacity: 0.92; filter: brightness(1.12) saturate(1.3)  hue-rotate(10deg); }
-  70%  { opacity: 0.98; filter: brightness(1.24) saturate(1.5)  hue-rotate(-8deg); }
-  100% { opacity: 0.96; filter: brightness(1.18) saturate(1.4)  hue-rotate(0deg); }
+  0%   { opacity: 0.88; }
+  20%  { opacity: 1;    }
+  45%  { opacity: 0.82; }
+  70%  { opacity: 0.94; }
+  100% { opacity: 0.88; }
 }
 @keyframes blaze-sparks {
-  from { background-position: 0 0; }
-  to { background-position: 0 -160vh; }
+  from { transform: translateY(0); }
+  to   { transform: translateY(-160vh); }
 }
 html.theme-blaze h1,
 html.theme-blaze h2,
@@ -326,6 +336,7 @@ html.theme-blaze .font-playfair {
 
 /* ── Cherry Blossom: drifting sakura petals on warm cream ── */
 html.theme-cherry body::before {
+  will-change: transform, opacity;
   background-image:
     /* Warm pink sky wash */
     radial-gradient(ellipse 140% 60% at 30% 0%, rgba(240, 180, 200, 0.35), transparent 70%),
@@ -340,9 +351,13 @@ html.theme-cherry body::before {
 html.theme-cherry body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: -180vh;
+  left: 0;
+  right: 0;
+  height: 280vh;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     /* Scattered petals — random-feeling positions, varied sizes, pink + white */
     radial-gradient(circle 5px at 7% 3%,   rgba(224, 132, 168, 0.75), transparent 62%),
@@ -369,7 +384,7 @@ html.theme-cherry body::after {
     radial-gradient(circle 5px at 45% 96%, rgba(248, 200, 220, 0.72), transparent 62%);
   background-size: 100vw 180vh;
   background-repeat: repeat;
-  animation: cherry-petals 24s linear infinite, cherry-sway 9s ease-in-out infinite;
+  animation: cherry-petals 24s linear infinite;
 }
 @keyframes cherry-breeze {
   0%   { transform: translateX(0);     opacity: 0.95; }
@@ -377,12 +392,8 @@ html.theme-cherry body::after {
   100% { transform: translateX(-8px);  opacity: 0.92; }
 }
 @keyframes cherry-petals {
-  from { background-position: 0 0; }
-  to   { background-position: 0 180vh; }
-}
-@keyframes cherry-sway {
-  0%, 100% { transform: translateX(0); }
-  50%      { transform: translateX(8px); }
+  from { transform: translateY(0); }
+  to   { transform: translateY(180vh); }
 }
 
 /* ── Sunny Day: warm sunbeams + drifting dust motes on blue sky ── */
@@ -406,6 +417,7 @@ html.theme-sunbeam body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  will-change: transform;
   background-image:
     /* Diagonal sun rays radiating from top-right */
     linear-gradient(200deg, transparent 45%, rgba(255, 232, 140, 0.10) 48%, transparent 52%),
@@ -423,8 +435,8 @@ html.theme-sunbeam body::after {
   animation: sunbeam-dust 20s linear infinite;
 }
 @keyframes sunbeam-pulse {
-  0%, 100% { filter: brightness(1) saturate(1); }
-  50% { filter: brightness(1.06) saturate(1.08); }
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1; }
 }
 @keyframes sunbeam-dust {
   from {
@@ -641,6 +653,7 @@ html.theme-crystal body::after {
   inset: 0;
   pointer-events: none;
   z-index: 0;
+  will-change: opacity;
   background-image:
     /* Stationary twinkling crystal sparkles — bright radial points */
     radial-gradient(circle 2px at 10% 14%, rgba(74, 224, 255, 0.95), transparent 55%),
@@ -656,8 +669,8 @@ html.theme-crystal body::after {
   animation: crystal-twinkle 3.5s ease-in-out infinite;
 }
 @keyframes crystal-glow {
-  0% { filter: blur(20px) brightness(0.95); }
-  100% { filter: blur(24px) brightness(1.08); }
+  0% { opacity: 0.8; }
+  100% { opacity: 1; }
 }
 @keyframes crystal-twinkle {
   0%, 100% { opacity: 0.95; }
@@ -1221,18 +1234,30 @@ html.theme-crystal .border-salve-border {
   height: 1px;
 }
 
+/* SplitView detail pane entry animation */
+@keyframes detail-enter {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.splitview-detail-enter {
+  animation: detail-enter 0.14s ease-out;
+}
+
 /* Alert row hover */
+.alert-row {
+  transition: background 0.15s ease;
+}
 .alert-row:hover {
-  background: rgb(var(--salve-card2) / 0.5);
+  background: rgb(var(--salve-lav) / 0.05);
 }
 
 /* Timeline row hover */
 .timeline-row {
-  transition: background 0.2s ease, transform 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease;
 }
 .timeline-row:hover {
-  background: rgb(var(--salve-card2) / 0.3);
-  transform: translateX(2px);
+  background: rgb(var(--salve-lav) / 0.04);
+  transform: translateX(3px);
 }
 
 /* Insight card ambient glow */
@@ -1363,7 +1388,7 @@ html.theme-crystal .border-salve-border {
   );
   background-size: 300% 300%;
   animation: gradientShift 8s ease infinite, searchAmbientGlow 4s ease-in-out infinite;
-  transition: all 0.4s ease;
+  transition: box-shadow 0.4s ease;
 }
 
 .search-hero-focused {

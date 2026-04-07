@@ -62,6 +62,7 @@ export default function Vitals({ data, addItem, removeItem }) {
   const [trendAI, setTrendAI] = useState(null);
   const [trendLoading, setTrendLoading] = useState(false);
   const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
+  const [timeRange, setTimeRange] = useState('30d');
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -101,13 +102,53 @@ export default function Vitals({ data, addItem, removeItem }) {
 
   const vi = VITAL_TYPES.find(t => t.id === ct);
 
-  // Aggregate to daily averages — prevents high-frequency wearable data (hundreds of HR/resp readings)
-  // from rendering as an unreadable blob. One point per day per type.
-  const integerTypes = new Set(['hr', 'bp', 'glucose']);
+  const cutoffDate = useMemo(() => {
+    if (timeRange === 'all') return null;
+    const days = { '7d': 7, '30d': 30, '90d': 90 }[timeRange] || 30;
+    return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  }, [timeRange]);
+
+  const integerTypes = new Set(['hr', 'bp', 'glucose', 'spo2', 'resp']);
+
+  // Determine if the selected type has hourly data (time field set on any record)
+  const hasHourlyData = useMemo(() =>
+    data.vitals.some(v => v.type === ct && v.time),
+  [data.vitals, ct]);
+
+  // Build chart data:
+  // - Hourly types (HR, SpO2, resp from Apple Health): one point per record, sorted by date+time
+  //   x-axis key is "Jan 15 08:00" so intraday shape is preserved
+  // - Everything else: collapse to daily averages (one point per day)
   const cd = useMemo(() => {
     const filtered = data.vitals.filter(
-      v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter)
+      v => v.type === ct && (sourceFilter === 'all' || getSource(v) === sourceFilter) && (!cutoffDate || v.date >= cutoffDate)
     );
+    const round = (n) => integerTypes.has(ct) ? Math.round(n) : Math.round(n * 10) / 10;
+    const avg = arr => arr.length ? round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+
+    if (hasHourlyData) {
+      // Hourly path: one chart point per record, sorted chronologically
+      return filtered
+        .filter(v => v.time) // only records with time resolution
+        .sort((a, b) => {
+          const ka = `${a.date}${a.time}`;
+          const kb = `${b.date}${b.time}`;
+          return ka.localeCompare(kb);
+        })
+        .map(v => {
+          const n = Number(v.value);
+          return {
+            date: `${fmtDate(v.date)} ${v.time}`,
+            rawDate: v.date,
+            time: v.time,
+            value: isNaN(n) ? null : round(n),
+            notes: v.notes || '',
+          };
+        })
+        .filter(d => d.value !== null);
+    }
+
+    // Daily average path (manual entries, BP, weight, etc.)
     const byDate = new Map();
     for (const v of filtered) {
       if (!byDate.has(v.date)) byDate.set(v.date, { vals: [], vals2: [] });
@@ -116,8 +157,6 @@ export default function Vitals({ data, addItem, removeItem }) {
       if (!isNaN(n)) e.vals.push(n);
       if (v.value2) { const n2 = Number(v.value2); if (!isNaN(n2)) e.vals2.push(n2); }
     }
-    const round = (n) => integerTypes.has(ct) ? Math.round(n) : Math.round(n * 10) / 10;
-    const avg = arr => arr.length ? round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
     return [...byDate.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, { vals, vals2 }]) => ({
@@ -126,7 +165,15 @@ export default function Vitals({ data, addItem, removeItem }) {
         ...(vals2.length > 0 ? { value2: avg(vals2) } : {}),
       }))
       .filter(d => d.value !== null);
-  }, [data.vitals, ct, sourceFilter]);
+  }, [data.vitals, ct, sourceFilter, cutoffDate, hasHourlyData]);
+
+  const cdStats = useMemo(() => {
+    if (!cd.length) return null;
+    const vals = cd.map(p => p.value).filter(Number.isFinite);
+    if (!vals.length) return null;
+    const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
+    return { min: Math.min(...vals), max: Math.max(...vals), avg, count: vals.length };
+  }, [cd]);
 
   const phaseBands = useMemo(() => {
     if (!cycleOverlay || !data.cycles?.length || cd.length < 2) return [];
@@ -218,8 +265,21 @@ export default function Vitals({ data, addItem, removeItem }) {
         </div>
       )}
 
-      {data.cycles?.length > 0 && cd.length > 1 && (
-        <div className="flex justify-end mb-1.5">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex gap-1">
+          {['7d', '30d', '90d', 'all'].map(r => (
+            <button
+              key={r}
+              onClick={() => setTimeRange(r)}
+              className={`py-1 px-2.5 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+                timeRange === r ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+              }`}
+            >
+              {r === 'all' ? 'All' : r}
+            </button>
+          ))}
+        </div>
+        {data.cycles?.length > 0 && cd.length > 1 && (
           <button
             onClick={() => {
               const next = !cycleOverlay;
@@ -230,19 +290,29 @@ export default function Vitals({ data, addItem, removeItem }) {
               cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
-            Color by cycle phase
+            Cycle phase
           </button>
-        </div>
-      )}
+        )}
+      </div>
 
       {cd.length > 1 ? (
         <Card className="!p-3.5">
-          <div className="font-playfair text-sm font-medium mb-2.5 pl-1.5 text-salve-text">
-            {vi?.label} <span className="font-normal text-salve-textFaint text-xs">
-              {cd.length > 14 ? 'daily avg' : 'over time'}
-            </span>
+          <div className="flex items-baseline justify-between mb-2 pl-1.5">
+            <div className="font-playfair text-sm font-medium text-salve-text">
+              {vi?.label}{' '}
+              <span className="font-normal text-salve-textFaint text-xs">
+                {hasHourlyData ? 'hourly' : 'daily avg'}
+              </span>
+            </div>
+            {cdStats && (
+              <div className="flex gap-3 text-[10px] text-salve-textFaint font-montserrat">
+                <span>Avg <span className="text-salve-text font-medium">{cdStats.avg % 1 === 0 ? cdStats.avg : cdStats.avg.toFixed(1)}</span></span>
+                <span>Low <span className="text-salve-text font-medium">{cdStats.min % 1 === 0 ? cdStats.min : cdStats.min.toFixed(1)}</span></span>
+                <span>High <span className="text-salve-text font-medium">{cdStats.max % 1 === 0 ? cdStats.max : cdStats.max.toFixed(1)}</span></span>
+              </div>
+            )}
           </div>
-          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} daily averages from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
+          <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} ${hasHourlyData ? 'hourly readings' : 'daily averages'} from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={cd}>
               <defs>
@@ -250,13 +320,40 @@ export default function Vitals({ data, addItem, removeItem }) {
                 <linearGradient id="lf" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={C.lav} stopOpacity={0.25} /><stop offset="95%" stopColor={C.lav} stopOpacity={0} /></linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: C.textFaint }} />
-              <YAxis tick={{ fontSize: 10, fill: C.textFaint }} />
-              <Tooltip contentStyle={{ fontFamily: 'Montserrat', fontSize: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }} />
-              <Area type="monotone" dataKey="value" stroke={C.sage} fill="url(#sf)" strokeWidth={2} dot={cd.length > 30 ? false : { r: 3, fill: C.sage }} />
-              {ct === 'bp' && <Area type="monotone" dataKey="value2" stroke={C.lav} fill="url(#lf)" strokeWidth={2} dot={cd.length > 30 ? false : { r: 3, fill: C.lav }} />}
-              {vi?.normalHigh && <ReferenceLine y={vi.normalHigh} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
-              {vi?.normalLow && <ReferenceLine y={vi.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} />}
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 10, fill: C.textFaint, fontFamily: 'Montserrat' }}
+                interval={hasHourlyData ? Math.floor(cd.length / 6) : 'preserveStartEnd'}
+                tickFormatter={hasHourlyData ? (v) => v.split(' ')[1] || v : undefined}
+              />
+              <YAxis tick={{ fontSize: 10, fill: C.textFaint, fontFamily: 'Montserrat' }} width={32} />
+              <Tooltip
+                contentStyle={{ fontFamily: 'Montserrat', fontSize: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }}
+                formatter={(val, name) => {
+                  if (name === 'value2') return [`${val} ${vi?.unit || ''}`, 'Diastolic'];
+                  return [`${val} ${vi?.unit || ''}`, ct === 'bp' ? 'Systolic' : vi?.label || ''];
+                }}
+                labelFormatter={(label) => {
+                  // For hourly data, label is "Jan 15 08:00" — show it as-is
+                  // For daily data, label is already a formatted date
+                  return label;
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                stroke={C.sage}
+                fill="url(#sf)"
+                strokeWidth={2}
+                dot={cd.length > 48 ? false : { r: cd.length > 24 ? 2 : 3, fill: C.sage, strokeWidth: 0 }}
+                label={cd.length <= 8 ? {
+                  position: 'top', fontSize: 10, fill: C.textFaint, fontFamily: 'Montserrat',
+                  formatter: (v) => `${v}`,
+                } : false}
+              />
+              {ct === 'bp' && <Area type="monotone" dataKey="value2" stroke={C.lav} fill="url(#lf)" strokeWidth={2} dot={cd.length > 30 ? false : { r: 3, fill: C.lav, strokeWidth: 0 }} />}
+              {vi?.normalHigh && <ReferenceLine y={vi.normalHigh} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: String(vi.normalHigh), position: 'insideTopRight', fontSize: 9, fill: C.amber, fontFamily: 'Montserrat' }} />}
+              {vi?.normalLow && <ReferenceLine y={vi.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: String(vi.normalLow), position: 'insideBottomRight', fontSize: 9, fill: C.amber, fontFamily: 'Montserrat' }} />}
               {phaseBands.map((band, i) => (
                 <ReferenceArea
                   key={`phase-${i}`}
@@ -359,47 +456,90 @@ export default function Vitals({ data, addItem, removeItem }) {
                     <span className="text-[10px] text-salve-textFaint font-montserrat">{fmtDate(date)}</span>
                   </div>
                 </div>
-                {/* Entries for this date */}
+                {/* Entries for this date — group same-type entries when there are many (hourly imports) */}
                 <div className="divide-y divide-salve-border/40">
-                  {entries.map(v => {
-                    const t = VITAL_TYPES.find(x => x.id === v.type);
-                    const flag = getVitalFlag(v.type, v.value, v.value2);
-                    const fs = flagStyle(flag);
-                    const src = getSource(v);
-                    const SrcIcon = SOURCE_ICON[src];
-                    const displayVal = v.type === 'bp' ? `${v.value}/${v.value2}` : v.value;
-                    return (
-                      <div key={v.id} className="relative">
-                        {flag && (
-                          <div
-                            className="absolute left-0 top-0 bottom-0 w-[3px]"
-                            style={{ backgroundColor: fs.color }}
-                            aria-hidden="true"
-                          />
-                        )}
-                        <div className="flex items-center gap-2 px-3.5 py-2">
-                          <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
-                            {flag && <AlertTriangle size={12} color={fs.color} className="flex-shrink-0" aria-hidden="true" />}
-                            <span className="text-[13px] text-salve-textMid font-montserrat">{t?.label}</span>
-                            <span className="text-[14px] font-semibold font-montserrat" style={{ color: flag ? fs.color : C.sage }}>
-                              {displayVal}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
-                            </span>
-                            {flag && <span className="text-[10px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
-                            {v.notes && <span className="text-[11px] text-salve-textFaint italic">— {v.notes}</span>}
+                  {(() => {
+                    // Sub-group by type within this date
+                    const typeMap = new Map();
+                    for (const v of entries) {
+                      if (!typeMap.has(v.type)) typeMap.set(v.type, []);
+                      typeMap.get(v.type).push(v);
+                    }
+                    return [...typeMap.entries()].map(([vtype, typeEntries]) => {
+                      const t = VITAL_TYPES.find(x => x.id === vtype);
+                      const src = getSource(typeEntries[0]);
+                      const SrcIcon = SOURCE_ICON[src];
+
+                      // Collapsed summary for 3+ same-type entries on same day (hourly Apple Health data)
+                      if (typeEntries.length >= 3 && typeEntries[0].time) {
+                        const vals = typeEntries.map(v => Number(v.value)).filter(Number.isFinite);
+                        const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+                        const min = Math.min(...vals);
+                        const max = Math.max(...vals);
+                        const anyFlag = typeEntries.some(v => getVitalFlag(vtype, v.value));
+                        const peakEntry = typeEntries.reduce((a, b) => Number(a.value) > Number(b.value) ? a : b);
+                        const lowEntry = typeEntries.reduce((a, b) => Number(a.value) < Number(b.value) ? a : b);
+                        return (
+                          <div key={vtype} className="flex items-center gap-2 px-3.5 py-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-baseline gap-2 flex-wrap">
+                                {anyFlag && <AlertTriangle size={12} color={C.amber} className="flex-shrink-0" aria-hidden="true" />}
+                                <span className="text-[13px] text-salve-textMid font-montserrat">{t?.label}</span>
+                                <span className="text-[14px] font-semibold font-montserrat" style={{ color: C.sage }}>
+                                  {avg}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit} avg</span>
+                                </span>
+                              </div>
+                              <div className="flex gap-3 mt-0.5 text-[10px] text-salve-textFaint font-montserrat">
+                                <span>↓ {min} at {lowEntry.time}</span>
+                                <span>↑ {max} at {peakEntry.time}</span>
+                                <span>{typeEntries.length} readings</span>
+                              </div>
+                            </div>
+                            {SrcIcon && <SrcIcon size={11} style={{ color: SOURCE_COLOR[src] }} className="flex-shrink-0" aria-hidden="true" />}
                           </div>
-                          {SrcIcon && <SrcIcon size={11} style={{ color: SOURCE_COLOR[src] }} className="flex-shrink-0" aria-hidden="true" />}
-                          <button
-                            onClick={() => del.ask(v.id, t?.label || 'entry')}
-                            aria-label={`Delete ${t?.label || 'entry'}`}
-                            className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-1 flex flex-shrink-0 transition-colors"
-                          >
-                            <Trash2 size={13} />
-                          </button>
-                        </div>
-                        <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
-                      </div>
-                    );
-                  })}
+                        );
+                      }
+
+                      // Individual rows for manual entries or small groups
+                      return typeEntries.map(v => {
+                        const flag = getVitalFlag(v.type, v.value, v.value2);
+                        const fs = flagStyle(flag);
+                        const displayVal = v.type === 'bp' ? `${v.value}/${v.value2}` : v.value;
+                        return (
+                          <div key={v.id} className="relative">
+                            {flag && (
+                              <div
+                                className="absolute left-0 top-0 bottom-0 w-[3px]"
+                                style={{ backgroundColor: fs.color }}
+                                aria-hidden="true"
+                              />
+                            )}
+                            <div className="flex items-center gap-2 px-3.5 py-2">
+                              <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
+                                {flag && <AlertTriangle size={12} color={fs.color} className="flex-shrink-0" aria-hidden="true" />}
+                                <span className="text-[13px] text-salve-textMid font-montserrat">{t?.label}</span>
+                                {v.time && <span className="text-[10px] text-salve-textFaint font-montserrat">{v.time}</span>}
+                                <span className="text-[14px] font-semibold font-montserrat" style={{ color: flag ? fs.color : C.sage }}>
+                                  {displayVal}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
+                                </span>
+                                {flag && <span className="text-[10px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
+                                {v.notes && <span className="text-[11px] text-salve-textFaint italic">— {v.notes}</span>}
+                              </div>
+                              {SrcIcon && <SrcIcon size={11} style={{ color: SOURCE_COLOR[src] }} className="flex-shrink-0" aria-hidden="true" />}
+                              <button
+                                onClick={() => del.ask(v.id, t?.label || 'entry')}
+                                aria-label={`Delete ${t?.label || 'entry'}`}
+                                className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-1 flex flex-shrink-0 transition-colors"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                            <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('vitals', id))} onCancel={del.cancel} itemId={v.id} />
+                          </div>
+                        );
+                      });
+                    });
+                  })()}
                 </div>
               </Card>
             );

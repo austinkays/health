@@ -3,37 +3,31 @@ import { themes, DEFAULT_THEME, THEME_STORAGE_KEY, hexToRgbTriplet } from '../co
 
 const ThemeContext = createContext();
 
-function applyThemeVariables(themeId) {
+function applyThemeVariables(themeId, animate = false) {
   const theme = themes[themeId] || themes[DEFAULT_THEME];
-  // Batch all DOM mutations into a single rAF to avoid multiple reflows
-  requestAnimationFrame(() => {
+  function apply() {
     const root = document.documentElement;
-
-    // Set color CSS variables as RGB triplets (for Tailwind <alpha-value>)
     for (const [key, hex] of Object.entries(theme.colors)) {
       root.style.setProperty(`--salve-${key}`, hexToRgbTriplet(hex));
     }
-
-    // Set ambiance RGB values per time period (comma-separated for rgba())
     for (const [period, rgb] of Object.entries(theme.ambiance)) {
       root.style.setProperty(`--ambiance-${period}`, rgb);
     }
-
-    // Set per-theme gradient color stops (used by .text-gradient-magic)
     if (theme.gradient) {
       theme.gradient.forEach((colorKey, i) => {
         const hex = theme.colors[colorKey];
         if (hex) root.style.setProperty(`--salve-gradient-${i + 1}`, hex);
       });
     }
-
-    // Set theme-specific class on <html> for per-theme CSS effects
-    // Remove any existing theme-* class first
     for (const cls of Array.from(root.classList)) {
       if (cls.startsWith('theme-')) root.classList.remove(cls);
     }
     root.classList.add(`theme-${theme.id}`);
-  });
+  }
+  // Only defer via rAF when animating a theme switch — first render applies synchronously
+  // (the inline script in index.html already set the vars; sync call just keeps React in sync)
+  if (animate) requestAnimationFrame(apply);
+  else apply();
 }
 
 function readCommitted() {
@@ -47,30 +41,58 @@ export function ThemeProvider({ children }) {
   const [themeId, setThemeIdInternal] = useState(initial);
 
   const isFirstRender = useRef(true);
+  const rafRef = useRef(null);
+  const cleanupTimerRef = useRef(null);
 
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      applyThemeVariables(themeId);
+      // inline script in index.html already set all vars — sync call keeps
+      // React's DOM state in sync without adding an animation frame delay
+      applyThemeVariables(themeId, false);
       return;
     }
 
-    // Fade out → swap variables → fade in
-    const root = document.documentElement;
-    root.classList.remove('theme-transitioned');
-    root.classList.add('theme-transitioning');
+    // Cancel any in-flight transition (handles rapid theme changes)
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    clearTimeout(cleanupTimerRef.current);
+    // Remove any leftover overlay from a previous rapid switch
+    document.getElementById('salve-theme-overlay')?.remove();
 
-    const applyTimer = setTimeout(() => {
-      applyThemeVariables(themeId);
-      root.classList.remove('theme-transitioning');
-      root.classList.add('theme-transitioned');
-    }, 500);
+    // Capture the current background before applying new vars
+    const oldBgRgb = getComputedStyle(document.documentElement)
+      .getPropertyValue('--salve-bg').trim();
+    const oldBg = oldBgRgb ? `rgb(${oldBgRgb})` : 'transparent';
 
-    const cleanupTimer = setTimeout(() => {
-      root.classList.remove('theme-transitioned');
-    }, 1100);
+    // Apply new theme vars immediately — content updates to new colors beneath the overlay
+    applyThemeVariables(themeId, false);
 
-    return () => { clearTimeout(applyTimer); clearTimeout(cleanupTimer); };
+    // Create a fixed overlay covering the viewport with the OLD background colour.
+    // Only this one div needs to animate (GPU-composited opacity) — the rest of the
+    // DOM is already in its final state underneath.
+    const overlay = document.createElement('div');
+    overlay.id = 'salve-theme-overlay';
+    overlay.style.cssText =
+      'position:fixed;inset:0;z-index:99999;pointer-events:none;' +
+      'will-change:opacity;opacity:1;background:' + oldBg + ';transition:none;';
+    document.body.appendChild(overlay);
+    // Commit opacity:1 before scheduling the fade so the browser doesn't batch it
+    // eslint-disable-next-line no-unused-expressions
+    void overlay.offsetHeight;
+
+    // Fade overlay out on the next frame, revealing the already-updated theme
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      overlay.style.transition = 'opacity 0.5s ease-in';
+      overlay.style.opacity = '0';
+      cleanupTimerRef.current = setTimeout(() => overlay.remove(), 510);
+    });
+
+    return () => {
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+      clearTimeout(cleanupTimerRef.current);
+      document.getElementById('salve-theme-overlay')?.remove();
+    };
   }, [themeId]);
 
   // setTheme only previews (applies to DOM). Use saveTheme to persist.

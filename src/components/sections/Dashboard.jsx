@@ -26,7 +26,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
-import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
+import { AreaChart, Area, ComposedChart, BarChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import { useIsDesktop } from '../layout/SplitView';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
@@ -87,6 +87,10 @@ const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
 const SEEN_RESOURCES_KEY = 'salve:seen-resources';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
 
+// dismissBehavior:
+//   'auto'      — hidden by data check (no dismiss needed); snoozes 7d if dismissed before data exists
+//   'snooze'    — first X snoozes for snoozeDays, second X is permanent
+//   'permanent' — one X and it's gone for good (optional integrations user may not want)
 const STARTER_TIPS = [
   {
     id: 'add-meds',
@@ -96,6 +100,8 @@ const STARTER_TIPS = [
     body: 'Start by adding your current meds to get drug interaction checks, refill tracking, and AI-powered insights.',
     action: 'meds',
     actionLabel: 'Add medications',
+    dismissBehavior: 'auto',
+    snoozeDays: 7,
   },
   {
     id: 'chat-sage',
@@ -105,6 +111,8 @@ const STARTER_TIPS = [
     body: 'Tap the leaf icon to chat with Sage. Ask health questions, add records by voice, or get personalized insights.',
     action: 'ai',
     actionLabel: 'Open Sage',
+    dismissBehavior: 'snooze',
+    snoozeDays: 3,
   },
   {
     id: 'connect-oura',
@@ -114,6 +122,7 @@ const STARTER_TIPS = [
     body: 'Link your Oura Ring to automatically sync sleep, heart rate, temperature, and readiness data.',
     action: 'settings',
     actionLabel: 'Connect in Settings',
+    dismissBehavior: 'permanent',
   },
   {
     id: 'import-data',
@@ -123,6 +132,8 @@ const STARTER_TIPS = [
     body: 'Bring in data from Apple Health exports, Flo period tracker, or a previous Salve backup file.',
     action: 'settings',
     actionLabel: 'Import in Settings',
+    dismissBehavior: 'snooze',
+    snoozeDays: 7,
   },
   {
     id: 'claude-sync',
@@ -132,6 +143,7 @@ const STARTER_TIPS = [
     body: 'Use the Salve Sync artifact in Claude.ai to push health data directly into your account. Grab it from Settings → Claude Sync.',
     action: 'settings',
     actionLabel: 'Get artifact',
+    dismissBehavior: 'permanent',
   },
   {
     id: 'add-providers',
@@ -141,21 +153,20 @@ const STARTER_TIPS = [
     body: 'Add doctors and providers to cross-reference medications, auto-fill appointments, and look up NPI registry info.',
     action: 'providers',
     actionLabel: 'Add providers',
+    dismissBehavior: 'auto',
+    snoozeDays: 7,
   },
-  {
-    id: 'feedback',
-    icon: Mail,
-    color: 'amber',
-    title: 'Share feedback or ideas',
-    body: 'Salve is built with love and your input helps shape it. Let us know what features you\'d like to see.',
-    action: 'feedback',
-    actionLabel: 'Send feedback',
-  },
+  // feedback is not a card — it renders as a persistent footer line in the section
 ];
 
 function getDismissedTips() {
   try {
-    return JSON.parse(localStorage.getItem(DISMISSED_TIPS_KEY) || '[]');
+    const raw = JSON.parse(localStorage.getItem(DISMISSED_TIPS_KEY) || '[]');
+    // Migrate from old format (array of strings → array of record objects)
+    if (raw.length > 0 && typeof raw[0] === 'string') {
+      return raw.map(id => ({ id, permanent: true }));
+    }
+    return raw;
   } catch { return []; }
 }
 
@@ -224,10 +235,30 @@ const HUB_TILES = [
 
 const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
-export default function Dashboard({ data, interactions, onNav }) {
+export default function Dashboard({ data, interactions, onNav, onSage }) {
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+
+  /* ── Desktop "made with love" scroll-reveal ── */
+  const [showTagline, setShowTagline] = useState(false);
+  useEffect(() => {
+    if (!isDesktop) return;
+    let hasScrolled = false;
+    let ticking = false;
+    const check = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      if (scrollY > 80) hasScrolled = true;
+      const nearBottom = window.innerHeight + scrollY >= document.body.scrollHeight - 40;
+      setShowTagline(hasScrolled && nearBottom);
+      ticking = false;
+    };
+    const onScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(check); } };
+    check();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); window.removeEventListener('resize', onScroll); };
+  }, [isDesktop]);
   const wellness = useWellnessMessage();
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
@@ -360,7 +391,7 @@ export default function Dashboard({ data, interactions, onNav }) {
   const vitalsSnapshot = useMemo(() => {
     const today = Date.now();
     const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
-    const sparkCutoff = new Date(today - 14 * 86400000).toISOString().slice(0, 10);
+    const sparkCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
     const vitals = data.vitals || [];
     if (!vitals.length) return null;
     const recent = vitals.filter(v => v.date >= recentCutoff);
@@ -440,12 +471,12 @@ export default function Dashboard({ data, interactions, onNav }) {
   }, [data.activities]);
 
   /* ── Health Trend Cards ─────────────────── */
-  // Sleep: 14-night bar chart
+  // Sleep: 7-night bar chart
   const sleepTrend = useMemo(() => {
     const sleepVitals = (data.vitals || []).filter(v => v.type === 'sleep');
     if (sleepVitals.length < 4) return null;
     const days = [];
-    for (let i = 13; i >= 0; i--) {
+    for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
       const dateStr = d.toISOString().slice(0, 10);
       const recs = sleepVitals.filter(v => v.date === dateStr);
@@ -459,11 +490,11 @@ export default function Dashboard({ data, interactions, onNav }) {
     return { days, avg, last };
   }, [data.vitals]);
 
-  // Heart Rate: 14-day daily avg area chart
+  // Heart Rate: 7-day daily min/avg/max band chart
   const hrTrend = useMemo(() => {
     const hrVitals = (data.vitals || []).filter(v => v.type === 'hr');
     if (hrVitals.length < 4) return null;
-    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     const recent = hrVitals.filter(v => v.date >= cutoff);
     if (recent.length < 4) return null;
     const byDate = new Map();
@@ -473,19 +504,24 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
     const days = [...byDate.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length), label: new Date(date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2) }));
+      .map(([date, vals]) => {
+        const min = Math.round(Math.min(...vals));
+        const max = Math.round(Math.max(...vals));
+        const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
+        return { date, min, band: max - min, avg, label: new Date(date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2) };
+      });
     if (days.length < 4) return null;
-    const avg = Math.round(days.reduce((s, d) => s + d.value, 0) / days.length);
-    const min = Math.min(...days.map(d => d.value));
-    const max = Math.max(...days.map(d => d.value));
+    const avg = Math.round(days.reduce((s, d) => s + d.avg, 0) / days.length);
+    const min = Math.min(...days.map(d => d.min));
+    const max = Math.max(...days.map(d => d.min + d.band));
     return { days, avg, min, max };
   }, [data.vitals]);
 
-  // Blood Oxygen: 14-day daily avg
+  // Blood Oxygen: 7-day daily min/avg/max band chart
   const spo2Trend = useMemo(() => {
     const spo2Vitals = (data.vitals || []).filter(v => v.type === 'spo2');
     if (spo2Vitals.length < 4) return null;
-    const cutoff = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10);
+    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
     const recent = spo2Vitals.filter(v => v.date >= cutoff);
     if (recent.length < 4) return null;
     const byDate = new Map();
@@ -495,11 +531,17 @@ export default function Dashboard({ data, interactions, onNav }) {
     }
     const days = [...byDate.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, vals]) => ({ date, value: Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10 }));
+      .map(([date, vals]) => {
+        const min = Math.round(Math.min(...vals) * 10) / 10;
+        const max = Math.round(Math.max(...vals) * 10) / 10;
+        const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10;
+        return { date, min, band: Math.round((max - min) * 10) / 10, avg };
+      });
     if (days.length < 4) return null;
-    const avg = Math.round(days.reduce((s, d) => s + d.value, 0) / days.length * 10) / 10;
-    const lowNights = days.filter(d => d.value < 95).length;
-    return { days, avg, lowNights };
+    const avg = Math.round(days.reduce((s, d) => s + d.avg, 0) / days.length * 10) / 10;
+    const lowNights = days.filter(d => d.min < 95).length;
+    const minVal = Math.min(...days.map(d => d.min));
+    return { days, avg, lowNights, minVal };
   }, [data.vitals]);
 
   // Lab highlights — recent 6 labs sorted by date
@@ -653,6 +695,48 @@ export default function Dashboard({ data, interactions, onNav }) {
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
 
+  /* Today chips — compact at-a-glance strip above search */
+  const todayChips = useMemo(() => {
+    const chips = [];
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const upcomingAppts = [...data.appts]
+      .filter(a => new Date(a.date + 'T00:00:00') >= now)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (upcomingAppts.length > 0) {
+      const next = upcomingAppts[0];
+      const days = Math.round((new Date(next.date + 'T00:00:00') - now) / 86400000);
+      chips.push({
+        id: 'appt', icon: Calendar, color: C.sage,
+        label: next.provider || 'Appointment',
+        sub: days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `in ${days}d`,
+        nav: 'appts',
+      });
+    }
+    const refillsDue = activeMeds.filter(m => {
+      if (!m.refill_date) return false;
+      const d = Math.round((new Date(m.refill_date + 'T00:00:00') - now) / 86400000);
+      return d >= 0 && d <= 7;
+    });
+    if (refillsDue.length > 0) {
+      chips.push({
+        id: 'refills', icon: Pill, color: C.amber,
+        label: `${refillsDue.length} refill${refillsDue.length > 1 ? 's' : ''}`,
+        sub: 'this week', nav: 'meds',
+      });
+    }
+    const overdueTodos = (data.todos || []).filter(t =>
+      !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now
+    );
+    if (overdueTodos.length > 0) {
+      chips.push({
+        id: 'todos', icon: CheckSquare, color: C.rose,
+        label: `${overdueTodos.length} overdue`,
+        sub: `to-do${overdueTodos.length > 1 ? 's' : ''}`, nav: 'todos',
+      });
+    }
+    return chips;
+  }, [data.appts, activeMeds, data.todos]);
+
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
@@ -701,22 +785,53 @@ export default function Dashboard({ data, interactions, onNav }) {
   const [dismissedTips, setDismissedTips] = useState(() => getDismissedTips());
 
   const visibleTips = useMemo(() => {
-    const dismissed = new Set(dismissedTips);
-    return STARTER_TIPS.filter(t => !dismissed.has(t.id));
-  }, [dismissedTips]);
+    const now = Date.now();
+    const dismissMap = new Map(dismissedTips.map(d => [d.id, d]));
+    return STARTER_TIPS.filter(tip => {
+      // Data-proven complete: auto-hide regardless of dismissal
+      if (tip.id === 'add-meds' && activeMeds.length > 0) return false;
+      if (tip.id === 'add-providers' && data.providers.length > 0) return false;
+      if (tip.id === 'connect-oura' && hasOura) return false;
+      const record = dismissMap.get(tip.id);
+      if (!record) return true;
+      if (record.permanent) return false;
+      if (record.snoozedUntil && now < record.snoozedUntil) return false;
+      return true; // Snooze expired — resurface
+    });
+  }, [dismissedTips, activeMeds, data.providers, hasOura]);
 
   const dismissTip = useCallback((tipId) => {
     setDismissedTips(prev => {
-      const next = [...prev, tipId];
+      const tip = STARTER_TIPS.find(t => t.id === tipId);
+      const existing = prev.find(d => d.id === tipId);
+      const behavior = tip?.dismissBehavior || 'permanent';
+      let record;
+      if (behavior === 'permanent' || behavior === 'auto') {
+        // 'auto' tips: if data isn't there yet, snooze; otherwise they'd already be hidden by data check
+        if (behavior === 'auto') {
+          record = existing?.snoozedUntil
+            ? { id: tipId, permanent: true }
+            : { id: tipId, snoozedUntil: Date.now() + (tip.snoozeDays || 7) * 86400000 };
+        } else {
+          record = { id: tipId, permanent: true };
+        }
+      } else {
+        // 'snooze': first dismiss snoozes, second is permanent
+        record = existing?.snoozedUntil
+          ? { id: tipId, permanent: true }
+          : { id: tipId, snoozedUntil: Date.now() + (tip.snoozeDays || 7) * 86400000 };
+      }
+      const next = prev.filter(d => d.id !== tipId);
+      if (record) next.push(record);
       localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
 
   const dismissAllTips = useCallback(() => {
-    const allIds = STARTER_TIPS.map(t => t.id);
-    localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(allIds));
-    setDismissedTips(allIds);
+    const records = STARTER_TIPS.map(t => ({ id: t.id, permanent: true }));
+    localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(records));
+    setDismissedTips(records);
   }, []);
 
 
@@ -739,8 +854,31 @@ export default function Dashboard({ data, interactions, onNav }) {
         </div>
       </section>
 
-      {/* ── Centerpiece Search ─────────────────── */}
-      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7">
+      {/* ── Today at a Glance chips ────────────── */}
+      {todayChips.length > 0 && (
+        <section aria-label="Today at a glance" className="dash-stagger dash-stagger-2 mb-4 -mt-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            {todayChips.map(chip => {
+              const ChipIcon = chip.icon;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => onNav(chip.nav)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
+                  style={{ background: `${chip.color}12`, outline: `1px solid ${chip.color}28` }}
+                >
+                  <ChipIcon size={11} style={{ color: chip.color }} />
+                  <span className="text-[11.5px] font-medium" style={{ color: chip.color }}>{chip.label}</span>
+                  <span className="text-[10.5px] ml-0.5" style={{ color: chip.color, opacity: 0.65 }}>{chip.sub}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Centerpiece Search — hidden on desktop (SideNav ⌘K handles it) ── */}
+      <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7 md:hidden">
         <div className={`search-hero ${searchFocused ? 'search-hero-focused' : ''}`}>
           <div className="search-hero-inner">
             <div className="relative flex items-center">
@@ -845,6 +983,42 @@ export default function Dashboard({ data, interactions, onNav }) {
           </div>
         </div>
       </section>
+
+      {/* ── Quick Navigation Hub ───────────────── */}
+      <section aria-label="Quick navigation" className="dash-stagger dash-stagger-3 mb-5 md:mb-7">
+        <div className={`grid gap-2 md:gap-3 ${hubTiles.length <= 5 ? 'grid-cols-' + hubTiles.length : 'grid-cols-3 md:grid-cols-6'}`}
+          style={{ gridTemplateColumns: `repeat(${Math.min(hubTiles.length, 6)}, 1fr)` }}>
+          {hubTiles.map((h) => (
+            <button
+              key={h.id}
+              onClick={() => onNav(h.navId)}
+              className="bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
+            >
+              <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
+              <span className="text-[10.5px] md:text-[12px] text-salve-textMid font-montserrat text-center leading-tight">{h.label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Chat with Sage ──────────────────────── */}
+      {onSage && (
+        <section className="dash-stagger dash-stagger-3 mb-5 md:mb-6">
+          <button
+            onClick={onSage}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-border rounded-xl cursor-pointer hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all group text-left"
+          >
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.sage}18` }}>
+              <Leaf size={15} color={C.sage} strokeWidth={1.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] md:text-sm font-medium text-salve-text">Chat with Sage</div>
+              <div className="text-[11px] md:text-xs text-salve-textFaint truncate">Ask about your health, medications, or records</div>
+            </div>
+            <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-sage transition-colors flex-shrink-0" />
+          </button>
+        </section>
+      )}
 
       {/* ── Two-column grid zone (desktop) — collapses to single col when left is empty ── */}
       <div className={hasLeftContent ? 'md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start' : ''}>
@@ -1074,6 +1248,8 @@ export default function Dashboard({ data, interactions, onNav }) {
             </section>
           )}
 
+          {/* Vitals + Activity — side-by-side at lg+ */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-4">
           {/* Vitals Snapshot */}
           {vitalsSnapshot && vitalsSnapshot.featured && (() => {
             const f = vitalsSnapshot.featured;
@@ -1112,7 +1288,7 @@ export default function Dashboard({ data, interactions, onNav }) {
                       <div className="text-[12px] md:text-[13px] text-salve-textMid font-montserrat">{fUnit}</div>
                     </div>
                     {fHasChart && (
-                      <div className="w-full h-[56px] -mx-1">
+                      <div className="w-full h-[64px] -mx-1">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={f.series} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>
                             <defs>
@@ -1121,7 +1297,15 @@ export default function Dashboard({ data, interactions, onNav }) {
                                 <stop offset="100%" stopColor={C.lav} stopOpacity={0} />
                               </linearGradient>
                             </defs>
-                            <Area type="monotone" dataKey="value" stroke={C.textMid} strokeWidth={1.5} strokeOpacity={0.55} fill="url(#vitals-hero-grad)" dot={false} isAnimationActive={false} />
+                            <Tooltip
+                              content={({ active, payload }) => active && payload?.[0] ? (
+                                <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[11px] font-montserrat text-salve-text shadow-sm">
+                                  {payload[0].value}{fUnit}
+                                </div>
+                              ) : null}
+                              cursor={{ stroke: C.lav, strokeWidth: 1, strokeOpacity: 0.4 }}
+                            />
+                            <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} strokeOpacity={0.7} fill="url(#vitals-hero-grad)" dot={{ r: 3, fill: C.lav, strokeWidth: 0, fillOpacity: 0.8 }} activeDot={{ r: 4, fill: C.lav }} isAnimationActive={false} />
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
@@ -1231,6 +1415,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               </Card>
             </section>
           )}
+          </div>{/* end vitals+activity grid */}
         </div>
       </div>
 
@@ -1249,29 +1434,43 @@ export default function Dashboard({ data, interactions, onNav }) {
                 <div className="flex items-center justify-between mb-1">
                   <div>
                     <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Sleep</span>
-                    <span className="text-[9px] text-salve-textFaint/60 font-montserrat ml-1.5">14 nights</span>
+                    <span className="text-[9px] text-salve-textFaint/60 font-montserrat ml-1.5">7 nights</span>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-[22px] font-medium text-salve-text font-montserrat leading-none">{sleepTrend.avg}</span>
                     <span className="text-[11px] text-salve-textFaint font-montserrat">hrs avg</span>
                   </div>
                 </div>
-                <div className="flex items-end gap-[3px] h-12 mt-2">
-                  {sleepTrend.days.map((d, i) => {
+                <div className="relative flex items-end gap-[3px] h-12 mt-2">
+                  {(() => {
                     const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
-                    const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
-                    const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
-                    const isLast = i === sleepTrend.days.length - 1;
-                    return (
-                      <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
-                        <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
-                        {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
+                    // Goal line at 7h — positioned proportionally within the 36px bar area (10px label offset)
+                    const goalBottom = Math.round((7 / maxVal) * 36) + 10;
+                    return (<>
+                      <div
+                        className="absolute left-0 right-0 pointer-events-none z-10 flex items-center"
+                        style={{ bottom: `${goalBottom}px` }}
+                        aria-hidden="true"
+                      >
+                        <div className="flex-1 border-t border-dashed" style={{ borderColor: `${C.sage}70` }} />
+                        <span className="text-[7px] font-montserrat pl-1 leading-none" style={{ color: `${C.sage}90` }}>7h</span>
                       </div>
-                    );
-                  })}
+                      {sleepTrend.days.map((d, i) => {
+                        const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
+                        const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
+                        const isLast = i === sleepTrend.days.length - 1;
+                        return (
+                          <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
+                            <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
+                            {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
+                          </div>
+                        );
+                      })}
+                    </>);
+                  })()}
                 </div>
                 <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h</span></div>
+                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h goal</span></div>
                   <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
                   <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
                   {sleepTrend.last && (
@@ -1283,7 +1482,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             )}
 
-            {/* Heart Rate 14-day area */}
+            {/* Heart Rate 7-day band chart */}
             {hrTrend && (
               <button
                 onClick={() => onNav('vitals')}
@@ -1291,7 +1490,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Heart Rate</div>
-                  <div className="text-[9px] text-salve-textFaint font-montserrat">14 days</div>
+                  <div className="text-[9px] text-salve-textFaint font-montserrat">7 days</div>
                 </div>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
@@ -1302,24 +1501,34 @@ export default function Dashboard({ data, interactions, onNav }) {
                 </div>
                 <div className="h-[80px] -mx-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={hrTrend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
+                    <ComposedChart data={hrTrend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
                       <defs>
-                        <linearGradient id="hr-dash-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.25} />
-                          <stop offset="100%" stopColor={C.rose} stopOpacity={0.03} />
+                        <linearGradient id="hr-band-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={C.rose} stopOpacity={0.06} />
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                       <YAxis domain={[Math.max(40, hrTrend.min - 8), hrTrend.max + 8]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
                       <Tooltip
-                        contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}
-                        formatter={(v) => [`${v} bpm`, '']}
-                        labelFormatter={(l) => l}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0]?.payload;
+                          return (
+                            <div style={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}>
+                              <p style={{ margin: 0, color: C.text }}>{d.label}</p>
+                              <p style={{ margin: 0, color: C.rose }}>{d.avg} bpm avg</p>
+                              {d.band > 0 && <p style={{ margin: '2px 0 0', color: C.textFaint, fontSize: 10 }}>{d.min}–{d.min + d.band} range</p>}
+                            </div>
+                          );
+                        }}
                       />
                       <ReferenceLine y={60} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
                       <ReferenceLine y={100} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
-                      <Area type="monotone" dataKey="value" stroke={C.rose} strokeWidth={2} fill="url(#hr-dash-grad)" dot={{ r: 2, fill: C.rose, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                    </AreaChart>
+                      <Area type="monotone" dataKey="min" stackId="hr" fill="transparent" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Area type="monotone" dataKey="band" stackId="hr" fill="url(#hr-band-grad)" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Line type="monotone" dataKey="avg" stroke={C.rose} strokeWidth={1.5} dot={{ r: 2, fill: C.rose, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
@@ -1329,7 +1538,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               </button>
             )}
 
-            {/* Blood Oxygen 14-day */}
+            {/* Blood Oxygen 7-day band chart */}
             {spo2Trend && (
               <button
                 onClick={() => onNav('vitals')}
@@ -1337,7 +1546,7 @@ export default function Dashboard({ data, interactions, onNav }) {
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Blood Oxygen</div>
-                  <div className="text-[9px] text-salve-textFaint font-montserrat">14 days</div>
+                  <div className="text-[9px] text-salve-textFaint font-montserrat">7 days</div>
                 </div>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
@@ -1348,23 +1557,33 @@ export default function Dashboard({ data, interactions, onNav }) {
                 </div>
                 <div className="h-[80px] -mx-1">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={spo2Trend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
+                    <ComposedChart data={spo2Trend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
                       <defs>
-                        <linearGradient id="spo2-dash-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.25} />
-                          <stop offset="100%" stopColor={C.lav} stopOpacity={0.03} />
+                        <linearGradient id="spo2-band-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={C.lav} stopOpacity={0.06} />
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="date" tickFormatter={(d) => new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'numeric', day: 'numeric' })} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                      <YAxis domain={[Math.min(90, spo2Trend.avg - 3), 100]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
+                      <YAxis domain={[Math.min(90, spo2Trend.minVal - 2), 100]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
                       <Tooltip
-                        contentStyle={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}
-                        formatter={(v) => [`${v}%`, '']}
-                        labelFormatter={(d) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0]?.payload;
+                          return (
+                            <div style={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}>
+                              <p style={{ margin: 0, color: C.text }}>{d.date ? new Date(d.date + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}</p>
+                              <p style={{ margin: 0, color: C.lav }}>{d.avg}% avg</p>
+                              {d.band > 0 && <p style={{ margin: '2px 0 0', color: C.textFaint, fontSize: 10 }}>{d.min}–{Math.round((d.min + d.band) * 10) / 10}% range</p>}
+                            </div>
+                          );
+                        }}
                       />
                       <ReferenceLine y={95} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.5} label={{ value: '95%', position: 'right', fontSize: 8, fill: C.amber, fontFamily: 'Montserrat' }} />
-                      <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} fill="url(#spo2-dash-grad)" dot={{ r: 2, fill: C.lav, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                    </AreaChart>
+                      <Area type="monotone" dataKey="min" stackId="spo2" fill="transparent" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Area type="monotone" dataKey="band" stackId="spo2" fill="url(#spo2-band-grad)" stroke="none" isAnimationActive={false} legendType="none" />
+                      <Line type="monotone" dataKey="avg" stroke={C.lav} strokeWidth={1.5} dot={{ r: 2, fill: C.lav, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
+                    </ComposedChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="flex items-center justify-between mt-0.5">
@@ -1415,9 +1634,9 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
-      {/* ── Getting Started tips (magazine grid) ─── */}
+      {/* ── Getting Started tips (onboarding, dismissible) ── */}
       {visibleTips.length > 0 && (
-        <section aria-label="Getting started" className="dash-stagger dash-stagger-4 mb-4 mt-4">
+        <section aria-label="Getting started" className="dash-stagger dash-stagger-5 mb-4 mt-4">
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <Lightbulb size={13} className="text-salve-amber" />
@@ -1479,6 +1698,14 @@ export default function Dashboard({ data, interactions, onNav }) {
               );
             })}
           </div>
+          {/* Persistent feedback footer — always present at bottom of onboarding section */}
+          <button
+            onClick={() => onNav('feedback')}
+            className="w-full flex items-center justify-center gap-1.5 mt-3 pt-2.5 border-t border-salve-border/40 bg-transparent border-x-0 border-b-0 cursor-pointer font-montserrat group"
+          >
+            <Mail size={11} className="text-salve-textFaint/50 group-hover:text-salve-amber transition-colors" />
+            <span className="text-[11px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
+          </button>
         </section>
       )}
 
@@ -1510,29 +1737,11 @@ export default function Dashboard({ data, interactions, onNav }) {
         </section>
       )}
 
-      {/* ── Quick Access (hub tiles) ───────────── */}
-      <section aria-label="Quick access" className="dash-stagger dash-stagger-5">
-        {starredTiles.length > 0 && (
-          <p className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-1.5 px-1">Browse</p>
-        )}
-        <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4 mb-4">
-          {hubTiles.map((h, i) => {
-            const remainder = hubTiles.length % 3;
-            const isLast = i === hubTiles.length - 1;
-            const span = isLast && remainder !== 0 ? 3 - remainder + 1 : 1;
-            return (
-              <button
-                key={h.id}
-                onClick={() => onNav(h.navId)}
-                className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
-              >
-                <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-                <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{h.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
+      {/* Desktop "made with love" tagline — mirrors mobile BottomNav behaviour */}
+      <p className={`hidden md:block text-center text-salve-textFaint text-[10px] tracking-wider py-6 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+        made with love for my best friend &amp; soulmate
+      </p>
+
     </div>
   );
 }

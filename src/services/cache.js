@@ -3,10 +3,11 @@
 // Supabase is the source of truth. This is a fallback.
 // Health data is AES-GCM encrypted using a key derived from the auth token.
 
-import { encrypt, decrypt, clearKeyCache } from './crypto';
+import { encrypt, decrypt, clearKeyCache, prewarmKey } from './crypto';
 
 const CACHE_KEY = 'hc:cache';
 const PENDING_KEY = 'hc:pending';
+const SETTINGS_KEY = 'hc:settings'; // unencrypted sidecar for non-PHI settings (instant read)
 
 let _token = null;
 
@@ -20,6 +21,29 @@ export const cache = {
   clearToken() {
     _token = null;
     clearKeyCache();
+  },
+
+  // Pre-derive the AES key in the background so cache.read() is instant.
+  // Call this as soon as a session token is available (e.g. in onAuthStateChange).
+  prewarm() {
+    if (!_token) return;
+    prewarmKey(_token); // fire-and-forget — result cached in crypto.js
+  },
+
+  // Read non-PHI settings synchronously (no decryption needed).
+  // Written alongside the encrypted cache to give instant name/prefs on load.
+  readSettingsSync() {
+    try {
+      const raw = localStorage.getItem(SETTINGS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  },
+
+  // Write non-PHI settings to plain sidecar (called alongside cache.write).
+  writeSettingsSync(settings) {
+    try {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    } catch { /* ignore quota errors */ }
   },
 
   // Read cached data (fallback when offline)
@@ -38,6 +62,8 @@ export const cache = {
   async write(data) {
     try {
       if (!_token) return;
+      // Keep non-PHI settings sidecar in sync for instant synchronous reads
+      if (data?.settings) this.writeSettingsSync(data.settings);
       const encrypted = await encrypt(JSON.stringify(data), _token);
       try {
         localStorage.setItem(CACHE_KEY, encrypted);
@@ -97,6 +123,7 @@ export const cache = {
   clear() {
     localStorage.removeItem(CACHE_KEY);
     localStorage.removeItem(PENDING_KEY);
+    localStorage.removeItem(SETTINGS_KEY);
   },
 
   // Check if online

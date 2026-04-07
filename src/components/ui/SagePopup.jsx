@@ -105,7 +105,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:pl-[260px] bg-black/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

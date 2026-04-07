@@ -1,12 +1,12 @@
 import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { id: 'dash', label: 'Home', icon: Home },
-  { id: 'meds', label: 'Medications', icon: Pill },
-  { id: 'vitals', label: 'Vitals', icon: Heart },
-  { id: 'ai', label: 'Sage', icon: Leaf },
-  { id: 'journal', label: 'Journal', icon: BookOpen },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon },
+  { id: 'dash', label: 'Home', icon: Home, key: '1' },
+  { id: 'meds', label: 'Medications', icon: Pill, key: '2' },
+  { id: 'vitals', label: 'Vitals', icon: Heart, key: '3' },
+  { id: 'ai', label: 'Sage', icon: Leaf, key: '4' },
+  { id: 'journal', label: 'Journal', icon: BookOpen, key: '5' },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '6' },
 ];
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
@@ -26,15 +26,17 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
         )}
       </div>
 
-      {/* Search button */}
-      <button
-        onClick={onSearch}
-        className="mx-4 mb-2 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
-      >
-        <Search size={16} />
-        <span className="flex-1 text-left">Search</span>
-        <kbd className="text-[10px] text-salve-textFaint bg-salve-bg px-1.5 py-0.5 rounded border border-salve-border font-montserrat">{MOD_KEY}K</kbd>
-      </button>
+      {/* Search */}
+      <div className="mx-4 mb-2">
+        <button
+          onClick={onSearch}
+          className="w-full px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-lav transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
+        >
+          <Search size={16} />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="text-[10px] text-salve-textFaint bg-salve-bg px-1.5 py-0.5 rounded border border-salve-border font-montserrat">{MOD_KEY}K</kbd>
+        </button>
+      </div>
 
       {/* Nav items */}
       <div className="flex flex-col gap-0.5 px-3 mt-1">
@@ -53,9 +55,12 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
               }`}
             >
               <Icon size={18} strokeWidth={active ? 2 : 1.5} />
-              <span className={`text-[14px] ${active ? 'font-semibold' : 'font-normal'}`}>
+              <span className={`text-[14px] flex-1 ${active ? 'font-semibold' : 'font-normal'}`}>
                 {item.label}
               </span>
+              {!active && (
+                <kbd className="text-[10px] text-salve-textFaint/40 font-montserrat leading-none">{item.key}</kbd>
+              )}
             </button>
           );
         })}
@@ -63,15 +68,6 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
 
       {/* Spacer */}
       <div className="flex-1" />
-
-      {/* Quick Sage chat */}
-      <button
-        onClick={onSage}
-        className="mx-4 mb-2 px-3.5 py-2.5 flex items-center gap-2.5 rounded-lg text-salve-textMid hover:bg-salve-bg hover:text-salve-sage transition-colors cursor-pointer bg-transparent border border-salve-border text-sm"
-      >
-        <Leaf size={16} />
-        <span className="flex-1 text-left">Ask Sage</span>
-      </button>
 
       {/* Demo mode card */}
       {demoMode && (

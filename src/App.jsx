@@ -161,6 +161,7 @@ function AppContent() {
 
   // Global keyboard shortcuts (desktop)
   useEffect(() => {
+    const NAV_KEYS = { '1': 'dash', '2': 'meds', '3': 'vitals', '4': 'ai', '5': 'journal', '6': 'settings' };
     const handler = (e) => {
       // Cmd/Ctrl + K → open search
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -170,6 +171,14 @@ function AppContent() {
       // Escape → close Sage popup
       if (e.key === 'Escape' && sageOpen) {
         setSageOpen(false);
+      }
+      // 1–6 → jump to main nav sections (desktop only, no modifier, not in inputs)
+      if (!e.metaKey && !e.ctrlKey && !e.altKey && NAV_KEYS[e.key]) {
+        const tag = document.activeElement?.tagName;
+        if (tag !== 'INPUT' && tag !== 'TEXTAREA' && tag !== 'SELECT') {
+          e.preventDefault();
+          onNav(NAV_KEYS[e.key]);
+        }
       }
     };
     window.addEventListener('keydown', handler);
@@ -200,37 +209,35 @@ function AppContent() {
     if (checkout) {
       window.history.replaceState({}, '', window.location.pathname);
       if (checkout === 'success') {
-        // Reload data so the tier update from the webhook is reflected
         setTimeout(() => showToast('Welcome to Premium! Your plan has been upgraded. 🎉', { type: 'success' }), 800);
       }
     }
     if (window.__ouraCode) {
-      // Oura OAuth callback — code was stashed by supabase.js, navigate to settings
+      // Oura OAuth callback — navigate to settings; session arrives via INITIAL_SESSION below
       setTab('settings');
-      getSession().then(s => { setSession(s); if (s?.user?.id) setSentryUser(s.user.id); setAuthLoading(false); });
-    } else if (code) {
-      supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
-        if (!error && data.session) {
-          setSession(data.session);
-        }
+    }
+
+    if (code) {
+      // Exchange OAuth code for session; the resulting session will be picked up
+      // by the INITIAL_SESSION / SIGNED_IN event from onAuthStateChange below.
+      supabase.auth.exchangeCodeForSession(code).then(() => {
         window.history.replaceState({}, '', window.location.pathname);
-        setAuthLoading(false);
-      });
-    } else {
-      getSession().then(s => {
-        setSession(s);
-        if (s?.user?.id) setSentryUser(s.user.id);
-        setAuthLoading(false);
       });
     }
 
+    // Avoid calling getSession() here — it competes with onAuthStateChange for
+    // the gotrue storage lock and causes a 5-second stall in React Strict Mode.
+    // INITIAL_SESSION fires immediately and provides the same initial session.
     const subscription = onAuthChange((event, s) => {
-      // If the session was signed out or the token refresh failed, show expiry notice
       if (!s && (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
         setSessionExpired(true);
         clearSentryUser();
       } else if (s?.user?.id) {
         setSentryUser(s.user.id);
+        // Pre-derive the cache encryption key while React is re-rendering,
+        // so cache.read() in useHealthData finds the key already cached.
+        cache.setToken(s.access_token);
+        cache.prewarm();
       }
       setSession(s);
       setAuthLoading(false);
@@ -303,18 +310,10 @@ function AppContent() {
     );
   }
 
-  if (dataLoading) {
-    return (
-      <div className="min-h-screen bg-salve-bg flex items-center justify-center">
-        <LoadingSpinner text="Loading your health data..." />
-      </div>
-    );
-  }
-
   const renderSection = () => {
     const shared = { data, addItem: addItemT, addItemSilent: addItem, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
@@ -353,7 +352,7 @@ function AppContent() {
       case 'search':     return <Search data={data} onNav={onNav} />;
       case 'legal':      return <Legal onNav={onNav} />;
       case 'feedback':   return <Feedback {...shared} />;
-      default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} />;
+      default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
   };
 

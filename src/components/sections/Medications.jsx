@@ -558,6 +558,27 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   /* ── Selected med for desktop detail pane ── */
   const selectedMed = isDesktop ? fl.find(m => m.id === expandedId) : null;
 
+  /* ── Arrow key navigation on desktop ── */
+  useEffect(() => {
+    if (!isDesktop) return;
+    const handler = (e) => {
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      const ids = fl.map(m => m.id);
+      if (!ids.length) return;
+      const cur = ids.indexOf(expandedId);
+      const next = e.key === 'ArrowDown'
+        ? ids[cur === -1 || cur === ids.length - 1 ? 0 : cur + 1]
+        : ids[cur <= 0 ? ids.length - 1 : cur - 1];
+      setExpandedId(next);
+      document.getElementById(`record-${next}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isDesktop, fl, expandedId]);
+
   const listContent = (
     <div className="mt-2">
       {interactions.length > 0 && (
@@ -790,6 +811,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </Card>
       ) : null}
       emptyMessage="Select a medication to view details"
+      detailKey={expandedId}
     />
   );
 }

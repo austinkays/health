@@ -120,7 +120,7 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
    • Save/Revert bar anchored at the TOP of the section so it's always visible
    • Experimental themes in a collapsible panel (no jarring <details> shift)
 ──────────────────────────────────────────────────────────────────────────── */
-function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
+function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, userTier }) {
   const [showExperimental, setShowExperimental] = useState(false);
 
   const core = Object.values(allThemes).filter(t => !t.experimental)
@@ -130,14 +130,29 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
   const experimental = [...experimentalLight, ...experimentalDark];
   const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
 
+  const previewed = allThemes[themeId];
+  const isPremiumOnly = previewed?.experimental && userTier === 'free';
+
+  // Auto-save on click: premium/admin save immediately; free saves core immediately but
+  // only previews experimental (will revert on unmount).
   const handleSelect = (id) => {
-    const isExperimental = allThemes[id]?.experimental;
-    if (!isExperimental || canSaveExperimental) {
-      saveTheme(id); // auto-save immediately
+    const isExperimental = !!allThemes[id]?.experimental;
+    if (isExperimental && userTier === 'free') {
+      setTheme(id); // preview only — auto-reverts on unmount
     } else {
-      setTheme(id);  // preview only — auto-reverts when user leaves Settings
+      saveTheme(id); // persist immediately
     }
   };
+
+  // When a free user leaves Settings while previewing an experimental theme, revert.
+  const cleanupRef = useRef(null);
+  cleanupRef.current = { isPremiumOnly, revertTheme };
+  useEffect(() => {
+    return () => {
+      const { isPremiumOnly, revertTheme } = cleanupRef.current;
+      if (isPremiumOnly) revertTheme();
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isPreviewing = !canSaveExperimental && allThemes[themeId]?.experimental;
 
@@ -176,7 +191,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
             <span className="flex items-center gap-1.5 text-[11px] text-salve-textMid">
               <Sparkles size={11} className="text-salve-lav" aria-hidden="true" />
               Experimental themes
-              <span className="px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav text-[9px]">Preview free · Save with Premium</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav text-[9px]">Premium</span>
             </span>
             {showExperimental
               ? <ChevronUp size={14} className="text-salve-textFaint" aria-hidden="true" />
@@ -185,7 +200,6 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
           </button>
           {showExperimental && (
             <div className="mt-2 space-y-2">
-              {/* Light experimental themes */}
               {experimentalLight.length > 0 && (
                 <>
                   <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">☀ Light</p>
@@ -202,7 +216,6 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
                   </div>
                 </>
               )}
-              {/* Dark experimental themes */}
               {experimentalDark.length > 0 && (
                 <>
                   <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">◑ Dark</p>
@@ -218,6 +231,11 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, userTier }) {
                     ))}
                   </div>
                 </>
+              )}
+              {isPremiumOnly && (
+                <p className="text-[10px] text-salve-textFaint font-montserrat px-0.5 pt-1">
+                  ✦ Preview only · Upgrade to Premium to keep this theme
+                </p>
               )}
             </div>
           )}
@@ -266,19 +284,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     window.location.reload();
   };
   const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
-  const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
-
-  // Auto-revert experimental theme previews when free users navigate away from Settings.
-  // Use refs so the cleanup captures current values without needing them in dep array.
-  const revertRef = useRef(revertTheme);
-  revertRef.current = revertTheme;
-  const shouldRevertRef = useRef(false);
-  useEffect(() => {
-    shouldRevertRef.current = !canSaveExperimental && !!(allThemes[themeId]?.experimental);
-  }, [themeId, allThemes, canSaveExperimental]);
-  useEffect(() => {
-    return () => { if (shouldRevertRef.current) revertRef.current(); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-set AI provider based on tier — premium gets Claude, free gets Gemini
   useEffect(() => {
@@ -588,6 +593,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           themeId={themeId}
           setTheme={setTheme}
           saveTheme={saveTheme}
+          revertTheme={revertTheme}
           userTier={userTier}
         />
       </Card>
