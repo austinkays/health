@@ -298,7 +298,7 @@ export function getDailyUsage() {
   return { used, limit: DAILY_CAP, remaining: Math.max(0, DAILY_CAP - used) };
 }
 
-async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false, feature = 'chat') {
+async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWebSearch = false, feature = 'chat', promptOpts = {}) {
   if (_demoMode) return demoResponseFor(feature, messages);
 
   const token = await getAuthToken();
@@ -313,7 +313,15 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false,
   }
 
   const { endpoint, model } = getModel(feature);
-  const body = { messages: capMessages(messages), system, max_tokens: maxTokens, model };
+  const body = {
+    messages: capMessages(messages),
+    prompt_key: promptKey,
+    profile_text: profileText || '',
+    max_tokens: maxTokens,
+    model,
+  };
+  // Pass prompt options (date, extra, useToolsAddendum) for server-side assembly
+  if (Object.keys(promptOpts).length > 0) body.prompt_opts = promptOpts;
   if (useWebSearch) body.use_web_search = true;
 
   const controller = new AbortController();
@@ -368,7 +376,7 @@ async function callAPI(messages, system, maxTokens = 2000, useWebSearch = false,
 export async function fetchInsight(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Based on my health profile, give me today\'s insight.' }],
-    PROMPTS.insight + '\n\n' + profileText,
+    'insight', profileText,
     2000, false, 'insight'
   );
 }
@@ -376,7 +384,7 @@ export async function fetchInsight(profileText) {
 export async function fetchConnections(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my health profile for connections and patterns.' }],
-    PROMPTS.connections + '\n\n' + profileText,
+    'connections', profileText,
     2000, false, 'connections'
   );
 }
@@ -384,11 +392,12 @@ export async function fetchConnections(profileText) {
 export async function fetchNews(profileText) {
   const today = new Date().toISOString().split('T')[0];
   const isFree = getAIProvider() !== 'anthropic';
-  const countInstruction = isFree ? '\n\nIMPORTANT: Provide exactly 3 items. Be concise.' : '';
+  const extra = isFree ? 'IMPORTANT: Provide exactly 3 items. Be concise.' : undefined;
   return callAPI(
     [{ role: 'user', content: `Find the most recent health news relevant to my conditions. Today is ${today}. Only include news from the past 6 months.` }],
-    PROMPTS.news.replace('{DATE}', today) + countInstruction + '\n\n' + profileText,
-    isFree ? 2000 : 3000, true, 'news'
+    'news', profileText,
+    isFree ? 2000 : 3000, true, 'news',
+    { date: today, ...(extra && { extra }) }
   );
 }
 
@@ -396,15 +405,16 @@ export async function fetchResources(profileText) {
   const today = new Date().toISOString().split('T')[0];
   return callAPI(
     [{ role: 'user', content: `Find disability resources and assistance programs for me. Today is ${today}.` }],
-    PROMPTS.resources.replace('{DATE}', today) + '\n\n' + profileText,
-    3000, true, 'resources'
+    'resources', profileText,
+    3000, true, 'resources',
+    { date: today }
   );
 }
 
 export async function sendChat(messages, profileText) {
   return callAPI(
     messages,
-    PROMPTS.ask + '\n\n' + profileText,
+    'ask', profileText,
     2000, false, 'chat'
   );
 }
@@ -413,7 +423,7 @@ export async function fetchLabInterpretation(lab, profileText) {
   const labDesc = `Test: ${lab.test_name}, Result: ${lab.result}${lab.unit ? ' ' + lab.unit : ''}${lab.range ? ', Ref range: ' + lab.range : ''}, Flag: ${lab.flag || 'none'}${lab.date ? ', Date: ' + lab.date : ''}`;
   return callAPI(
     [{ role: 'user', content: `Explain this lab result in context of my health: ${labDesc}` }],
-    PROMPTS.labInterpret + '\n\n' + profileText,
+    'labInterpret', profileText,
     1000, false, 'labInterpret'
   );
 }
@@ -422,7 +432,7 @@ export async function fetchVitalsTrend(vitalsData, profileText) {
   const desc = vitalsData.map(v => `${v.type}: ${v.type === 'bp' ? `${v.value}/${v.value2}` : v.value} ${v.unit || ''} on ${v.date}${v.notes ? ' (' + v.notes + ')' : ''}`).join('\n');
   return callAPI(
     [{ role: 'user', content: `Analyze these vitals trends:\n${desc}` }],
-    PROMPTS.vitalsTrend + '\n\n' + profileText,
+    'vitalsTrend', profileText,
     1200, false, 'vitalsTrend'
   );
 }
@@ -431,7 +441,7 @@ export async function fetchAppointmentPrep(appointment, profileText) {
   const desc = `Appointment: ${appointment.reason || 'General visit'} with ${appointment.provider || 'provider'} on ${appointment.date}${appointment.location ? ' at ' + appointment.location : ''}${appointment.questions ? '. Existing questions: ' + appointment.questions : ''}`;
   return callAPI(
     [{ role: 'user', content: `Help me prepare for this appointment: ${desc}` }],
-    PROMPTS.appointmentPrep + '\n\n' + profileText,
+    'appointmentPrep', profileText,
     1200, false, 'appointmentPrep'
   );
 }
@@ -439,7 +449,7 @@ export async function fetchAppointmentPrep(appointment, profileText) {
 export async function fetchCareGapSuggestions(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Based on my health profile, what preventive screenings or follow-ups might I be missing?' }],
-    PROMPTS.careGapDetect + '\n\n' + profileText,
+    'careGapDetect', profileText,
     1500, false, 'careGapDetect'
   );
 }
@@ -448,7 +458,7 @@ export async function fetchJournalPatterns(entries, profileText) {
   const desc = entries.map(e => `${e.date}${e.mood ? ' [' + e.mood + ']' : ''}${e.severity ? ' [' + e.severity + '/10]' : ''}: ${e.content || e.title || ''}${e.tags ? ' (tags: ' + e.tags + ')' : ''}`).join('\n');
   return callAPI(
     [{ role: 'user', content: `Analyze patterns in my journal entries:\n${desc}` }],
-    PROMPTS.journalPatterns + '\n\n' + profileText,
+    'journalPatterns', profileText,
     1500, false, 'journalPatterns'
   );
 }
@@ -456,7 +466,7 @@ export async function fetchJournalPatterns(entries, profileText) {
 export async function fetchImmunizationReview(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Review my immunization records and tell me if any vaccines are due or recommended for my conditions.' }],
-    PROMPTS.immunizationSchedule + '\n\n' + profileText,
+    'immunizationSchedule', profileText,
     1500, false, 'immunizationSchedule'
   );
 }
@@ -465,7 +475,7 @@ export async function fetchAppealDraft(appeal, profileText) {
   const desc = `Appeal subject: ${appeal.subject}${appeal.against ? ', Against: ' + appeal.against : ''}${appeal.status ? ', Status: ' + appeal.status : ''}${appeal.notes ? ', Details: ' + appeal.notes : ''}`;
   return callAPI(
     [{ role: 'user', content: `Draft an appeal letter for: ${desc}` }],
-    PROMPTS.appealDraft + '\n\n' + profileText,
+    'appealDraft', profileText,
     2000, false, 'appealDraft'
   );
 }
@@ -473,7 +483,7 @@ export async function fetchAppealDraft(appeal, profileText) {
 export async function fetchCostOptimization(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my medication costs and suggest ways to save money. Include generic alternatives, patient assistance programs, and discount options.' }],
-    PROMPTS.costOptimization + '\n\n' + profileText,
+    'costOptimization', profileText,
     2000, true, 'costOptimization'
   );
 }
@@ -567,7 +577,7 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
   const allergyDesc = allergies.map(a => `${a.substance} (${a.severity}${a.reaction ? ', reaction: ' + a.reaction : ''})`).join(', ');
   return callAPI(
     [{ role: 'user', content: `I'm adding the medication "${medName}". My allergies: ${allergyDesc}. Is there a cross-reactivity risk?` }],
-    PROMPTS.crossReactivity + '\n\n' + profileText,
+    'crossReactivity', profileText,
     800, false, 'crossReactivity'
   );
 }
@@ -575,21 +585,7 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
 export async function fetchCyclePatterns(cycleProfileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my cycle-correlated health patterns from the data below.' }],
-    `You are a health data analyst examining cycle-correlated patterns. Analyze the provided vitals and journal data tagged by menstrual cycle phase.
-
-Your analysis should cover:
-1. Phase-correlated symptom patterns — cite specific averages (e.g., "Pain averages 6.2 during luteal vs 2.1 during follicular")
-2. Mood and energy trends by phase
-3. Medication timing insights if hormonal or cycle-related medications are detected
-4. Data gaps — suggest specific tracking improvements
-5. Actionable recommendations
-
-Use markdown formatting. Be specific with numbers. If data is insufficient for a category, say so briefly and move on.
-
-IMPORTANT: You are not a doctor. Include the disclaimer: "This analysis is based on self-reported data patterns. Always discuss cycle-related health concerns with your healthcare provider."
-
-Patient cycle data:
-${cycleProfileText}`,
+    'cyclePatterns', cycleProfileText,
     2000, false, 'cyclePatterns'
   );
 }
@@ -602,27 +598,14 @@ export async function fetchGeneticExplanation(gene, variant, phenotype, affected
 
   return callAPI(
     [{ role: 'user', content: `Explain my ${gene} result: variant ${variant || 'unknown'}, phenotype: ${phenotype}. ${drugList} ${medContext}` }],
-    PROMPTS.geneticExplanation,
+    'geneticExplanation', '',
     800, false, 'geneticExplanation'
   );
 }
 
 /* ── Tool-use agentic loop ──────────────────────────────── */
 
-const TOOLS_ADDENDUM = `
-
-You also have tools to modify the user's health data directly. When they ask to add, update, or remove records, use the appropriate tool.
-
-RULES FOR TOOL USE:
-- For REMOVE (delete) operations: ALWAYS describe what will be deleted and ask "Should I proceed?" BEFORE calling the remove tool. Only call the tool AFTER the user says yes.
-- For ADD operations: You may call the tool directly if the user's intent is clear. Summarize what you added.
-- For UPDATE operations: Describe the change, then call the tool.
-- Use search_records or list_records to find record IDs when needed. NEVER fabricate IDs — always look them up first.
-- When the user references a record by description (e.g. "my blood pressure medication"), use search_records to find the exact record before modifying it.
-- Before adding a record, check the profile to avoid creating duplicates.
-- You can chain multiple tool calls in one response if the user requests multiple changes.`;
-
-async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens = 2000, maxLoops = 10) {
+async function callAPIWithTools(messages, promptKey, profileText, tools, onToolCall, maxTokens = 2000, maxLoops = 10, promptOpts = {}) {
   if (_demoMode) {
     const text = await demoResponseFor('chat', messages);
     return { text, messages };
@@ -640,11 +623,13 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
 
     const body = {
       messages: currentMessages,
-      system,
+      prompt_key: promptKey,
+      profile_text: profileText || '',
       max_tokens: maxTokens,
       tools,
       model,
     };
+    if (Object.keys(promptOpts).length > 0) body.prompt_opts = promptOpts;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
@@ -726,9 +711,11 @@ async function callAPIWithTools(messages, system, tools, onToolCall, maxTokens =
 export async function sendChatWithTools(messages, profileText, onToolCall) {
   return callAPIWithTools(
     messages,
-    PROMPTS.ask + TOOLS_ADDENDUM + '\n\n' + profileText,
+    'ask', profileText,
     HEALTH_TOOLS,
     onToolCall,
     2000,
+    10,
+    { useToolsAddendum: true },
   );
 }

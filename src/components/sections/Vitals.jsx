@@ -12,6 +12,7 @@ import Motif from '../ui/Motif';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
 import { fmtDate, fmtDateRelative, todayISO } from '../../utils/dates';
+import { validateVital } from '../../utils/validate';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
@@ -64,7 +65,8 @@ export default function Vitals({ data, addItem, removeItem }) {
   const [cycleOverlay, setCycleOverlay] = useState(() => localStorage.getItem('salve:vitals-cycle-overlay') === 'true');
   const [timeRange, setTimeRange] = useState('30d');
   const del = useConfirmDelete();
-  const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
 
   // Auto-select the most-populated type when data loads after initial render
   const ctAutoSet = useRef(false);
@@ -93,10 +95,11 @@ export default function Vitals({ data, addItem, removeItem }) {
   }, [data.vitals]);
 
   const saveV = async () => {
-    if (!form.value || isNaN(Number(form.value))) return;
-    if (form.type === 'bp' && (!form.value2 || isNaN(Number(form.value2)))) return;
+    const { valid, errors: e } = validateVital(form);
+    if (!valid) { setErrors(e); return; }
     await addItem('vitals', form);
     setForm({ ...EMPTY_VITAL, date: todayISO() });
+    setErrors({});
     setSubView(null);
   };
 
@@ -208,13 +211,13 @@ export default function Vitals({ data, addItem, removeItem }) {
         <Field label="Type" value={form.type} onChange={v => { sf('type', v); sf('value', ''); sf('value2', ''); }} options={VITAL_TYPES.map(t => ({ value: t.id, label: `${t.label} (${t.unit})` }))} />
         {form.type === 'bp' ? (
           <div className="flex gap-2.5">
-            <div className="flex-1"><Field label="Systolic" value={form.value} onChange={v => sf('value', v)} type="number" placeholder="120" /></div>
-            <div className="flex-1"><Field label="Diastolic" value={form.value2} onChange={v => sf('value2', v)} type="number" placeholder="80" /></div>
+            <div className="flex-1"><Field label="Systolic" value={form.value} onChange={v => sf('value', v)} type="number" placeholder="120" error={errors.value} /></div>
+            <div className="flex-1"><Field label="Diastolic" value={form.value2} onChange={v => sf('value2', v)} type="number" placeholder="80" error={errors.value2} /></div>
           </div>
         ) : (
-          <Field label="Value" value={form.value} onChange={v => sf('value', v)} type="number" placeholder={vi?.unit || ''} />
+          <Field label="Value" value={form.value} onChange={v => sf('value', v)} type="number" placeholder={vi?.unit || ''} error={errors.value} />
         )}
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Context, how you feel..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Context, how you feel..." maxLength={2000} error={errors.notes} />
         <Button onClick={saveV} disabled={!form.value}><Check size={15} /> Save</Button>
       </Card>
     </FormWrap>

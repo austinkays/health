@@ -44,9 +44,10 @@ health/
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
 ├── api/
+│   ├── _prompts.js               # Server-side prompt allowlist: PROMPTS object (18 prompt keys), buildSystemPrompt(key, profileText, opts), isValidPromptKey(), sanProfile() sanitizer, TOOLS_ADDENDUM constant — clients send prompt_key not raw system prompts
 │   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
-│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier)
-│   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier)
+│   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier); server-side prompt construction via _prompts.js (raw system only for admin tier)
+│   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier); server-side prompt construction via _prompts.js
 │   ├── lemon-checkout.js         # Vercel serverless: creates Lemon Squeezy hosted checkout session (auth-gated, returns {url})
 │   ├── lemon-webhook.js          # Vercel serverless: Lemon Squeezy subscription lifecycle webhook (HMAC-SHA256 verified; sets profiles.tier)
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
@@ -104,14 +105,14 @@ health/
 │   │   ├── db.js                 # Generic CRUD factory + table-specific services + loadAll (allSettled) + eraseAll
 │   │   ├── cache.js              # Encrypted offline localStorage cache + pending write queue + sync
 │   │   ├── crypto.js             # AES-GCM encrypt/decrypt + PBKDF2 key derivation for cache & exports
-│   │   ├── ai.js                 # Tiered AI service: provider routing (Gemini free / Anthropic premium via getAIProvider/setAIProvider), smart model selection per feature (getModel: lite/flash/pro tiers), feature gating (isFeatureLocked blocks Pro features on free tier), daily limit error handling; sendChatWithTools() agentic loop for tool-use data control (10 iteration cap)
+│   │   ├── ai.js                 # Tiered AI service: provider routing (Gemini free / Anthropic premium via getAIProvider/setAIProvider), smart model selection per feature (getModel: lite/flash/pro tiers), feature gating (isFeatureLocked blocks Pro features on free tier), daily limit error handling; sendChatWithTools() agentic loop for tool-use data control (10 iteration cap); sends prompt_key + profile_text to server (not raw system prompts)
 │   │   ├── token.js              # Shared auth token cache (5s TTL, concurrent-call dedup, clearTokenCache on sign-out)
 │   │   ├── drugs.js              # Client service: drugAutocomplete, drugDetails, drugInteractions, drugPrice (via /api/drug, 429-aware)
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
 │   │   ├── billing.js            # Lemon Squeezy client helpers: startCheckout() → POST /api/lemon-checkout → redirect to hosted checkout; openCustomerPortal() → LS billing portal
-│   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
+│   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation; validateToolInput() gates add/update with per-entity validation (vitals range checks, field length limits)
 │   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, **hourly bucketing for HR/SpO2/resp** (up to 24 records/day with `time: 'HH:00'` field) vs. daily for steps/sleep/weight/glucose/BP; workout + FHIR lab parsing, deduplicateAgainst(); DEDUP_KEYS includes time field
 │   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
 │   │   └── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness/spo2/stress/workouts via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), syncAllOuraData() bulk sync (temperature→cycles BBT, sleep/HR/SpO2/readiness/stress→vitals, workouts→activities), manual entry override protection, per-data-type dedup
@@ -121,11 +122,11 @@ health/
 │   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies --salve-* color vars + --ambiance-* RGB + --salve-gradient-1/2/3 per-theme gradient stops to :root), useTheme() hook (themeId, setTheme, saveTheme, C, themes), getActiveC() standalone getter for non-React contexts
 │   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 10s interval, random no-repeat, fade animation)
 │   ├── components/
-│   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit)
+│   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit, brute-force protection with escalating cooldown: 3 attempts→30s, 5→120s, 7→300s)
 │   │   ├── ui/                   # Shared primitives
 │   │   │   ├── Card.jsx
 │   │   │   ├── Button.jsx
-│   │   │   ├── Field.jsx         # Label + input/textarea/select (htmlFor/id via React useId(); supports error prop)
+│   │   │   ├── Field.jsx         # Label + input/textarea/select (htmlFor/id via React useId(); supports error prop, maxLength with char counter, hint, min/max)
 │   │   │   ├── Badge.jsx
 │   │   │   ├── ConfirmBar.jsx    # Inline delete confirmation (keyboard: Escape/Enter, role=alertdialog)
 │   │   │   ├── EmptyState.jsx
@@ -139,6 +140,8 @@ health/
 │   │   │   ├── AppleHealthImport.jsx # Apple Health import UI: file picker (.xml/.zip) + drag-and-drop DropZone (desktop), progress bar, dedup preview, bulk insert, clipboard paste for iOS Shortcut
 │   │   │   ├── Toast.jsx         # Toast notification system (ToastProvider context + useToast hook); celebration sparkle burst on success toasts (CelebrationBurst component with 6 radial Sparkles particles)
 │   │   │   ├── DropZone.jsx      # Drag-and-drop file target for desktop: dashed border, hover/active states, click-to-browse fallback. Hidden on mobile (md:block) unless alwaysVisible. Used by Settings import, AppleHealthImport, CycleTracker Flo import
+│   │   │   ├── OfflineBanner.jsx  # Persistent sticky banner when navigator.onLine is false; shows pending sync count from cache.js; auto-hides on reconnect
+│   │   │   ├── SkeletonCard.jsx   # Shimmer loading skeleton cards (SkeletonCard + SkeletonList); replaces LoadingSpinner as Suspense fallback for code-split sections
 │   │   │   └── SagePopup.jsx     # Bottom-sheet modal chat with Sage. Triggered by Leaf button in Header (mobile) or Ask Sage button in SideNav (desktop). Multi-turn chat via sendChat, consent-gated, auto-scroll, Enter-to-send. "Full chat" shortcut navigates to AI tab. Wider on desktop (md:max-w-[600px]), rounded corners on desktop. On desktop uses `md:pl-[260px]` on the outer wrapper so the dialog centers in the content area rather than the full viewport (accounting for 260px sidebar).
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 27 sections. Desktop: back/search/sage buttons hidden at md+ (sidebar provides these), responsive font sizes
@@ -182,7 +185,8 @@ health/
 │       ├── links.js              # URL generators: dailyMedUrl (direct setid link or cleaned name search), medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl (NPI → registry, else Google with specialty+clinic), googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
 │       ├── maps.js               # mapsUrl(address) → Google Maps search URL
 │       ├── cycles.js             # Cycle logic: computeCycleStats (period start detection, avg length), getCyclePhase, predictNextPeriod (count-backward rule), getDayOfCycle, getCyclePhaseForDate, estimateFertility (returns {pct, zone} with peak/fertile/buffer/relative/absolute zones based on HPO axis physiology), detectBBTShift (3-day sustained ≥0.3°F rise above 6-day baseline), getCycleAlerts (short cycle, peak mucus, BBT shift/missing)
-│       └── search.jsx            # Shared search logic: ENTITY_CONFIG, searchEntities(), highlightMatch(), FILTER_TABS, MORE_CATEGORIES
+│       ├── search.jsx            # Shared search logic: ENTITY_CONFIG, searchEntities(), highlightMatch(), FILTER_TABS, MORE_CATEGORIES
+│       └── validate.js           # Per-entity form validators: validateField (generic), validateVital (VITAL_LIMITS per-type hard ranges), validateMedication, validateLab, getVitalWarning; used by Vitals/Meds/Labs forms + toolExecutor.js
 ```
 
 ### Database (Supabase)
@@ -396,7 +400,9 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
-| **AI prompt safety** | `profile.js` sanitizes all user-provided text (strips `<>{}`, configurable char limits via `san(text, limit)` — default 500, up to 1000 for FDA data) before embedding in AI prompts |
+| **AI prompt safety** | System prompts constructed server-side via `api/_prompts.js` — client sends `prompt_key` from allowlist + `profile_text`, NOT raw system prompts. `profile.js` sanitizes all user-provided text (strips `<>{}`, configurable char limits via `san(text, limit)` — default 500, up to 1000 for FDA data). Raw `system` only accepted for admin tier (House Consultation escape hatch) |
+| **OTP brute-force** | `Auth.jsx` tracks failed OTP attempts with escalating cooldown schedule (3 attempts → 30s, 5 → 120s, 7 → 300s). Verify button disabled during cooldown with live countdown. Resets on code resend |
+| **Form validation** | `utils/validate.js` provides per-entity validators with hard range checks (vitals: pain 0-10, bp 20-300, hr 10-350, etc.), field length limits (notes 2000, name 200), required field enforcement. Wired into Vitals, Medications, Labs forms + AI tool executor |
 | **HTTP headers** | CSP (no unsafe-inline/eval in script-src), X-Frame-Options DENY, X-Content-Type-Options nosniff, strict Referrer-Policy, Permissions-Policy |
 | **Stale chunk recovery** | `lazyWithRetry()` wrapper catches chunk load failures from stale deploys; one-time `sessionStorage`-guarded page reload fetches updated assets |
 | **Import safety** | `importRestore()` creates in-memory backup before erasing; auto-restores on failure |
@@ -416,7 +422,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **ARIA labels** | All icon-only and text-only action buttons (edit/delete/send/drug-info) have descriptive `aria-label` attributes across all 20 section files |
 | **Color-only indicators** | Severity, urgency, status, and lab flag badges include icon prefixes (✓/◆/⚠/✦/·/↗) so information is not conveyed through color alone (WCAG 1.4.1) |
 | **Semantic HTML** | `<nav>` for BottomNav, `<header>` for Header, `<main>` for content area, `<section>` with `aria-label` for Dashboard cards, `<article>` for AIPanel chat messages |
-| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` using React `useId()` for guaranteed uniqueness; supports `error` prop for red inline error messages |
+| **Form labels** | `Field.jsx` associates `<label htmlFor>` with `<input id>` using React `useId()` for guaranteed uniqueness; supports `error` prop for red inline error messages; `maxLength` prop with live char counter (turns red at 90%+); `hint` prop for helper text; `min`/`max` for numeric inputs |
 | **Keyboard support** | `ConfirmBar` responds to Escape (cancel) and Enter (confirm); `role="alertdialog"` for screen readers |
 | **Chart accessibility** | Vitals chart has `role="img"` with descriptive `aria-label` + visually-hidden (`sr-only`) data table alternative |
 | **Loading states** | `LoadingSpinner` uses `role="status"` + `aria-live="polite"` with `sr-only` fallback text |

@@ -2,15 +2,15 @@
 // Client-side Lemon Squeezy billing helpers.
 // Requires api/lemon-checkout.js to be deployed.
 
-import { getToken } from './token.js';
+import { getAuthToken } from './token.js';
 
 /**
  * Redirects the current user to a Lemon Squeezy hosted checkout.
- * Requires the user to be signed in (token fetched via getToken).
+ * Requires the user to be signed in (token fetched via getAuthToken).
  * Throws if the checkout URL cannot be obtained.
  */
 export async function startCheckout() {
-  const token = await getToken();
+  const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
 
   const res = await fetch('/api/lemon-checkout', {

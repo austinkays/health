@@ -20,6 +20,7 @@ import AIMarkdown from '../ui/AIMarkdown';
 import { drugAutocomplete, drugDetails } from '../../services/drugs';
 import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
+import { validateMedication } from '../../utils/validate';
 import { checkInteractions } from '../../utils/interactions';
 import SplitView, { useIsDesktop } from '../layout/SplitView';
 
@@ -65,7 +66,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
-  const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
 
   /* ── Drug name autocomplete (debounced) ── */
   const handleNameChange = useCallback((v) => {
@@ -221,7 +223,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   };
 
   const saveMed = async () => {
-    if (!form.name.trim()) return;
+    const { valid, errors: e } = validateMedication(form);
+    if (!valid) { setErrors(e); return; }
     const { id, ...payload } = form;
     if (editId) {
       await updateItem('medications', editId, payload);
@@ -229,6 +232,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       await addItem('medications', payload);
     }
     setForm(EMPTY_MED);
+    setErrors({});
     setEditId(null);
     setSubView(null);
   };
@@ -290,10 +294,10 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         {form.pharmacy === '__custom' && (
           <Field label="Custom Pharmacy" value="" onChange={v => sf('pharmacy', v)} placeholder="Pharmacy name" />
         )}
-        <Field label="Purpose / Condition" value={form.purpose} onChange={v => sf('purpose', v)} placeholder="What is this for?" />
+        <Field label="Purpose / Condition" value={form.purpose} onChange={v => sf('purpose', v)} placeholder="What is this for?" maxLength={500} error={errors.purpose} />
         <Field label="Start Date" value={form.start_date} onChange={v => sf('start_date', v)} type="date" />
         <Field label="Next Refill" value={form.refill_date} onChange={v => sf('refill_date', v)} type="date" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Side effects, instructions..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Side effects, instructions..." maxLength={2000} error={errors.notes} />
         <div className="flex items-center gap-2 mb-4">
           <input type="checkbox" checked={form.active !== false} onChange={e => sf('active', e.target.checked)} id="medActive" />
           <label htmlFor="medActive" className="text-sm text-salve-textMid">Currently taking</label>

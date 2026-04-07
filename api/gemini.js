@@ -1,4 +1,5 @@
 import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+import { buildSystemPrompt, isValidPromptKey } from './_prompts.js';
 
 // ── In-memory rate limiter ──
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -352,11 +353,23 @@ export default async function handler(req, res) {
   }
 
   // Parse request (Anthropic-shaped body)
-  const { messages, system, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools, model: requestedModel } = req.body;
+  const { messages, prompt_key, profile_text, prompt_opts, system: rawSystem, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools, model: requestedModel } = req.body;
   const maxTokens = Math.min(Number(rawMaxTokens) || 2000, 8192);
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages array is required' });
+  }
+
+  // Build system prompt server-side from allowlisted key + profile text.
+  // Raw `system` is only accepted for admin tier (House Consultation escape hatch).
+  let system = null;
+  if (prompt_key) {
+    if (!isValidPromptKey(prompt_key)) {
+      return res.status(400).json({ error: 'Invalid prompt_key' });
+    }
+    system = buildSystemPrompt(prompt_key, profile_text || '', prompt_opts || {});
+  } else if (rawSystem && userTier === 'admin') {
+    system = typeof rawSystem === 'string' ? rawSystem.slice(0, 15000) : null;
   }
 
   const model = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;

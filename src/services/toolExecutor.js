@@ -4,11 +4,43 @@
 import { TOOL_TABLE_MAP, RECORD_SUMMARIES } from '../constants/tools';
 import { searchEntities, ENTITY_CONFIG } from '../utils/search.jsx';
 import { todayISO } from '../utils/dates';
+import { validateVital, validateMedication, validateLab, validateField } from '../utils/validate';
 
 // Sanitize string input: strip angle brackets / braces, cap length
 function san(text, limit = 500) {
   if (text == null) return text;
   return String(text).replace(/[<>{}]/g, '').slice(0, limit);
+}
+
+// Validate cleaned input for known table types before add/update
+function validateToolInput(table, cleaned) {
+  switch (table) {
+    case 'vitals': {
+      const { valid, errors } = validateVital(cleaned);
+      if (!valid) return Object.values(errors).join('; ');
+      return null;
+    }
+    case 'medications': {
+      const { valid, errors } = validateMedication(cleaned);
+      if (!valid) return Object.values(errors).join('; ');
+      return null;
+    }
+    case 'labs': {
+      const { valid, errors } = validateLab(cleaned);
+      if (!valid) return Object.values(errors).join('; ');
+      return null;
+    }
+    default: {
+      // Generic: any string field capped at 2000 chars, name/title/substance required at 200 chars
+      const nameField = cleaned.name || cleaned.title || cleaned.substance || cleaned.test_name;
+      if (table !== 'vitals' && table !== 'journal' && table !== 'cycles' && nameField === '') {
+        return 'Name or title is required';
+      }
+      const notesErr = validateField(cleaned.notes, { maxLength: 2000 });
+      if (notesErr) return `notes: ${notesErr}`;
+      return null;
+    }
+  }
 }
 
 // Strip system-managed fields from tool input before passing to CRUD
@@ -122,6 +154,8 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
         if (table === 'journal' && !cleaned.date) {
           cleaned.date = todayISO();
         }
+        const validationErr = validateToolInput(table, cleaned);
+        if (validationErr) return { tool_use_id, content: `Validation failed: ${validationErr}`, is_error: true };
         const saved = await addItem(table, cleaned);
         const summaryFn = RECORD_SUMMARIES[table];
         const label = summaryFn ? summaryFn(saved) : (saved.name || saved.substance || 'record');
@@ -148,6 +182,8 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
         }
 
         const cleaned = sanitizeInput(changes, 'update');
+        const validationErr = validateToolInput(table, { ...existing, ...cleaned });
+        if (validationErr) return { tool_use_id, content: `Validation failed: ${validationErr}`, is_error: true };
         await updateItem(table, id, cleaned);
         const summaryFn = RECORD_SUMMARIES[table];
         const label = summaryFn ? summaryFn({ ...existing, ...cleaned }) : 'record';

@@ -10,6 +10,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { fmtDate } from '../../utils/dates';
+import { validateLab } from '../../utils/validate';
 import { C } from '../../constants/colors';
 import { findLabRange } from '../../constants/labRanges';
 import { fetchLabInterpretation } from '../../services/ai';
@@ -39,7 +40,8 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
   const [expandedId, setExpandedId] = useState(null);
   const isDesktop = useIsDesktop();
   const del = useConfirmDelete();
-  const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+  const [errors, setErrors] = useState({});
+  const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
 
   useEffect(() => {
     if (highlightId && data.labs.some(l => l.id === highlightId)) {
@@ -68,23 +70,24 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
   };
 
   const save = async () => {
-    if (!form.test_name.trim()) return;
+    const { valid, errors: e } = validateLab(form);
+    if (!valid) { setErrors(e); return; }
     if (editId) await updateItem('labs', editId, form);
     else await addItem('labs', form);
-    setForm(EMPTY); setEditId(null); setSubView(null);
+    setForm(EMPTY); setErrors({}); setEditId(null); setSubView(null);
   };
 
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Lab / Imaging`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Test / Study Name" value={form.test_name} onChange={v => sf('test_name', v)} placeholder="e.g. CBC, CT Chest, Echo" required />
+        <Field label="Test / Study Name" value={form.test_name} onChange={v => sf('test_name', v)} placeholder="e.g. CBC, CT Chest, Echo" required error={errors.test_name} />
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
-        <Field label="Result" value={form.result} onChange={v => sf('result', v)} placeholder="e.g. 12.4, Negative, See report" />
+        <Field label="Result" value={form.result} onChange={v => sf('result', v)} placeholder="e.g. 12.4, Negative, See report" error={errors.result} />
         <Field label="Unit" value={form.unit} onChange={v => sf('unit', v)} placeholder="e.g. g/dL, mmol/L" />
         <Field label="Reference Range" value={form.range} onChange={v => sf('range', v)} placeholder="e.g. 12.0–16.0" />
         <Field label="Flag" value={form.flag} onChange={v => sf('flag', v)} options={FLAG_OPTS} />
         <Field label="Ordering Provider" value={form.provider} onChange={v => sf('provider', v)} placeholder="Dr. Name" />
-        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Clinical context, follow-up needed..." />
+        <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Clinical context, follow-up needed..." maxLength={2000} error={errors.notes} />
         <div className="flex gap-2">
           <Button onClick={save} disabled={!form.test_name.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>Cancel</Button>

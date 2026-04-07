@@ -11,6 +11,8 @@ import useHealthData from './hooks/useHealthData';
 import { checkInteractions } from './utils/interactions';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import OfflineBanner from './components/ui/OfflineBanner';
+import SkeletonList from './components/ui/SkeletonCard';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
@@ -360,16 +362,13 @@ function AppContent() {
     <div className="min-h-screen overflow-hidden relative">
       <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} name={data.settings.name} demoMode={demoMode} onExitDemo={() => setDemoMode(false)} />
       <div className="md:ml-[260px]">
+        <OfflineBanner />
         {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">
           <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
           <main className="px-4 md:px-6 lg:px-8">
             <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
-              <Suspense fallback={
-                <div className="flex items-center justify-center py-20">
-                  <LoadingSpinner text="Loading..." />
-                </div>
-              }>
+              <Suspense fallback={<SkeletonList count={3} />}>
                 <div key={tab} className="section-enter">
                   {renderSection()}
                 </div>

@@ -4,6 +4,16 @@ import { signIn, verifyOtp, signInWithGoogle } from '../services/auth';
 // OTP codes expire after 10 minutes (600 seconds)
 const OTP_TTL = 600;
 
+// Escalating cooldown schedule: [maxAttempts, cooldownSeconds]
+const COOLDOWN_SCHEDULE = [[3, 30], [5, 120], [7, 300]];
+
+function getCooldownSeconds(attempts) {
+  for (let i = COOLDOWN_SCHEDULE.length - 1; i >= 0; i--) {
+    if (attempts >= COOLDOWN_SCHEDULE[i][0]) return COOLDOWN_SCHEDULE[i][1];
+  }
+  return 0;
+}
+
 export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDemo }) {
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
@@ -12,6 +22,9 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
   const [error, setError] = useState('');
   const [code, setCode] = useState(['', '', '', '', '', '', '', '']);
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(OTP_TTL);
+  const [attempts, setAttempts] = useState(0);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
   const inputRefs = useRef([]);
 
   // Countdown timer — resets when a new code is sent
@@ -26,6 +39,19 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
     }, 1000);
     return () => clearInterval(interval);
   }, [sent]);
+
+  // Cooldown countdown timer
+  useEffect(() => {
+    if (!cooldownUntil) { setCooldownLeft(0); return; }
+    const tick = () => {
+      const left = Math.ceil((cooldownUntil - Date.now()) / 1000);
+      if (left <= 0) { setCooldownUntil(0); setCooldownLeft(0); return; }
+      setCooldownLeft(left);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [cooldownUntil]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -84,13 +110,23 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
   async function handleVerify(token) {
     const otp = token || code.join('');
     if (otp.length !== 8 || otpSecondsLeft <= 0) return;
+    // Enforce cooldown
+    if (cooldownUntil && Date.now() < cooldownUntil) return;
     setVerifying(true);
     setError('');
     try {
       await verifyOtp(email, otp);
       // Auth state change listener in App.jsx will handle the session
     } catch (err) {
-      setError(err.message || 'Invalid code — please try again');
+      const next = attempts + 1;
+      setAttempts(next);
+      const cd = getCooldownSeconds(next);
+      if (cd > 0) {
+        setCooldownUntil(Date.now() + cd * 1000);
+        setError(`Too many attempts — try again in ${cd} seconds`);
+      } else {
+        setError(err.message || 'Invalid code — please try again');
+      }
       setCode(['', '', '', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -102,6 +138,8 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
     setLoading(true);
     setError('');
     setCode(['', '', '', '', '', '', '', '']);
+    setAttempts(0);
+    setCooldownUntil(0);
     try {
       await signIn(email);
     } catch (err) {
@@ -173,12 +211,18 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
               <p className="text-salve-rose text-sm mb-3">{error}</p>
             )}
 
+            {cooldownLeft > 0 && (
+              <p className="text-salve-rose text-sm mb-3">
+                Too many attempts — try again in {cooldownLeft}s
+              </p>
+            )}
+
             <button
               onClick={() => handleVerify()}
-              disabled={verifying || code.some(d => d === '') || otpSecondsLeft <= 0}
+              disabled={verifying || code.some(d => d === '') || otpSecondsLeft <= 0 || cooldownLeft > 0}
               className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
             >
-              {verifying ? 'Verifying...' : otpSecondsLeft <= 0 ? 'Code expired' : 'Sign in'}
+              {verifying ? 'Verifying...' : otpSecondsLeft <= 0 ? 'Code expired' : cooldownLeft > 0 ? `Wait ${cooldownLeft}s` : 'Sign in'}
             </button>
 
             <p className="text-salve-textFaint text-xs md:text-sm mb-3">
