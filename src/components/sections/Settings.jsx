@@ -57,7 +57,7 @@ function CopyButton({ text, label, copiedLabel = 'Copied!', ariaLabel }) {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    });
+    }).catch(() => {});
   };
   return (
     <button
@@ -302,7 +302,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data?.user?.email) setUserEmail(data.user.email);
-    });
+    }).catch(() => {});
   }, []);
 
   // Source detection
