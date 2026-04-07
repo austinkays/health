@@ -139,8 +139,6 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
   const fertileDays = useMemo(() => {
     if (!nextPeriod) return new Set();
     const s = new Set();
-    const ovDate = new Date(nextPeriod + 'T00:00:00');
-    ovDate.setDate(ovDate.getDate() - 14 + stats.avgLength); // Not quite right — calculate from last period
     // Fertile window: ovulation day - 5 to ovulation day + 1 from NEXT cycle start
     const nextStart = new Date(nextPeriod + 'T00:00:00');
     const ov = new Date(nextStart);

@@ -121,13 +121,22 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
     setEditId(null);
   };
 
-  // Complete toggle
+  // Complete toggle — auto-create next occurrence for recurring todos
   const toggleComplete = async (t) => {
     const nowCompleted = !t.completed;
     await updateItem('todos', t.id, {
       completed: nowCompleted,
       completed_at: nowCompleted ? new Date().toISOString() : null,
     });
+    if (nowCompleted && t.recurring && t.recurring !== 'none' && t.due_date) {
+      const base = new Date(t.due_date + 'T00:00:00');
+      if (t.recurring === 'daily') base.setDate(base.getDate() + 1);
+      else if (t.recurring === 'weekly') base.setDate(base.getDate() + 7);
+      else if (t.recurring === 'monthly') base.setMonth(base.getMonth() + 1);
+      const nextDue = base.toISOString().slice(0, 10);
+      const { id, created_at, updated_at, completed, completed_at, ...rest } = t;
+      await addItem('todos', { ...rest, due_date: nextDue, completed: false, completed_at: null });
+    }
   };
 
   // Start editing

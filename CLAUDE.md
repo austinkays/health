@@ -1106,47 +1106,51 @@ Confirmed issues from full codebase audit. Fix in order of priority.
 
 ### Fix Immediately (confirmed crashes / data integrity)
 
-| # | File | Location | Issue |
-|---|------|----------|-------|
-| 1 | `Dashboard.jsx` | line 975 | **`ArrowRight` used but not imported** — only `ChevronRight` is imported at line 3. Crashes the entire Dashboard whenever live search returns results. Fix: add `ArrowRight` to the lucide-react import. |
-| 2 | `profile.js` | line 250 | **AI sees oldest journal entries, not newest** — `journal.slice(0, 15)` takes the first 15 (oldest). Should be `journal.slice(-15)` to match the comment "last 15" and be consistent with vitals (`slice(-30)` at line 243). Sage gets stale context. |
-| 3 | `CycleTracker.jsx` | lines 170–175 | **Infinite loop risk on first-time cycle users** — `while (last <= target)` advances by `stats.avgLength` days. If only one period is logged, `avgLength` can be 0, hanging the browser tab. Guard: add `if (!stats.avgLength) break;` inside the loop. |
-| 4 | `App.jsx` | line 238 | **SagePopup stays open after session expiry** — `SIGNED_OUT` event never resets `sageOpen`. The Sage sheet stays visible over the re-auth screen. Fix: add `setSageOpen(false)` (and `setSageIntroOpen(false)`) inside the `SIGNED_OUT` branch. |
+All fixed.
+
+| # | File | Issue | Status |
+|---|------|-------|--------|
+| ~~1~~ | `Dashboard.jsx` | `ArrowRight` import missing | **Fixed** — already imported |
+| ~~2~~ | `profile.js` | Journal slice direction wrong | **Fixed** — uses `slice(-15)` |
+| ~~3~~ | `CycleTracker.jsx` | Infinite loop when `avgLength` is 0 | **Fixed** — guarded with `> 0` check |
+| ~~4~~ | `App.jsx` | SagePopup stays open after session expiry | **Fixed** — resets `sageOpen` in `SIGNED_OUT` branch |
 
 ### Fix Soon (security / data loss)
 
-| # | File | Location | Issue |
-|---|------|----------|-------|
-| 5 | `crypto.js` | salt constant | **Hardcoded PBKDF2 salt** — salt is a static string `'salve-health-cache-v1'`. If source code is public, anyone with a user's access token can derive the exact cache encryption key and decrypt PHI from localStorage. Mitigation: derive salt from a random per-user value stored in Supabase profile, or store a random salt alongside the ciphertext. |
-| 6 | `storage.js` | lines 327–337 | **Legacy v2 import silently drops all v3 fields** — the legacy backup normalizer only restores 7 tables. All newer tables (`labs`, `procedures`, `immunizations`, `care_gaps`, `cycles`, `activities`, `todos`, `genetic_results`, `drug_prices`, `pharmacies`, `insurance_claims`, `surgical_planning`, `appeals`, `anesthesia_flags`) are silently dropped with no warning. Fix: add default-empty-array entries for all missing tables, and show a warning toast listing which tables were absent. |
-| 7 | `api/gemini.js` | line 364 | **Gemini output token cap too high** — server allows up to 8192 output tokens but Gemini Flash free tier's actual documented limit is lower. Requests near the cap fail at Gemini with an opaque 400. `api/chat.js` correctly caps at 4096. Fix: lower the Gemini cap to match the model's documented limit. |
-| 8 | `profile.js` | `san()` function | **Sanitizer allows newlines and Unicode bidi control chars** — `san()` strips `<>{}` but not `\n`, `\r`, or Unicode directional overrides (e.g., U+202E). A journal entry containing `\nSYSTEM: ...` could inject into the AI system prompt context. Fix: also strip or replace `\r`, `\n`, and Unicode bidi characters. |
-| 9 | `storage.js` | lines 376–395 | **Partial DB state after failed import + failed restore** — if `importRestore()` fails mid-import and the backup restore also fails, the DB is left in a partially written state with no indication of which tables were affected. Fix: include affected table names in the thrown error message so the user knows what to check. |
-| 10 | `AIPanel.jsx` | lines 1126–1127 | **Cooldown applied on failed chat requests** — `setCooldown(true)` fires in `finally` regardless of success/failure, blocking the user from retrying for 1.5s after an error. Fix: move `setCooldown(true)` to the success path only, inside the `try` block after the response is received. |
+All fixed.
+
+| # | File | Issue | Status |
+|---|------|-------|--------|
+| ~~5~~ | `crypto.js` | Hardcoded PBKDF2 salt | **Fixed** — now uses random 16-byte salt per encryption |
+| ~~6~~ | `storage.js` | Legacy v2 import drops v3 tables | **Fixed** — iterates TABLE_MAP keys with empty-array defaults |
+| ~~7~~ | `api/gemini.js` | Output token cap too high | **Fixed** — capped at 4096 |
+| ~~8~~ | `profile.js` | Sanitizer allows newlines/bidi chars | **Fixed** — `san()` strips `\r\n` and Unicode bidi |
+| ~~9~~ | `storage.js` | No table names in failed restore error | **Fixed** — includes affected table names |
+| ~~10~~ | `AIPanel.jsx` | Cooldown on failed requests | **Fixed** — `setCooldown` in try block only |
 
 ### Polish / UX Gaps
 
-| # | File | Issue |
-|---|------|-------|
-| 11 | `CycleTracker.jsx:142–143` | Dead code — `ovDate` is computed and immediately abandoned; the actual fertile window uses different variables on lines 145–152. Remove the stale `ovDate` lines and the "Not quite right" comment. |
-| 12 | `Medications.jsx:200–220` | **Bulk link failures are silent** — meds that fail to link during "Link All" are skipped without telling the user which ones. Result summary should list failed med names and suggest manual linking. |
-| 13 | Multiple sections | **No per-section skeleton loading** — sections show a blank/empty state for 1–2s while `dataLoading` is true, looking like missing data. `SkeletonList` exists in `ui/` — apply it to sections that currently show nothing during initial load (Conditions, Labs, Providers, Allergies, Appointments, Todos, etc.). |
-| 14 | `Todos.jsx` | **Recurring todos don't auto-create next occurrence** — completing a recurring todo marks it done but doesn't generate the next instance. The recurrence indicator is purely cosmetic. Implement auto-create on complete: `if (todo.recurring !== 'none') addItem('todos', nextOccurrence(todo))`. |
-| 15 | `AIPanel.jsx` | **No "typing" indicator before first token** — after sending, there's no visual feedback until the first character streams in (can be 2–3s). `ChatThinking` with wellness messages only shows during tool execution; it should also show during the initial request wait. |
-| 16 | `Settings.jsx` | **No warning when revoking AI consent** — revoking consent clears the flag but doesn't inform the user that past AI chat history remains visible (not deleted). Add a note: "Revoking consent won't delete past conversations." |
-| 17 | `Vitals.jsx` | **Apple Health hourly data makes chart illegible** — up to 24 HR/SpO2/resp readings per day; on a 30-day view that's 720+ Recharts points rendering slowly with dense overlapping lines. Apply daily min/avg/max aggregation for multi-week chart views when hourly data is present. |
+| # | File | Issue | Status |
+|---|------|-------|--------|
+| ~~11~~ | `CycleTracker.jsx` | Dead `ovDate` code | **Fixed** — removed |
+| ~~12~~ | `Medications.jsx` | Bulk link failures silent | **Fixed** — shows failed med names |
+| 13 | Multiple sections | **No per-section skeleton loading** — sections show blank state during `dataLoading`. `SkeletonList` exists in `ui/` — apply it to Conditions, Labs, Providers, Allergies, Appointments, Todos, etc. | Open |
+| ~~14~~ | `Todos.jsx` | Recurring todos don't auto-create | **Fixed** — auto-creates next occurrence on completion |
+| ~~15~~ | `AIPanel.jsx` | No typing indicator before first token | **Fixed** — `ChatThinking` shows during `loading` |
+| ~~16~~ | `Settings.jsx` | No warning when revoking AI consent | **Fixed** — confirm dialog with explanation |
+| ~~17~~ | `Vitals.jsx` | Hourly data makes chart illegible | **Fixed** — daily aggregation for multi-week views |
 
 ### Accessibility
 
-| # | File | Issue |
-|---|------|-------|
-| 18 | `Field.jsx` | **Validation errors not linked to inputs** — error messages render below inputs but aren't associated via `aria-describedby`. Screen readers won't announce errors when the field is focused. Fix: `<input aria-describedby={error ? \`${id}-error\` : undefined}>` and `<span id="${id}-error" role="alert">`. |
-| 19 | `SagePopup.jsx` | **Focus not trapped in modal** — Tab key can reach elements behind the open Sage sheet. Add a focus trap so keyboard users can't accidentally interact with content behind it. `ConfirmBar` with `role="alertdialog"` sets the right precedent. |
+| # | File | Issue | Status |
+|---|------|-------|--------|
+| ~~18~~ | `Field.jsx` | Validation errors not linked to inputs | **Fixed** — `aria-describedby`, `aria-invalid`, `role="alert"` added |
+| ~~19~~ | `SagePopup.jsx` | Focus not trapped in modal | **Fixed** — Tab/Shift+Tab trap implemented |
 
 ### Performance
 
-| # | File | Issue |
-|---|------|-------|
-| 20 | `profile.js` | **`buildProfile()` runs synchronously before every AI call** — iterates all medications, conditions, vitals, labs, etc. on the main thread (~50–200ms on large datasets). Memoize in calling components keyed on `data` identity so it only re-runs when data changes. |
-| 21 | `AIPanel.jsx` | **Full message history re-renders on every chat input keystroke** — typing updates `chatInput` state which re-renders the entire AIPanel including the message list. Extract the message list to a `React.memo` component. |
-| 22 | `Dashboard.jsx` | **`daysUntil()` date math duplicated inline 3–4 times** — the same `Math.ceil((new Date(date) - today) / 86400000)` pattern appears repeatedly with slight variations. Extract to `utils/dates.js` as `daysUntil(dateStr): number`. |
+| # | File | Issue | Status |
+|---|------|-------|--------|
+| ~~20~~ | `profile.js` / `AIPanel.jsx` | `buildProfile()` not memoized | **Fixed** — wrapped in `useMemo` keyed on `data` |
+| ~~21~~ | `AIPanel.jsx` | Message list re-renders on keystroke | **Fixed** — extracted to `ChatMessageList` `React.memo` component |
+| ~~22~~ | `Dashboard.jsx` | `daysUntil()` duplicated inline | **Fixed** — extracted to `utils/dates.js` |

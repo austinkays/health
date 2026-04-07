@@ -664,7 +664,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <span className="text-[11px] text-salve-textMid font-montserrat">Data sharing enabled</span>
               </div>
               <button
-                onClick={() => { revokeAIConsent(); setAiConsent(false); }}
+                onClick={() => {
+                  if (window.confirm('Revoke AI data sharing? Past AI conversations will remain visible but no new data will be sent. You can re-enable anytime.')) {
+                    revokeAIConsent();
+                    setAiConsent(false);
+                  }
+                }}
                 className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
               >
                 Revoke
