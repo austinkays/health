@@ -319,9 +319,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return () => clearInterval(id);
   }, [searchFocused, searchQuery]);
 
-  // Live search results — run once, derive count from the same result
+  // Live search results — only compute when actually searching (not on every data change)
   const allSearchResults = useMemo(
-    () => searchEntities(data, debouncedSearch),
+    () => debouncedSearch.length >= 2 ? searchEntities(data, debouncedSearch) : [],
     [data, debouncedSearch]
   );
   const searchResults = useMemo(() => allSearchResults.slice(0, 5), [allSearchResults]);

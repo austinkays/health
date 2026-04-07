@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from 'react';
 import { getSession, onAuthChange } from './services/auth';
 import { supabase } from './services/supabase';
 import { cache, setupOfflineSync } from './services/cache';
@@ -123,49 +123,44 @@ function AppContent() {
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
   // CRUD wrappers that show toast confirmations.
-  // In demo mode, every write is blocked with a sign-up nudge.
-  const demoBlock = () => {
-    showToast('Sign up to save your own data', { type: 'info' });
-    throw new Error('demo_mode_blocked');
-  };
-  const addItemT = async (table, item) => {
-    if (demoMode) demoBlock();
+  // Wrapped in useCallback so child components don't re-render on every parent render.
+  const addItemT = useCallback(async (table, item) => {
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
     const result = await addItem(table, item);
     showToast('Saved ✓');
     return result;
-  };
-  const updateItemT = async (table, id, changes) => {
-    if (demoMode) demoBlock();
+  }, [addItem, demoMode, showToast]);
+  const updateItemT = useCallback(async (table, id, changes) => {
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
     const result = await updateItem(table, id, changes);
     showToast('Updated ✓');
     return result;
-  };
-  const removeItemT = async (table, id) => {
-    if (demoMode) demoBlock();
+  }, [updateItem, demoMode, showToast]);
+  const removeItemT = useCallback(async (table, id) => {
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
     await removeItem(table, id);
     showToast('Deleted');
-  };
-  const updateSettingsT = async (changes) => {
-    if (demoMode) demoBlock();
+  }, [removeItem, demoMode, showToast]);
+  const updateSettingsT = useCallback(async (changes) => {
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
     return updateSettings(changes);
-  };
-  const eraseAllT = async () => {
+  }, [updateSettings, demoMode, showToast]);
+  const eraseAllT = useCallback(async () => {
     if (demoMode) { showToast('Demo mode — nothing to erase', { type: 'info' }); return; }
     return eraseAll();
-  };
+  }, [eraseAll, demoMode, showToast]);
 
-  const onNav = (t, opts) => {
-    // Push current tab onto history stack so back button can return here
-    if (t !== tab) {
-      setNavHistory(prev => [...prev.slice(-19), tab]);
-    }
-    setTab(t);
+  const onNav = useCallback((t, opts) => {
+    setTab(prev => {
+      if (t !== prev) setNavHistory(h => [...h.slice(-19), prev]);
+      return t;
+    });
     setHighlightId(opts?.highlightId || null);
     setNavOpts(opts || null);
     window.scrollTo(0, 0);
-  };
+  }, []);
 
-  const onBack = () => {
+  const onBack = useCallback(() => {
     setNavHistory(prev => {
       const next = [...prev];
       const prevTab = next.pop() || 'dash';
@@ -175,7 +170,13 @@ function AppContent() {
       window.scrollTo(0, 0);
       return next;
     });
-  };
+  }, []);
+
+  // Stable callbacks for layout components (avoid re-renders from inline arrows)
+  const openSearch = useCallback(() => onNav('search'), [onNav]);
+  const openSage = useCallback(() => setSageOpen(true), []);
+  const exitDemo = useCallback(() => setDemoMode(false), []);
+  const closeSage = useCallback(() => setSageOpen(false), []);
 
   // Global keyboard shortcuts (desktop)
   useEffect(() => {
@@ -383,30 +384,30 @@ function AppContent() {
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      <SideNav tab={tab} onNav={onNav} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} name={data.settings.name} demoMode={demoMode} onExitDemo={() => setDemoMode(false)} />
+      <SideNav tab={tab} onNav={onNav} onSearch={openSearch} onSage={openSage} name={data.settings.name} demoMode={demoMode} onExitDemo={exitDemo} />
       <div className="md:ml-[260px]">
         <OfflineBanner />
-        {demoMode && <DemoBanner onExit={() => setDemoMode(false)} />}
+        {demoMode && <DemoBanner onExit={exitDemo} />}
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">
-          <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={() => onNav('search')} onSage={() => setSageOpen(true)} />
+          <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={openSearch} onSage={openSage} />
           <main className="px-4 md:px-6 lg:px-8">
             <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
               <Suspense fallback={<SkeletonList count={3} />}>
-                <div key={tab} className="section-enter">
-                  {renderSection()}
-                </div>
+                {renderSection()}
               </Suspense>
             </ErrorBoundary>
           </main>
           <BottomNav tab={tab} onNav={onNav} />
         </div>
       </div>
-      <SagePopup
-        open={sageOpen}
-        onClose={() => setSageOpen(false)}
-        onOpenFullChat={() => onNav('ai')}
-        data={data}
-      />
+      {sageOpen && (
+        <SagePopup
+          open={sageOpen}
+          onClose={closeSage}
+          onOpenFullChat={() => onNav('ai')}
+          data={data}
+        />
+      )}
       {sageIntroOpen && (
         <SageIntroChat
           data={data}
