@@ -582,6 +582,14 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
   );
 }
 
+export async function fillFormQuestions(questionsText, profileText) {
+  return callAPI(
+    [{ role: 'user', content: `Please fill out this medical form using my health profile:\n\n${questionsText}` }],
+    'formHelper', profileText,
+    3000, false, 'chat'
+  );
+}
+
 export async function fetchCyclePatterns(cycleProfileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my cycle-correlated health patterns from the data below.' }],

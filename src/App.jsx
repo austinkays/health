@@ -70,6 +70,7 @@ const OuraRing = lazyWithRetry(() => import('./components/sections/OuraRing'));
 const AppleHealthPage = lazyWithRetry(() => import('./components/sections/AppleHealthPage'));
 const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
 const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
+const FormHelper = lazyWithRetry(() => import('./components/sections/FormHelper'));
 
 export default function App() {
   return (
@@ -354,6 +355,7 @@ function AppContent() {
       case 'search':     return <Search data={data} onNav={onNav} />;
       case 'legal':      return <Legal onNav={onNav} />;
       case 'feedback':   return <Feedback {...shared} />;
+      case 'formhelper': return <FormHelper {...shared} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
   };

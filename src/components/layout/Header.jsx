@@ -38,6 +38,7 @@ const TAB_LABELS = {
   summary: 'Health Summary',
   legal: 'Legal',
   feedback: 'Feedback',
+  formhelper: 'Form Helper',
 };
 
 export default function Header({ tab, name, onBack, onSearch, onSage, action }) {

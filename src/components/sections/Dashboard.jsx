@@ -7,6 +7,7 @@ import {
   Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
   Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
+  ClipboardPaste,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -219,6 +220,7 @@ const STARRED_META = {
   apple_health:  { label: 'Apple Health', icon: Apple },
   meds:          { label: 'Meds',         icon: Pill },
   journal:       { label: 'Journal',      icon: BookOpen },
+  formhelper:    { label: 'Form Helper', icon: ClipboardPaste },
 };
 
 // Hub tiles — always 6 (or 5 when no devices). Tappable → category page.
