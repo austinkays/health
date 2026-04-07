@@ -1,0 +1,46 @@
+// src/services/billing.js
+// Client-side Lemon Squeezy billing helpers.
+// Requires api/lemon-checkout.js to be deployed.
+
+import { getToken } from './token.js';
+
+/**
+ * Redirects the current user to a Lemon Squeezy hosted checkout.
+ * Requires the user to be signed in (token fetched via getToken).
+ * Throws if the checkout URL cannot be obtained.
+ */
+export async function startCheckout() {
+  const token = await getToken();
+  if (!token) throw new Error('Not signed in');
+
+  const res = await fetch('/api/lemon-checkout', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || `Checkout failed (${res.status})`);
+  }
+
+  const { url } = await res.json();
+  if (!url) throw new Error('No checkout URL returned');
+
+  // Full redirect — Lemon Squeezy handles the checkout in their hosted page
+  window.location.href = url;
+}
+
+/**
+ * Opens the Lemon Squeezy customer portal where subscribers can update their
+ * payment method, view invoices, or cancel their subscription.
+ *
+ * The portal URL comes from the subscription object. Since we don't store it
+ * client-side, we open the generic Lemon Squeezy customer portal page and the
+ * user signs in with their purchase email.
+ */
+export function openCustomerPortal() {
+  window.open('https://app.lemonsqueezy.com/billing', '_blank', 'noopener,noreferrer');
+}

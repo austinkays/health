@@ -17,6 +17,7 @@ import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, get
 import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
+import { startCheckout, openCustomerPortal } from '../../services/billing';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync" — a health-data sync tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
 
@@ -241,6 +242,18 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const trialDays = trialDaysRemaining(s);
   const isOnTrial = trialDays != null && trialDays > 0;
   const trialExpired = s?.tier === 'premium' && trialDays === 0;
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState(null);
+  const handleUpgrade = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      await startCheckout(); // redirects — never returns on success
+    } catch (err) {
+      setCheckoutError(err.message || 'Could not start checkout. Try again.');
+      setCheckoutLoading(false);
+    }
+  };
   const [tierOverride, setTierOverride] = useState(() => {
     try { return localStorage.getItem('salve:tier-override') || ''; } catch { return ''; }
   });
@@ -682,9 +695,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </p>
         )}
         {isOnTrial && (
-          <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
-            You're on a 14-day free trial with full access to every feature. Enjoy the ride — no payment needed to explore.
-          </p>
+          <div className="mt-2 space-y-2">
+            <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+              You're on a 14-day free trial with full access to every feature. Enjoy the ride — no payment needed to explore.
+            </p>
+            <button
+              onClick={handleUpgrade}
+              disabled={checkoutLoading}
+              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav/15 border border-salve-lav/30 text-salve-lav hover:bg-salve-lav/25 transition-colors disabled:opacity-60 cursor-pointer"
+            >
+              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to keep access after trial →'}
+            </button>
+            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+          </div>
         )}
         {trialExpired && (
           <div className="space-y-2 mt-2">
@@ -693,13 +716,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </p>
             <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
               Upgrading keeps advanced insights, experimental themes, and unlimited access.
-              <br />
-              <em className="text-salve-textFaint">Payment coming soon — reach out at <a href="mailto:salveapp@proton.me" className="text-salve-lav no-underline hover:underline">salveapp@proton.me</a> if you'd like early access.</em>
             </p>
+            <button
+              onClick={handleUpgrade}
+              disabled={checkoutLoading}
+              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+            >
+              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
+            </button>
+            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
           </div>
         )}
         {userTier === 'free' && !trialExpired && (
-          <div className="mt-2">
+          <div className="mt-2 space-y-3">
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-montserrat">
               <div className="text-salve-textFaint font-medium col-span-2 border-b border-salve-border/50 pb-1 mb-0.5">Free vs Premium</div>
               <span className="text-salve-textMid">☽ On Demand Sage</span>
@@ -717,7 +746,23 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <span className="text-salve-textMid">Daily AI limit</span>
               <span className="text-salve-textFaint text-right">10 / day → Unlimited</span>
             </div>
+            <button
+              onClick={handleUpgrade}
+              disabled={checkoutLoading}
+              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+            >
+              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
+            </button>
+            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
           </div>
+        )}
+        {userTier === 'premium' && !isOnTrial && (
+          <button
+            onClick={openCustomerPortal}
+            className="mt-2 text-[11px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0"
+          >
+            Manage subscription →
+          </button>
         )}
         {/* Dev-mode tier override — lets you preview the free/expired state without waiting */}
         {import.meta.env.DEV && (

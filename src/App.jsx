@@ -195,6 +195,15 @@ function AppContent() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
+    const checkout = params.get('checkout');
+    // Handle Lemon Squeezy checkout redirect
+    if (checkout) {
+      window.history.replaceState({}, '', window.location.pathname);
+      if (checkout === 'success') {
+        // Reload data so the tier update from the webhook is reflected
+        setTimeout(() => showToast('Welcome to Premium! Your plan has been upgraded. 🎉', { type: 'success' }), 800);
+      }
+    }
     if (window.__ouraCode) {
       // Oura OAuth callback — code was stashed by supabase.js, navigate to settings
       setTab('settings');

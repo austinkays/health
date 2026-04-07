@@ -47,6 +47,8 @@ health/
 │   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier)
 │   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier)
+│   ├── lemon-checkout.js         # Vercel serverless: creates Lemon Squeezy hosted checkout session (auth-gated, returns {url})
+│   ├── lemon-webhook.js          # Vercel serverless: Lemon Squeezy subscription lifecycle webhook (HMAC-SHA256 verified; sets profiles.tier)
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
 │   ├── oura.js                   # Vercel serverless: Oura Ring V2 API proxy (OAuth2 token exchange/refresh, temperature/sleep/readiness data, config)
 │   ├── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
@@ -108,6 +110,7 @@ health/
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
+│   │   ├── billing.js            # Lemon Squeezy client helpers: startCheckout() → POST /api/lemon-checkout → redirect to hosted checkout; openCustomerPortal() → LS billing portal
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation
 │   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, daily aggregation (HR/steps/sleep/BP pairing), workout + FHIR lab parsing, deduplicateAgainst()
 │   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
@@ -749,6 +752,10 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | `VITE_SENTRY_DSN` | `.env.local` + Vercel env vars (optional) | Sentry project DSN for production error reporting. If unset, Sentry is silently disabled. |
 | `VITE_SENTRY_DSN_DEV` | `.env.local` (optional) | Optional override to enable Sentry in development mode for testing the scrub pipeline |
 | `VITE_SENTRY_RELEASE` | Vercel env vars (optional) | Release identifier (e.g. git SHA) to correlate errors to commits |
+| `LEMON_API_KEY` | Vercel env vars only | Lemon Squeezy API key (from LS dashboard → Settings → API) |
+| `LEMON_STORE_ID` | Vercel env vars only | Lemon Squeezy store ID (numeric, from LS dashboard URL) |
+| `LEMON_PREMIUM_VARIANT_ID` | Vercel env vars only | Lemon Squeezy variant ID for the Premium subscription plan |
+| `LEMON_WEBHOOK_SECRET` | Vercel env vars only | Lemon Squeezy webhook signing secret (from LS dashboard → Webhooks) |
 
 ## Reference Docs
 
@@ -785,7 +792,7 @@ Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKL
 - [ ] **Fresh-user walkthrough** — sign up with a clean email, tap through every section, verify all empty states render without crashes. Test on iPhone Safari + Android Chrome. Test PWA install flow (Add to Home Screen).
 - [ ] **Offline mode verification** — enable airplane mode, confirm cached data loads and pending writes queue correctly.
 - [ ] **Support workflow documented** — decide response-time commitment + who owns the `salveapp@proton.me` inbox. Document PHI breach response plan (assess scope → revoke tokens → notify within 72h → patch → post-mortem).
-- [ ] **(Later, when monetizing) Lemon Squeezy payments** — ~4h of code, full implementation plan in `docs/LAUNCH_CHECKLIST.md` section 3. Do NOT build until user validates that people want the app and has a clear tier-gating UX decided.
+- [x] **Lemon Squeezy payments** — Code complete: `api/lemon-checkout.js` (creates hosted checkout), `api/lemon-webhook.js` (HMAC-verified subscription lifecycle → flips profiles.tier), `src/services/billing.js` (startCheckout/openCustomerPortal). Settings.jsx shows "Upgrade to Premium →" button for free/trial-expired users, "Manage subscription →" for active premium. App.jsx handles `?checkout=success` redirect with toast. **User still needs to**: create LS account, set up store + product + variant, add 4 env vars (LEMON_API_KEY, LEMON_STORE_ID, LEMON_PREMIUM_VARIANT_ID, LEMON_WEBHOOK_SECRET), configure webhook URL (`/api/lemon-webhook`) in LS dashboard.
 
 **Support email:** `salveapp@proton.me` (set in `src/components/sections/Legal.jsx`)
 
