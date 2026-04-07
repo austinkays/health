@@ -515,7 +515,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
       )}
 
       {/* ── Calendar ─────────────────────────────────────── */}
-      <Card className="mb-3">
+      <Card className="mb-3 md:max-w-[540px]">
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Previous month"><ChevronLeft size={18} className="text-salve-textMid" /></button>
           <div className="flex items-center gap-2">
