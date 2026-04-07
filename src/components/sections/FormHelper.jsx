@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, ClipboardPaste, Sparkles, Copy, Check, ChevronDown, AlertTriangle, Leaf, RotateCcw, X, Image } from 'lucide-react';
+import { Camera, ClipboardPaste, Sparkles, Copy, Check, ChevronDown, AlertTriangle, Leaf, RotateCcw, X, ChevronRight } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import AIConsentGate from '../ui/AIConsentGate';
@@ -61,9 +61,33 @@ function CopyButton({ text, label = 'Copy' }) {
   );
 }
 
-function AnswerCard({ pair, index }) {
+// Map section names mentioned in AI responses to navigation tab IDs
+const SECTION_NAV_MAP = {
+  'medications': 'meds', 'conditions': 'conditions', 'allergies': 'allergies',
+  'providers': 'providers', 'vitals': 'vitals', 'procedures': 'procedures',
+  'vaccines': 'immunizations', 'insurance': 'insurance', 'journal': 'journal',
+  'activities': 'activities', 'labs': 'labs', 'visits': 'appts',
+  'cycle tracker': 'cycles', 'genetics': 'genetics',
+};
+
+function parseNavHint(answer) {
+  // Look for "You can add this in **SectionName**" or "You can track this in **SectionName**"
+  const match = answer.match(/You can (?:add|track|log) this in \*\*(.+?)\*\*/i);
+  if (!match) return null;
+  const sectionName = match[1].toLowerCase();
+  const navId = SECTION_NAV_MAP[sectionName];
+  if (!navId) return null;
+  return { label: match[1], navId };
+}
+
+function AnswerCard({ pair, index, onNav }) {
   const [expanded, setExpanded] = useState(true);
   const isPersonal = pair.answer.includes('⚠') || pair.answer.toLowerCase().includes('answer this personally');
+  const navHint = isPersonal ? parseNavHint(pair.answer) : null;
+  // Clean display text: remove the nav hint line from what's shown since we render it as a button
+  const displayAnswer = navHint
+    ? pair.answer.replace(/You can (?:add|track|log) this in \*\*.+?\*\*\.?/i, '').trim()
+    : pair.answer;
 
   return (
     <Card className={isPersonal ? '!border-salve-amber/30' : ''}>
@@ -88,11 +112,24 @@ function AnswerCard({ pair, index }) {
       {expanded && (
         <div className="mt-2 pt-2 border-t border-salve-border/50">
           {isPersonal ? (
-            <div className="flex items-start gap-2">
-              <AlertTriangle size={13} className="text-salve-amber shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <AIMarkdown compact>{pair.answer}</AIMarkdown>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={13} className="text-salve-amber shrink-0 mt-0.5" />
+                <p className="text-[12px] text-salve-textMid font-montserrat m-0 leading-relaxed italic">
+                  {displayAnswer.replace(/⚠\s*/g, '').replace(/\*/g, '')}
+                </p>
               </div>
+              {navHint && onNav && (
+                <button
+                  onClick={() => onNav(navHint.navId)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-salve-lav/8 hover:bg-salve-lav/15 border border-salve-lav/20 cursor-pointer transition-colors w-full text-left"
+                >
+                  <span className="text-[11px] text-salve-lav font-montserrat font-medium">
+                    Add in {navHint.label}
+                  </span>
+                  <ChevronRight size={12} className="text-salve-lav ml-auto" />
+                </button>
+              )}
             </div>
           ) : (
             <div className="bg-salve-card2 rounded-lg px-3 py-2.5">
@@ -101,9 +138,11 @@ function AnswerCard({ pair, index }) {
               </p>
             </div>
           )}
-          <div className="flex justify-end mt-2">
-            <CopyButton text={pair.answer.replace(/⚠\s*/g, '')} label="Copy answer" />
-          </div>
+          {!isPersonal && (
+            <div className="flex justify-end mt-2">
+              <CopyButton text={pair.answer.replace(/⚠\s*/g, '')} label="Copy answer" />
+            </div>
+          )}
         </div>
       )}
     </Card>
@@ -127,7 +166,7 @@ function readFileAsBase64(file) {
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export default function FormHelper({ data }) {
+export default function FormHelper({ data, onNav }) {
   const [questions, setQuestions] = useState('');
   const [imageFile, setImageFile] = useState(null); // { file, preview, data, mediaType }
   const [results, setResults] = useState(null);
@@ -375,7 +414,7 @@ export default function FormHelper({ data }) {
 
             <div className="space-y-2">
               {results.pairs.map((pair, i) => (
-                <AnswerCard key={i} pair={pair} index={i} />
+                <AnswerCard key={i} pair={pair} index={i} onNav={onNav} />
               ))}
             </div>
 

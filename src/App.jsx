@@ -355,7 +355,7 @@ function AppContent() {
       case 'search':     return <Search data={data} onNav={onNav} />;
       case 'legal':      return <Legal onNav={onNav} />;
       case 'feedback':   return <Feedback {...shared} />;
-      case 'formhelper': return <FormHelper {...shared} />;
+      case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
   };
