@@ -273,19 +273,6 @@ export default function FormHelper({ data, onNav }) {
   return (
     <AIConsentGate>
       <div className="space-y-4">
-        {/* Friendly intro */}
-        <div className="px-1 mt-1 mb-0">
-          <p className="text-sm text-salve-textMid font-montserrat mb-2">
-            New doctor or therapist form? Sage can fill it out for you using your health records.
-          </p>
-          <div className="text-[12px] text-salve-textFaint font-montserrat space-y-1">
-            <p className="m-0"><strong className="text-salve-textMid">How to use:</strong></p>
-            <p className="m-0">1. Take a <strong className="text-salve-textMid">screenshot</strong> of the form, or <strong className="text-salve-textMid">select all</strong> the text on the page (Ctrl+A / Cmd+A) and copy it</p>
-            <p className="m-0">2. Paste it here — don't worry about formatting, Sage will figure out the questions</p>
-            <p className="m-0">3. Review the answers and copy them into the form</p>
-          </div>
-        </div>
-
         {/* Input area */}
         {!results && (
           <Card
@@ -302,8 +289,8 @@ export default function FormHelper({ data, onNav }) {
               </div>
             )}
             {!dragOver && <div className="space-y-3">
-              {/* Image upload area */}
-              {imageFile ? (
+              {/* Image preview when attached */}
+              {imageFile && (
                 <div className="relative">
                   <img
                     src={imageFile.preview}
@@ -317,75 +304,63 @@ export default function FormHelper({ data, onNav }) {
                   >
                     <X size={12} className="text-salve-textMid" />
                   </button>
-                  <p className="text-[10px] text-salve-sage font-montserrat mt-1.5 m-0 flex items-center gap-1">
-                    <Check size={10} /> Screenshot attached — Sage will read the questions from it
-                  </p>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex-1 flex flex-col items-center gap-1.5 px-3 py-4 rounded-lg border border-dashed border-salve-border hover:border-salve-lav/50 hover:bg-salve-lav/5 transition-all cursor-pointer bg-transparent"
-                  >
-                    <Camera size={20} className="text-salve-lav" />
-                    <span className="text-[11px] text-salve-textMid font-montserrat font-medium">Upload photo</span>
-                    <span className="text-[10px] text-salve-textFaint font-montserrat">screenshot or photo of form</span>
-                  </button>
-                  <button
-                    onClick={handlePaste}
-                    className="flex-1 flex flex-col items-center gap-1.5 px-3 py-4 rounded-lg border border-dashed border-salve-border hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all cursor-pointer bg-transparent"
-                  >
-                    <ClipboardPaste size={20} className="text-salve-sage" />
-                    <span className="text-[11px] text-salve-textMid font-montserrat font-medium">Paste from clipboard</span>
-                    <span className="text-[10px] text-salve-textFaint font-montserrat">text or screenshot</span>
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    capture="environment"
-                    onChange={e => { if (e.target.files?.[0]) handleImageSelect(e.target.files[0]); e.target.value = ''; }}
-                    className="hidden"
-                  />
                 </div>
               )}
 
-              {/* Text input */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-[11px] font-montserrat text-salve-textFaint">
-                    {imageFile ? 'Any additional text from the form (optional)' : 'Or type / paste the form text here'}
-                  </label>
-                </div>
-                <textarea
-                  value={questions}
-                  onChange={e => setQuestions(e.target.value)}
-                  onPaste={(e) => {
-                    // Handle pasted images directly into textarea
-                    const items = e.clipboardData?.items;
-                    if (items) {
-                      for (const item of items) {
-                        if (item.type.startsWith('image/')) {
-                          e.preventDefault();
-                          const file = item.getAsFile();
-                          if (file) handleImageSelect(file);
-                          return;
-                        }
+              {/* Text input — always visible */}
+              <textarea
+                value={questions}
+                onChange={e => setQuestions(e.target.value)}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (items) {
+                    for (const item of items) {
+                      if (item.type.startsWith('image/')) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        if (file) handleImageSelect(file);
+                        return;
                       }
                     }
-                  }}
-                  placeholder="Select all the text on the form page (Ctrl+A / Cmd+A), copy it (Ctrl+C / Cmd+C), then paste it here (Ctrl+V / Cmd+V). It's okay if extra stuff gets copied — Sage will find the questions."
-                  rows={imageFile ? 3 : 6}
-                  className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
-                />
-              </div>
+                  }
+                }}
+                placeholder="Paste the form text here — Sage will find the questions"
+                rows={imageFile ? 3 : 5}
+                className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
+              />
 
-              {/* Generate button */}
-              <div className="flex items-center gap-3">
+              {/* Action row */}
+              <div className="flex items-center gap-2">
                 <Button onClick={handleGenerate} disabled={!hasInput || loading}>
                   <Sparkles size={14} />
                   {loading ? 'Working on it...' : 'Fill Out My Form'}
                 </Button>
+                <div className="flex items-center gap-1 ml-auto">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-salve-textFaint hover:text-salve-lav hover:bg-salve-lav/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
+                    aria-label="Upload screenshot"
+                  >
+                    <Camera size={12} />
+                    Photo
+                  </button>
+                  <button
+                    onClick={handlePaste}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-salve-textFaint hover:text-salve-sage hover:bg-salve-sage/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
+                    aria-label="Paste from clipboard"
+                  >
+                    <ClipboardPaste size={12} />
+                    Paste
+                  </button>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={e => { if (e.target.files?.[0]) handleImageSelect(e.target.files[0]); e.target.value = ''; }}
+                  className="hidden"
+                />
               </div>
             </div>}
           </Card>
