@@ -325,7 +325,14 @@ function normalizeImportData(fileData) {
   }
 
   // Legacy v2 format (individual hc: keys)
+  // Include all TABLE_MAP keys with empty-array defaults so v3 tables
+  // are preserved as empty rather than silently dropped during import.
+  const base = {};
+  for (const key of Object.keys(TABLE_MAP)) {
+    base[key] = [];
+  }
   return {
+    ...base,
     settings: fileData['hc:settings'] || null,
     meds: fileData['hc:meds'] || [],
     conditions: fileData['hc:conditions'] || [],
@@ -389,6 +396,11 @@ export async function importRestore(normalized) {
         }
       } catch (restoreErr) {
         console.error('Backup restore also failed:', restoreErr);
+        const affectedTables = Object.values(TABLE_MAP).join(', ');
+        throw new Error(
+          `Import failed and backup restore also failed. Affected tables: ${affectedTables}. ` +
+          `Original error: ${err.message}. Restore error: ${restoreErr.message}`
+        );
       }
     }
     throw err;

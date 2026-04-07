@@ -167,7 +167,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
         if (s <= target) { cycleStart = s; break; }
       }
       // For future dates past the last period, use projected cycle starts
-      if (!cycleStart && stats.lastPeriod) {
+      if (!cycleStart && stats.lastPeriod && stats.avgLength > 0) {
         const last = new Date(stats.lastPeriod + 'T00:00:00');
         while (last <= target) {
           cycleStart = new Date(last);

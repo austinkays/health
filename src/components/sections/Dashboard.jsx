@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight, Calendar, AlertTriangle, AlertOctagon,
+  Sparkles, ChevronRight, ArrowRight, Calendar, AlertTriangle, AlertOctagon,
   User, Shield, FlaskConical, Activity, Settings as SettingsIcon,
   Sun, Moon, Sunrise, Sunset, ClipboardList, Search, X,
   TrendingUp, ShieldAlert, Heart, Leaf, CheckSquare, Zap,

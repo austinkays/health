@@ -361,7 +361,7 @@ export default async function handler(req, res) {
 
   // Parse request (Anthropic-shaped body)
   const { messages, prompt_key, profile_text, prompt_opts, system: rawSystem, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools, model: requestedModel, skip_usage_log = false } = req.body;
-  const maxTokens = Math.min(Number(rawMaxTokens) || 2000, 8192);
+  const maxTokens = Math.min(Number(rawMaxTokens) || 2000, 4096);
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages array is required' });

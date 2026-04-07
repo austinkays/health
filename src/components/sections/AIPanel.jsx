@@ -1112,6 +1112,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         setChatMessages(updated);
         saveConversation(updated);
       }
+      setCooldown(true);
+      setTimeout(() => setCooldown(false), 1500);
     } catch (e) {
       const isDailyLimit = e.message?.includes('Daily AI limit');
       const errMsg = isDailyLimit
@@ -1123,8 +1125,6 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       setLoading(false);
       setToolExecutions([]);
       setUsage(getDailyUsage());
-      setCooldown(true);
-      setTimeout(() => setCooldown(false), 1500);
     }
   };
 

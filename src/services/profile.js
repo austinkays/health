@@ -4,7 +4,9 @@ import { VITAL_TYPES, getCycleRelatedLabel } from '../constants/defaults';
 // Higher limit for FDA data which is system-sourced, not user-authored
 function san(text, limit = 500) {
   if (!text) return '';
-  return String(text).replace(/[<>{}]/g, '').slice(0, limit);
+  return String(text)
+    .replace(/[<>{}\r\n\u202A-\u202E\u2066-\u2069\u200E\u200F]/g, ' ')
+    .slice(0, limit);
 }
 
 // Condense verbose FDA label text into key clinical points
@@ -247,7 +249,7 @@ export function buildProfile(data) {
   const journal = data.journal || [];
   if (journal.length) {
     p += '\n— RECENT JOURNAL ENTRIES (last 15) —\n';
-    journal.slice(0, 15).forEach(e => {
+    journal.slice(-15).forEach(e => {
       p += '- ' + e.date;
       if (e.mood) p += ' [mood: ' + e.mood + ']';
       if (e.severity) p += ' [severity: ' + e.severity + '/10]';

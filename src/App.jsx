@@ -237,6 +237,8 @@ function AppContent() {
     const subscription = onAuthChange((event, s) => {
       if (!s && (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
         setSessionExpired(true);
+        setSageOpen(false);
+        setSageIntroOpen(false);
         clearSentryUser();
       } else if (s?.user?.id) {
         setSentryUser(s.user.id);
