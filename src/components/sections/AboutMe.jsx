@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ChevronDown, User, Brain, Users, Coffee, Heart } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
+import { SageIntroButton } from '../ui/SageIntro';
 
 const CATEGORIES = [
   {
@@ -110,7 +111,7 @@ function CategorySection({ category, values, onChange, defaultOpen = false }) {
   );
 }
 
-export default function AboutMe({ data, updateSettings }) {
+export default function AboutMe({ data, updateSettings, onSageIntro }) {
   const aboutMe = data.settings?.about_me || {};
 
   const handleChange = (key, value) => {
@@ -133,6 +134,10 @@ export default function AboutMe({ data, updateSettings }) {
           {filledTotal} of {totalFields} fields filled · Saves automatically
         </p>
       </div>
+
+      {onSageIntro && (
+        <SageIntroButton onClick={onSageIntro} compact />
+      )}
 
       {CATEGORIES.map(cat => (
         <CategorySection

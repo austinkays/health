@@ -1092,6 +1092,28 @@ html.theme-crystal .border-salve-border {
   100% { box-shadow: none; }
 }
 
+/* Sage intro animations */
+@keyframes sage-float {
+  0%, 100% { transform: translateY(100%); opacity: 0; }
+  20% { opacity: 0.6; }
+  50% { transform: translateY(-20px); opacity: 0.4; }
+  80% { opacity: 0; }
+}
+.sage-intro-bloom {
+  animation: sage-bloom 3s ease-in-out infinite;
+}
+@keyframes sage-bloom {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(var(--salve-sage) / 0.15); }
+  50% { transform: scale(1.05); box-shadow: 0 0 24px 8px rgb(var(--salve-sage) / 0.1); }
+}
+.sage-intro-sparkle {
+  animation: sage-sparkle 2s ease-in-out infinite;
+}
+@keyframes sage-sparkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
+}
+
 /* Hide scrollbar for filter pill rows */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

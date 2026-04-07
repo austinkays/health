@@ -16,6 +16,7 @@ import SkeletonList from './components/ui/SkeletonCard';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
+import SageIntroChat from './components/ui/SageIntro';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
@@ -96,6 +97,7 @@ function AppContent() {
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
   const [sageOpen, setSageOpen] = useState(false);
+  const [sageIntroOpen, setSageIntroOpen] = useState(false);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
 
   // Sync premium status into services/ai.js so isFeatureLocked() sees it.
@@ -317,7 +319,7 @@ function AppContent() {
   const renderSection = () => {
     const shared = { data, addItem: addItemT, addItemSilent: addItem, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
@@ -357,7 +359,7 @@ function AppContent() {
       case 'legal':      return <Legal onNav={onNav} />;
       case 'feedback':   return <Feedback {...shared} />;
       case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
-      case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} />;
+      case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} onSageIntro={() => setSageIntroOpen(true)} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
   };
@@ -388,6 +390,16 @@ function AppContent() {
         onOpenFullChat={() => onNav('ai')}
         data={data}
       />
+      {sageIntroOpen && (
+        <SageIntroChat
+          data={data}
+          addItem={addItem}
+          updateItem={updateItem}
+          removeItem={removeItem}
+          updateSettings={updateSettings}
+          onClose={() => { setSageIntroOpen(false); reloadData(); }}
+        />
+      )}
     </div>
   );
 }

@@ -164,6 +164,13 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
 
       // ── Update ──
       if (operation === 'update') {
+        if (table === 'about_me') {
+          const cleaned = sanitizeInput(input, 'update');
+          const current = data.settings?.about_me || {};
+          await updateSettings({ about_me: { ...current, ...cleaned } });
+          const fields = Object.keys(cleaned).filter(k => cleaned[k]);
+          return { tool_use_id, content: `Saved to About Me: ${fields.join(', ')}` };
+        }
         if (table === 'profile') {
           const cleaned = sanitizeInput(input, 'update');
           await updateSettings(cleaned);

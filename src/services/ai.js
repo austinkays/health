@@ -582,6 +582,18 @@ export async function fetchCrossReactivity(medName, allergies, profileText) {
   );
 }
 
+export async function sendSageIntro(messages, profileText, onToolCall) {
+  return callAPIWithTools(
+    messages,
+    'sageIntro', profileText,
+    HEALTH_TOOLS,
+    onToolCall,
+    2000,
+    10,
+    { useToolsAddendum: true },
+  );
+}
+
 export async function fillFormQuestions(questionsText, profileText, imageData) {
   const content = [];
   if (imageData) {

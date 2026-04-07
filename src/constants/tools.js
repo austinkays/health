@@ -398,6 +398,40 @@ export const HEALTH_TOOLS = [
       required: ['table'],
     },
   },
+  {
+    name: 'update_about_me',
+    description: 'Update one or more fields in the patient\'s About Me personal profile. Use this to save personal info like pronouns, occupation, education, living situation, relationship status, children, religion, identities, mental health history (previous therapy, psych diagnoses, psych hospitalizations, past psych meds, therapy goals), family history (family mental health, family substance use, family medical), lifestyle (alcohol, caffeine, tobacco, recreational drugs), and strengths/interests (hobbies, strengths, whats going well, support system).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        pronouns: { type: 'string' },
+        occupation: { type: 'string' },
+        employer: { type: 'string' },
+        education: { type: 'string' },
+        living_situation: { type: 'string' },
+        relationship_status: { type: 'string' },
+        children: { type: 'string' },
+        religion: { type: 'string' },
+        identities: { type: 'string' },
+        previous_therapy: { type: 'string' },
+        psych_diagnoses: { type: 'string' },
+        psych_hospitalizations: { type: 'string' },
+        past_psych_meds: { type: 'string' },
+        therapy_goals: { type: 'string' },
+        family_mental_health: { type: 'string' },
+        family_substance_use: { type: 'string' },
+        family_medical: { type: 'string' },
+        alcohol: { type: 'string' },
+        caffeine: { type: 'string' },
+        tobacco: { type: 'string' },
+        recreational_drugs: { type: 'string' },
+        hobbies: { type: 'string' },
+        strengths: { type: 'string' },
+        whats_going_well: { type: 'string' },
+        support_system: { type: 'string' },
+      },
+    },
+  },
 ];
 
 // Tools that require user confirmation before execution
@@ -437,6 +471,7 @@ export const TOOL_TABLE_MAP = {
   add_activity:        { table: 'activities', operation: 'add' },
   add_genetic_result:  { table: 'genetic_results', operation: 'add' },
   update_settings:     { table: 'profile', operation: 'update' },
+  update_about_me:     { table: 'about_me', operation: 'update' },
   search_records:      { table: null, operation: 'search' },
   list_records:        { table: null, operation: 'list' },
 };

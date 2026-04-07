@@ -13,6 +13,7 @@ import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Motif, { Divider } from '../ui/Motif';
+import { SageIntroButton, shouldShowIntro } from '../ui/SageIntro';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
@@ -238,7 +239,7 @@ const HUB_TILES = [
 
 const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
-export default function Dashboard({ data, interactions, onNav, onSage }) {
+export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro }) {
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -1003,6 +1004,13 @@ export default function Dashboard({ data, interactions, onNav, onSage }) {
           ))}
         </div>
       </section>
+
+      {/* ── Introduce Yourself to Sage (shown when profile is sparse) ── */}
+      {onSageIntro && shouldShowIntro(data) && (
+        <section className="dash-stagger dash-stagger-3 mb-5 md:mb-6">
+          <SageIntroButton onClick={onSageIntro} />
+        </section>
+      )}
 
       {/* ── Chat with Sage ──────────────────────── */}
       {onSage && (
