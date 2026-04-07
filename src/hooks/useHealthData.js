@@ -61,7 +61,8 @@ export default function useHealthData(session, demoMode = false) {
         const fresh = await db.loadAll();
         if (!cancelled) {
           setData(fresh);
-          cache.write(fresh).catch(() => {});
+          // Defer cache write off the critical path — don't block rendering
+          setTimeout(() => cache.write(fresh).catch(() => {}), 100);
           // If premium is no longer active (trial expired / free tier) but the
           // client still has anthropic selected, force-switch to gemini so
           // requests don't hit /api/chat and 403. Keeps client + server in sync.

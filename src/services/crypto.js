@@ -4,6 +4,30 @@
 
 const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
+const CHUNK = 8192; // Process base64 in 8KB chunks to avoid call-stack overflow
+
+// Chunked base64 encode — btoa(String.fromCharCode(...bytes)) crashes or
+// blocks the main thread for seconds when bytes.length > ~50KB.
+function uint8ToBase64(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+// Chunked base64 decode
+function base64ToUint8(b64) {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += CHUNK) {
+    const end = Math.min(i + CHUNK, binary.length);
+    for (let j = i; j < end; j++) {
+      bytes[j] = binary.charCodeAt(j);
+    }
+  }
+  return bytes;
+}
 // 10k iterations is secure for JWT-derived keys (high-entropy input, not a password).
 // 100k was blocking the main thread for 200-500ms on every page load.
 const ITERATIONS = 10_000;
@@ -60,11 +84,11 @@ export async function encrypt(plaintext, token) {
   combined.set(iv, salt.length);
   combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
 
-  return btoa(String.fromCharCode(...combined));
+  return uint8ToBase64(combined);
 }
 
 export async function decrypt(b64, token) {
-  const combined = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const combined = base64ToUint8(b64);
 
   // Support legacy format (IV-only, no salt prefix) for existing cached data
   if (combined.length > SALT_LENGTH + IV_LENGTH) {
