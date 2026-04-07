@@ -1,4 +1,4 @@
-import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, ClipboardPaste } from 'lucide-react';
+import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, ClipboardPaste, MessageCircle } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home, key: '1' },
@@ -69,6 +69,21 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Feedback link — beta */}
+      <div className="px-3 mb-2">
+        <button
+          onClick={() => onNav('feedback')}
+          className={`flex items-center gap-2.5 w-full px-3.5 py-2 rounded-lg cursor-pointer bg-transparent border-none text-left transition-colors text-[13px] ${
+            tab === 'feedback'
+              ? 'bg-salve-lav/10 text-salve-lav font-semibold'
+              : 'text-salve-textFaint hover:text-salve-textMid hover:bg-salve-bg'
+          }`}
+        >
+          <MessageCircle size={15} strokeWidth={1.5} />
+          <span>Feedback</span>
+        </button>
+      </div>
 
       {/* Demo mode card */}
       {demoMode && (
