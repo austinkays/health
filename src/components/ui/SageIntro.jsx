@@ -65,17 +65,25 @@ export function SageIntroButton({ onClick, compact = false }) {
   );
 }
 
+const INTRO_DISMISSED_KEY = 'salve:sage-intro-done';
+
 // Check whether to show the intro prompt
 export function shouldShowIntro(data, dataLoading) {
   // Don't flash the button while data is still loading from Supabase
   if (dataLoading) return false;
   if (!data) return false;
+  // Respect dismissal
+  try { if (localStorage.getItem(INTRO_DISMISSED_KEY)) return false; } catch {}
   const about = data.settings?.about_me || {};
   const filledAbout = Object.values(about).filter(v => v && String(v).trim()).length;
   const totalRecords = (data.meds?.length || 0) + (data.conditions?.length || 0) +
     (data.providers?.length || 0) + (data.allergies?.length || 0);
   // Show if About Me is mostly empty AND few medical records
   return filledAbout < 3 && totalRecords < 3;
+}
+
+export function dismissIntro() {
+  try { localStorage.setItem(INTRO_DISMISSED_KEY, '1'); } catch {}
 }
 
 // The full-screen intro chat experience
@@ -91,7 +99,8 @@ function isConversationComplete(messages) {
     text.includes('happy to have you'));
 }
 
-export default function SageIntroChat({ data, addItem, updateItem, removeItem, updateSettings, onClose, onNav }) {
+export default function SageIntroChat({ data, addItem, updateItem, removeItem, updateSettings, onClose: rawOnClose, onNav }) {
+  const onClose = () => { dismissIntro(); rawOnClose(); };
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
