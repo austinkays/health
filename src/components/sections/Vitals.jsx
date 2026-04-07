@@ -231,7 +231,15 @@ export default function Vitals({ data, addItem, removeItem }) {
       </div>
 
       <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
-        {VITAL_TYPES.map(t => (
+        <button
+          onClick={() => setCt('all')}
+          className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat transition-colors ${
+            ct === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+          }`}
+        >
+          All
+        </button>
+        {VITAL_TYPES.filter(t => data.vitals.some(v => v.type === t.id)).map(t => (
           <button
             key={t.id}
             onClick={() => setCt(t.id)}
@@ -269,6 +277,7 @@ export default function Vitals({ data, addItem, removeItem }) {
         </div>
       )}
 
+      {ct !== 'all' && <>
       <div className="flex items-center justify-between mb-2">
         <div className="flex gap-1">
           {['7d', '30d', '90d', 'all'].map(r => (
@@ -426,13 +435,14 @@ export default function Vitals({ data, addItem, removeItem }) {
           )}
         </div>
       )}
+      </>}
 
       <SectionTitle>Recent Entries</SectionTitle>
       {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
         (() => {
           // Group filtered entries by date — newest first
           const filtered = data.vitals.slice().reverse()
-            .filter(v => sourceFilter === 'all' || getSource(v) === sourceFilter)
+            .filter(v => (ct === 'all' || v.type === ct) && (sourceFilter === 'all' || getSource(v) === sourceFilter))
             .slice(0, 40);
           const byDate = [];
           const dateMap = new Map();
