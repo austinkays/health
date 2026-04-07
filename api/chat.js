@@ -117,12 +117,24 @@ export default async function handler(req, res) {
   // Uses the same api_usage table pattern as api/gemini.js's daily limit.
   const CLAUDE_DAILY_LIMIT = 50;
   try {
-    // Count calls made today (midnight PT = 08:00 UTC approximation)
-    const todayStartUtc = new Date();
-    todayStartUtc.setUTCHours(8, 0, 0, 0);
-    if (todayStartUtc.getTime() > Date.now()) {
-      // We haven't hit today's 08:00 UTC yet — use yesterday's 08:00 UTC
-      todayStartUtc.setUTCDate(todayStartUtc.getUTCDate() - 1);
+    // Count calls made today (midnight PT, DST-safe via Intl)
+    const now = Date.now();
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Los_Angeles',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(now));
+    const get = (t) => parts.find(p => p.type === t)?.value;
+    let h = Number(get('hour'));
+    if (h === 24) h = 0;
+    const mi = Number(get('minute'));
+    const s = Number(get('second'));
+    const msSinceMidnightPT = ((h * 60 + mi) * 60 + s) * 1000;
+    const todayStartUtc = new Date(now - msSinceMidnightPT);
+    if ([h, mi, s].some(v => Number.isNaN(v))) {
+      // Fallback: 24h window ending now
+      todayStartUtc.setTime(now - 24 * 60 * 60 * 1000);
     }
     const countRes = await fetch(
       `${supabaseUrl}/rest/v1/api_usage?user_id=eq.${userId}&endpoint=eq.chat&created_at=gte.${todayStartUtc.toISOString()}&select=id`,

@@ -310,6 +310,7 @@ export default async function handler(req, res) {
   }
 
   let userId;
+  let userTier = 'free';
   try {
     const verifyRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
       headers: { Authorization: `Bearer ${token}`, apikey: serviceKey },
@@ -326,7 +327,6 @@ export default async function handler(req, res) {
     }
 
     // Check user tier — premium/admin users bypass daily limit
-    let userTier = 'free';
     if (userId) {
       try {
         const profileRes = await fetch(

@@ -123,7 +123,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
       const cd = getCooldownSeconds(next);
       if (cd > 0) {
         setCooldownUntil(Date.now() + cd * 1000);
-        setError(`Too many attempts — try again in ${cd} seconds`);
+        setError('');
       } else {
         setError(err.message || 'Invalid code — please try again');
       }
