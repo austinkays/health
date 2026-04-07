@@ -454,6 +454,57 @@ export default function Vitals({ data, addItem, removeItem }) {
             }
             dateMap.get(v.date).entries.push(v);
           }
+          // ── "All" view: clean daily summary rows ──
+          if (ct === 'all') {
+            return <div className="space-y-2">{byDate.map(({ date, entries }) => {
+              // Deduplicate: pick one representative value per type (latest, or avg for hourly)
+              const typeMap = new Map();
+              for (const v of entries) {
+                if (!typeMap.has(v.type)) typeMap.set(v.type, []);
+                typeMap.get(v.type).push(v);
+              }
+              const flagCount = entries.filter(v => getVitalFlag(v.type, v.value, v.value2)).length;
+              return (
+                <Card key={date} className="!p-3 !mb-0">
+                  <div className="flex items-baseline justify-between mb-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
+                    <span className="text-[10px] text-salve-textFaint font-montserrat">{fmtDate(date)}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                    {[...typeMap.entries()].map(([vtype, typeEntries]) => {
+                      const t = VITAL_TYPES.find(x => x.id === vtype);
+                      const flag = typeEntries.some(v => getVitalFlag(v.type, v.value, v.value2));
+                      let displayVal;
+                      if (typeEntries.length >= 3 && typeEntries[0].time) {
+                        const vals = typeEntries.map(v => Number(v.value)).filter(Number.isFinite);
+                        displayVal = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+                      } else if (vtype === 'bp') {
+                        displayVal = `${typeEntries[0].value}/${typeEntries[0].value2}`;
+                      } else {
+                        displayVal = typeEntries[0].value;
+                      }
+                      return (
+                        <button
+                          key={vtype}
+                          onClick={() => setCt(vtype)}
+                          className="flex items-baseline gap-1 bg-transparent border-none p-0 cursor-pointer group"
+                          aria-label={`View ${t?.label} details`}
+                        >
+                          <span className="text-[10px] text-salve-textFaint font-montserrat group-hover:text-salve-textMid transition-colors">{t?.label}:</span>
+                          <span className={`text-[13px] font-semibold font-montserrat ${flag ? 'text-salve-amber' : 'text-salve-sage'}`}>
+                            {displayVal}
+                          </span>
+                          <span className="text-[9px] text-salve-textFaint font-montserrat">{t?.unit}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Card>
+              );
+            })}</div>;
+          }
+
+          // ── Single-type view: expandable day cards ──
           return <div className="md:grid md:grid-cols-2 md:gap-3">{byDate.map(({ date, entries }) => {
             const cp = data.cycles?.length > 0 ? getCyclePhaseForDate(date, data.cycles) : null;
             const isOpen = expandedDays.has(date);
@@ -462,7 +513,6 @@ export default function Vitals({ data, addItem, removeItem }) {
               if (next.has(date)) next.delete(date); else next.add(date);
               return next;
             });
-            // Build collapsed summary chips
             const flagCount = entries.filter(v => getVitalFlag(v.type, v.value, v.value2)).length;
             const typeSet = new Set(entries.map(v => v.type));
             const summaryChips = [...typeSet].slice(0, 4).map(vtype => {
@@ -473,7 +523,6 @@ export default function Vitals({ data, addItem, removeItem }) {
             });
             return (
               <Card key={date} className="!p-0 !mb-2.5 overflow-hidden">
-                {/* Date header — clickable to expand/collapse */}
                 <button
                   onClick={toggleDay}
                   className="w-full flex items-center justify-between px-3.5 py-2.5 bg-salve-card2/40 border-none cursor-pointer text-left transition-colors hover:bg-salve-card2/70"
