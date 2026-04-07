@@ -162,7 +162,7 @@ export default async function handler(req, res) {
   }
 
   // Proxy to Anthropic
-  const { messages, prompt_key, profile_text, prompt_opts, system: rawSystem, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools, model: requestedModel } = req.body;
+  const { messages, prompt_key, profile_text, prompt_opts, system: rawSystem, max_tokens: rawMaxTokens = 2000, use_web_search = false, tools: clientTools, model: requestedModel, skip_usage_log = false } = req.body;
   const max_tokens = Math.min(Number(rawMaxTokens) || 2000, 4096);
 
   if (!messages || !Array.isArray(messages)) {
@@ -258,8 +258,8 @@ export default async function handler(req, res) {
     clearTimeout(timer);
     const data = await response.json();
 
-    // Log usage with token counts (fire-and-forget)
-    if (userId && response.status === 200) {
+    // Log usage with token counts (fire-and-forget) — skip for onboarding intro
+    if (userId && response.status === 200 && !skip_usage_log) {
       logUsage(userId, 'chat', {
         tokens_in: data?.usage?.input_tokens ?? null,
         tokens_out: data?.usage?.output_tokens ?? null,

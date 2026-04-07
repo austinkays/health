@@ -677,6 +677,7 @@ async function callAPIWithTools(messages, promptKey, profileText, tools, onToolC
       model,
     };
     if (Object.keys(promptOpts).length > 0) body.prompt_opts = promptOpts;
+    if (skipUsageCount) body.skip_usage_log = true;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120000);
