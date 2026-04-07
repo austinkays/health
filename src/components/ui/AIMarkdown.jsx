@@ -45,9 +45,13 @@ const compactComponents = {
   li: ({ children }) => <li className="text-[12px] text-salve-textMid leading-relaxed list-disc marker:text-salve-lavDim">{children}</li>,
 };
 
+const DISCLAIMER_RE = /\n---\n\*(?:AI|Sage'?s?) suggestions are not medical advice\.[^*]*\*\s*$/;
+
 export default function AIMarkdown({ children, compact = false, reveal = false }) {
   if (!children) return null;
-  const processed = linkifyBareUrls(children);
+  const hasDisclaimer = DISCLAIMER_RE.test(children);
+  const clean = hasDisclaimer ? children.replace(DISCLAIMER_RE, '').trim() : children;
+  const processed = linkifyBareUrls(clean);
   const md = (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
@@ -56,5 +60,14 @@ export default function AIMarkdown({ children, compact = false, reveal = false }
       {processed}
     </ReactMarkdown>
   );
-  return reveal ? <div className="ai-prose-reveal">{md}</div> : md;
+  const content = reveal ? <div className="ai-prose-reveal">{md}</div> : md;
+  if (!hasDisclaimer) return content;
+  return (
+    <>
+      {content}
+      <p className="text-[9px] text-salve-textFaint/60 font-montserrat italic mt-2 mb-0 leading-tight">
+        Sage's suggestions are not medical advice. Always consult your healthcare providers.
+      </p>
+    </>
+  );
 }
