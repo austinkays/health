@@ -153,7 +153,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
       setMessages(prev => [...prev, { role: 'assistant', content: 'Hmm, I hit a snag. Could you try that again? 😊' }]);
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
+      setTimeout(() => inputRef.current?.focus(), 50);
     }
   };
 
