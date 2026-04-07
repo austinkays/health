@@ -607,73 +607,55 @@ function CostResult({ result, savedInsights }) {
 
 /* ── House Consultation Chat Room ──────────────────────────── */
 
-function HouseChatRoom({ messages, loading, input, onInputChange, onSend, inputRef, endRef }) {
+function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inputRef, endRef }) {
   return (
     <div>
       <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 p-4 mb-4">
         <div className="flex items-center gap-2 mb-1.5">
           <Stethoscope size={15} className="text-salve-amber" />
-          <span className="text-[12px] font-semibold font-montserrat text-salve-amber">Dual AI Consultation</span>
+          <span className="text-[12px] font-semibold font-montserrat text-salve-amber">Group Consultation</span>
         </div>
         <p className="text-[11px] text-salve-textFaint leading-relaxed font-montserrat">
-          Claude and Gemini both see your full health profile and will respond independently. Ask anything — they may agree, disagree, or surface different insights.
+          A group chat with Claude and Gemini. Claude responds first, then Gemini reacts — they can agree, disagree, or build on each other's ideas.
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 mb-4 max-h-[60vh] overflow-y-auto no-scrollbar">
+      <div className="flex flex-col gap-3 mb-4 max-h-[60vh] overflow-y-auto no-scrollbar">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-[12px] text-salve-textFaint font-montserrat italic">Type a question below to start your consultation.</p>
+            <p className="text-[12px] text-salve-textFaint font-montserrat italic">Ask a health question to start the conversation.</p>
           </div>
         )}
-        {messages.map((msg, i) => (
-          msg.type === 'user' ? (
+        {messages.map((msg, i) => {
+          if (msg.role === 'user') return (
             <div key={i} className="self-end max-w-[80%] bg-salve-lav/10 border border-salve-lav/20 rounded-xl px-4 py-2.5">
-              <p className="text-[13px] text-salve-text font-montserrat">{msg.content}</p>
+              <p className="text-[13px] text-salve-text font-montserrat m-0">{msg.content}</p>
             </div>
-          ) : (
-            <div key={i} className="flex flex-col gap-2 md:flex-row">
-              <div className="flex-1 rounded-xl border border-salve-lav/20 bg-salve-lav/5 overflow-hidden">
-                <div className="border-l-[3px] border-salve-lav/40 p-3.5 pl-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="w-4 h-4 rounded-full bg-salve-lav/15 flex items-center justify-center">
-                      <Sparkles size={9} className="text-salve-lav" />
-                    </div>
-                    <span className="text-[10px] font-semibold font-montserrat text-salve-lav tracking-wide uppercase">Claude</span>
+          );
+          const isClaude = msg.role === 'claude';
+          const color = isClaude ? 'lav' : 'sage';
+          const Icon = isClaude ? Sparkles : Shield;
+          const name = isClaude ? 'Claude' : 'Gemini';
+          return (
+            <div key={i} className={`max-w-[88%] rounded-xl border border-salve-${color}/20 bg-salve-${color}/5 overflow-hidden`}>
+              <div className={`border-l-[3px] border-salve-${color}/40 p-3.5 pl-4`}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <div className={`w-4 h-4 rounded-full bg-salve-${color}/15 flex items-center justify-center`}>
+                    <Icon size={9} className={`text-salve-${color}`} />
                   </div>
-                  <AIMarkdown>{msg.claude}</AIMarkdown>
+                  <span className={`text-[10px] font-semibold font-montserrat text-salve-${color} tracking-wide uppercase`}>{name}</span>
                 </div>
-              </div>
-              <div className="flex-1 rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
-                <div className="border-l-[3px] border-salve-sage/40 p-3.5 pl-4">
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <div className="w-4 h-4 rounded-full bg-salve-sage/15 flex items-center justify-center">
-                      <Shield size={9} className="text-salve-sage" />
-                    </div>
-                    <span className="text-[10px] font-semibold font-montserrat text-salve-sage tracking-wide uppercase">Gemini</span>
-                  </div>
-                  <AIMarkdown>{msg.gemini}</AIMarkdown>
-                </div>
+                <AIMarkdown>{msg.content}</AIMarkdown>
               </div>
             </div>
-          )
-        ))}
-        {loading && (
-          <div className="flex flex-col gap-2 md:flex-row">
-            <div className="flex-1 rounded-xl border border-salve-lav/20 bg-salve-lav/5 overflow-hidden">
-              <div className="border-l-[3px] border-salve-lav/40 p-3.5 pl-4">
-                <div className="flex items-center gap-1.5">
-                  <Loader2 size={11} className="text-salve-lav animate-spin" />
-                  <span className="text-[11px] font-montserrat text-salve-lav/80">Claude is thinking...</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
-              <div className="border-l-[3px] border-salve-sage/40 p-3.5 pl-4">
-                <div className="flex items-center gap-1.5">
-                  <Loader2 size={11} className="text-salve-sage animate-spin" />
-                  <span className="text-[11px] font-montserrat text-salve-sage/80">Gemini is thinking...</span>
-                </div>
+          );
+        })}
+        {loadingWho && (
+          <div className={`max-w-[88%] rounded-xl border border-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/20 bg-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/5 overflow-hidden`}>
+            <div className={`border-l-[3px] border-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/40 p-3.5 pl-4`}>
+              <div className="flex items-center gap-1.5">
+                <Loader2 size={11} className={`text-salve-${loadingWho === 'claude' ? 'lav' : 'sage'} animate-spin`} />
+                <span className={`text-[11px] font-montserrat text-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/80`}>{loadingWho === 'claude' ? 'Claude' : 'Gemini'} is thinking...</span>
               </div>
             </div>
           </div>
@@ -691,9 +673,9 @@ function HouseChatRoom({ messages, loading, input, onInputChange, onSend, inputR
           onChange={e => onInputChange(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()}
           placeholder="Ask both your AI consultants..."
-          disabled={loading}
+          disabled={!!loadingWho}
         />
-        <Button onClick={onSend} disabled={!input.trim() || loading} className="!px-3" aria-label="Send to both AI consultants">
+        <Button onClick={onSend} disabled={!input.trim() || !!loadingWho} className="!px-3" aria-label="Send to both AI consultants">
           <Send size={16} />
         </Button>
       </div>
@@ -904,11 +886,10 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const pendingConfirmRef = useRef(null);
 
   // House Consultation chat state
-  const [houseMessages, setHouseMessages] = useState([]);
-  const [claudeHistory, setClaudeHistory] = useState([]);
-  const [geminiHistory, setGeminiHistory] = useState([]);
+  const [houseMessages, setHouseMessages] = useState([]); // flat: { role: 'user'|'claude'|'gemini', content }
+  const [houseHistory, setHouseHistory] = useState([]); // API-format shared history for both models
   const [houseInput, setHouseInput] = useState('');
-  const [houseLoading, setHouseLoading] = useState(false);
+  const [houseLoadingWho, setHouseLoadingWho] = useState(null); // null | 'claude' | 'gemini'
   const houseEndRef = useRef(null);
   const houseInputRef = useRef(null);
 
@@ -1002,21 +983,32 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   };
 
   const handleHouseChat = async () => {
-    if (!houseInput.trim() || houseLoading) return;
+    if (!houseInput.trim() || houseLoadingWho) return;
     const msg = houseInput.trim();
     setHouseInput('');
-    setHouseLoading(true);
-    const display = [...houseMessages, { type: 'user', content: msg }];
-    setHouseMessages(display);
+    const withUser = [...houseMessages, { role: 'user', content: msg }];
+    setHouseMessages(withUser);
+    setHouseLoadingWho('claude');
     try {
-      const { claude, gemini } = await sendHouseChat(claudeHistory, geminiHistory, msg, profile);
-      setClaudeHistory(prev => [...prev, { role: 'user', content: msg }, { role: 'assistant', content: claude }]);
-      setGeminiHistory(prev => [...prev, { role: 'user', content: msg }, { role: 'assistant', content: gemini }]);
-      setHouseMessages([...display, { type: 'pair', claude, gemini }]);
+      const { claude, gemini } = await sendHouseChat(
+        houseHistory, msg, profile,
+        // onClaudeReply: show Claude's bubble immediately while Gemini thinks
+        (claudeText) => {
+          setHouseMessages(prev => [...prev, { role: 'claude', content: claudeText }]);
+          setHouseLoadingWho('gemini');
+        }
+      );
+      // Add Gemini's response and update shared history
+      setHouseMessages(prev => [...prev, { role: 'gemini', content: gemini }]);
+      setHouseHistory(prev => [
+        ...prev,
+        { role: 'user', content: msg },
+        { role: 'assistant', content: `[Claude]: ${claude}\n\n[Gemini]: ${gemini}` },
+      ]);
     } catch (e) {
-      setHouseMessages([...display, { type: 'pair', claude: `Error: ${e.message}`, gemini: `Error: ${e.message}` }]);
+      setHouseMessages(prev => [...prev, { role: 'claude', content: `Error: ${e.message}` }]);
     } finally {
-      setHouseLoading(false);
+      setHouseLoadingWho(null);
       setTimeout(() => houseInputRef.current?.focus(), 50);
     }
   };
@@ -1224,13 +1216,13 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   if (mode && mode !== 'ask') return (
     <AIConsentGate>
     <div className="mt-2">
-      <SectionTitle action={<button onClick={() => { setMode(null); setResult(null); setRevealed(false); if (mode === 'house') { setHouseMessages([]); setClaudeHistory([]); setGeminiHistory([]); } }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
+      <SectionTitle action={<button onClick={() => { setMode(null); setResult(null); setRevealed(false); if (mode === 'house') { setHouseMessages([]); setHouseHistory([]); } }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
         {FEATURES.find(f => f.id === mode)?.label}
       </SectionTitle>
       {mode === 'house' ? (
         <HouseChatRoom
           messages={houseMessages}
-          loading={houseLoading}
+          loadingWho={houseLoadingWho}
           input={houseInput}
           onInputChange={setHouseInput}
           onSend={handleHouseChat}

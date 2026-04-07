@@ -555,20 +555,28 @@ export async function fetchHouseConsultation(profileText) {
   };
 }
 
-export async function sendHouseChat(claudeMessages, geminiMessages, userMessage, profileText) {
+export async function sendHouseChat(sharedHistory, userMessage, profileText, onClaudeReply) {
   if (_demoMode) return { claude: 'Demo mode: House Consultation unavailable. Sign in to chat with both AIs.', gemini: 'Demo mode: House Consultation unavailable. Sign in to chat with both AIs.' };
   if (!_adminActive) throw new Error('Admin feature. House Consultation requires admin tier.');
 
-  const claudeMsgs = [...claudeMessages, { role: 'user', content: userMessage }];
-  const geminiMsgs = [...geminiMessages, { role: 'user', content: userMessage }];
+  const claudeSystem = PROMPTS.houseConsultation + '\n\nYou are "Claude" on this team. You respond first, then Gemini will see your response and reply.\n\n' + profileText;
+  const geminiSystem = PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team. You respond after Claude — you can see what Claude said and can agree, disagree, or add context.\n\n' + profileText;
 
-  const claudeSystem = PROMPTS.houseConsultation + '\n\nYou are "Claude" on this team.\n\n' + profileText;
-  const geminiSystem = PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team.\n\n' + profileText;
+  // Step 1: Claude responds first
+  const claudeMsgs = [...sharedHistory, { role: 'user', content: userMessage }];
+  const claudeText = await callProvider('/api/chat', 'claude-opus-4-6', claudeMsgs, claudeSystem, 800);
 
-  const [claudeText, geminiText] = await Promise.all([
-    callProvider('/api/chat', 'claude-opus-4-6', claudeMsgs, claudeSystem, 800),
-    callProvider('/api/gemini', 'gemini-2.5-pro', geminiMsgs, geminiSystem, 800),
-  ]);
+  // Notify UI so Claude's bubble appears immediately
+  if (onClaudeReply) onClaudeReply(claudeText);
+
+  // Step 2: Gemini sees the user's question + Claude's response
+  const geminiMsgs = [
+    ...sharedHistory,
+    { role: 'user', content: userMessage },
+    { role: 'assistant', content: `[Claude's response]: ${claudeText}` },
+    { role: 'user', content: 'Now give your perspective. You can agree, disagree, or add to what Claude said.' },
+  ];
+  const geminiText = await callProvider('/api/gemini', 'gemini-2.5-pro', geminiMsgs, geminiSystem, 800);
 
   return { claude: claudeText, gemini: geminiText };
 }
