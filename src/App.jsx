@@ -398,6 +398,7 @@ function AppContent() {
           removeItem={removeItem}
           updateSettings={updateSettings}
           onClose={() => { setSageIntroOpen(false); reloadData(); }}
+          onNav={onNav}
         />
       )}
     </div>

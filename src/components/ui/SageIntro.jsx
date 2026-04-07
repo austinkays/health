@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Leaf, Send, X, Sparkles } from 'lucide-react';
+import { Leaf, Send, X, Sparkles, Home, ClipboardPaste, MessageCircle } from 'lucide-react';
 import { buildProfile } from '../../services/profile';
 import { sendSageIntro, getDailyUsage } from '../../services/ai';
 import { createToolExecutor } from '../../services/toolExecutor';
@@ -77,7 +77,19 @@ export function shouldShowIntro(data) {
 }
 
 // The full-screen intro chat experience
-export default function SageIntroChat({ data, addItem, updateItem, removeItem, updateSettings, onClose }) {
+// Detect if the conversation has wrapped up
+function isConversationComplete(messages) {
+  if (messages.length < 4) return false;
+  const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+  if (!lastAssistant) return false;
+  const text = lastAssistant.content.toLowerCase();
+  return (text.includes('welcome to salve') || text.includes("you're all set") ||
+    text.includes('youre all set') || text.includes('all saved') ||
+    (text.includes('let me know') && text.includes('anything')) ||
+    text.includes('happy to have you'));
+}
+
+export default function SageIntroChat({ data, addItem, updateItem, removeItem, updateSettings, onClose, onNav }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -266,12 +278,52 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                 </div>
               </div>
             )}
+
+            {/* Completion card */}
+            {!loading && isConversationComplete(messages) && (
+              <div className="mt-6 rounded-2xl border border-salve-sage/30 bg-gradient-to-br from-salve-sage/5 via-salve-card to-salve-lav/5 p-5 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-salve-sage/15 flex items-center justify-center mx-auto sage-intro-bloom">
+                  <Sparkles size={22} className="text-salve-sage" />
+                </div>
+                <div>
+                  <h3 className="font-playfair text-lg font-semibold text-salve-text m-0">You're all set!</h3>
+                  <p className="text-[12px] text-salve-textFaint font-montserrat mt-1 mb-0">
+                    Everything's been saved to your profile.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 max-w-[280px] mx-auto">
+                  <button
+                    onClick={onClose}
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-salve-sage text-white font-montserrat font-semibold text-[13px] border-none cursor-pointer transition-all hover:bg-salve-sage/90 active:scale-[0.97]"
+                  >
+                    <Home size={14} />
+                    Go to Dashboard
+                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { onClose(); onNav?.('formhelper'); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-lav/10 text-salve-lav font-montserrat font-medium text-[12px] border border-salve-lav/20 cursor-pointer transition-all hover:bg-salve-lav/20"
+                    >
+                      <ClipboardPaste size={12} />
+                      Form Helper
+                    </button>
+                    <button
+                      onClick={() => { onClose(); onNav?.('ai'); }}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-sage/10 text-salve-sage font-montserrat font-medium text-[12px] border border-salve-sage/20 cursor-pointer transition-all hover:bg-salve-sage/20"
+                    >
+                      <MessageCircle size={12} />
+                      Chat with Sage
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Input area */}
-      {started && (
+      {/* Input area — hidden when conversation is complete */}
+      {started && !isConversationComplete(messages) && (
         <div className="shrink-0 border-t border-salve-border/50 bg-salve-card/80 backdrop-blur-sm px-4 py-3 max-w-[600px] mx-auto w-full">
           <div className="flex gap-2">
             <input
