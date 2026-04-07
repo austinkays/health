@@ -599,6 +599,7 @@ export async function sendSageIntro(messages, profileText, onToolCall) {
     2000,
     10,
     { useToolsAddendum: true },
+    { skipUsageCount: true },
   );
 }
 
@@ -651,7 +652,7 @@ export async function fetchGeneticExplanation(gene, variant, phenotype, affected
 
 /* ── Tool-use agentic loop ──────────────────────────────── */
 
-async function callAPIWithTools(messages, promptKey, profileText, tools, onToolCall, maxTokens = 2000, maxLoops = 10, promptOpts = {}) {
+async function callAPIWithTools(messages, promptKey, profileText, tools, onToolCall, maxTokens = 2000, maxLoops = 10, promptOpts = {}, { skipUsageCount = false } = {}) {
   if (_demoMode) {
     const text = await demoResponseFor('chat', messages);
     return { text, messages };
@@ -699,7 +700,7 @@ async function callAPIWithTools(messages, promptKey, profileText, tools, onToolC
         throw new Error(msg);
       }
       data = await res.json();
-      incrementUsage();
+      if (!skipUsageCount) incrementUsage();
     } catch (e) {
       if (e.name === 'AbortError') throw new Error('Request timed out. Try again.');
       throw e;
