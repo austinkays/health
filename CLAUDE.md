@@ -1154,3 +1154,31 @@ All fixed.
 | ~~20~~ | `profile.js` / `AIPanel.jsx` | `buildProfile()` not memoized | **Fixed** — wrapped in `useMemo` keyed on `data` |
 | ~~21~~ | `AIPanel.jsx` | Message list re-renders on keystroke | **Fixed** — extracted to `ChatMessageList` `React.memo` component |
 | ~~22~~ | `Dashboard.jsx` | `daysUntil()` duplicated inline | **Fixed** — extracted to `utils/dates.js` |
+
+### Performance Deep Audit (2026-04-07)
+
+Major performance overhaul. App was loading in 10-15 seconds and tab switching was equally slow.
+
+| Fix | File(s) | Root Cause | Impact |
+|-----|---------|-----------|--------|
+| **Remove `key={tab}`** | `App.jsx` | `<div key={tab}>` forced React to destroy and remount the entire section tree on every tab switch. Dashboard (82KB + 368KB Recharts + 30 useMemo hooks) rebuilt from zero on every navigation. | **CRITICAL — single biggest fix** |
+| **useCallback CRUD wrappers** | `App.jsx` | `addItemT`, `updateItemT`, `removeItemT`, `onNav` were plain arrow functions recreated every render, causing all children to re-render on every state change. | CRITICAL |
+| **Conditional SagePopup** | `App.jsx` | SagePopup was always mounted with full `data` prop, re-rendering on every data change even when closed. Now only renders when `sageOpen` is true. | HIGH |
+| **Dashboard search short-circuit** | `Dashboard.jsx` | `allSearchResults` useMemo depended on full `data` object, running `searchEntities()` across 700+ records on every data change even when nobody was searching. Now returns `[]` when query < 2 chars. | HIGH |
+| **No-op navigator lock** | `supabase.js` | `db.loadAll()` fired 24 parallel queries, each calling `getSession()` which acquired an exclusive `navigator.locks` lock. Cascading 5-second timeouts stalled load for 60+ seconds. Disabled lock (single-tab PWA). | CRITICAL |
+| **Single RPC load** | `db.js` + migration `022` | Replaced 24 parallel HTTP requests with one `load_all_data()` PostgreSQL RPC function. Falls back to parallel queries if RPC unavailable. | CRITICAL |
+| **PBKDF2 100k to 10k** | `crypto.js` | 100,000 PBKDF2 iterations blocked main thread for 200-500ms on every cache read/write. JWT tokens don't need password-level protection. Also fixed broken `prewarmKey()` that used a random salt instead of the cached data's actual salt. | HIGH |
+| **Chunked base64** | `crypto.js` | `btoa(String.fromCharCode(...combined))` spread 100K+ bytes as individual function arguments, blocking the main thread for seconds. Replaced with 8KB chunked encoding. | CRITICAL |
+| **Bundle split** | `vite.config.js` | 693KB single bundle split into 344KB main + parallel vendor chunks (react 135KB, supabase 194KB, icons 50KB). | HIGH |
+| **SW precache 95 to 6** | `vite.config.js` | Every deploy invalidated all 95 precached JS chunks, causing a ~2MB download storm that saturated the connection. Now only precaches HTML + CSS; JS uses browser HTTP cache. | HIGH |
+| **SW font cache fix** | `vite.config.js` | Google Fonts CacheFirst strategy failed on fresh SW activation. Changed to StaleWhileRevalidate. | MEDIUM |
+| **Token seeding** | `token.js` + `App.jsx` | `getAuthToken()` called `getSession()` independently for every API service. Now seeded from `onAuthStateChange`. | MEDIUM |
+| **Instant splash screen** | `index.html` | Added inline loading spinner visible before any JS loads/parses. | MEDIUM |
+
+**Key lessons for future development:**
+- **NEVER use `key=` on a wrapper div to trigger animations** — it destroys the entire component subtree. Use CSS transitions or animation classes instead.
+- **Always wrap callback props in `useCallback`** — especially CRUD functions and navigation handlers passed to many children.
+- **Conditionally render modals/popups** — don't mount hidden components that receive expensive props like `data`.
+- **Guard expensive useMemo hooks** — if a computation is only needed under certain conditions (e.g., search is active), short-circuit when those conditions aren't met.
+- **Avoid `String.fromCharCode(...largeArray)`** — use chunked processing for any array > 10KB.
+- **Keep SW precache minimal** — only HTML/CSS. JS chunks should use browser HTTP cache to avoid download storms on every deploy.

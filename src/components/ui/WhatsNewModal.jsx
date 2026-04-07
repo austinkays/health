@@ -33,23 +33,23 @@ export default function WhatsNewModal({ onClose }) {
     >
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className={`relative bg-salve-card border border-salve-border rounded-2xl w-full max-w-md max-h-[80vh] overflow-y-auto p-6 shadow-xl transition-transform duration-200 ${visible ? 'scale-100' : 'scale-95'}`}
+        className={`relative bg-salve-card border border-salve-border rounded-2xl w-full max-w-[380px] max-h-[80vh] overflow-y-auto px-7 py-6 shadow-xl transition-transform duration-200 ${visible ? 'scale-100' : 'scale-95'}`}
         onClick={e => e.stopPropagation()}
       >
-        <div className="text-center mb-4">
-          <div className="text-2xl mb-1" aria-hidden="true">&#10024;</div>
-          <h2 className="font-playfair text-xl font-semibold text-salve-text">What's New</h2>
-          <p className="text-salve-textFaint text-xs mt-1">v{CURRENT_VERSION}</p>
+        <div className="text-center mb-5">
+          <div className="text-2xl mb-1.5" aria-hidden="true">&#10024;</div>
+          <h2 className="font-playfair text-xl font-semibold text-salve-text tracking-tight">What&#8217;s New</h2>
+          <p className="text-salve-textFaint text-[11px] font-montserrat mt-1 tracking-wide">v{CURRENT_VERSION}</p>
         </div>
 
         {CHANGELOG.map(entry => (
           <div key={entry.version} className="mb-5">
-            <h3 className="text-sm font-semibold text-salve-lav mb-2">{entry.title}</h3>
-            <ul className="space-y-1.5">
+            <h3 className="text-[13px] font-semibold text-salve-lav mb-3 tracking-wide">{entry.title}</h3>
+            <ul className="space-y-2">
               {entry.items.map((item, i) => (
-                <li key={i} className="flex gap-2 text-sm text-salve-textMid leading-relaxed">
-                  <span className="text-salve-sage shrink-0 mt-0.5" aria-hidden="true">&#10003;</span>
-                  <span>{item}</span>
+                <li key={i} className="flex gap-2.5 text-[13px] text-salve-textMid leading-snug">
+                  <span className="text-salve-sage/70 shrink-0 text-[11px] mt-px" aria-hidden="true">&#10003;</span>
+                  <span className="text-pretty">{item}</span>
                 </li>
               ))}
             </ul>
@@ -58,7 +58,7 @@ export default function WhatsNewModal({ onClose }) {
 
         <button
           onClick={handleClose}
-          className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 text-sm hover:bg-salve-lavDim transition-colors mt-2"
+          className="w-full bg-salve-lav text-salve-bg font-semibold rounded-xl py-3 text-[13px] hover:bg-salve-lavDim transition-colors mt-3 tracking-wide"
         >
           Got it
         </button>
