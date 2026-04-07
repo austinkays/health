@@ -23,11 +23,12 @@ export const cache = {
     clearKeyCache();
   },
 
-  // Pre-derive the AES key in the background so cache.read() is instant.
-  // Call this as soon as a session token is available (e.g. in onAuthStateChange).
+  // Pre-derive the AES key using the actual cached data's salt so
+  // cache.read() → decrypt() finds the key already cached and skips PBKDF2.
   prewarm() {
     if (!_token) return;
-    prewarmKey(_token); // fire-and-forget — result cached in crypto.js
+    const raw = localStorage.getItem(CACHE_KEY);
+    prewarmKey(_token, raw); // fire-and-forget — result cached in crypto.js
   },
 
   // Read non-PHI settings synchronously (no decryption needed).
