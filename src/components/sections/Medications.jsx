@@ -54,6 +54,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [enrichProgress, setEnrichProgress] = useState(null);
   const [enrichResult, setEnrichResult] = useState(null);
   const [maintOpen, setMaintOpen] = useState(false);
+  // Cancel bulk ops on unmount to prevent state updates after navigation
+  const cancelledRef = useRef(false);
+  useEffect(() => () => { cancelledRef.current = true; }, []);
   const [fdaDetailId, setFdaDetailId] = useState(null);
   const [fdaExpanded, setFdaExpanded] = useState({});
 
@@ -175,16 +178,19 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const bulkEnrichMeds = async () => {
     const unenriched = data.meds.filter(m => m.rxcui && (!m.fda_data || !m.fda_data.spl_set_id));
     if (unenriched.length === 0) return;
+    cancelledRef.current = false;
     setEnriching(true);
     setEnrichResult(null);
     let enriched = 0;
     const failed = [];
     for (let i = 0; i < unenriched.length; i++) {
+      if (cancelledRef.current) break;
       setEnrichProgress({ current: i + 1, total: unenriched.length, name: unenriched[i].display_name || unenriched[i].name });
       const info = await enrichFdaData(unenriched[i]);
       if (info) enriched++;
       else failed.push(unenriched[i].display_name || unenriched[i].name);
     }
+    if (cancelledRef.current) return;
     setEnrichProgress(null);
     setEnrichResult({ enriched, total: unenriched.length, failed });
     setEnriching(false);
@@ -194,10 +200,13 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const bulkLinkMeds = async () => {
     const unlinked = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim());
     if (unlinked.length === 0) return;
+    cancelledRef.current = false;
     setBulkLinking(true);
     setBulkResult(null);
     let linked = 0;
+    const failed = [];
     for (let i = 0; i < unlinked.length; i++) {
+      if (cancelledRef.current) break;
       setBulkProgress({ current: i + 1, total: unlinked.length, name: unlinked[i].display_name || unlinked[i].name });
       try {
         const results = await drugAutocomplete(unlinked[i].name);
@@ -214,11 +223,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           if (fda_data) updates.fda_data = fda_data;
           await updateItem('medications', unlinked[i].id, updates);
           linked++;
+        } else {
+          failed.push(unlinked[i].display_name || unlinked[i].name);
         }
-      } catch { /* skip this med */ }
+      } catch {
+        failed.push(unlinked[i].display_name || unlinked[i].name);
+      }
     }
+    if (cancelledRef.current) return;
     setBulkProgress(null);
-    setBulkResult({ linked, total: unlinked.length });
+    setBulkResult({ linked, total: unlinked.length, failed });
     setBulkLinking(false);
   };
 
@@ -741,7 +755,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                   bulkResult ? (
                     <div className="text-[11px] text-salve-textMid">
                       <span className="font-medium text-salve-sage">✓ Linked {bulkResult.linked}/{bulkResult.total}</span>
-                      {bulkResult.linked < bulkResult.total && <span className="text-salve-textFaint"> · {bulkResult.total - bulkResult.linked} unmatched</span>}
+                      {bulkResult.failed?.length > 0 && <span className="text-salve-textFaint"> · Failed: {bulkResult.failed.join(', ')}</span>}
                       <button onClick={() => setBulkResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
                     </div>
                   ) : bulkProgress ? (

@@ -243,6 +243,9 @@ export function validateImport(fileData) {
   return { valid: true, mode, preview, normalized };
 }
 
+// Ensure a value is an array — prevents crashes when malformed imports have non-array fields
+const asArray = (v) => Array.isArray(v) ? v : [];
+
 /**
  * Normalize any supported file format into a flat structure.
  */
@@ -252,29 +255,29 @@ function normalizeImportData(fileData) {
     return {
       settings: null,
       // Original 7 (name-mapped)
-      meds:       fileData.medications    || [],
-      conditions: fileData.conditions     || [],
-      allergies:  fileData.allergies      || [],
-      providers:  fileData.providers      || [],
-      vitals:     fileData.vitals         || [],
-      appts:      fileData.appointments   || [],
-      journal:    fileData.journal_entries || [],
+      meds:       asArray(fileData.medications),
+      conditions: asArray(fileData.conditions),
+      allergies:  asArray(fileData.allergies),
+      providers:  asArray(fileData.providers),
+      vitals:     asArray(fileData.vitals),
+      appts:      asArray(fileData.appointments),
+      journal:    asArray(fileData.journal_entries),
       // Comprehensive v3 — same name internally and externally
-      labs:                 fileData.labs                 || [],
-      procedures:           fileData.procedures           || [],
-      immunizations:        fileData.immunizations        || [],
-      care_gaps:            fileData.care_gaps            || [],
-      anesthesia_flags:     fileData.anesthesia_flags     || [],
-      appeals_and_disputes: fileData.appeals_and_disputes || [],
-      surgical_planning:    fileData.surgical_planning    || [],
-      insurance:            fileData.insurance            || [],
-      insurance_claims:     fileData.insurance_claims     || [],
-      drug_prices:          fileData.drug_prices          || [],
-      todos:                fileData.todos                || [],
-      cycles:               fileData.cycles               || [],
-      activities:           fileData.activities           || [],
-      genetic_results:     fileData.genetic_results      || [],
-      conversations:        fileData.ai_conversations     || fileData.conversations || [],
+      labs:                 asArray(fileData.labs),
+      procedures:           asArray(fileData.procedures),
+      immunizations:        asArray(fileData.immunizations),
+      care_gaps:            asArray(fileData.care_gaps),
+      anesthesia_flags:     asArray(fileData.anesthesia_flags),
+      appeals_and_disputes: asArray(fileData.appeals_and_disputes),
+      surgical_planning:    asArray(fileData.surgical_planning),
+      insurance:            asArray(fileData.insurance),
+      insurance_claims:     asArray(fileData.insurance_claims),
+      drug_prices:          asArray(fileData.drug_prices),
+      todos:                asArray(fileData.todos),
+      cycles:               asArray(fileData.cycles),
+      activities:           asArray(fileData.activities),
+      genetic_results:      asArray(fileData.genetic_results),
+      conversations:        asArray(fileData.ai_conversations || fileData.conversations),
     };
   }
 
@@ -282,29 +285,29 @@ function normalizeImportData(fileData) {
   if (fileData._export?.app === 'salve') {
     return {
       settings: fileData.settings || null,
-      meds:       fileData.meds       || [],
-      conditions: fileData.conditions || [],
-      allergies:  fileData.allergies  || [],
-      providers:  fileData.providers  || [],
-      vitals:     fileData.vitals     || [],
-      appts:      fileData.appts      || [],
-      journal:    fileData.journal    || [],
+      meds:       asArray(fileData.meds),
+      conditions: asArray(fileData.conditions),
+      allergies:  asArray(fileData.allergies),
+      providers:  asArray(fileData.providers),
+      vitals:     asArray(fileData.vitals),
+      appts:      asArray(fileData.appts),
+      journal:    asArray(fileData.journal),
       // v3 fields if present in a future backup export
-      labs:                 fileData.labs                 || [],
-      procedures:           fileData.procedures           || [],
-      immunizations:        fileData.immunizations        || [],
-      care_gaps:            fileData.care_gaps            || [],
-      anesthesia_flags:     fileData.anesthesia_flags     || [],
-      appeals_and_disputes: fileData.appeals_and_disputes || [],
-      surgical_planning:    fileData.surgical_planning    || [],
-      insurance:            fileData.insurance            || [],
-      insurance_claims:     fileData.insurance_claims     || [],
-      drug_prices:          fileData.drug_prices          || [],
-      todos:                fileData.todos                || [],
-      cycles:               fileData.cycles               || [],
-      activities:           fileData.activities           || [],
-      genetic_results:     fileData.genetic_results      || [],
-      conversations:        fileData.conversations        || [],
+      labs:                 asArray(fileData.labs),
+      procedures:           asArray(fileData.procedures),
+      immunizations:        asArray(fileData.immunizations),
+      care_gaps:            asArray(fileData.care_gaps),
+      anesthesia_flags:     asArray(fileData.anesthesia_flags),
+      appeals_and_disputes: asArray(fileData.appeals_and_disputes),
+      surgical_planning:    asArray(fileData.surgical_planning),
+      insurance:            asArray(fileData.insurance),
+      insurance_claims:     asArray(fileData.insurance_claims),
+      drug_prices:          asArray(fileData.drug_prices),
+      todos:                asArray(fileData.todos),
+      cycles:               asArray(fileData.cycles),
+      activities:           asArray(fileData.activities),
+      genetic_results:      asArray(fileData.genetic_results),
+      conversations:        asArray(fileData.conversations),
     };
   }
 
@@ -314,13 +317,13 @@ function normalizeImportData(fileData) {
     const tracking = fileData['hc:tracking'] || {};
     return {
       settings: fileData['hc:settings'] || null,
-      meds: core.meds || [],
-      conditions: core.conditions || [],
-      allergies: core.allergies || [],
-      providers: core.providers || [],
-      vitals: tracking.vitals || [],
-      appts: tracking.appts || [],
-      journal: tracking.journal || [],
+      meds: asArray(core.meds),
+      conditions: asArray(core.conditions),
+      allergies: asArray(core.allergies),
+      providers: asArray(core.providers),
+      vitals: asArray(tracking.vitals),
+      appts: asArray(tracking.appts),
+      journal: asArray(tracking.journal),
     };
   }
 
@@ -334,13 +337,13 @@ function normalizeImportData(fileData) {
   return {
     ...base,
     settings: fileData['hc:settings'] || null,
-    meds: fileData['hc:meds'] || [],
-    conditions: fileData['hc:conditions'] || [],
-    allergies: fileData['hc:allergies'] || [],
-    providers: fileData['hc:providers'] || [],
-    vitals: fileData['hc:vitals'] || fileData['hc:appointments'] || [],
-    appts: fileData['hc:appts'] || [],
-    journal: fileData['hc:journal'] || [],
+    meds: asArray(fileData['hc:meds']),
+    conditions: asArray(fileData['hc:conditions']),
+    allergies: asArray(fileData['hc:allergies']),
+    providers: asArray(fileData['hc:providers']),
+    vitals: asArray(fileData['hc:vitals'] || fileData['hc:appointments']),
+    appts: asArray(fileData['hc:appts']),
+    journal: asArray(fileData['hc:journal']),
   };
 }
 
@@ -349,13 +352,12 @@ function normalizeImportData(fileData) {
  * Creates an in-memory backup before erasing so data can be recovered on failure.
  */
 export async function importRestore(normalized) {
-  // Create backup of current data before erasing
+  // Create backup of current data before erasing — abort if backup fails
   let backup;
   try {
     backup = await exportAll();
-  } catch {
-    // If we can't backup, proceed anyway — user explicitly chose restore
-    backup = null;
+  } catch (backupErr) {
+    throw new Error('Could not create safety backup before restore. Aborting to protect your data. (' + backupErr.message + ')');
   }
 
   try {
@@ -416,7 +418,7 @@ export async function importMerge(normalized) {
   const { data: { user } } = await supabase.auth.getUser();
   const uid = user.id;
 
-  const stats = { added: {}, skipped: {} };
+  const stats = { added: {}, skipped: {}, errors: {} };
 
   for (const [key, table] of Object.entries(TABLE_MAP)) {
     const incoming = normalized[key];
@@ -464,6 +466,7 @@ export async function importMerge(normalized) {
       const { error } = await supabase.from(table).insert(toInsert);
       if (error) {
         console.error(`Merge insert error for ${table}:`, error);
+        stats.errors[key] = { attempted: toInsert.length, message: error.message };
       } else {
         stats.added[key] = toInsert.length;
       }

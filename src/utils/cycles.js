@@ -155,10 +155,10 @@ export function detectBBTShift(cycles) {
     const day3 = bbtEntries[i + 2];
 
     if (day1.temp >= threshold && day2.temp >= threshold && day3.temp >= threshold) {
-      // Ovulation happened the day before the first elevated reading
+      // Ovulation typically occurs 1–2 days before the sustained temperature shift
       return {
         confirmed: true,
-        ovulationDate: bbtEntries[i - 1]?.date || day1.date,
+        ovulationDate: bbtEntries[i - 2]?.date || bbtEntries[i - 1]?.date || day1.date,
         shiftDay: day1.date,
         baselineAvg: Math.round(baseAvg * 100) / 100,
         shiftTemp: Math.round(day1.temp * 100) / 100,

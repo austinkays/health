@@ -79,7 +79,7 @@ export default function Vitals({ data, addItem, removeItem }) {
       const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
       if (best) setCt(best);
     }
-  }, [data.vitals]);
+  }, [data.vitals, ct]);
 
   // Detect which sources exist in the data
   const getSource = (v) => {

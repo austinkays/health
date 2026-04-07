@@ -69,13 +69,17 @@ export const cache = {
         localStorage.setItem(CACHE_KEY, encrypted);
       } catch (e) {
         if (e?.name === 'QuotaExceededError' || e?.code === 22) {
-          // Storage full — clear cache and try once more with just the new data
+          // Storage full — save old cache, clear space, retry
+          const oldCache = localStorage.getItem(CACHE_KEY);
           localStorage.removeItem(CACHE_KEY);
           localStorage.removeItem(PENDING_KEY);
           try {
             localStorage.setItem(CACHE_KEY, encrypted);
           } catch {
-            // Still full (e.g. encrypted blob itself is too large) — skip caching
+            // Still full — restore old cache rather than losing all offline data
+            if (oldCache) {
+              try { localStorage.setItem(CACHE_KEY, oldCache); } catch { /* truly out of space */ }
+            }
           }
         }
       }

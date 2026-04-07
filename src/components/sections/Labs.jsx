@@ -225,7 +225,7 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
                   {isExpanded && renderLabDetail(l)}
                 </div></div>
               )}
-          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('labs', id))} onCancel={del.cancel} itemId={l.id} />
+          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => { removeItem('labs', id); setInterpretation(prev => { const n = { ...prev }; delete n[id]; return n; }); })} onCancel={del.cancel} itemId={l.id} />
           </Card>
           );
         })

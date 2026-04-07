@@ -424,7 +424,7 @@ export async function syncOuraStress(existingVitals, addItem, days = 30) {
     if (!s.day || existing.has(s.day)) continue;
     const stressHigh = s.stress_high;
     if (stressHigh == null) continue;
-    const stressVal = Math.min(10, Math.round(stressHigh / 60 / 12));
+    const stressVal = Math.min(10, Math.round((stressHigh / 3600) * 10));
     await addItem('vitals', {
       date: s.day, type: 'pain', value: String(stressVal), value2: '', unit: '/10',
       notes: `Oura Ring stress (high: ${Math.round(stressHigh / 60)}min, recovery: ${s.recovery_high ? Math.round(s.recovery_high / 60) : '—'}min)`,

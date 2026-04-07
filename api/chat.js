@@ -72,11 +72,14 @@ export default async function handler(req, res) {
     // Extract user ID for rate limiting
     const userData = await verifyRes.json();
     userId = userData.id;
+    if (!userId || typeof userId !== 'string') {
+      return res.status(401).json({ error: 'Invalid user session' });
+    }
     // Fast in-memory check first, then persistent check
-    if (userId && !checkMemoryRateLimit(userId)) {
+    if (!checkMemoryRateLimit(userId)) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
     }
-    if (userId && !(await checkPersistentRateLimit(userId, 'chat', RATE_LIMIT_MAX, 60))) {
+    if (!(await checkPersistentRateLimit(userId, 'chat', RATE_LIMIT_MAX, 60))) {
       return res.status(429).json({ error: 'Rate limit exceeded. Please wait a minute and try again.' });
     }
   } catch {
@@ -109,7 +112,8 @@ export default async function handler(req, res) {
       }
     }
   } catch {
-    // Fail-open on tier check error — allow the request
+    // Fail-closed on tier check error — require verified profile for premium features
+    return res.status(500).json({ error: 'Unable to verify account tier. Please try again.' });
   }
 
   // ── Per-user Claude daily call limit (50/day) ──
@@ -167,6 +171,13 @@ export default async function handler(req, res) {
 
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: 'messages array is required' });
+  }
+  if (messages.length > 500) {
+    return res.status(400).json({ error: 'Too many messages (max 500)' });
+  }
+  const totalBytes = JSON.stringify(messages).length;
+  if (totalBytes > 5_000_000) {
+    return res.status(400).json({ error: 'Message payload too large (max 5MB)' });
   }
 
   // Build system prompt server-side from allowlisted key + profile text.

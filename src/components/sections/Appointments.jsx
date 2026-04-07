@@ -152,7 +152,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
                   <div className="text-sm font-medium text-salve-text">{a.reason || 'Appointment'}</div>
                   <div className="text-xs text-salve-textMid mt-0.5">{a.provider ? <a href={providerLookupUrl(a.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{a.provider}</a> : ''}{a.location ? <>{a.provider ? ' · ' : ''}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
                   {/* ── Provider phone quick-link ── */}
-                  {a.provider && providerInfo[a.provider.trim().toLowerCase()]?.phone && (
+                  {a.provider && providerInfo[a.provider.trim().toLowerCase()]?.phone && /\d{3,}/.test(providerInfo[a.provider.trim().toLowerCase()].phone) && (
                     <div className="text-[11px] text-salve-textFaint mt-0.5 flex items-center gap-1">
                       <Phone size={10} strokeWidth={1.4} />
                       <a href={`tel:${providerInfo[a.provider.trim().toLowerCase()].phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">

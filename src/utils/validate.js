@@ -9,7 +9,7 @@ import { VITAL_TYPES } from '../constants/defaults.js';
  * @returns {string|null} Error message or null if valid
  */
 export function validateField(value, rules = {}) {
-  const str = String(value ?? '').trim();
+  const str = (value == null ? '' : String(value)).trim();
 
   if (rules.required && !str) return 'Required';
   if (!str) return null; // remaining rules only apply to non-empty values

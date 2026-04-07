@@ -148,8 +148,11 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
   const cleanupRef = useRef(null);
   cleanupRef.current = { isPremiumOnly, revertTheme };
   useEffect(() => {
+    let mounted = true;
     return () => {
+      mounted = false;
       const { isPremiumOnly, revertTheme } = cleanupRef.current;
+      // revertTheme only updates CSS vars and localStorage, no React state updates
       if (isPremiumOnly) revertTheme();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
