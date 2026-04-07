@@ -94,7 +94,7 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
   if (subView === 'form') return (
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Insurance`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
-        <Field label="Plan Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. CareOregon OHP, OHSU Charity Care" required />
+        <Field label="Plan Name" value={form.name} onChange={v => sf('name', v)} placeholder="e.g. Premera Blue Cross, Regence BlueShield" required />
         <Field label="Type" value={form.type} onChange={v => sf('type', v)} options={TYPES} />
         <Field label="Member ID" value={form.member_id} onChange={v => sf('member_id', v)} placeholder="Your member number" />
         <Field label="Group Number" value={form.group} onChange={v => sf('group', v)} placeholder="Group / plan code" />

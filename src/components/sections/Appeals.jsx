@@ -79,7 +79,7 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
     <FormWrap title={`${editId ? 'Edit' : 'Add'} Appeal / Dispute`} onBack={() => { setSubView(null); setForm(EMPTY); setEditId(null); }}>
       <Card>
         <Field label="Subject / Description" value={form.subject} onChange={v => sf('subject', v)} placeholder="e.g. Denial of Spravato coverage" required />
-        <Field label="Against (insurer / entity)" value={form.against} onChange={v => sf('against', v)} placeholder="e.g. CareOregon, Providence" />
+        <Field label="Against (insurer / entity)" value={form.against} onChange={v => sf('against', v)} placeholder="e.g. Premera Blue Cross, Swedish Medical" />
         <Field label="Status" value={form.status} onChange={v => sf('status', v)} options={STATUSES} />
         <Field label="Date Filed" value={form.date_filed} onChange={v => sf('date_filed', v)} type="date" />
         <Field label="Deadline" value={form.deadline} onChange={v => sf('deadline', v)} type="date" />
