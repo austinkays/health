@@ -1022,6 +1022,23 @@ export default function Dashboard({ data, interactions, onNav, onSage }) {
         </section>
       )}
 
+      {/* ── Form Helper (mobile only — desktop uses sidebar) ── */}
+      <section className="dash-stagger dash-stagger-3 mb-5 md:hidden">
+        <button
+          onClick={() => onNav('formhelper')}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-border rounded-xl cursor-pointer hover:border-salve-lav/50 hover:bg-salve-lav/5 transition-all group text-left"
+        >
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.lav}18` }}>
+            <ClipboardPaste size={15} color={C.lav} strokeWidth={1.5} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-medium text-salve-text">Form Helper</div>
+            <div className="text-[11px] text-salve-textFaint truncate">Auto-fill intake forms from your records</div>
+          </div>
+          <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-lav transition-colors flex-shrink-0" />
+        </button>
+      </section>
+
       {/* ── Two-column grid zone (desktop) — collapses to single col when left is empty ── */}
       <div className={hasLeftContent ? 'md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start' : ''}>
         {/* ── Left column ── */}

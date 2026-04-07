@@ -1,12 +1,13 @@
-import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles } from 'lucide-react';
+import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, ClipboardPaste } from 'lucide-react';
 
 const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home, key: '1' },
   { id: 'meds', label: 'Medications', icon: Pill, key: '2' },
   { id: 'vitals', label: 'Vitals', icon: Heart, key: '3' },
   { id: 'ai', label: 'Sage', icon: Leaf, key: '4' },
-  { id: 'journal', label: 'Journal', icon: BookOpen, key: '5' },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '6' },
+  { id: 'formhelper', label: 'Form Helper', icon: ClipboardPaste, key: '5' },
+  { id: 'journal', label: 'Journal', icon: BookOpen, key: '6' },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '7' },
 ];
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);

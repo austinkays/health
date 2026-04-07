@@ -164,7 +164,7 @@ function AppContent() {
 
   // Global keyboard shortcuts (desktop)
   useEffect(() => {
-    const NAV_KEYS = { '1': 'dash', '2': 'meds', '3': 'vitals', '4': 'ai', '5': 'journal', '6': 'settings' };
+    const NAV_KEYS = { '1': 'dash', '2': 'meds', '3': 'vitals', '4': 'ai', '5': 'formhelper', '6': 'journal', '7': 'settings' };
     const handler = (e) => {
       // Cmd/Ctrl + K → open search
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
