@@ -117,15 +117,14 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     if (!extraction) return;
     const updates = {};
     if (extraction.mood && MOODS.includes(extraction.mood)) updates.mood = extraction.mood;
-    if (extraction.severity) {
-      const sev = String(Math.max(1, Math.min(10, Math.round(Number(extraction.severity)))));
-      if (sev !== 'NaN') updates.severity = sev;
-    }
+    // Severity is auto-computed from symptoms on save — don't apply extraction severity
     if (extraction.symptoms?.length) {
       updates.symptoms = extraction.symptoms.slice(0, 10).map(s => ({
         name: typeof s === 'string' ? s : (s.name || ''),
-        severity: String(Math.max(1, Math.min(10, Math.round(Number(s.severity || 5))))),
+        severity: String(Math.max(1, Math.min(5, Math.round(Number(s.severity || 3))))),
       })).filter(s => s.name);
+      // Auto-open symptoms section when extraction adds them
+      setOpenSections(prev => ({ ...prev, symptoms: true }));
     }
     if (extraction.triggers) updates.triggers = extraction.triggers;
     if (extraction.interventions) updates.interventions = extraction.interventions;
@@ -156,10 +155,33 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     }
   }, [form.mood]);
 
+  // Symptom severity scale (1-5 with clinical labels)
+  const SEV_LEVELS = [
+    { v: '1', label: 'Minimal', active: 'bg-salve-sage/20 border-salve-sage/50 text-salve-sage', hover: 'hover:border-salve-sage/30' },
+    { v: '2', label: 'Mild', active: 'bg-salve-sage/20 border-salve-sage/50 text-salve-sage', hover: 'hover:border-salve-sage/30' },
+    { v: '3', label: 'Moderate', active: 'bg-salve-amber/20 border-salve-amber/50 text-salve-amber', hover: 'hover:border-salve-amber/30' },
+    { v: '4', label: 'Severe', active: 'bg-salve-rose/20 border-salve-rose/50 text-salve-rose', hover: 'hover:border-salve-rose/30' },
+    { v: '5', label: 'Extreme', active: 'bg-salve-rose/20 border-salve-rose/50 text-salve-rose', hover: 'hover:border-salve-rose/30' },
+  ];
+
+  // Frequent symptoms — mined from user's past journal entries
+  const frequentSymptoms = useMemo(() => {
+    const counts = {};
+    (data.journal || []).forEach(e => {
+      (e.symptoms || []).forEach(s => {
+        if (s.name) counts[s.name] = (counts[s.name] || 0) + 1;
+      });
+    });
+    return Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([name]) => name);
+  }, [data.journal]);
+
   // Symptom builder helpers
-  const addSymptom = () => {
+  const addSymptom = (name = '') => {
     if ((form.symptoms || []).length >= 10) return;
-    sf('symptoms', [...(form.symptoms || []), { name: '', severity: '5' }]);
+    sf('symptoms', [...(form.symptoms || []), { name, severity: '3' }]);
   };
   const updateSymptom = (idx, field, value) => {
     const updated = [...(form.symptoms || [])];
@@ -232,6 +254,12 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     if (!form.content.trim() && !form.title.trim()) return;
     // Strip transient UI keys before persisting
     const { _triggersOpen, _interventionsOpen, _adherenceOpen, ...persistForm } = form;
+    // Auto-compute overall severity from max symptom severity (mapped to 1-10 for backward compat)
+    const syms = persistForm.symptoms || [];
+    if (syms.length > 0) {
+      const maxSev = Math.max(...syms.map(s => Number(s.severity) || 3));
+      persistForm.severity = String(maxSev * 2); // 1-5 → 2-10
+    }
     // Crisis check — show resources but still save (journal is the user's space)
     const crisis = detectCrisis(persistForm.content);
     if (editId) {
@@ -454,15 +482,9 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   <button type="button" onClick={() => removeExtractionField('mood')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove mood"><X size={10} /></button>
                 </span>
               )}
-              {extraction.severity && (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-card border border-salve-border text-salve-text font-montserrat">
-                  Severity {extraction.severity}/10
-                  <button type="button" onClick={() => removeExtractionField('severity')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove severity"><X size={10} /></button>
-                </span>
-              )}
               {(extraction.symptoms || []).map((s, i) => (
                 <span key={i} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-amber/10 border border-salve-amber/25 text-salve-amber font-montserrat">
-                  {typeof s === 'string' ? s : s.name}{s.severity ? ` ${s.severity}/10` : ''}
+                  {typeof s === 'string' ? s : s.name}{s.severity ? ` ${s.severity}/5` : ''}
                   <button type="button" onClick={() => setExtraction(prev => ({ ...prev, symptoms: prev.symptoms.filter((_, j) => j !== i) }))} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label={`Remove ${typeof s === 'string' ? s : s.name}`}><X size={10} /></button>
                 </span>
               ))}
@@ -492,37 +514,6 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
         {/* ── Tags ── */}
         <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="flare, fatigue, headache..." />
-
-        {/* ── How's today overall? (quick severity rating) ── */}
-        <div className="mb-4 -mt-1">
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="text-[10px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">How's today overall?</span>
-            {form.severity && form.severity !== '5' && (
-              <span className={`text-[10px] font-montserrat font-medium ${Number(form.severity) >= 7 ? 'text-salve-rose' : Number(form.severity) >= 4 ? 'text-salve-amber' : 'text-salve-sage'}`}>
-                {form.severity}/10
-              </span>
-            )}
-          </div>
-          <div className="flex gap-1">
-            {[...Array(10)].map((_, i) => {
-              const v = String(i + 1);
-              const active = form.severity === v;
-              const bg = i < 3 ? (active ? 'bg-salve-sage text-white' : 'text-salve-sage border-salve-sage/30 hover:bg-salve-sage/10')
-                : i < 6 ? (active ? 'bg-salve-amber text-white' : 'text-salve-amber border-salve-amber/30 hover:bg-salve-amber/10')
-                : (active ? 'bg-salve-rose text-white' : 'text-salve-rose border-salve-rose/30 hover:bg-salve-rose/10');
-              return (
-                <button key={v} onClick={() => sf('severity', active ? '5' : v)} type="button"
-                  className={`flex-1 min-w-[28px] h-7 rounded-lg border text-[11px] font-montserrat font-medium transition-colors cursor-pointer ${active ? bg + ' border-transparent' : 'bg-salve-card ' + bg}`}
-                  aria-label={`Severity ${v} of 10`}
-                >{v}</button>
-              );
-            })}
-          </div>
-          <div className="flex justify-between mt-0.5 px-0.5">
-            <span className="text-[9px] text-salve-textFaint/60 font-montserrat">great</span>
-            <span className="text-[9px] text-salve-textFaint/60 font-montserrat">rough</span>
-          </div>
-        </div>
 
         {/* ══════════ MORE ABOUT TODAY — Topic Pills ══════════ */}
         <div className="mt-1 mb-4">
@@ -572,17 +563,37 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                 <Activity size={13} className="text-salve-lav" /> Symptoms
               </label>
               {(form.symptoms || []).length < 10 && (
-                <button onClick={addSymptom} className="bg-transparent border-none cursor-pointer text-salve-lav text-[11px] font-montserrat p-0 flex items-center gap-0.5 hover:underline">
+                <button onClick={() => addSymptom()} className="bg-transparent border-none cursor-pointer text-salve-lav text-[11px] font-montserrat p-0 flex items-center gap-0.5 hover:underline">
                   <Plus size={12} /> Add symptom
                 </button>
               )}
             </div>
+
+            {/* Quick-add: frequent symptoms from past entries */}
+            {frequentSymptoms.length > 0 && (form.symptoms || []).length < 10 && (
+              <div className="mb-2.5">
+                <span className="text-[10px] text-salve-textFaint/60 font-montserrat block mb-1">Quick add</span>
+                <div className="flex flex-wrap gap-1">
+                  {frequentSymptoms
+                    .filter(name => !(form.symptoms || []).some(s => s.name.toLowerCase() === name.toLowerCase()))
+                    .slice(0, 6)
+                    .map(name => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => addSymptom(name)}
+                        className="text-[10px] px-2 py-0.5 rounded-full border border-dashed border-salve-lav/30 text-salve-textFaint font-montserrat cursor-pointer hover:bg-salve-lav/10 hover:text-salve-lav hover:border-salve-lav/50 transition-colors"
+                      >+ {name}</button>
+                    ))}
+                </div>
+              </div>
+            )}
+
             {(form.symptoms || []).map((sym, idx) => {
-              const sev = Number(sym.severity);
-              const sevColor = sev >= 7 ? 'text-salve-rose' : sev >= 4 ? 'text-salve-amber' : 'text-salve-sage';
+              const sevLevel = SEV_LEVELS.find(l => l.v === sym.severity) || SEV_LEVELS[2];
               return (
-                <div key={idx} className="mb-2">
-                  <div className="flex items-center gap-1.5 mb-1">
+                <div key={idx} className="mb-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
                     <input
                       type="text"
                       value={sym.name}
@@ -594,23 +605,22 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                     <datalist id={`symptom-suggestions-${idx}`}>
                       {symptomSuggestions.map(s => <option key={s} value={s} />)}
                     </datalist>
-                    <span className={`text-[10px] font-montserrat font-medium w-8 text-right ${sevColor}`}>{sym.severity}/10</span>
                     <button onClick={() => removeSymptom(idx)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0.5 transition-colors" aria-label={`Remove ${sym.name || 'symptom'}`}>
                       <X size={14} />
                     </button>
                   </div>
-                  <div className="flex gap-0.5 pl-0.5">
-                    {[...Array(10)].map((_, i) => {
-                      const sv = String(i + 1);
-                      const active = sym.severity === sv;
-                      const bg = i < 3 ? (active ? 'bg-salve-sage text-white' : 'text-salve-sage/60 border-salve-sage/20 hover:bg-salve-sage/10')
-                        : i < 6 ? (active ? 'bg-salve-amber text-white' : 'text-salve-amber/60 border-salve-amber/20 hover:bg-salve-amber/10')
-                        : (active ? 'bg-salve-rose text-white' : 'text-salve-rose/60 border-salve-rose/20 hover:bg-salve-rose/10');
+                  <div className="flex gap-1">
+                    {SEV_LEVELS.map(lev => {
+                      const active = sym.severity === lev.v;
                       return (
-                        <button key={sv} onClick={() => updateSymptom(idx, 'severity', sv)} type="button"
-                          className={`flex-1 min-w-0 h-6 rounded text-[10px] border font-montserrat font-medium transition-colors cursor-pointer ${active ? bg + ' border-transparent' : 'bg-salve-card ' + bg}`}
-                          aria-label={`${sym.name || 'Symptom'} severity ${sv}`}
-                        >{sv}</button>
+                        <button key={lev.v} onClick={() => updateSymptom(idx, 'severity', lev.v)} type="button"
+                          className={`flex-1 py-1 rounded-lg border text-[10px] font-montserrat font-medium transition-colors cursor-pointer ${
+                            active
+                              ? lev.active
+                              : `bg-salve-card border-salve-border text-salve-textFaint ${lev.hover}`
+                          }`}
+                          aria-label={`${sym.name || 'Symptom'} severity: ${lev.label}`}
+                        >{lev.label}</button>
                       );
                     })}
                   </div>
@@ -618,7 +628,9 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               );
             })}
             {(form.symptoms || []).length === 0 && (
-              <p className="text-[11px] text-salve-textFaint/60 font-montserrat italic pl-0.5">Track individual symptoms with their own severity rating</p>
+              <p className="text-[11px] text-salve-textFaint/60 font-montserrat italic pl-0.5">
+                {frequentSymptoms.length > 0 ? 'Tap a symptom above or add a new one' : 'Track what you\'re experiencing and how bad it is'}
+              </p>
             )}
           </div>
         )}
