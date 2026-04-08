@@ -239,8 +239,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   // Warn if a med with the same name (case-insensitive) already exists
   const duplicateWarning = useMemo(() => {
     if (editId || !form.name?.trim()) return null;
+    const meds = data.meds || [];
     const norm = form.name.trim().toLowerCase();
-    const dup = data.meds.find(m => m.name?.toLowerCase() === norm || m.display_name?.toLowerCase() === norm);
+    const dup = meds.find(m => m.name?.toLowerCase() === norm || m.display_name?.toLowerCase() === norm);
     return dup ? `"${dup.display_name || dup.name}" already exists${dup.dose ? ` (${dup.dose})` : ''}. Adding anyway will create a duplicate.` : null;
   }, [form.name, editId, data.meds]);
 
