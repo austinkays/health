@@ -29,6 +29,8 @@ import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
 import { useIsDesktop } from '../layout/SplitView';
+import { computeCorrelations } from '../../utils/correlations';
+import { getCyclePhaseForDate } from '../../utils/cycles';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
 const VITAL_POLARITY = {
@@ -222,6 +224,7 @@ const STARRED_META = {
   journal:       { label: 'Journal',      icon: BookOpen },
   formhelper:    { label: 'Form Scribe', icon: PenLine },
   aboutme:       { label: 'About Me',   icon: UserCircle },
+  insights:      { label: 'Insights',   icon: Sparkles },
 };
 
 // Hub tiles — always 6 (or 5 when no devices). Tappable → category page.
@@ -348,6 +351,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
   /* ── Memoized computations ──────────────────── */
   const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
+
+  const allInsights = useMemo(() => computeCorrelations(data, getCyclePhaseForDate), [data]);
+  const topInsights = useMemo(() => allInsights.slice(0, 3), [allInsights]);
 
   const timeline = useMemo(() => {
     const now = new Date(new Date().toDateString());
@@ -1095,6 +1101,60 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
                   </button>
                 ))}
+              </Card>
+            </section>
+          )}
+
+          {/* Health patterns */}
+          {topInsights.length > 0 && (
+            <section aria-label="Health patterns" className="dash-stagger dash-stagger-3 mb-4">
+              <Card className="!p-0 overflow-hidden">
+                <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={13} className="text-salve-lav" />
+                    <span className="text-[11px] text-salve-textFaint font-montserrat tracking-wide uppercase">Patterns</span>
+                  </div>
+                  <button
+                    onClick={() => onNav('insights')}
+                    className="text-[11px] text-salve-lav/70 hover:text-salve-lav font-montserrat transition-colors bg-transparent border-0 cursor-pointer"
+                  >
+                    See all &rarr;
+                  </button>
+                </div>
+                {topInsights.map((ins, i) => {
+                  const catColors = {
+                    sleep: 'border-salve-lav', exercise: 'border-salve-sage', medication: 'border-salve-sage',
+                    cycle: 'border-salve-amber', trend: 'border-salve-lav', symptom: 'border-salve-rose',
+                  };
+                  const catIcons = {
+                    sleep: Moon, exercise: Activity, medication: Pill,
+                    cycle: Heart, trend: TrendingUp, symptom: Activity,
+                  };
+                  const catHex = {
+                    sleep: C.lav, exercise: C.sage, medication: C.sage,
+                    cycle: C.amber, trend: C.lav, symptom: C.rose,
+                  };
+                  const Icon = catIcons[ins.category] || Sparkles;
+                  const borderCls = catColors[ins.category] || 'border-salve-lav';
+                  const hex = catHex[ins.category] || C.lav;
+                  return (
+                    <div key={ins.id}>
+                      {i > 0 && <div className="border-t border-salve-border/50 mx-4" />}
+                      <div className="px-4 py-2.5">
+                        <div className={`border-l-2 ${borderCls} pl-3`}>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <Icon size={12} style={{ color: hex }} className="flex-shrink-0" />
+                            <span className="text-[11.5px] font-semibold text-salve-text font-montserrat">{ins.title}</span>
+                          </div>
+                          <p className="text-[11.5px] text-salve-textMid font-montserrat leading-relaxed m-0">{ins.template}</p>
+                          {ins.confidence === 'medium' && (
+                            <span className="inline-block mt-1.5 text-[10px] text-salve-textFaint font-montserrat">Moderate confidence</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </Card>
             </section>
           )}
