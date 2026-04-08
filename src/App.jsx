@@ -76,6 +76,7 @@ const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
 const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
 const FormHelper = lazyWithRetry(() => import('./components/sections/FormHelper'));
 const AboutMe = lazyWithRetry(() => import('./components/sections/AboutMe'));
+const Insights = lazyWithRetry(() => import('./components/sections/Insights'));
 
 export default function App() {
   return (
@@ -362,6 +363,7 @@ function AppContent() {
       case 'todos':      return <Todos {...shared} />;
       case 'genetics':   return <Genetics {...shared} />;
       case 'activities': return <Activities {...shared} />;
+      case 'insights':   return <Insights data={data} />;
       case 'sleep':      return <Sleep {...shared} />;
       // Hub category pages
       case 'hub_records':  return <Hub hubId="records" data={data} onNav={onNav} />;

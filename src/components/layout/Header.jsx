@@ -26,6 +26,7 @@ const TAB_LABELS = {
   todos: "To-Do's",
   genetics: 'Genetics',
   activities: 'Activities',
+  insights: 'Insights',
   sleep: 'Sleep',
   hub_records: 'Records',
   hub_care: 'Care Team',
