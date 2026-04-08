@@ -146,6 +146,14 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
   useEffect(() => {
     setReflectionPrompt(getReflectionPrompt(form.mood));
+    // Auto-open contextual sections when mood changes
+    if (!form.mood) return;
+    const negative = !isPositiveMood(form.mood);
+    if (negative) {
+      setOpenSections(prev => ({ ...prev, symptoms: true, triggers: true }));
+    } else {
+      setOpenSections(prev => ({ ...prev, gratitude: true }));
+    }
   }, [form.mood]);
 
   // Symptom builder helpers
@@ -264,7 +272,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
       ...form.interventions && { helped: true },
       ...form.gratitude && { gratitude: true },
       ...((form.linked_conditions || []).length + (form.linked_meds || []).length > 0) && { links: true },
-      ...(quickCheck.sleep || quickCheck.hydration || quickCheck.activity) && { checkin: true },
+      ...quickCheck.sleep && { sleep: true },
     } : {};
     const isSectionOpen = (key) => openSections[key] || autoOpen[key];
 
@@ -272,7 +280,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     const sectionHasData = {
       symptoms: (form.symptoms || []).length > 0,
       severity: form.severity && form.severity !== '5',
-      checkin: !!(quickCheck.sleep || quickCheck.hydration || quickCheck.activity),
+      sleep: !!quickCheck.sleep,
       meds: Object.keys(form.adherence || {}).length > 0,
       triggers: !!form.triggers,
       helped: !!form.interventions,
@@ -287,7 +295,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     const topics = [
       { key: 'symptoms', icon: Activity, label: 'Symptoms', suggest: isNegativeMood },
       { key: 'severity', icon: BarChart3, label: 'Severity', suggest: isNegativeMood },
-      { key: 'checkin', icon: Moon, label: 'Check-in' },
+      { key: 'sleep', icon: Moon, label: 'Sleep' },
       activeMeds.length > 0 && { key: 'meds', icon: Pill, label: 'Meds taken' },
       { key: 'triggers', icon: Zap, label: 'Triggers', suggest: isNegativeMood },
       { key: 'helped', icon: Heart, label: 'What helped', suggest: isPositive },
@@ -336,7 +344,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         {/* ── Title ── */}
         <Field label="Title (optional)" value={form.title} onChange={v => sf('title', v)} placeholder="Quick label for today" />
 
-        {/* ── Mood as emoji pill buttons ── */}
+        {/* ── Mood + body check (quick-tap zone) ── */}
         <div className="mb-3">
           <label className="text-xs font-medium font-montserrat text-salve-textMid block mb-1.5">Mood</label>
           <div className="flex flex-wrap gap-1.5">
@@ -363,22 +371,53 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               );
             })}
           </div>
+
+          {/* Hydration + Activity — quick body check alongside mood */}
+          <div className="flex items-center gap-4 mt-2.5 pl-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-salve-textFaint font-montserrat">Hydration</span>
+              <div className="flex gap-0.5">
+                {[{v:'1',l:'😵'},{v:'2',l:'🙂'},{v:'3',l:'💧'},{v:'4',l:'🌊'}].map(h => (
+                  <button key={h.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, hydration: p.hydration === h.v ? '' : h.v }))}
+                    className={`w-7 h-7 rounded text-xs border transition-colors cursor-pointer ${
+                      quickCheck.hydration === h.v ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
+                    }`}
+                    aria-label={`Hydration ${h.v} of 4`}
+                  >{h.l}</button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-salve-textFaint font-montserrat">Activity</span>
+              <div className="flex gap-0.5">
+                {[{v:'1',l:'🛋'},{v:'2',l:'🚶'},{v:'3',l:'🏃'},{v:'4',l:'🔥'}].map(a => (
+                  <button key={a.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, activity: p.activity === a.v ? '' : a.v }))}
+                    className={`w-7 h-7 rounded text-xs border transition-colors cursor-pointer ${
+                      quickCheck.activity === a.v ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-sage/20'
+                    }`}
+                    aria-label={`Activity level ${a.v} of 4`}
+                  >{a.l}</button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Mood-aware reflection prompt */}
-        <div className="flex items-center gap-1.5 -mt-1 mb-3 px-1">
-          <p className="text-xs text-salve-textFaint italic font-montserrat flex-1 leading-relaxed">
-            {reflectionPrompt}
-          </p>
-          <button
-            onClick={refreshPrompt}
-            className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav p-0.5 shrink-0 transition-colors"
-            aria-label="Get a different prompt"
-            title="Get a different prompt"
-          >
-            <RefreshCw size={12} />
-          </button>
-        </div>
+        {/* ── Reflection prompt as integrated bubble ── */}
+        <button
+          type="button"
+          onClick={refreshPrompt}
+          className="w-full mb-3 px-3.5 py-2.5 rounded-xl bg-salve-lav/5 border border-salve-lav/15 text-left cursor-pointer hover:bg-salve-lav/8 hover:border-salve-lav/25 transition-all group"
+          aria-label="Reflection prompt — click for a different one"
+        >
+          <div className="flex items-start gap-2">
+            <Sparkles size={12} className="text-salve-lav/50 mt-0.5 shrink-0" />
+            <p className="text-xs text-salve-textFaint italic font-montserrat leading-relaxed flex-1">
+              {reflectionPrompt}
+            </p>
+            <RefreshCw size={11} className="text-salve-textFaint/40 group-hover:text-salve-lav mt-0.5 shrink-0 transition-colors" />
+          </div>
+        </button>
 
         {/* ── Main content textarea ── */}
         <Field label="How are you feeling?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="What's on your mind today..." />
@@ -456,12 +495,6 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             <span className="text-[10px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">More about today</span>
             <div className="flex-1 h-px bg-salve-border/50" />
           </div>
-          {isNegativeMood && (
-            <p className="text-[11px] text-salve-textFaint/70 font-montserrat italic mb-2 px-0.5">Track what's going on — it helps spot patterns</p>
-          )}
-          {isPositive && !isNegativeMood && (
-            <p className="text-[11px] text-salve-textFaint/70 font-montserrat italic mb-2 px-0.5">Capture what made today good</p>
-          )}
           <div className="flex flex-wrap gap-1.5">
             {topics.map(t => {
               const open = isSectionOpen(t.key);
@@ -582,52 +615,24 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           </div>
         )}
 
-        {/* ── Quick Check-in ── */}
-        {isSectionOpen('checkin') && (
+        {/* ── Sleep ── */}
+        {isSectionOpen('sleep') && (
           <div className="mb-4 px-2.5 py-3 rounded-xl bg-salve-card2/30 border border-salve-border/40">
             <label className="text-xs font-medium font-montserrat text-salve-textMid flex items-center gap-1.5 mb-2">
-              <Moon size={13} className="text-salve-lav" /> Quick check-in
+              <Moon size={13} className="text-salve-lav" /> How did you sleep?
             </label>
-            <div className="grid grid-cols-3 gap-2">
-              <div>
-                <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Sleep</span>
-                <input
-                  type="number"
-                  min="0"
-                  max="24"
-                  step="0.5"
-                  value={quickCheck.sleep}
-                  onChange={e => setQuickCheck(p => ({ ...p, sleep: e.target.value }))}
-                  placeholder="hrs"
-                  className="w-full bg-salve-card border border-salve-border rounded-lg px-2 py-1.5 text-xs text-salve-text font-montserrat text-center placeholder:text-salve-textFaint/50 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
-                />
-              </div>
-              <div>
-                <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Hydration</span>
-                <div className="flex gap-0.5">
-                  {[{v:'1',l:'😵'},{v:'2',l:'🙂'},{v:'3',l:'💧'},{v:'4',l:'🌊'}].map(h => (
-                    <button key={h.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, hydration: p.hydration === h.v ? '' : h.v }))}
-                      className={`flex-1 h-7 rounded text-xs border transition-colors cursor-pointer ${
-                        quickCheck.hydration === h.v ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
-                      }`}
-                      aria-label={`Hydration ${h.v} of 4`}
-                    >{h.l}</button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Activity</span>
-                <div className="flex gap-0.5">
-                  {[{v:'1',l:'🛋'},{v:'2',l:'🚶'},{v:'3',l:'🏃'},{v:'4',l:'🔥'}].map(a => (
-                    <button key={a.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, activity: p.activity === a.v ? '' : a.v }))}
-                      className={`flex-1 h-7 rounded text-xs border transition-colors cursor-pointer ${
-                        quickCheck.activity === a.v ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-sage/20'
-                      }`}
-                      aria-label={`Activity level ${a.v} of 4`}
-                    >{a.l}</button>
-                  ))}
-                </div>
-              </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min="0"
+                max="24"
+                step="0.5"
+                value={quickCheck.sleep}
+                onChange={e => setQuickCheck(p => ({ ...p, sleep: e.target.value }))}
+                placeholder="hours"
+                className="w-24 bg-salve-card border border-salve-border rounded-lg px-2.5 py-1.5 text-xs text-salve-text font-montserrat text-center placeholder:text-salve-textFaint/50 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+              />
+              <span className="text-[11px] text-salve-textFaint font-montserrat">hours last night</span>
             </div>
           </div>
         )}
