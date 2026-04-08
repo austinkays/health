@@ -20,7 +20,7 @@ import CrisisModal from '../ui/CrisisModal';
 import { detectCrisis } from '../../utils/crisis';
 
 // Feature ID → ai.js feature name for lock checking
-const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', monthly_summary: 'journalPatterns', house: 'houseConsultation' };
+const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', monthly_summary: 'monthlySummary', house: 'houseConsultation' };
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },

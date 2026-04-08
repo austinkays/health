@@ -1121,7 +1121,6 @@ export default function FormHelper({ data, onNav }) {
               ref={fileInputRef}
               type="file"
               accept="image/*,.pdf,application/pdf"
-              capture="environment"
               onChange={e => { if (e.target.files?.[0]) handleImageSelect(e.target.files[0]); e.target.value = ''; }}
               className="hidden"
             />

@@ -16,7 +16,7 @@ export function setAIProvider(provider) {
 const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
 const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
 const ADMIN_FEATURES = new Set(['houseConsultation']);
-const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources', 'houseConsultation']);
+const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources', 'houseConsultation', 'monthlySummary']);
 
 export function isFeatureLocked(feature) {
   // Demo mode unlocks everything — all AI calls return canned responses
@@ -472,7 +472,7 @@ export async function extractJournalData(text, profileText) {
   // Strip the disclaimer appended by callAPI
   const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
   // Try to parse JSON from the response (may be wrapped in code fences)
-  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  const jsonMatch = cleaned.match(/\{[\s\S]*?\}/);
   if (!jsonMatch) return null;
   try {
     return JSON.parse(jsonMatch[0]);
