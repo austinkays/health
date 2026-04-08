@@ -125,24 +125,24 @@ function AppContent() {
   // CRUD wrappers that show toast confirmations.
   // Wrapped in useCallback so child components don't re-render on every parent render.
   const addItemT = useCallback(async (table, item) => {
-    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); return; }
     const result = await addItem(table, item);
     showToast('Saved ✓');
     return result;
   }, [addItem, demoMode, showToast]);
   const updateItemT = useCallback(async (table, id, changes) => {
-    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); return; }
     const result = await updateItem(table, id, changes);
     showToast('Updated ✓');
     return result;
   }, [updateItem, demoMode, showToast]);
   const removeItemT = useCallback(async (table, id) => {
-    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); return; }
     await removeItem(table, id);
     showToast('Deleted');
   }, [removeItem, demoMode, showToast]);
   const updateSettingsT = useCallback(async (changes) => {
-    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); throw new Error('demo_mode_blocked'); }
+    if (demoMode) { showToast('Sign up to save your own data', { type: 'info' }); return; }
     return updateSettings(changes);
   }, [updateSettings, demoMode, showToast]);
   const eraseAllT = useCallback(async () => {

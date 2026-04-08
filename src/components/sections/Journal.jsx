@@ -809,7 +809,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
       {/* Tag & symptom filter pills */}
       {(() => {
-        const allTags = [...new Set(data.journal.flatMap(e => e.tags ? e.tags.split(',').map(t => t.trim()).filter(Boolean) : []))].sort();
+        const allTags = [...new Set(data.journal.flatMap(e => e.tags ? String(e.tags).split(',').map(t => t.trim()).filter(Boolean) : []))].sort();
         const allSymptoms = [...new Set(data.journal.flatMap(e => (e.symptoms || []).map(s => s.name).filter(Boolean)))].sort();
         if (allTags.length === 0 && allSymptoms.length === 0) return null;
         return (
@@ -838,7 +838,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
       {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
         <div className="md:grid md:grid-cols-2 md:gap-4">{data.journal.filter(e => {
-          if (tagFilter && !(e.tags && e.tags.split(',').map(t => t.trim()).includes(tagFilter))) return false;
+          if (tagFilter && !(e.tags && String(e.tags).split(',').map(t => t.trim()).includes(tagFilter))) return false;
           if (symptomFilter && !(e.symptoms || []).some(s => s.name === symptomFilter)) return false;
           return true;
         }).map(e => {
@@ -986,7 +986,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
                   {e.tags && (
                     <div className="mt-2 flex gap-1 flex-wrap">
-                      {e.tags.split(',').map((t, i) => (
+                      {String(e.tags).split(',').map((t, i) => (
                         <span key={i} className="bg-salve-card2 text-salve-textMid text-[11px] px-2.5 py-0.5 rounded-full border border-salve-border">{t.trim()}</span>
                       ))}
                     </div>

@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error, hint, maxLength, min, max, ...inputProps }) {
+export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error, hint, maxLength, min, max, children: _children, ...inputProps }) {
   const autoId = useId();
   const inputId = id || `field-${autoId}`;
   const errorId = `${inputId}-error`;
