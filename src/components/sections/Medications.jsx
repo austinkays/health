@@ -245,6 +245,51 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     return dup ? `"${dup.display_name || dup.name}" already exists${dup.dose ? ` (${dup.dose})` : ''}. Adding anyway will create a duplicate.` : null;
   }, [form.name, editId, data.meds]);
 
+  /* ── Pharmacy filter support (must be above early return for hooks ordering) ── */
+  const NON_PHARMACY = new Set(['otc', 'n/a', 'na', 'none', 'self', 'online', '-', '—', 'over the counter']);
+  const pharmacyNames = useMemo(() => {
+    const names = new Set();
+    (data.meds || []).forEach(m => { if (m.pharmacy?.trim() && !NON_PHARMACY.has(m.pharmacy.trim().toLowerCase())) names.add(m.pharmacy.trim()); });
+    return [...names].sort();
+  }, [data.meds]);
+  const [pharmacyFilter, setPharmacyFilter] = useState('all');
+  const [catFilter, setCatFilter] = useState('all');
+
+  // Check if any meds have non-default categories (show filter pills only when relevant)
+  const hasCategories = (data.meds || []).some(m => m.category && m.category !== 'medication');
+
+  const fl = (data.meds || []).filter(m => {
+    const statusOk = filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false;
+    const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
+    const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
+    return statusOk && pharmaOk && catOk;
+  });
+
+  /* ── Monthly cost estimate from NADAC prices ── */
+  const monthlyCost = useMemo(() => {
+    const active = (data.meds || []).filter(m => m.active !== false);
+    const prices = data.drug_prices || [];
+    if (!prices.length || !active.length) return null;
+    let total = 0, counted = 0;
+    active.forEach(m => {
+      const mp = prices.filter(dp => dp.medication_id === m.id && dp.nadac_per_unit)
+        .sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at));
+      if (!mp.length) return;
+      const perUnit = Number(mp[0].nadac_per_unit);
+      let daily = 1;
+      const f = (m.frequency || '').toLowerCase();
+      if (/qid|4.*day|q6h/i.test(f)) daily = 4;
+      else if (/tid|3.*day|q8h/i.test(f)) daily = 3;
+      else if (/bid|2.*day|twice|q12h/i.test(f)) daily = 2;
+      else if (/week/i.test(f)) daily = 1 / 7;
+      else if (/biweek|every.*2.*week/i.test(f)) daily = 1 / 14;
+      else if (/month/i.test(f)) daily = 1 / 30;
+      total += perUnit * daily * 30;
+      counted++;
+    });
+    return counted > 0 ? { total, counted, of: active.length } : null;
+  }, [data.meds, data.drug_prices]);
+
   const saveMed = async () => {
     const { valid, errors: e } = validateMedication(form);
     if (!valid) { setErrors(e); return; }
@@ -394,51 +439,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       </Card>
     </FormWrap>
   );
-
-  /* ── Pharmacy filter support ── */
-  const NON_PHARMACY = new Set(['otc', 'n/a', 'na', 'none', 'self', 'online', '-', '—', 'over the counter']);
-  const pharmacyNames = useMemo(() => {
-    const names = new Set();
-    data.meds.forEach(m => { if (m.pharmacy?.trim() && !NON_PHARMACY.has(m.pharmacy.trim().toLowerCase())) names.add(m.pharmacy.trim()); });
-    return [...names].sort();
-  }, [data.meds]);
-  const [pharmacyFilter, setPharmacyFilter] = useState('all');
-  const [catFilter, setCatFilter] = useState('all');
-
-  // Check if any meds have non-default categories (show filter pills only when relevant)
-  const hasCategories = data.meds.some(m => m.category && m.category !== 'medication');
-
-  const fl = data.meds.filter(m => {
-    const statusOk = filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false;
-    const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
-    const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
-    return statusOk && pharmaOk && catOk;
-  });
-
-  /* ── Monthly cost estimate from NADAC prices ── */
-  const monthlyCost = useMemo(() => {
-    const active = data.meds.filter(m => m.active !== false);
-    const prices = data.drug_prices || [];
-    if (!prices.length || !active.length) return null;
-    let total = 0, counted = 0;
-    active.forEach(m => {
-      const mp = prices.filter(dp => dp.medication_id === m.id && dp.nadac_per_unit)
-        .sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at));
-      if (!mp.length) return;
-      const perUnit = Number(mp[0].nadac_per_unit);
-      let daily = 1;
-      const f = (m.frequency || '').toLowerCase();
-      if (/qid|4.*day|q6h/i.test(f)) daily = 4;
-      else if (/tid|3.*day|q8h/i.test(f)) daily = 3;
-      else if (/bid|2.*day|twice|q12h/i.test(f)) daily = 2;
-      else if (/week/i.test(f)) daily = 1 / 7;
-      else if (/biweek|every.*2.*week/i.test(f)) daily = 1 / 14;
-      else if (/month/i.test(f)) daily = 1 / 30;
-      total += perUnit * daily * 30;
-      counted++;
-    });
-    return counted > 0 ? { total, counted, of: active.length } : null;
-  }, [data.meds, data.drug_prices]);
 
   /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
   const renderMedDetail = (m) => (
