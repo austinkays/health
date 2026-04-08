@@ -1,9 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 export default defineConfig({
   build: {
+    sourcemap: true, // Required for Sentry sourcemap upload
     rollupOptions: {
       output: {
         manualChunks: {
@@ -62,6 +64,22 @@ export default defineConfig({
           },
         ],
       },
+    }),
+    // Upload sourcemaps to Sentry on production builds.
+    // Requires SENTRY_AUTH_TOKEN env var (set in Vercel, not in .env.local).
+    // Sourcemaps are uploaded then deleted from the bundle so they're never
+    // served to users — errors in Sentry resolve to original file/line.
+    sentryVitePlugin({
+      org: 'salve-ay',
+      project: 'javascript-react',
+      // Only upload during CI/Vercel builds (SENTRY_AUTH_TOKEN present)
+      // Local dev builds silently skip when the token is missing
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: {
+        filesToDeleteAfterUpload: ['./dist/**/*.map'],
+      },
+      // Silence the plugin when no auth token is available (local dev)
+      silent: !process.env.SENTRY_AUTH_TOKEN,
     }),
   ],
 })
