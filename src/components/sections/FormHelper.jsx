@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, ClipboardPaste, Sparkles, Copy, Check, ChevronDown, AlertTriangle, Leaf, RotateCcw, X, ChevronRight } from 'lucide-react';
+import { Camera, ClipboardPaste, Sparkles, Copy, Check, ChevronDown, AlertTriangle, Leaf, RotateCcw, X, ChevronRight, ImagePlus, FileText } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import AIConsentGate from '../ui/AIConsentGate';
@@ -275,27 +275,32 @@ export default function FormHelper({ data, onNav }) {
       <div className="space-y-4">
         {/* Input area */}
         {!results && (
-          <Card
-            className={dragOver ? '!border-salve-lav !bg-salve-lav/5 transition-colors' : 'transition-colors'}
-            onDragOver={handleDragOver}
-            onDragEnter={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            {dragOver && (
-              <div className="flex flex-col items-center gap-2 py-6 text-center pointer-events-none">
-                <Camera size={28} className="text-salve-lav" />
-                <span className="text-sm font-medium text-salve-lav font-montserrat">Drop your screenshot here</span>
+          <>
+            {/* Instructional hero card */}
+            <Card className="!border-salve-lav/20 !bg-salve-lav/[0.04]">
+              <div className="flex gap-3 items-start">
+                <div className="w-9 h-9 rounded-full bg-salve-sage/15 flex items-center justify-center shrink-0 mt-0.5">
+                  <Leaf size={18} className="text-salve-sage" />
+                </div>
+                <div className="space-y-1.5 min-w-0">
+                  <p className="text-sm text-salve-text font-montserrat font-semibold m-0 leading-snug">
+                    Tired of filling out the same medical forms?
+                  </p>
+                  <p className="text-xs text-salve-textMid font-montserrat m-0 leading-relaxed">
+                    Select all the form text, copy it, and paste below — or snap a screenshot. Sage will match the questions to your health records and draft your answers.
+                  </p>
+                </div>
               </div>
-            )}
-            {!dragOver && <div className="space-y-3">
-              {/* Image preview when attached */}
-              {imageFile && (
+            </Card>
+
+            {/* Image preview (shown when an image is attached) */}
+            {imageFile && (
+              <Card>
                 <div className="relative">
                   <img
                     src={imageFile.preview}
                     alt="Form screenshot"
-                    className="w-full max-h-[200px] object-contain rounded-lg border border-salve-border bg-salve-card2"
+                    className="w-full max-h-[240px] object-contain rounded-lg border border-salve-border bg-salve-card2"
                   />
                   <button
                     onClick={removeImage}
@@ -304,66 +309,109 @@ export default function FormHelper({ data, onNav }) {
                   >
                     <X size={12} className="text-salve-textMid" />
                   </button>
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-md bg-salve-card/85 backdrop-blur-sm border border-salve-border/50">
+                    <span className="text-[10px] text-salve-sage font-montserrat font-medium">Screenshot attached</span>
+                  </div>
                 </div>
-              )}
+              </Card>
+            )}
 
-              {/* Text input — always visible */}
-              <textarea
-                value={questions}
-                onChange={e => setQuestions(e.target.value)}
-                onPaste={(e) => {
-                  const items = e.clipboardData?.items;
-                  if (items) {
-                    for (const item of items) {
-                      if (item.type.startsWith('image/')) {
-                        e.preventDefault();
-                        const file = item.getAsFile();
-                        if (file) handleImageSelect(file);
-                        return;
+            {/* Screenshot drop zone (hidden when image is already attached) */}
+            {!imageFile && (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragEnter={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                role="button"
+                tabIndex={0}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') fileInputRef.current?.click(); }}
+                aria-label="Drop a screenshot or click to browse"
+                className={`
+                  flex flex-col items-center justify-center gap-2 py-8 px-4 rounded-xl border-2 border-dashed cursor-pointer transition-all duration-200
+                  ${dragOver
+                    ? 'border-salve-lav bg-salve-lav/10 scale-[1.01]'
+                    : 'border-salve-border hover:border-salve-lav/50 hover:bg-salve-card2/50'
+                  }
+                `}
+              >
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-colors ${dragOver ? 'bg-salve-lav/20' : 'bg-salve-card2'}`}>
+                  <ImagePlus size={22} className={`transition-colors ${dragOver ? 'text-salve-lav' : 'text-salve-textFaint'}`} />
+                </div>
+                <span className={`text-sm font-medium font-montserrat transition-colors ${dragOver ? 'text-salve-lav' : 'text-salve-textMid'}`}>
+                  {dragOver ? 'Drop your screenshot here' : 'Drop a screenshot or tap to upload'}
+                </span>
+                <span className="text-[11px] text-salve-textFaint font-montserrat">
+                  PNG, JPG, or any image up to 5 MB
+                </span>
+              </div>
+            )}
+
+            {/* Divider with "or" */}
+            <div className="flex items-center gap-3 px-2">
+              <div className="flex-1 h-px bg-salve-border/60" />
+              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-wider uppercase">or paste text</span>
+              <div className="flex-1 h-px bg-salve-border/60" />
+            </div>
+
+            {/* Text input card */}
+            <Card>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText size={13} className="text-salve-textFaint" />
+                  <span className="text-[11px] text-salve-textFaint font-montserrat font-medium tracking-wide uppercase">Form text</span>
+                </div>
+                <textarea
+                  value={questions}
+                  onChange={e => setQuestions(e.target.value)}
+                  onPaste={(e) => {
+                    const items = e.clipboardData?.items;
+                    if (items) {
+                      for (const item of items) {
+                        if (item.type.startsWith('image/')) {
+                          e.preventDefault();
+                          const file = item.getAsFile();
+                          if (file) handleImageSelect(file);
+                          return;
+                        }
                       }
                     }
-                  }
-                }}
-                placeholder="Paste the form text here — Sage will find the questions"
-                rows={imageFile ? 3 : 5}
-                className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
-              />
-
-              {/* Action row */}
-              <div className="flex items-center gap-2">
-                <Button onClick={handleGenerate} disabled={!hasInput || loading}>
-                  <Sparkles size={14} />
-                  {loading ? 'Working on it...' : 'Fill Out My Form'}
-                </Button>
-                <div className="flex items-center gap-1 ml-auto">
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-salve-textFaint hover:text-salve-lav hover:bg-salve-lav/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
-                    aria-label="Upload screenshot"
-                  >
-                    <Camera size={12} />
-                    Photo
-                  </button>
+                  }}
+                  placeholder="Select all the text on your form, copy it, and paste it right here..."
+                  rows={5}
+                  className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
+                />
+                <div className="flex items-center justify-end">
                   <button
                     onClick={handlePaste}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] text-salve-textFaint hover:text-salve-sage hover:bg-salve-sage/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-salve-textFaint hover:text-salve-sage hover:bg-salve-sage/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
                     aria-label="Paste from clipboard"
                   >
                     <ClipboardPaste size={12} />
-                    Paste
+                    Paste from clipboard
                   </button>
                 </div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={e => { if (e.target.files?.[0]) handleImageSelect(e.target.files[0]); e.target.value = ''; }}
-                  className="hidden"
-                />
               </div>
-            </div>}
-          </Card>
+            </Card>
+
+            {/* Generate button */}
+            <div className="flex justify-center pt-1">
+              <Button onClick={handleGenerate} disabled={!hasInput || loading} className="w-full">
+                <Sparkles size={14} />
+                {loading ? 'Working on it...' : 'Fill Out My Form'}
+              </Button>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={e => { if (e.target.files?.[0]) handleImageSelect(e.target.files[0]); e.target.value = ''; }}
+              className="hidden"
+            />
+          </>
         )}
 
         {/* Loading state */}
