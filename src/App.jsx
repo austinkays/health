@@ -314,12 +314,12 @@ function AppContent() {
   }, []);
 
   if (authLoading) {
+    // Match the HTML splash in index.html so the transition feels like one continuous screen
     return (
-      <div className="min-h-screen bg-salve-bg flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-salve-textFaint text-sm tracking-widest mb-3">✶ · ✶</div>
-          <p className="text-salve-lav font-playfair text-xl">Loading...</p>
-        </div>
+      <div className="min-h-screen bg-salve-bg flex flex-col items-center justify-center" style={{ fontFamily: 'Montserrat, system-ui, sans-serif' }}>
+        <div className="text-[22px] font-semibold tracking-[0.08em] text-salve-text mb-2">SALVE</div>
+        <div className="text-xs text-salve-textMid opacity-60">Loading your health data...</div>
+        <div className="mt-5 w-8 h-8 border-2 border-salve-border border-t-salve-lav rounded-full animate-spin" />
       </div>
     );
   }
