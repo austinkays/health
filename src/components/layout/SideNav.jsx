@@ -5,7 +5,7 @@ const NAV_ITEMS = [
   { id: 'meds', label: 'Medications', icon: Pill, key: '2' },
   { id: 'vitals', label: 'Vitals', icon: Heart, key: '3' },
   { id: 'ai', label: 'Sage', icon: Leaf, key: '4' },
-  { id: 'formhelper', label: 'Scribe', icon: PenLine, key: '5' },
+  { id: 'formhelper', label: 'Form Scribe', icon: PenLine, key: '5' },
   { id: 'journal', label: 'Journal', icon: BookOpen, key: '6' },
   { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '7' },
 ];

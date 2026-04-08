@@ -396,34 +396,180 @@ function AppointmentPicker({ appointments, selected, onSelect }) {
   );
 }
 
-// ── Template picker ──
+// ── Template picker with custom + hide ──
+
+const CUSTOM_TEMPLATES_KEY = 'salve:custom-templates';
+const HIDDEN_TEMPLATES_KEY = 'salve:hidden-templates';
+
+function getCustomTemplates() {
+  try { return JSON.parse(localStorage.getItem(CUSTOM_TEMPLATES_KEY) || '[]'); } catch { return []; }
+}
+function saveCustomTemplates(t) { localStorage.setItem(CUSTOM_TEMPLATES_KEY, JSON.stringify(t)); }
+function getHiddenTemplates() {
+  try { return JSON.parse(localStorage.getItem(HIDDEN_TEMPLATES_KEY) || '[]'); } catch { return []; }
+}
+function saveHiddenTemplates(ids) { localStorage.setItem(HIDDEN_TEMPLATES_KEY, JSON.stringify(ids)); }
 
 function TemplatePicker({ onSelect }) {
   const [showAll, setShowAll] = useState(false);
-  const visible = showAll ? FORM_TEMPLATES : FORM_TEMPLATES.slice(0, 4);
+  const [editing, setEditing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [customTemplates, setCustomTemplates] = useState(getCustomTemplates);
+  const [hiddenIds, setHiddenIds] = useState(getHiddenTemplates);
+  const [newName, setNewName] = useState('');
+  const [newDesc, setNewDesc] = useState('');
+  const [newQuestions, setNewQuestions] = useState('');
+
+  const allTemplates = useMemo(() => {
+    const builtIn = FORM_TEMPLATES.filter(t => !hiddenIds.includes(t.id));
+    return [...builtIn, ...customTemplates];
+  }, [customTemplates, hiddenIds]);
+
+  const visible = showAll ? allTemplates : allTemplates.slice(0, 4);
+
+  const hideTemplate = (id) => {
+    const next = [...hiddenIds, id];
+    setHiddenIds(next);
+    saveHiddenTemplates(next);
+  };
+
+  const restoreAll = () => {
+    setHiddenIds([]);
+    saveHiddenTemplates([]);
+  };
+
+  const deleteCustom = (id) => {
+    const next = customTemplates.filter(t => t.id !== id);
+    setCustomTemplates(next);
+    saveCustomTemplates(next);
+  };
+
+  const saveNewTemplate = () => {
+    if (!newName.trim() || !newQuestions.trim()) return;
+    const t = {
+      id: 'custom-' + Date.now().toString(36),
+      name: newName.trim(),
+      description: newDesc.trim() || 'Custom template',
+      questions: newQuestions.trim(),
+      custom: true,
+    };
+    const next = [...customTemplates, t];
+    setCustomTemplates(next);
+    saveCustomTemplates(next);
+    setNewName('');
+    setNewDesc('');
+    setNewQuestions('');
+    setCreating(false);
+  };
 
   return (
     <div className="space-y-2">
-      <p className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase px-1 m-0">Quick start templates</p>
+      <div className="flex items-center justify-between px-1">
+        <p className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase m-0">Quick start templates</p>
+        <div className="flex items-center gap-2">
+          {hiddenIds.length > 0 && editing && (
+            <button
+              onClick={restoreAll}
+              className="text-[10px] text-salve-sage hover:text-salve-sage/80 bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+            >
+              Restore all
+            </button>
+          )}
+          <button
+            onClick={() => { setEditing(!editing); setCreating(false); }}
+            className="text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+          >
+            {editing ? 'Done' : 'Edit'}
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {visible.map(t => (
-          <button
-            key={t.id}
-            onClick={() => onSelect(t)}
-            className="flex flex-col items-start gap-1 p-2.5 rounded-lg border border-salve-border/60 bg-transparent hover:bg-salve-card2 hover:border-salve-lav/30 cursor-pointer transition-colors text-left"
-          >
-            <span className="text-[11px] text-salve-text font-montserrat font-medium leading-tight">{t.name}</span>
-            <span className="text-[9px] text-salve-textFaint font-montserrat">{t.description}</span>
-          </button>
+          <div key={t.id} className="relative group">
+            <button
+              onClick={() => !editing && onSelect(t)}
+              className={`w-full flex flex-col items-start gap-1 p-2.5 rounded-lg border border-salve-border/60 bg-transparent hover:bg-salve-card2 hover:border-salve-lav/30 cursor-pointer transition-colors text-left ${editing ? 'opacity-80' : ''}`}
+            >
+              <span className="text-[11px] text-salve-text font-montserrat font-medium leading-tight">{t.name}</span>
+              <span className="text-[9px] text-salve-textFaint font-montserrat">{t.description}</span>
+              {t.custom && <span className="text-[8px] text-salve-lav/70 font-montserrat">Custom</span>}
+            </button>
+            {editing && (
+              <button
+                onClick={() => t.custom ? deleteCustom(t.id) : hideTemplate(t.id)}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-salve-card border border-salve-border flex items-center justify-center cursor-pointer hover:bg-salve-rose/10 hover:border-salve-rose/40 transition-colors z-10"
+                aria-label={t.custom ? `Delete ${t.name}` : `Hide ${t.name}`}
+              >
+                <X size={10} className="text-salve-textFaint" />
+              </button>
+            )}
+          </div>
         ))}
+        {/* Add custom template tile */}
+        {editing && (
+          <button
+            onClick={() => setCreating(!creating)}
+            className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border-2 border-dashed border-salve-border/60 bg-transparent hover:bg-salve-card2 hover:border-salve-lav/40 cursor-pointer transition-colors text-center min-h-[60px]"
+          >
+            <Plus size={14} className="text-salve-textFaint" />
+            <span className="text-[10px] text-salve-textFaint font-montserrat">New template</span>
+          </button>
+        )}
       </div>
-      {FORM_TEMPLATES.length > 4 && (
+
+      {/* Create custom template form */}
+      {creating && (
+        <Card className="!border-salve-lav/20">
+          <div className="space-y-2.5">
+            <p className="text-[11px] text-salve-text font-montserrat font-medium m-0">Create a template</p>
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Template name"
+              maxLength={60}
+              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[12px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
+            />
+            <input
+              value={newDesc}
+              onChange={e => setNewDesc(e.target.value)}
+              placeholder="Short description (optional)"
+              maxLength={100}
+              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[12px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
+            />
+            <textarea
+              value={newQuestions}
+              onChange={e => setNewQuestions(e.target.value)}
+              placeholder="Paste or type your form questions here..."
+              rows={5}
+              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[12px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
+            />
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                onClick={() => { setCreating(false); setNewName(''); setNewDesc(''); setNewQuestions(''); }}
+                className="text-[11px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat transition-colors px-2 py-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveNewTemplate}
+                disabled={!newName.trim() || !newQuestions.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-montserrat font-medium text-white bg-salve-sage border-none cursor-pointer transition-all hover:bg-salve-sage/90 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Check size={11} />
+                Save template
+              </button>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {allTemplates.length > 4 && !editing && (
         <button
           onClick={() => setShowAll(!showAll)}
           className="flex items-center gap-1 px-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors"
         >
           {showAll ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
-          {showAll ? 'Show less' : `${FORM_TEMPLATES.length - 4} more templates`}
+          {showAll ? 'Show less' : `${allTemplates.length - 4} more templates`}
         </button>
       )}
     </div>
@@ -957,11 +1103,18 @@ export default function FormHelper({ data, onNav }) {
             </Card>
 
             {/* Generate button */}
-            <div className="flex justify-center pt-1">
-              <Button onClick={handleGenerate} disabled={!hasInput || loading} className="w-full">
-                <Sparkles size={14} />
-                {loading ? 'Working on it...' : 'Fill Out My Form'}
-              </Button>
+            <div className="flex justify-center pt-2 pb-1">
+              <button
+                onClick={handleGenerate}
+                disabled={!hasInput || loading}
+                className="group relative inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-2xl text-sm font-montserrat font-semibold text-white border-none cursor-pointer transition-all duration-300 overflow-hidden disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 hover:scale-[1.03] active:scale-[0.97] shadow-lg hover:shadow-xl"
+                style={{ background: 'linear-gradient(135deg, rgb(var(--salve-sage)), rgb(var(--salve-lav)))' }}
+              >
+                <span className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" style={{ background: 'linear-gradient(135deg, rgb(var(--salve-lav)), rgb(var(--salve-sage)))' }} />
+                <Leaf size={16} className="relative z-10" />
+                <span className="relative z-10">{loading ? 'Sage is writing...' : 'Fill Out My Form'}</span>
+                <Sparkles size={14} className="relative z-10 opacity-60" />
+              </button>
             </div>
 
             <input

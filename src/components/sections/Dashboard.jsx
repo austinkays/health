@@ -221,7 +221,7 @@ const STARRED_META = {
   apple_health:  { label: 'Apple Health', icon: Apple },
   meds:          { label: 'Meds',         icon: Pill },
   journal:       { label: 'Journal',      icon: BookOpen },
-  formhelper:    { label: 'Scribe', icon: PenLine },
+  formhelper:    { label: 'Form Scribe', icon: PenLine },
   aboutme:       { label: 'About Me',   icon: UserCircle },
 };
 
@@ -1041,7 +1041,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             <PenLine size={15} color={C.lav} strokeWidth={1.5} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-medium text-salve-text">Scribe</div>
+            <div className="text-[13px] font-medium text-salve-text">Form Scribe</div>
             <div className="text-[11px] text-salve-textFaint truncate">Sage fills out forms from your records</div>
           </div>
           <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-lav transition-colors flex-shrink-0" />
