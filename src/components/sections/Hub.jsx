@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback } from 'react';
 import {
-  ChevronRight, ClipboardList, User, Activity, Shield, CheckSquare, Link2, Star,
+  ChevronRight, ClipboardList, User, UserCircle, Activity, Shield, CheckSquare, Link2, Star,
   Stethoscope, ShieldAlert, Calendar, FlaskConical, Syringe, ShieldCheck, Dna,
   Building2, BadgeDollarSign, Scale, Heart, Moon, TrendingUp, AlertTriangle,
   AlertOctagon, PlaneTakeoff, Apple, Thermometer,
@@ -18,7 +18,7 @@ export const HUBS = {
     label: 'Records',
     description: 'Your medical history',
     icon: ClipboardList,
-    sections: ['summary', 'conditions', 'allergies', 'labs', 'procedures', 'immunizations', 'genetics'],
+    sections: ['aboutme', 'summary', 'conditions', 'allergies', 'labs', 'procedures', 'immunizations', 'genetics'],
   },
   care: {
     label: 'Care Team',
@@ -54,6 +54,7 @@ export const HUBS = {
 
 /* ── Section display config ─────────────────────── */
 const SECTIONS = {
+  aboutme:      { label: 'About Me',      icon: UserCircle },
   summary:      { label: 'Summary',       icon: ClipboardList },
   conditions:   { label: 'Conditions',    icon: Stethoscope },
   allergies:    { label: 'Allergies',     icon: ShieldAlert },
@@ -82,6 +83,8 @@ const SECTIONS = {
 /* ── Preview/stat calculators per section ───────── */
 function getStat(id, data) {
   switch (id) {
+    case 'aboutme':
+      return data.settings?.name ? `${data.settings.name}` : 'Your profile';
     case 'summary':
       return 'Full health profile';
     case 'conditions': {
