@@ -93,25 +93,37 @@ html[class*="theme-"] body::before {
 }
 
 /* ── Neon: grid + hot pink/cyan glows + text glow ── */
+/* Static radial glows on ::before */
 html.theme-neon body::before {
   will-change: opacity;
   background-image:
-    /* hot pink corner glow */
     radial-gradient(circle 400px at 10% 20%, rgba(255, 77, 184, 0.22), transparent 70%),
-    /* cyan opposite-corner glow */
     radial-gradient(circle 350px at 85% 75%, rgba(77, 216, 255, 0.18), transparent 70%),
-    /* secondary pink accent */
-    radial-gradient(circle 250px at 80% 15%, rgba(255, 90, 160, 0.15), transparent 70%),
-    /* grid lines — more visible now */
+    radial-gradient(circle 250px at 80% 15%, rgba(255, 90, 160, 0.15), transparent 70%);
+  background-size: 100% 100%;
+  opacity: 1;
+  animation: neon-pulse 4s ease-in-out infinite;
+}
+/* Grid lines on ::after — GPU-composited transform drift */
+html.theme-neon body::after {
+  content: '';
+  position: fixed;
+  top: -36px;
+  left: -36px;
+  width: calc(100vw + 72px);
+  height: calc(100vh + 72px);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform;
+  background-image:
     linear-gradient(rgba(255, 77, 184, 0.12) 1px, transparent 1px),
     linear-gradient(90deg, rgba(77, 216, 255, 0.12) 1px, transparent 1px);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px, 36px 36px;
-  opacity: 1;
-  animation: neon-drift 20s linear infinite, neon-pulse 4s ease-in-out infinite;
+  background-size: 36px 36px;
+  animation: neon-grid-drift 20s linear infinite;
 }
-@keyframes neon-drift {
-  from { background-position: 0 0, 0 0, 0 0, 0 0, 0 0; }
-  to { background-position: 0 0, 0 0, 0 0, 36px 36px, -36px 36px; }
+@keyframes neon-grid-drift {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(36px, 36px); }
 }
 @keyframes neon-pulse {
   0%, 100% { opacity: 0.88; }
@@ -397,8 +409,13 @@ html.theme-cherry body::after {
 }
 
 /* ── Sunny Day: warm sunbeams + drifting dust motes on blue sky ── */
+/* Sky + sun + rays all on ::before (static, animated only by opacity pulse) */
 html.theme-sunbeam body::before {
   background-image:
+    /* Diagonal sun rays — boosted from 0.08-0.10 to 0.14-0.16 for visibility */
+    linear-gradient(200deg, transparent 45%, rgba(255, 232, 140, 0.16) 48%, transparent 52%),
+    linear-gradient(210deg, transparent 52%, rgba(255, 232, 140, 0.14) 56%, transparent 60%),
+    linear-gradient(220deg, transparent 60%, rgba(255, 232, 140, 0.16) 64%, transparent 68%),
     /* Clear blue sky gradient across top */
     linear-gradient(180deg, rgba(140, 196, 240, 0.28) 0%, transparent 55%),
     /* Sun in upper right */
@@ -411,52 +428,44 @@ html.theme-sunbeam body::before {
   opacity: 1;
   animation: sunbeam-pulse 8s ease-in-out infinite;
 }
+/* Dust motes on ::after — GPU-composited transform drift (not background-position) */
 html.theme-sunbeam body::after {
   content: '';
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto;
+  height: 280vh;
   pointer-events: none;
   z-index: 0;
   will-change: transform;
   background-image:
-    /* Diagonal sun rays radiating from top-right */
-    linear-gradient(200deg, transparent 45%, rgba(255, 232, 140, 0.10) 48%, transparent 52%),
-    linear-gradient(210deg, transparent 52%, rgba(255, 232, 140, 0.08) 56%, transparent 60%),
-    linear-gradient(220deg, transparent 60%, rgba(255, 232, 140, 0.10) 64%, transparent 68%),
-    /* Drifting dust motes lit by sun */
     radial-gradient(circle 3px at 18% 22%, rgba(255, 244, 180, 0.8), transparent 70%),
     radial-gradient(circle 2px at 34% 38%, rgba(255, 232, 140, 0.7), transparent 70%),
     radial-gradient(circle 3px at 48% 18%, rgba(255, 244, 180, 0.75), transparent 70%),
     radial-gradient(circle 2px at 62% 52%, rgba(255, 220, 90, 0.8), transparent 70%),
     radial-gradient(circle 3px at 28% 68%, rgba(255, 244, 180, 0.7), transparent 70%),
     radial-gradient(circle 2px at 72% 84%, rgba(255, 232, 140, 0.75), transparent 70%);
-  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh, 100% 180vh;
-  background-repeat: no-repeat, no-repeat, no-repeat, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y, repeat-y;
-  animation: sunbeam-dust 20s linear infinite;
+  background-size: 100% 180vh;
+  background-repeat: repeat-y;
+  animation: sunbeam-motes 20s linear infinite;
 }
 @keyframes sunbeam-pulse {
   0%, 100% { opacity: 0.9; }
   50% { opacity: 1; }
 }
-@keyframes sunbeam-dust {
-  from {
-    background-position:
-      0 0, 0 0, 0 0,
-      0 0, 0 0, 0 0, 0 0, 0 0, 0 0;
-  }
-  to {
-    background-position:
-      0 0, 0 0, 0 0,
-      0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh, 0 -180vh;
-  }
+@keyframes sunbeam-motes {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-180vh); }
 }
 
 /* ── Galactic: deep space, drifting stars, occasional shooting star ── */
 /* Nebula wash on body — static, never animated */
 html.theme-galactic body {
   background-image:
-    radial-gradient(ellipse 120% 80% at 30% 20%, rgba(106, 164, 255, 0.10), transparent 65%),
-    radial-gradient(ellipse 100% 70% at 80% 80%, rgba(160, 124, 240, 0.09), transparent 65%);
+    radial-gradient(ellipse 120% 80% at 30% 20%, rgba(106, 164, 255, 0.20), transparent 65%),
+    radial-gradient(ellipse 100% 70% at 80% 80%, rgba(160, 124, 240, 0.16), transparent 65%);
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
@@ -471,40 +480,41 @@ html.theme-galactic body::before {
   height: 120vh;
   will-change: transform;
   background-image:
-    radial-gradient(circle 1px at 4% 6%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(circle 1px at 18% 14%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(circle 2px at 32% 22%, rgba(255, 255, 255, 0.85), transparent 60%),
-    radial-gradient(circle 1px at 46% 30%, rgba(200, 220, 255, 0.75), transparent 60%),
-    radial-gradient(circle 1px at 60% 38%, rgba(255, 255, 255, 0.8), transparent 60%),
-    radial-gradient(circle 2px at 74% 46%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(circle 1px at 88% 54%, rgba(200, 220, 255, 0.7), transparent 60%),
-    radial-gradient(circle 1px at 12% 62%, rgba(255, 255, 255, 0.85), transparent 60%),
-    radial-gradient(circle 2px at 28% 70%, rgba(255, 255, 255, 0.8), transparent 60%),
-    radial-gradient(circle 1px at 44% 78%, rgba(200, 220, 255, 0.75), transparent 60%),
-    radial-gradient(circle 1px at 62% 86%, rgba(255, 255, 255, 0.9), transparent 60%),
+    /* Stars — mix of 2-4px with 3 feature stars (4px + tighter falloff for glow halo) */
+    radial-gradient(circle 2px at 4% 6%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(circle 2px at 18% 14%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(circle 3px at 32% 22%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(circle 2px at 46% 30%, rgba(200, 220, 255, 0.75), transparent 60%),
+    radial-gradient(circle 2px at 60% 38%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(circle 4px at 74% 46%, rgba(255, 255, 255, 0.95), transparent 55%),
+    radial-gradient(circle 2px at 88% 54%, rgba(200, 220, 255, 0.7), transparent 60%),
+    radial-gradient(circle 2px at 12% 62%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(circle 3px at 28% 70%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(circle 2px at 44% 78%, rgba(200, 220, 255, 0.75), transparent 60%),
+    radial-gradient(circle 2px at 62% 86%, rgba(255, 255, 255, 0.9), transparent 60%),
     radial-gradient(circle 2px at 80% 94%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(circle 1px at 96% 10%, rgba(200, 220, 255, 0.8), transparent 60%),
-    radial-gradient(circle 1px at 8% 42%, rgba(255, 255, 255, 0.75), transparent 60%),
-    radial-gradient(circle 1px at 56% 8%, rgba(255, 255, 255, 0.85), transparent 60%),
-    radial-gradient(circle 1px at 24% 48%, rgba(255, 255, 255, 0.8), transparent 60%),
-    radial-gradient(circle 2px at 38% 58%, rgba(200, 220, 255, 0.85), transparent 60%),
-    radial-gradient(circle 1px at 52% 14%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(circle 1px at 66% 68%, rgba(255, 255, 255, 0.85), transparent 60%),
-    radial-gradient(circle 2px at 84% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
-    radial-gradient(circle 1px at 6% 82%, rgba(200, 220, 255, 0.8), transparent 60%),
-    radial-gradient(circle 1px at 16% 34%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(circle 2px at 40% 92%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(circle 1px at 58% 54%, rgba(255, 255, 255, 0.85), transparent 60%),
-    radial-gradient(circle 1px at 70% 18%, rgba(200, 220, 255, 0.75), transparent 60%),
-    radial-gradient(circle 2px at 82% 72%, rgba(255, 255, 255, 0.9), transparent 60%),
-    radial-gradient(circle 1px at 92% 88%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(circle 1px at 36% 4%, rgba(200, 220, 255, 0.85), transparent 60%),
-    radial-gradient(circle 1px at 50% 98%, rgba(255, 255, 255, 0.8), transparent 60%),
-    radial-gradient(circle 2px at 76% 2%, rgba(255, 255, 255, 0.75), transparent 60%);
+    radial-gradient(circle 2px at 96% 10%, rgba(200, 220, 255, 0.8), transparent 60%),
+    radial-gradient(circle 2px at 8% 42%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(circle 2px at 56% 8%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(circle 2px at 24% 48%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(circle 4px at 38% 58%, rgba(200, 220, 255, 0.95), transparent 55%),
+    radial-gradient(circle 2px at 52% 14%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(circle 2px at 66% 68%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(circle 3px at 84% 28%, rgba(255, 255, 255, 0.75), transparent 60%),
+    radial-gradient(circle 2px at 6% 82%, rgba(200, 220, 255, 0.8), transparent 60%),
+    radial-gradient(circle 2px at 16% 34%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(circle 3px at 40% 92%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(circle 2px at 58% 54%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(circle 2px at 70% 18%, rgba(200, 220, 255, 0.75), transparent 60%),
+    radial-gradient(circle 4px at 82% 72%, rgba(255, 255, 255, 0.95), transparent 55%),
+    radial-gradient(circle 2px at 92% 88%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(circle 2px at 36% 4%, rgba(200, 220, 255, 0.85), transparent 60%),
+    radial-gradient(circle 2px at 50% 98%, rgba(255, 255, 255, 0.8), transparent 60%),
+    radial-gradient(circle 3px at 76% 2%, rgba(255, 255, 255, 0.75), transparent 60%);
   background-size: 100vw 180vh;
   background-repeat: repeat;
   opacity: 1;
-  animation: galactic-drift 120s linear infinite;
+  animation: galactic-drift 70s linear infinite, galactic-twinkle 4s ease-in-out infinite;
 }
 html.theme-galactic body::after {
   content: '';
@@ -538,6 +548,10 @@ html.theme-galactic body::after {
   75%  { transform: translate(75vw, -5vh); }
   100% { transform: translate(100vw, 0); }
 }
+@keyframes galactic-twinkle {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 0.75; }
+}
 @keyframes galactic-shooting-star {
   /* Translate in vw for both axes so the motion angle stays consistent
      with the rotation (22deg → y = x * tan(22°) ≈ x * 0.4) */
@@ -556,14 +570,19 @@ html.theme-galactic .font-playfair {
 }
 
 /* ── Prismatic: slow horizontal rainbow wash (light theme) ── */
+/* GPU-composited: element is 400vw wide, gradient tiles at 100vw, translateX loops seamlessly */
 html.theme-prismatic body::before {
+  left: -300vw;
+  right: auto;
+  width: 400vw;
+  will-change: transform;
   background-image: linear-gradient(
     90deg,
     #ff3d5c 0%, #ff8a3d 14%, #f0c040 28%, #28d480 42%,
     #28c4e0 56%, #7060ff 70%, #d850e0 84%, #ff3d5c 100%
   );
-  background-size: 400% 100%;
-  background-position: 0% 50%;
+  background-size: 100vw 100%;
+  background-repeat: repeat-x;
   opacity: 0.20;
   filter: blur(16px) saturate(1.3);
   animation: prismatic-wash 32s linear infinite;
@@ -578,8 +597,8 @@ html.theme-prismatic body::after {
   background: rgba(253, 251, 255, 0.75);
 }
 @keyframes prismatic-wash {
-  from { background-position: 0% 50%; }
-  to   { background-position: -300% 50%; }
+  from { transform: translateX(0); }
+  to   { transform: translateX(100vw); }
 }
 html.theme-prismatic h1,
 html.theme-prismatic h2,
@@ -649,7 +668,7 @@ html.theme-crystal .card-hover::before {
   content: '';
   position: absolute;
   top: 0;
-  left: -150%;
+  left: 0;
   width: 60%;
   height: 100%;
   background: linear-gradient(
@@ -660,13 +679,13 @@ html.theme-crystal .card-hover::before {
     transparent 60%,
     transparent 100%
   );
-  transform: skewX(-18deg);
+  transform: skewX(-18deg) translateX(-250%);
   pointer-events: none;
-  transition: left 0.7s ease;
+  transition: transform 0.7s ease;
   z-index: 1;
 }
 html.theme-crystal .card-hover:hover::before {
-  left: 150%;
+  transform: skewX(-18deg) translateX(250%);
 }
 /* ══════════════════════════════════════════════════ */
 /* ── Per-theme heading typography ───────────────── */
