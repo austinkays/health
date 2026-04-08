@@ -43,6 +43,8 @@ const VITAL_LIMITS = {
   resp:    { min: 1, max: 80 },
   steps:   { min: 0, max: 200000 },
   active_energy: { min: 0, max: 20000 },
+  hydration:     { min: 1, max: 4 },
+  activity_level:{ min: 1, max: 4 },
 };
 
 /* ── Vital validation ─────────────────────────────────────── */

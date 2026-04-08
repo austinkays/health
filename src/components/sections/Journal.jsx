@@ -33,6 +33,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') !== 'false');
   const [reflectionPrompt, setReflectionPrompt] = useState(() => getReflectionPrompt(''));
   const [linksOpen, setLinksOpen] = useState(false);
+  const [quickCheck, setQuickCheck] = useState({ sleep: '', hydration: '', activity: '' });
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
@@ -125,15 +126,29 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
   const saveJ = async () => {
     if (!form.content.trim() && !form.title.trim()) return;
+    // Strip transient UI keys before persisting
+    const { _triggersOpen, _interventionsOpen, _adherenceOpen, ...persistForm } = form;
     // Crisis check — show resources but still save (journal is the user's space)
-    const crisis = detectCrisis(form.content);
+    const crisis = detectCrisis(persistForm.content);
     if (editId) {
-      await updateItem('journal', editId, form);
+      await updateItem('journal', editId, persistForm);
     } else {
-      await addItem('journal', form);
+      await addItem('journal', persistForm);
+    }
+    // Create vitals for quick check-in
+    const dt = persistForm.date || todayISO();
+    if (quickCheck.sleep) {
+      addItem('vitals', { date: dt, type: 'sleep', value: quickCheck.sleep, unit: 'hrs', notes: 'from journal' });
+    }
+    if (quickCheck.hydration) {
+      addItem('vitals', { date: dt, type: 'hydration', value: quickCheck.hydration, unit: '/4', notes: 'from journal' });
+    }
+    if (quickCheck.activity) {
+      addItem('vitals', { date: dt, type: 'activity_level', value: quickCheck.activity, unit: '/4', notes: 'from journal' });
     }
     if (crisis.isCrisis) setCrisisType(crisis.type);
     setForm({ ...EMPTY_JOURNAL, date: todayISO() });
+    setQuickCheck({ sleep: '', hydration: '', activity: '' });
     setEditId(null);
     setSubView(null);
   };
@@ -155,6 +170,53 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             </div>
           ) : null;
         })()}
+
+        {/* Quick check-in: sleep, hydration, activity */}
+        <div className="mb-3 -mt-0.5">
+          <label className="text-xs font-medium font-montserrat text-salve-textMid block mb-1.5">Quick check-in</label>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Sleep</span>
+              <input
+                type="number"
+                min="0"
+                max="24"
+                step="0.5"
+                value={quickCheck.sleep}
+                onChange={e => setQuickCheck(p => ({ ...p, sleep: e.target.value }))}
+                placeholder="hrs"
+                className="w-full bg-salve-card border border-salve-border rounded-lg px-2 py-1.5 text-xs text-salve-text font-montserrat text-center placeholder:text-salve-textFaint/50 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+              />
+            </div>
+            <div>
+              <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Hydration</span>
+              <div className="flex gap-0.5">
+                {[{v:'1',l:'😵'},{v:'2',l:'🙂'},{v:'3',l:'💧'},{v:'4',l:'🌊'}].map(h => (
+                  <button key={h.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, hydration: p.hydration === h.v ? '' : h.v }))}
+                    className={`flex-1 h-7 rounded text-xs border transition-colors cursor-pointer ${
+                      quickCheck.hydration === h.v ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
+                    }`}
+                    aria-label={`Hydration ${h.v} of 4`}
+                  >{h.l}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Activity</span>
+              <div className="flex gap-0.5">
+                {[{v:'1',l:'🛋'},{v:'2',l:'🚶'},{v:'3',l:'🏃'},{v:'4',l:'🔥'}].map(a => (
+                  <button key={a.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, activity: p.activity === a.v ? '' : a.v }))}
+                    className={`flex-1 h-7 rounded text-xs border transition-colors cursor-pointer ${
+                      quickCheck.activity === a.v ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-sage/20'
+                    }`}
+                    aria-label={`Activity level ${a.v} of 4`}
+                  >{a.l}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <Field label="Title (optional)" value={form.title} onChange={v => sf('title', v)} placeholder="Quick label for today" />
         <Field label="Mood" value={form.mood} onChange={v => sf('mood', v)} options={MOODS} />
 
@@ -167,12 +229,35 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             onClick={refreshPrompt}
             className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav p-0.5 shrink-0 transition-colors"
             aria-label="Get a different prompt"
+            title="Get a different prompt"
           >
             <RefreshCw size={12} />
           </button>
         </div>
 
-        <Field label="Overall Severity" value={form.severity} onChange={v => sf('severity', v)} options={[...Array(10)].map((_, i) => ({ value: String(i + 1), label: `${i + 1}/10${i === 0 ? ' (minimal)' : i === 9 ? ' (worst)' : ''}` }))} />
+        {/* Severity segmented control */}
+        <div className="mb-3">
+          <label className="text-xs font-medium font-montserrat text-salve-textMid block mb-1.5">Overall Severity</label>
+          <div className="flex gap-1">
+            {[...Array(10)].map((_, i) => {
+              const v = String(i + 1);
+              const active = form.severity === v;
+              const bg = i < 3 ? (active ? 'bg-salve-sage text-white' : 'text-salve-sage border-salve-sage/30 hover:bg-salve-sage/10')
+                : i < 6 ? (active ? 'bg-salve-amber text-white' : 'text-salve-amber border-salve-amber/30 hover:bg-salve-amber/10')
+                : (active ? 'bg-salve-rose text-white' : 'text-salve-rose border-salve-rose/30 hover:bg-salve-rose/10');
+              return (
+                <button key={v} onClick={() => sf('severity', v)} type="button"
+                  className={`flex-1 min-w-[28px] h-8 rounded-lg border text-xs font-montserrat font-medium transition-colors cursor-pointer ${active ? bg + ' border-transparent' : 'bg-salve-card ' + bg}`}
+                  aria-label={`Severity ${v} of 10`}
+                >{v}</button>
+              );
+            })}
+          </div>
+          <div className="flex justify-between mt-0.5 px-0.5">
+            <span className="text-[9px] text-salve-textFaint font-montserrat">minimal</span>
+            <span className="text-[9px] text-salve-textFaint font-montserrat">worst</span>
+          </div>
+        </div>
 
         {/* Symptom builder */}
         <div className="mb-3">
@@ -188,29 +273,39 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             const sev = Number(sym.severity);
             const sevColor = sev >= 7 ? 'text-salve-rose' : sev >= 4 ? 'text-salve-amber' : 'text-salve-sage';
             return (
-              <div key={idx} className="flex items-center gap-1.5 mb-1.5">
-                <input
-                  type="text"
-                  value={sym.name}
-                  onChange={e => updateSymptom(idx, 'name', e.target.value)}
-                  placeholder="Symptom name"
-                  list={`symptom-suggestions-${idx}`}
-                  className="flex-1 min-w-0 bg-salve-card border border-salve-border rounded-lg px-2.5 py-1.5 text-xs text-salve-text font-montserrat placeholder:text-salve-textFaint/60 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
-                />
-                <datalist id={`symptom-suggestions-${idx}`}>
-                  {symptomSuggestions.map(s => <option key={s} value={s} />)}
-                </datalist>
-                <select
-                  value={sym.severity}
-                  onChange={e => updateSymptom(idx, 'severity', e.target.value)}
-                  className={`w-16 bg-salve-card border border-salve-border rounded-lg px-1.5 py-1.5 text-xs font-montserrat ${sevColor} focus:outline-none focus:ring-1 focus:ring-salve-lav/40`}
-                  aria-label={`Severity for ${sym.name || 'symptom'}`}
-                >
-                  {[...Array(10)].map((_, i) => <option key={i + 1} value={String(i + 1)}>{i + 1}/10</option>)}
-                </select>
-                <button onClick={() => removeSymptom(idx)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0.5 transition-colors" aria-label={`Remove ${sym.name || 'symptom'}`}>
-                  <X size={14} />
-                </button>
+              <div key={idx} className="mb-2">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <input
+                    type="text"
+                    value={sym.name}
+                    onChange={e => updateSymptom(idx, 'name', e.target.value)}
+                    placeholder="Symptom name"
+                    list={`symptom-suggestions-${idx}`}
+                    className="flex-1 min-w-0 bg-salve-card border border-salve-border rounded-lg px-2.5 py-1.5 text-xs text-salve-text font-montserrat placeholder:text-salve-textFaint/60 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+                  />
+                  <datalist id={`symptom-suggestions-${idx}`}>
+                    {symptomSuggestions.map(s => <option key={s} value={s} />)}
+                  </datalist>
+                  <span className={`text-[10px] font-montserrat font-medium w-8 text-right ${sevColor}`}>{sym.severity}/10</span>
+                  <button onClick={() => removeSymptom(idx)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0.5 transition-colors" aria-label={`Remove ${sym.name || 'symptom'}`}>
+                    <X size={14} />
+                  </button>
+                </div>
+                <div className="flex gap-0.5 pl-0.5">
+                  {[...Array(10)].map((_, i) => {
+                    const sv = String(i + 1);
+                    const active = sym.severity === sv;
+                    const bg = i < 3 ? (active ? 'bg-salve-sage text-white' : 'text-salve-sage/60 border-salve-sage/20 hover:bg-salve-sage/10')
+                      : i < 6 ? (active ? 'bg-salve-amber text-white' : 'text-salve-amber/60 border-salve-amber/20 hover:bg-salve-amber/10')
+                      : (active ? 'bg-salve-rose text-white' : 'text-salve-rose/60 border-salve-rose/20 hover:bg-salve-rose/10');
+                    return (
+                      <button key={sv} onClick={() => updateSymptom(idx, 'severity', sv)} type="button"
+                        className={`flex-1 min-w-0 h-6 rounded text-[10px] border font-montserrat font-medium transition-colors cursor-pointer ${active ? bg + ' border-transparent' : 'bg-salve-card ' + bg}`}
+                        aria-label={`${sym.name || 'Symptom'} severity ${sv}`}
+                      >{sv}</button>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}
@@ -219,7 +314,93 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           )}
         </div>
 
-        <Field label="What's going on?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="Symptoms, triggers, what helped..." />
+        {/* Structured content blocks */}
+        <div className="mb-3">
+          <button
+            onClick={() => sf('_triggersOpen', !form._triggersOpen)}
+            className="flex items-center gap-1 bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 mb-1 hover:text-salve-amber transition-colors"
+            type="button"
+          >
+            <Plus size={12} className={form._triggersOpen || form.triggers ? 'hidden' : ''} />
+            <ChevronDown size={12} className={`transition-transform ${!form._triggersOpen && !form.triggers ? 'hidden' : ''} ${form._triggersOpen ? 'rotate-180' : ''}`} />
+            <span>Triggers</span>
+            {form.triggers && !form._triggersOpen && <span className="text-salve-amber ml-1">·</span>}
+          </button>
+          {(form._triggersOpen || form.triggers) && (
+            <Field value={form.triggers} onChange={v => sf('triggers', v)} textarea placeholder="What happened? Stressful meeting, poor sleep, missed meal..." />
+          )}
+        </div>
+
+        <Field label="How are you feeling?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="What's on your mind today..." />
+
+        <div className="mb-3">
+          <button
+            onClick={() => sf('_interventionsOpen', !form._interventionsOpen)}
+            className="flex items-center gap-1 bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 mb-1 hover:text-salve-sage transition-colors"
+            type="button"
+          >
+            <Plus size={12} className={form._interventionsOpen || form.interventions ? 'hidden' : ''} />
+            <ChevronDown size={12} className={`transition-transform ${!form._interventionsOpen && !form.interventions ? 'hidden' : ''} ${form._interventionsOpen ? 'rotate-180' : ''}`} />
+            <span>What helped</span>
+            {form.interventions && !form._interventionsOpen && <span className="text-salve-sage ml-1">·</span>}
+          </button>
+          {(form._interventionsOpen || form.interventions) && (
+            <Field value={form.interventions} onChange={v => sf('interventions', v)} textarea placeholder="Took a walk, breathing exercises, called a friend..." />
+          )}
+        </div>
+
+        {/* Medication adherence toggles */}
+        {activeMeds.length > 0 && (
+          <div className="mb-3">
+            <button
+              onClick={() => sf('_adherenceOpen', !form._adherenceOpen)}
+              className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 mb-1 hover:text-salve-lav transition-colors"
+              type="button"
+            >
+              <Plus size={12} className={form._adherenceOpen || Object.keys(form.adherence || {}).length ? 'hidden' : ''} />
+              <ChevronDown size={12} className={`transition-transform ${!form._adherenceOpen && !Object.keys(form.adherence || {}).length ? 'hidden' : ''} ${form._adherenceOpen ? 'rotate-180' : ''}`} />
+              <span>Medication check-in</span>
+              {Object.keys(form.adherence || {}).length > 0 && !form._adherenceOpen && (
+                <span className="text-salve-lav ml-0.5">({Object.values(form.adherence).filter(Boolean).length}/{Object.keys(form.adherence).length})</span>
+              )}
+            </button>
+            {(form._adherenceOpen || Object.keys(form.adherence || {}).length > 0) && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {activeMeds.map(m => {
+                  const v = (form.adherence || {})[m.id];
+                  const taken = v === true;
+                  const skipped = v === false;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        const adh = { ...(form.adherence || {}) };
+                        if (taken) { adh[m.id] = false; }
+                        else if (skipped) { delete adh[m.id]; }
+                        else { adh[m.id] = true; }
+                        sf('adherence', adh);
+                      }}
+                      className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat flex items-center gap-1 ${
+                        taken ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' :
+                        skipped ? 'bg-salve-rose/15 border-salve-rose/30 text-salve-rose line-through' :
+                        'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'
+                      }`}
+                      aria-label={`${m.display_name || m.name}: ${taken ? 'taken' : skipped ? 'skipped' : 'not recorded'}`}
+                    >
+                      {taken && <Check size={10} />}
+                      {skipped && <X size={10} />}
+                      {m.display_name || m.name}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {(form._adherenceOpen || Object.keys(form.adherence || {}).length > 0) && (
+              <p className="text-[10px] text-salve-textFaint/50 font-montserrat mt-1 pl-0.5">Tap: untouched → ✓ taken → ✗ skipped → clear</p>
+            )}
+          </div>
+        )}
 
         {/* Gratitude field — only for positive/neutral moods */}
         {showGratitude && (
@@ -440,6 +621,13 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                 <div className="text-[10px] text-salve-amber font-montserrat mt-0.5 truncate">✨ {e.gratitude}</div>
               )}
 
+              {/* Adherence pill (collapsed) */}
+              {!isExpanded && e.adherence && Object.keys(e.adherence).length > 0 && (() => {
+                const total = Object.keys(e.adherence).length;
+                const taken = Object.values(e.adherence).filter(Boolean).length;
+                return <span className="text-[10px] px-1.5 py-0.5 rounded-full font-montserrat bg-salve-lav/10 text-salve-lav inline-block mt-0.5">💊 {taken}/{total} meds</span>;
+              })()}
+
               {!isExpanded && e.content && !symptoms.length && !e.gratitude && (
                 <div className="text-[13px] text-salve-textMid leading-relaxed line-clamp-2">{e.content}</div>
               )}
@@ -450,6 +638,37 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-1.5 pt-1.5 border-t border-salve-lav/15" onClick={ev => ev.stopPropagation()}>
                   <div className="text-[13px] text-salve-textMid leading-relaxed">{e.content}</div>
+
+                  {/* Triggers */}
+                  {e.triggers && (
+                    <div className="mt-2 bg-salve-amber/8 border border-salve-amber/15 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[10px] font-medium font-montserrat text-salve-amber uppercase tracking-wider block mb-0.5">Triggers</span>
+                      <span className="text-[12px] text-salve-textMid font-montserrat">{e.triggers}</span>
+                    </div>
+                  )}
+
+                  {/* Interventions */}
+                  {e.interventions && (
+                    <div className="mt-2 bg-salve-sage/8 border border-salve-sage/15 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[10px] font-medium font-montserrat text-salve-sage uppercase tracking-wider block mb-0.5">What helped</span>
+                      <span className="text-[12px] text-salve-textMid font-montserrat">{e.interventions}</span>
+                    </div>
+                  )}
+
+                  {/* Adherence (expanded) */}
+                  {e.adherence && Object.keys(e.adherence).length > 0 && (
+                    <div className="mt-2 flex gap-1 flex-wrap">
+                      {Object.entries(e.adherence).map(([medId, taken]) => {
+                        const med = (data.meds || []).find(m => m.id === medId);
+                        if (!med) return null;
+                        return (
+                          <span key={medId} className={`text-[10px] px-2 py-0.5 rounded-full font-montserrat flex items-center gap-0.5 ${taken ? 'bg-salve-sage/12 text-salve-sage' : 'bg-salve-rose/12 text-salve-rose line-through'}`}>
+                            {taken ? '✓' : '✗'} {med.display_name || med.name}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Expanded symptoms list */}
                   {symptoms.length > 0 && (
@@ -510,7 +729,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                     </div>
                   )}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm({ ...EMPTY_JOURNAL, ...e, symptoms: e.symptoms || [], linked_conditions: e.linked_conditions || [], linked_meds: e.linked_meds || [], gratitude: e.gratitude || '' }); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
+                    <button onClick={() => { setForm({ ...EMPTY_JOURNAL, ...e, symptoms: e.symptoms || [], linked_conditions: e.linked_conditions || [], linked_meds: e.linked_meds || [], gratitude: e.gratitude || '', triggers: e.triggers || '', interventions: e.interventions || '', adherence: e.adherence || {} }); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
                     <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1">Delete</button>
                   </div>
                 </div>

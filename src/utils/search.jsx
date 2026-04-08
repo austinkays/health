@@ -73,7 +73,7 @@ export const ENTITY_CONFIG = {
     icon: BookOpen,
     color: C.lav,
     tab: 'journal',
-    fields: ['title', 'content', 'tags', 'gratitude'],
+    fields: ['title', 'content', 'tags', 'gratitude', 'triggers', 'interventions'],
     primary: e => e.title || 'Journal entry',
     secondary: e => e.date || '',
     idField: 'id',

@@ -168,6 +168,15 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
               return match ? match.id : nameOrId;
             }).filter(id => (data.meds || []).some(m => m.id === id));
           }
+          // Resolve adherence medication names to IDs
+          if (cleaned.adherence && typeof cleaned.adherence === 'object') {
+            const resolved = {};
+            for (const [nameOrId, val] of Object.entries(cleaned.adherence)) {
+              const match = (data.meds || []).find(m => m.id === nameOrId || m.name?.toLowerCase() === String(nameOrId).toLowerCase() || m.display_name?.toLowerCase() === String(nameOrId).toLowerCase());
+              if (match) resolved[match.id] = !!val;
+            }
+            cleaned.adherence = resolved;
+          }
         }
         const validationErr = validateToolInput(table, cleaned);
         if (validationErr) return { tool_use_id, content: `Validation failed: ${validationErr}`, is_error: true };

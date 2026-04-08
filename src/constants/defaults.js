@@ -50,6 +50,7 @@ export const EMPTY_JOURNAL = {
   date: todayISO(),
   title: '', content: '', severity: '5', tags: '', mood: '',
   symptoms: [], linked_conditions: [], linked_meds: [], gratitude: '',
+  triggers: '', interventions: '', adherence: {},
 };
 
 export const COMMON_SYMPTOMS = [
@@ -81,6 +82,8 @@ export const VITAL_TYPES = [
   { id: 'glucose', label: 'Blood Sugar', unit: 'mg/dL', normalLow: 70, normalHigh: 140 },
   { id: 'spo2', label: 'Blood Oxygen', unit: '%', normalLow: 95, normalHigh: 100 },
   { id: 'resp', label: 'Respiratory Rate', unit: 'rpm', normalLow: 12, normalHigh: 20 },
+  { id: 'hydration', label: 'Hydration', unit: '/4', min: 1, max: 4, warnLow: 1 },
+  { id: 'activity_level', label: 'Activity Level', unit: '/4', min: 1, max: 4 },
 ];
 
 // Mood options for journal entries

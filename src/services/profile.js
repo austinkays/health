@@ -258,6 +258,14 @@ export function buildProfile(data) {
         p += ' | Symptoms: ' + e.symptoms.map(s => san(s.name, 50) + ' ' + s.severity + '/10').join(', ');
       }
       if (e.tags) p += ' (tags: ' + san(e.tags) + ')';
+      if (e.triggers) p += ' | Triggers: ' + san(e.triggers, 300);
+      if (e.interventions) p += ' | What helped: ' + san(e.interventions, 300);
+      if (e.adherence && Object.keys(e.adherence).length) {
+        const taken = Object.entries(e.adherence).filter(([,v]) => v).map(([id]) => { const m = (data.meds || []).find(m => m.id === id); return m ? san(m.display_name || m.name, 60) : null; }).filter(Boolean);
+        const skipped = Object.entries(e.adherence).filter(([,v]) => !v).map(([id]) => { const m = (data.meds || []).find(m => m.id === id); return m ? san(m.display_name || m.name, 60) : null; }).filter(Boolean);
+        if (taken.length) p += ' [meds taken: ' + taken.join(', ') + ']';
+        if (skipped.length) p += ' [meds SKIPPED: ' + skipped.join(', ') + ']';
+      }
       if (e.gratitude) p += ' ✨ ' + san(e.gratitude, 200);
       // Cross-reference linked conditions/meds by name
       const lc = (e.linked_conditions || []).map(id => (data.conditions || []).find(c => c.id === id)?.name).filter(Boolean);
