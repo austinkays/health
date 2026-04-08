@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-export default function Field({ label, value, onChange, type = 'text', placeholder, options, textarea, required, id, error, hint, maxLength, min, max, children: _children, ...inputProps }) {
+export default function Field({ label, value, onChange, onBlur, type = 'text', placeholder, options, textarea, required, id, error, hint, maxLength, min, max, children: _children, ...inputProps }) {
   const autoId = useId();
   const inputId = id || `field-${autoId}`;
   const errorId = `${inputId}-error`;
@@ -35,6 +35,7 @@ export default function Field({ label, value, onChange, type = 'text', placehold
           id={inputId}
           value={value}
           onChange={e => onChange(maxLength ? e.target.value.slice(0, maxLength) : e.target.value)}
+          onBlur={onBlur}
           placeholder={placeholder}
           rows={3}
           maxLength={maxLength}

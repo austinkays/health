@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff, Calendar, Activity, Zap, Heart, Moon, Pill, BarChart3 } from 'lucide-react';
+import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff, Calendar, Activity, Zap, Heart, Moon, Pill } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -81,7 +81,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') !== 'false');
   const [reflectionPrompt, setReflectionPrompt] = useState(() => getContextualPrompt(data) || getReflectionPrompt(''));
   const [openSections, setOpenSections] = useState({});
-  const [quickCheck, setQuickCheck] = useState({ sleep: '', hydration: '', activity: '' });
+  const [quickCheck, setQuickCheck] = useState({ sleep: '', hydration: '', activity: '', sleepQuality: '', wakeUps: '', sleepTrouble: [] });
   const [dateOpen, setDateOpen] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
@@ -242,7 +242,12 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     // Create vitals for quick check-in
     const dt = persistForm.date || todayISO();
     if (quickCheck.sleep) {
-      addItem('vitals', { date: dt, type: 'sleep', value: quickCheck.sleep, unit: 'hrs', notes: 'from journal' });
+      const sleepNotes = ['from journal',
+        quickCheck.sleepQuality && `quality: ${['','awful','poor','ok','good','great'][quickCheck.sleepQuality] || quickCheck.sleepQuality}/5`,
+        quickCheck.wakeUps && `woke ${quickCheck.wakeUps}x`,
+        (quickCheck.sleepTrouble || []).length > 0 && `trouble: ${quickCheck.sleepTrouble.join(', ')}`,
+      ].filter(Boolean).join(' · ');
+      addItem('vitals', { date: dt, type: 'sleep', value: quickCheck.sleep, unit: 'hrs', notes: sleepNotes });
     }
     if (quickCheck.hydration) {
       addItem('vitals', { date: dt, type: 'hydration', value: quickCheck.hydration, unit: '/4', notes: 'from journal' });
@@ -252,7 +257,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     }
     if (crisis.isCrisis) setCrisisType(crisis.type);
     setForm({ ...EMPTY_JOURNAL, date: todayISO() });
-    setQuickCheck({ sleep: '', hydration: '', activity: '' });
+    setQuickCheck({ sleep: '', hydration: '', activity: '', sleepQuality: '', wakeUps: '', sleepTrouble: [] });
     setOpenSections({});
     setEditId(null);
     setSubView(null);
@@ -266,7 +271,6 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     // Auto-open sections that have data when editing
     const autoOpen = editId ? {
       ...(form.symptoms || []).length > 0 && { symptoms: true },
-      ...(form.severity && form.severity !== '5') && { severity: true },
       ...Object.keys(form.adherence || {}).length > 0 && { meds: true },
       ...form.triggers && { triggers: true },
       ...form.interventions && { helped: true },
@@ -279,7 +283,6 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     // Per-section data indicators for pill badges
     const sectionHasData = {
       symptoms: (form.symptoms || []).length > 0,
-      severity: form.severity && form.severity !== '5',
       sleep: !!quickCheck.sleep,
       meds: Object.keys(form.adherence || {}).length > 0,
       triggers: !!form.triggers,
@@ -294,7 +297,6 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
     const topics = [
       { key: 'symptoms', icon: Activity, label: 'Symptoms', suggest: isNegativeMood },
-      { key: 'severity', icon: BarChart3, label: 'Severity', suggest: isNegativeMood },
       { key: 'sleep', icon: Moon, label: 'Sleep' },
       activeMeds.length > 0 && { key: 'meds', icon: Pill, label: 'Meds taken' },
       { key: 'triggers', icon: Zap, label: 'Triggers', suggest: isNegativeMood },
@@ -410,30 +412,33 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           className="w-full mb-3 px-3.5 py-2.5 rounded-xl bg-salve-lav/5 border border-salve-lav/15 text-left cursor-pointer hover:bg-salve-lav/8 hover:border-salve-lav/25 transition-all group"
           aria-label="Reflection prompt — click for a different one"
         >
-          <div className="flex items-start gap-2">
-            <Sparkles size={12} className="text-salve-lav/50 mt-0.5 shrink-0" />
-            <p className="text-xs text-salve-textFaint italic font-montserrat leading-relaxed flex-1">
-              {reflectionPrompt}
-            </p>
-            <RefreshCw size={11} className="text-salve-textFaint/40 group-hover:text-salve-lav mt-0.5 shrink-0 transition-colors" />
+          <div className="flex items-center gap-1.5 mb-1">
+            <Sparkles size={11} className="text-salve-lav/60" />
+            <span className="text-[10px] font-montserrat font-medium text-salve-lav/60 uppercase tracking-wider">Not sure what to write?</span>
+            <RefreshCw size={10} className="text-salve-textFaint/30 group-hover:text-salve-lav ml-auto shrink-0 transition-colors" />
           </div>
+          <p className="text-xs text-salve-textFaint italic font-montserrat leading-relaxed pl-4">
+            {reflectionPrompt}
+          </p>
         </button>
 
         {/* ── Main content textarea ── */}
-        <Field label="How are you feeling?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="What's on your mind today..." />
-
-        {/* AI extraction — extract structured data from freeform text */}
-        {hasAIConsent() && (form.content || '').trim().length >= 20 && !extraction && (
-          <div className="-mt-1 mb-3">
-            <button
-              type="button"
-              onClick={runExtraction}
-              disabled={extracting}
-              className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-salve-lav/70 text-[11px] font-montserrat p-0 hover:text-salve-lav transition-colors disabled:opacity-50"
-            >
-              {extracting ? <Loader size={12} className="animate-spin" /> : <Sparkles size={12} />}
-              {extracting ? 'Extracting...' : 'Extract mood & symptoms with Sage'}
-            </button>
+        <Field
+          label="How are you feeling?"
+          value={form.content}
+          onChange={v => sf('content', v)}
+          onBlur={() => {
+            // Auto-extract mood & symptoms when leaving the textarea (free Gemini Lite tier)
+            if (hasAIConsent() && (form.content || '').trim().length >= 20 && !extraction && !extracting) {
+              runExtraction();
+            }
+          }}
+          textarea
+          placeholder="What's on your mind today..."
+        />
+        {extracting && (
+          <div className="-mt-1 mb-3 flex items-center gap-1.5 text-salve-lav/70 text-[11px] font-montserrat">
+            <Loader size={12} className="animate-spin" /> Reading your entry...
           </div>
         )}
         {extraction && (
@@ -487,6 +492,37 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
         {/* ── Tags ── */}
         <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="flare, fatigue, headache..." />
+
+        {/* ── How's today overall? (quick severity rating) ── */}
+        <div className="mb-4 -mt-1">
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <span className="text-[10px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">How's today overall?</span>
+            {form.severity && form.severity !== '5' && (
+              <span className={`text-[10px] font-montserrat font-medium ${Number(form.severity) >= 7 ? 'text-salve-rose' : Number(form.severity) >= 4 ? 'text-salve-amber' : 'text-salve-sage'}`}>
+                {form.severity}/10
+              </span>
+            )}
+          </div>
+          <div className="flex gap-1">
+            {[...Array(10)].map((_, i) => {
+              const v = String(i + 1);
+              const active = form.severity === v;
+              const bg = i < 3 ? (active ? 'bg-salve-sage text-white' : 'text-salve-sage border-salve-sage/30 hover:bg-salve-sage/10')
+                : i < 6 ? (active ? 'bg-salve-amber text-white' : 'text-salve-amber border-salve-amber/30 hover:bg-salve-amber/10')
+                : (active ? 'bg-salve-rose text-white' : 'text-salve-rose border-salve-rose/30 hover:bg-salve-rose/10');
+              return (
+                <button key={v} onClick={() => sf('severity', active ? '5' : v)} type="button"
+                  className={`flex-1 min-w-[28px] h-7 rounded-lg border text-[11px] font-montserrat font-medium transition-colors cursor-pointer ${active ? bg + ' border-transparent' : 'bg-salve-card ' + bg}`}
+                  aria-label={`Severity ${v} of 10`}
+                >{v}</button>
+              );
+            })}
+          </div>
+          <div className="flex justify-between mt-0.5 px-0.5">
+            <span className="text-[9px] text-salve-textFaint/60 font-montserrat">great</span>
+            <span className="text-[9px] text-salve-textFaint/60 font-montserrat">rough</span>
+          </div>
+        </div>
 
         {/* ══════════ MORE ABOUT TODAY — Topic Pills ══════════ */}
         <div className="mt-1 mb-4">
@@ -587,52 +623,87 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           </div>
         )}
 
-        {/* ── Overall Severity ── */}
-        {isSectionOpen('severity') && (
-          <div className="mb-4 px-2.5 py-3 rounded-xl bg-salve-card2/30 border border-salve-border/40">
-            <label className="text-xs font-medium font-montserrat text-salve-textMid flex items-center gap-1.5 mb-2">
-              <BarChart3 size={13} className="text-salve-lav" /> Overall Severity
-            </label>
-            <div className="flex gap-1">
-              {[...Array(10)].map((_, i) => {
-                const v = String(i + 1);
-                const active = form.severity === v;
-                const bg = i < 3 ? (active ? 'bg-salve-sage text-white' : 'text-salve-sage border-salve-sage/30 hover:bg-salve-sage/10')
-                  : i < 6 ? (active ? 'bg-salve-amber text-white' : 'text-salve-amber border-salve-amber/30 hover:bg-salve-amber/10')
-                  : (active ? 'bg-salve-rose text-white' : 'text-salve-rose border-salve-rose/30 hover:bg-salve-rose/10');
-                return (
-                  <button key={v} onClick={() => sf('severity', v)} type="button"
-                    className={`flex-1 min-w-[28px] h-8 rounded-lg border text-xs font-montserrat font-medium transition-colors cursor-pointer ${active ? bg + ' border-transparent' : 'bg-salve-card ' + bg}`}
-                    aria-label={`Severity ${v} of 10`}
-                  >{v}</button>
-                );
-              })}
-            </div>
-            <div className="flex justify-between mt-0.5 px-0.5">
-              <span className="text-[9px] text-salve-textFaint font-montserrat">minimal</span>
-              <span className="text-[9px] text-salve-textFaint font-montserrat">worst</span>
-            </div>
-          </div>
-        )}
 
         {/* ── Sleep ── */}
         {isSectionOpen('sleep') && (
           <div className="mb-4 px-2.5 py-3 rounded-xl bg-salve-card2/30 border border-salve-border/40">
-            <label className="text-xs font-medium font-montserrat text-salve-textMid flex items-center gap-1.5 mb-2">
+            <label className="text-xs font-medium font-montserrat text-salve-textMid flex items-center gap-1.5 mb-2.5">
               <Moon size={13} className="text-salve-lav" /> How did you sleep?
             </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max="24"
-                step="0.5"
-                value={quickCheck.sleep}
-                onChange={e => setQuickCheck(p => ({ ...p, sleep: e.target.value }))}
-                placeholder="hours"
-                className="w-24 bg-salve-card border border-salve-border rounded-lg px-2.5 py-1.5 text-xs text-salve-text font-montserrat text-center placeholder:text-salve-textFaint/50 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
-              />
-              <span className="text-[11px] text-salve-textFaint font-montserrat">hours last night</span>
+            <div className="space-y-3">
+              {/* Hours + Quality side by side */}
+              <div className="flex items-end gap-4">
+                <div>
+                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Hours</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="24"
+                    step="0.5"
+                    value={quickCheck.sleep}
+                    onChange={e => setQuickCheck(p => ({ ...p, sleep: e.target.value }))}
+                    placeholder="hrs"
+                    className="w-20 bg-salve-card border border-salve-border rounded-lg px-2 py-1.5 text-xs text-salve-text font-montserrat text-center placeholder:text-salve-textFaint/50 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+                  />
+                </div>
+                <div className="flex-1">
+                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Quality</span>
+                  <div className="flex gap-1">
+                    {[{v:'1',l:'Awful',e:'😫'},{v:'2',l:'Poor',e:'😴'},{v:'3',l:'OK',e:'😐'},{v:'4',l:'Good',e:'😊'},{v:'5',l:'Great',e:'✨'}].map(q => (
+                      <button key={q.v} type="button"
+                        onClick={() => setQuickCheck(p => ({ ...p, sleepQuality: p.sleepQuality === q.v ? '' : q.v }))}
+                        className={`flex-1 flex flex-col items-center gap-0.5 py-1 rounded-lg border text-[10px] font-montserrat transition-colors cursor-pointer ${
+                          quickCheck.sleepQuality === q.v
+                            ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav'
+                            : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
+                        }`}
+                        aria-label={`Sleep quality: ${q.l}`}
+                      >
+                        <span className="text-xs">{q.e}</span>
+                        <span className="leading-none">{q.l}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Wake-ups + Trouble */}
+              <div className="flex items-end gap-4">
+                <div>
+                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Woke up</span>
+                  <div className="flex gap-0.5">
+                    {['0','1','2','3','4+'].map(w => (
+                      <button key={w} type="button"
+                        onClick={() => setQuickCheck(p => ({ ...p, wakeUps: p.wakeUps === w ? '' : w }))}
+                        className={`w-9 h-7 rounded text-[11px] border font-montserrat font-medium transition-colors cursor-pointer ${
+                          quickCheck.wakeUps === w
+                            ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav'
+                            : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
+                        }`}
+                        aria-label={`Woke up ${w} times`}
+                      >{w}</button>
+                    ))}
+                    <span className="text-[10px] text-salve-textFaint font-montserrat self-center ml-1">times</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Trouble with</span>
+                  <div className="flex flex-wrap gap-1">
+                    {['falling asleep', 'staying asleep', 'waking early', 'nightmares', 'pain'].map(t => (
+                      <button key={t} type="button"
+                        onClick={() => setQuickCheck(p => {
+                          const arr = p.sleepTrouble || [];
+                          return { ...p, sleepTrouble: arr.includes(t) ? arr.filter(x => x !== t) : [...arr, t] };
+                        })}
+                        className={`text-[10px] px-2 py-0.5 rounded-full border font-montserrat transition-colors cursor-pointer ${
+                          (quickCheck.sleepTrouble || []).includes(t)
+                            ? 'bg-salve-amber/15 border-salve-amber/30 text-salve-amber'
+                            : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-amber/20'
+                        }`}
+                      >{t}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
