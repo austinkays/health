@@ -1269,6 +1269,17 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
             <Disclaimer />
           </div>
         ) :
+        mode === 'monthly_summary' ? (
+          <div>
+            <ResultHeader icon={FileText} label="Monthly Summary" color={C.sage} text={typeof result === 'string' ? result : result?.text} featureType="monthly_summary" savedInsights={savedInsights} />
+            <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
+              <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
+                <AIMarkdown reveal>{stripDisclaimer(typeof result === 'string' ? result : result?.text)}</AIMarkdown>
+              </div>
+            </div>
+            <Disclaimer />
+          </div>
+        ) :
         null
       ) : null}
     </div>

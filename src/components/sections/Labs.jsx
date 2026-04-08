@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Plus, Check, Edit, Trash2, FlaskConical, Sparkles, ChevronDown, ExternalLink, Calendar } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import SplitView, { useIsDesktop } from '../layout/SplitView';
 import Card from '../ui/Card';
@@ -41,6 +41,10 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
   const isDesktop = useIsDesktop();
   const del = useConfirmDelete();
   const [errors, setErrors] = useState({});
+  const [showCleanup, setShowCleanup] = useState(false);
+  const [cleanupYear, setCleanupYear] = useState('');
+  const [cleanupConfirm, setCleanupConfirm] = useState(false);
+  const [cleanupDeleting, setCleanupDeleting] = useState(false);
   const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
 
   useEffect(() => {
@@ -184,7 +188,12 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
 
   const listContent = (
     <div className="mt-2">
-      <div className="flex justify-end mb-3">
+      <div className="flex justify-end gap-2 mb-3">
+        {data.labs.length > 0 && (
+          <Button variant="ghost" onClick={() => { setShowCleanup(s => !s); setCleanupConfirm(false); setCleanupYear(''); }} className="!py-1.5 !px-3 !text-xs text-salve-textFaint">
+            <Calendar size={13} /> Clean up
+          </Button>
+        )}
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
 
@@ -198,6 +207,49 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
         ))}
       </div>
 
+      {showCleanup && (() => {
+        const currentYear = new Date().getFullYear();
+        const yearOptions = [];
+        for (let y = currentYear; y >= currentYear - 20; y--) yearOptions.push(String(y));
+        const oldLabs = cleanupYear ? data.labs.filter(l => l.date && l.date < `${cleanupYear}-01-01`) : [];
+        return (
+          <Card className="mb-3 !bg-salve-rose/5 border-salve-rose/20">
+            <p className="text-xs text-salve-textMid mb-2">Delete lab results older than a specific year</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <select value={cleanupYear} onChange={e => { setCleanupYear(e.target.value); setCleanupConfirm(false); }}
+                className="text-sm rounded-lg border border-salve-border bg-salve-card px-3 py-1.5 text-salve-text">
+                <option value="">Select year...</option>
+                {yearOptions.map(y => <option key={y} value={y}>Before {y}</option>)}
+              </select>
+              {cleanupYear && oldLabs.length > 0 && !cleanupConfirm && (
+                <Button variant="ghost" onClick={() => setCleanupConfirm(true)} className="!text-xs !text-salve-rose">
+                  <Trash2 size={13} /> Delete {oldLabs.length} record{oldLabs.length !== 1 ? 's' : ''}
+                </Button>
+              )}
+              {cleanupYear && oldLabs.length === 0 && (
+                <span className="text-xs text-salve-textFaint">No records before {cleanupYear}</span>
+              )}
+            </div>
+            {cleanupConfirm && (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="text-xs text-salve-rose font-medium">Permanently delete {oldLabs.length} lab{oldLabs.length !== 1 ? 's' : ''} from before {cleanupYear}?</span>
+                <Button variant="ghost" className="!text-xs !text-salve-rose" disabled={cleanupDeleting}
+                  onClick={async () => {
+                    setCleanupDeleting(true);
+                    for (const l of oldLabs) await removeItem('labs', l.id);
+                    setCleanupDeleting(false);
+                    setShowCleanup(false);
+                    setCleanupYear('');
+                    setCleanupConfirm(false);
+                  }}>
+                  {cleanupDeleting ? 'Deleting...' : 'Yes, delete'}
+                </Button>
+                <Button variant="ghost" className="!text-xs" onClick={() => setCleanupConfirm(false)}>Cancel</Button>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       {fl.length === 0 ? <EmptyState icon={FlaskConical} text="No labs or imaging results yet" motif="leaf" /> :
         fl.map(l => {

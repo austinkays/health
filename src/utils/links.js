@@ -23,9 +23,18 @@ export function medlinePlusUrl(topic) {
   return `https://medlineplus.gov/search?query=${encodeURIComponent(topic)}`;
 }
 
-/** MedlinePlus lab test search */
+/** MedlinePlus lab test search — cleans verbose Apple Health/FHIR names */
 export function medlinePlusLabUrl(testName) {
-  return `https://medlineplus.gov/search?query=${encodeURIComponent(testName + ' test')}`;
+  let clean = testName
+    .replace(/\s*\[.*?\]\s*/g, '')          // strip bracketed codes [LOINC], [Mass/Vol], etc.
+    .replace(/\s*\(.*?\)\s*/g, '')          // strip parentheticals (serum), (blood), etc.
+    .replace(/\b(in|of|by|per)\s+(serum|plasma|blood|urine|whole blood|body fluid)\b/gi, '') // strip specimen type phrases
+    .replace(/\b(mass|moles|volume|substance|catalytic activity|number|arbitrary)\s*\/\s*(volume|area|time)\b/gi, '') // strip LOINC quantity types
+    .replace(/\s{2,}/g, ' ')               // collapse whitespace
+    .trim();
+  // If cleaning left nothing useful, fall back to original
+  if (clean.length < 3) clean = testName.trim();
+  return `https://medlineplus.gov/search?query=${encodeURIComponent(clean + ' test')}`;
 }
 
 /** CDC vaccine info search */
