@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2 } from 'lucide-react';
+import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -19,6 +19,52 @@ import CrisisModal from '../ui/CrisisModal';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { getReflectionPrompt, isPositiveMood } from '../../constants/journalPrompts';
 import { detectCrisis } from '../../utils/crisis';
+import useVoiceInput from '../../hooks/useVoiceInput';
+
+function VoiceInputBlock({ onTranscript }) {
+  const { isListening, transcript, error, start, stop, isSupported } = useVoiceInput();
+  if (!isSupported) return null;
+
+  const handleToggle = () => {
+    if (isListening) {
+      stop();
+      if (transcript) onTranscript(transcript);
+    } else {
+      start();
+    }
+  };
+
+  return (
+    <div className="mb-3 -mt-0.5">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={handleToggle}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-montserrat font-medium transition-all cursor-pointer ${
+            isListening
+              ? 'bg-salve-rose/15 border-salve-rose/40 text-salve-rose animate-pulse'
+              : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/40 hover:text-salve-lav'
+          }`}
+          aria-label={isListening ? 'Stop recording' : 'Start voice entry'}
+        >
+          {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+          {isListening ? 'Stop · tap to save' : 'Voice entry'}
+        </button>
+        {isListening && (
+          <span className="text-[10px] text-salve-rose font-montserrat animate-pulse">● Recording</span>
+        )}
+      </div>
+      {isListening && transcript && (
+        <div className="mt-1.5 px-2.5 py-2 rounded-lg bg-salve-lav/5 border border-salve-lav/15 text-xs text-salve-text font-montserrat leading-relaxed">
+          {transcript}
+        </div>
+      )}
+      {error && (
+        <p className="text-[11px] text-salve-rose font-montserrat mt-1" role="alert">{error}</p>
+      )}
+    </div>
+  );
+}
 
 export default function Journal({ data, addItem, updateItem, removeItem, highlightId, onNav }) {
   const [subView, setSubView] = useState(null);
@@ -170,6 +216,9 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             </div>
           ) : null;
         })()}
+
+        {/* Voice input — Talk to Sage */}
+        <VoiceInputBlock onTranscript={t => sf('content', ((form.content || '') + (form.content ? '\n' : '') + t).trim())} />
 
         {/* Quick check-in: sleep, hydration, activity */}
         <div className="mb-3 -mt-0.5">
