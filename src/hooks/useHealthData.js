@@ -33,10 +33,14 @@ export default function useHealthData(session, demoMode = false) {
     setLoading(false);
   }, [demoMode]);
 
-  // Cache-first loading: show cached data instantly, then refresh from Supabase
+  // Cache-first loading: show cached data instantly, then refresh from Supabase.
+  // Depend on session user ID (stable string) — NOT the session object reference,
+  // which changes on every token refresh and caused 3× duplicate load_all_data calls.
+  const sessionUserId = session?.user?.id;
+  const sessionToken = session?.access_token;
   useEffect(() => {
     if (demoMode) return;
-    if (!session) {
+    if (!sessionUserId || !sessionToken) {
       setLoading(false);
       return;
     }
@@ -45,7 +49,7 @@ export default function useHealthData(session, demoMode = false) {
 
     async function load() {
       // Ensure cache has the token for decryption
-      cache.setToken(session.access_token);
+      cache.setToken(sessionToken);
 
       // 1. Try reading from encrypted localStorage cache for instant display
       try {
@@ -79,7 +83,7 @@ export default function useHealthData(session, demoMode = false) {
 
     load();
     return () => { cancelled = true; };
-  }, [session, demoMode]);
+  }, [sessionUserId, demoMode]);
 
   // Generic updater
   const update = useCallback(async (key, val) => {

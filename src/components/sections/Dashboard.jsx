@@ -28,7 +28,6 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
-import { AreaChart, Area, ComposedChart, BarChart, Bar, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } from 'recharts';
 import { useIsDesktop } from '../layout/SplitView';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
@@ -243,6 +242,16 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
+
+  /* ── Lazy-load Recharts (367KB) — keep it off the critical render path ── */
+  const [chartsReady, setChartsReady] = useState(false);
+  const chartsRef = useRef({});
+  useEffect(() => {
+    import('recharts').then(mod => {
+      chartsRef.current = mod;
+      setChartsReady(true);
+    });
+  }, []);
 
   /* ── Desktop "made with love" scroll-reveal ── */
   const [showTagline, setShowTagline] = useState(false);
@@ -1315,7 +1324,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       <div className="text-[32px] font-medium text-salve-text font-montserrat leading-none">{fDisplay}</div>
                       <div className="text-[12px] md:text-[13px] text-salve-textMid font-montserrat">{fUnit}</div>
                     </div>
-                    {fHasChart && (
+                    {fHasChart && chartsReady && (() => {
+                      const { AreaChart, Area, ResponsiveContainer, Tooltip } = chartsRef.current;
+                      return (
                       <div className="w-full h-[64px] -mx-1">
                         <ResponsiveContainer width="100%" height="100%">
                           <AreaChart data={f.series} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>
@@ -1337,7 +1348,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           </AreaChart>
                         </ResponsiveContainer>
                       </div>
-                    )}
+                      );
+                    })()}
                     {captionText && (
                       <div className="flex items-center gap-1.5 text-[11px] md:text-xs font-montserrat mt-1" style={{ color: fSignalColor }}>
                         <span className="text-[12px]" aria-hidden="true">{fArrow}</span>
@@ -1367,7 +1379,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                                 )}
                               </div>
                             </div>
-                            {hasSparkline && (
+                            {hasSparkline && chartsReady && (() => {
+                              const { AreaChart, Area } = chartsRef.current;
+                              return (
                               <AreaChart width={52} height={24} data={c.series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
                                 <defs>
                                   <linearGradient id={`chip-grad-${c.type}`} x1="0" y1="0" x2="0" y2="1">
@@ -1377,7 +1391,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                                 </defs>
                                 <Area type="monotone" dataKey="value" stroke={cSignalColor} strokeWidth={1.5} strokeOpacity={0.65} fill={`url(#chip-grad-${c.type})`} dot={false} isAnimationActive={false} />
                               </AreaChart>
-                            )}
+                              );
+                            })()}
                           </div>
                         );
                       })}
@@ -1511,7 +1526,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             )}
 
             {/* Heart Rate 7-day band chart */}
-            {hrTrend && (
+            {hrTrend && chartsReady && (() => {
+              const { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } = chartsRef.current;
+              return (
               <button
                 onClick={() => onNav('vitals')}
                 className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
@@ -1564,10 +1581,13 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: 60–100</span>
                 </div>
               </button>
-            )}
+              );
+            })()}
 
             {/* Blood Oxygen 7-day band chart */}
-            {spo2Trend && (
+            {spo2Trend && chartsReady && (() => {
+              const { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } = chartsRef.current;
+              return (
               <button
                 onClick={() => onNav('vitals')}
                 className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
@@ -1621,7 +1641,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: ≥95%</span>
                 </div>
               </button>
-            )}
+              );
+            })()}
 
             {/* Lab highlights */}
             {labHighlights.length > 0 && (

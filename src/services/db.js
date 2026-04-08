@@ -31,6 +31,10 @@ const DEDUP_COLUMNS = {
 // check-then-insert race in a single browser tab.
 const _inFlightAdds = new Map();
 
+// In-flight loadAll() promise — prevents duplicate concurrent calls
+// (React Strict Mode double-mount, session changes firing multiple times, etc.)
+let _inFlightLoadAll = null;
+
 // ── Generic CRUD factory ──
 function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
   const dedupCols = DEDUP_COLUMNS[table];
@@ -181,7 +185,20 @@ export const db = {
   },
 
   // Load all data at once (initial hydration) — single RPC call instead of 24 parallel queries
+  // Deduplicates concurrent calls (React Strict Mode, rapid session changes) by sharing in-flight promise.
   async loadAll() {
+    if (_inFlightLoadAll) return _inFlightLoadAll;
+
+    const promise = db._loadAllImpl();
+    _inFlightLoadAll = promise;
+    try {
+      return await promise;
+    } finally {
+      _inFlightLoadAll = null;
+    }
+  },
+
+  async _loadAllImpl() {
     const { data, error } = await supabase.rpc('load_all_data');
 
     if (error) {
