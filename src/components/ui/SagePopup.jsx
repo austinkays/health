@@ -4,6 +4,8 @@ import { sendChat, getDailyUsage } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from './AIConsentGate';
 import AIMarkdown from './AIMarkdown';
+import CrisisModal from './CrisisModal';
+import { detectCrisis } from '../../utils/crisis';
 
 // Focusable element selector for focus-trap logic
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -15,6 +17,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   const [error, setError] = useState(null);
   const [cooldown, setCooldown] = useState(false);
   const [usage, setUsage] = useState(() => getDailyUsage());
+  const [crisisType, setCrisisType] = useState(null);
   const inputRef = useRef(null);
   const scrollRef = useRef(null);
   const panelRef = useRef(null);
@@ -70,6 +73,12 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   const send = useCallback(async () => {
     const q = input.trim();
     if (!q || loading || cooldown) return;
+    // Crisis detection — show resources instead of sending to AI
+    const crisis = detectCrisis(q);
+    if (crisis.isCrisis) {
+      setCrisisType(crisis.type);
+      return;
+    }
     setError(null);
     const userMsg = { role: 'user', content: q };
     const next = [...messages, userMsg];
@@ -104,6 +113,8 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   if (!open) return null;
 
   return (
+    <>
+    {crisisType && <CrisisModal type={crisisType} onClose={() => setCrisisType(null)} />}
     <div
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:pl-[260px] bg-black/50 backdrop-blur-sm"
       onClick={onClose}
@@ -222,5 +233,6 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
         )}
       </div>
     </div>
+    </>
   );
 }

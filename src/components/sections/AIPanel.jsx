@@ -16,6 +16,8 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { DESTRUCTIVE_TOOLS } from '../../constants/tools';
 import { createToolExecutor } from '../../services/toolExecutor';
 import { computeCycleStats, getCyclePhaseForDate } from '../../utils/cycles';
+import CrisisModal from '../ui/CrisisModal';
+import { detectCrisis } from '../../utils/crisis';
 
 // Feature ID → ai.js feature name for lock checking
 const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', house: 'houseConsultation' };
@@ -936,6 +938,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const [houseHistory, setHouseHistory] = useState([]); // API-format shared history for both models
   const [houseInput, setHouseInput] = useState('');
   const [houseLoadingWho, setHouseLoadingWho] = useState(null); // null | 'claude' | 'gemini'
+  const [crisisType, setCrisisType] = useState(null);
   const houseEndRef = useRef(null);
   const houseInputRef = useRef(null);
 
@@ -1138,6 +1141,12 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
   const handleChat = async () => {
     if (!chatInput.trim() || cooldown) return;
+    // Crisis detection — show resources instead of sending to AI
+    const crisis = detectCrisis(chatInput);
+    if (crisis.isCrisis) {
+      setCrisisType(crisis.type);
+      return;
+    }
     const msgs = [...chatMessages, { role: 'user', content: chatInput }];
     setChatMessages(msgs);
     setChatInput('');
@@ -1182,6 +1191,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
   if (mode === 'ask') return (
     <AIConsentGate>
+    {crisisType && <CrisisModal type={crisisType} onClose={() => setCrisisType(null)} />}
     <div className="mt-2">
       <SectionTitle action={<button onClick={() => { setMode(null); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
         Chat with Sage

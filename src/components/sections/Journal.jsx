@@ -15,8 +15,10 @@ import { fetchJournalPatterns, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
+import CrisisModal from '../ui/CrisisModal';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { getReflectionPrompt, isPositiveMood } from '../../constants/journalPrompts';
+import { detectCrisis } from '../../utils/crisis';
 
 export default function Journal({ data, addItem, updateItem, removeItem, highlightId, onNav }) {
   const [subView, setSubView] = useState(null);
@@ -27,6 +29,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [expandedId, setExpandedId] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
   const [symptomFilter, setSymptomFilter] = useState(null);
+  const [crisisType, setCrisisType] = useState(null);
   const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') !== 'false');
   const [reflectionPrompt, setReflectionPrompt] = useState(() => getReflectionPrompt(''));
   const [linksOpen, setLinksOpen] = useState(false);
@@ -122,11 +125,14 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
   const saveJ = async () => {
     if (!form.content.trim() && !form.title.trim()) return;
+    // Crisis check — show resources but still save (journal is the user's space)
+    const crisis = detectCrisis(form.content);
     if (editId) {
       await updateItem('journal', editId, form);
     } else {
       await addItem('journal', form);
     }
+    if (crisis.isCrisis) setCrisisType(crisis.type);
     setForm({ ...EMPTY_JOURNAL, date: todayISO() });
     setEditId(null);
     setSubView(null);
@@ -294,6 +300,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
   return (
     <div className="mt-2">
+      {crisisType && <CrisisModal type={crisisType} onClose={() => setCrisisType(null)} />}
       <div className="flex justify-end mb-3">
         <Button variant="lavender" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Write</Button>
       </div>
