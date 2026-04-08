@@ -452,12 +452,25 @@ html.theme-sunbeam body::after {
 }
 
 /* ── Galactic: deep space, drifting stars, occasional shooting star ── */
-html.theme-galactic body::before {
+/* Nebula wash on body — static, never animated */
+html.theme-galactic body {
   background-image:
-    /* Deep nebula wash */
     radial-gradient(ellipse 120% 80% at 30% 20%, rgba(106, 164, 255, 0.10), transparent 65%),
-    radial-gradient(ellipse 100% 70% at 80% 80%, rgba(160, 124, 240, 0.09), transparent 65%),
-    /* Stars — 30 scattered across the repeating 180vh field */
+    radial-gradient(ellipse 100% 70% at 80% 80%, rgba(160, 124, 240, 0.09), transparent 65%);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+/* Stars on ::before — GPU-composited transform drift (not background-position) */
+html.theme-galactic body::before {
+  /* Override shared inset: 0 to make element wider for seamless horizontal tiling */
+  left: -100vw;
+  right: auto;
+  width: 300vw;
+  top: -10vh;
+  bottom: auto;
+  height: 120vh;
+  will-change: transform;
+  background-image:
     radial-gradient(circle 1px at 4% 6%, rgba(255, 255, 255, 0.9), transparent 60%),
     radial-gradient(circle 1px at 18% 14%, rgba(255, 255, 255, 0.7), transparent 60%),
     radial-gradient(circle 2px at 32% 22%, rgba(255, 255, 255, 0.85), transparent 60%),
@@ -488,20 +501,8 @@ html.theme-galactic body::before {
     radial-gradient(circle 1px at 36% 4%, rgba(200, 220, 255, 0.85), transparent 60%),
     radial-gradient(circle 1px at 50% 98%, rgba(255, 255, 255, 0.8), transparent 60%),
     radial-gradient(circle 2px at 76% 2%, rgba(255, 255, 255, 0.75), transparent 60%);
-  background-size:
-    100% 100%, 100% 100%,
-    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
-    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
-    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
-    100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh, 100vw 180vh,
-    100vw 180vh, 100vw 180vh;
-  background-repeat:
-    no-repeat, no-repeat,
-    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
-    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
-    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
-    repeat, repeat, repeat, repeat, repeat, repeat, repeat,
-    repeat, repeat;
+  background-size: 100vw 180vh;
+  background-repeat: repeat;
   opacity: 1;
   animation: galactic-drift 120s linear infinite;
 }
@@ -528,53 +529,14 @@ html.theme-galactic body::after {
   animation: galactic-shooting-star 22s linear infinite;
 }
 @keyframes galactic-drift {
-  /* Stars drift left-to-right in a gentle arc (rise, peak, descend) —
-     nebula layers (first two) stay static */
-  0% {
-    background-position:
-      0 0, 0 0,
-      0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0,
-      0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0,
-      0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0,
-      0 0, 0 0, 0 0, 0 0, 0 0, 0 0, 0 0,
-      0 0, 0 0;
-  }
-  25% {
-    background-position:
-      0 0, 0 0,
-      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
-      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
-      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
-      25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh, 25vw -5vh,
-      25vw -5vh, 25vw -5vh;
-  }
-  50% {
-    background-position:
-      0 0, 0 0,
-      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
-      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
-      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
-      50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh, 50vw -8vh,
-      50vw -8vh, 50vw -8vh;
-  }
-  75% {
-    background-position:
-      0 0, 0 0,
-      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
-      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
-      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
-      75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh, 75vw -5vh,
-      75vw -5vh, 75vw -5vh;
-  }
-  100% {
-    background-position:
-      0 0, 0 0,
-      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
-      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
-      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
-      100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0, 100vw 0,
-      100vw 0, 100vw 0;
-  }
+  /* Stars drift right in a gentle arc — GPU-composited transform, zero repaints.
+     Element is 300vw wide (left:-100vw), stars repeat at 100vw, so
+     translating +100vw produces a seamless loop. */
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(25vw, -5vh); }
+  50%  { transform: translate(50vw, -8vh); }
+  75%  { transform: translate(75vw, -5vh); }
+  100% { transform: translate(100vw, 0); }
 }
 @keyframes galactic-shooting-star {
   /* Translate in vw for both axes so the motion angle stays consistent
