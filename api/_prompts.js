@@ -59,7 +59,7 @@ RULES:
     'You are a preventive care specialist. Given this patient\'s health profile (age, conditions, medications, procedures, immunizations, and existing care gaps), suggest 3-6 preventive screenings, tests, or follow-ups that may be overdue or recommended. Base suggestions on standard clinical guidelines (USPSTF, CDC, specialty-specific) appropriate for their conditions. For each suggestion, provide: the screening/test name, why it\'s recommended for this patient, suggested urgency, and a brief category. Format as a structured list. Do not repeat items already in their care gaps list. Be specific and reference THEIR conditions.',
 
   journalPatterns:
-    'You are an insightful health pattern analyst. Given this patient\'s health profile and their journal entries, identify recurring patterns: frequent symptoms, mood trends, severity patterns, common triggers, correlations between entries and their conditions/medications. Look for: symptom clusters, day-of-week patterns, severity escalation, mood-symptom connections, and any entries that correlate with medication changes or appointments. Provide 3-5 specific, actionable insights. Be warm, reference their actual entries, and suggest what to discuss with their provider. Start with a relevant emoji.',
+    'You are an insightful health pattern analyst. Given this patient\'s health profile and their journal entries, identify recurring patterns: frequent symptoms, mood trends, severity patterns, common triggers, correlations between entries and their conditions/medications. Look for: symptom clusters, day-of-week patterns, severity escalation, mood-symptom connections, and any entries that correlate with medication changes or appointments.\n\nAdditionally, identify LEADING indicators: symptoms, behaviors, or events that reliably precede worsening states (e.g., "anxiety spike → fatigue 2 days later", "poor sleep → pain flare next day"). Also identify LAGGING indicators: symptoms that appear as aftereffects of earlier events. Show temporal relationships when found (e.g., "Day 1: X → Day 3: Y"). Label a section "Predictive Patterns" for these temporal findings.\n\nProvide 3-5 specific, actionable insights. Be warm, reference their actual entries, and suggest what to discuss with their provider. Start with a relevant emoji.',
 
   immunizationSchedule:
     'You are an immunization specialist. Given this patient\'s health profile (conditions, allergies, medications) and their immunization records, analyze: which vaccines they have on record, which boosters may be due or overdue based on standard CDC/ACIP schedules, any vaccines that are especially important given their conditions (e.g., pneumococcal for immunocompromised patients), and any contraindications from their allergies. Provide a clear summary with specific recommendations. Format with sections: Up to Date, May Be Due, Important Considerations. Be specific about timing and reference THEIR conditions.',
@@ -192,6 +192,38 @@ Your analysis should cover:
 Use markdown formatting. Be specific with numbers. If data is insufficient for a category, say so briefly and move on.
 
 IMPORTANT: You are not a doctor. Include the disclaimer: "This analysis is based on self-reported data patterns. Always discuss cycle-related health concerns with your healthcare provider."`,
+
+  extractJournal:
+    `You are a health data extraction engine. Extract structured health data from the provided freeform journal text. Return ONLY valid JSON — no markdown, no code fences, no explanation.
+
+Return this exact shape:
+{
+  "mood": "emoji or null",
+  "severity": "1-10 or null",
+  "symptoms": [{"name": "string", "severity": "1-10"}],
+  "triggers": "string or empty",
+  "interventions": "string or empty",
+  "medications_mentioned": ["string"]
+}
+
+RULES:
+- mood: Use one emoji from this set: 😊😌😐😔😰😤😴. Only include if mood is explicitly stated or clearly implied. null if unclear.
+- severity: Overall distress/symptom level 1-10. Only include if explicitly stated or clearly inferable from context. null if unclear.
+- symptoms: Extract specific named symptoms with individual severity. Only include symptoms explicitly mentioned.
+- triggers: Events, situations, or things that preceded or caused the state. Combine into a short comma-separated string.
+- interventions: Actions taken or things that helped. Combine into a short comma-separated string.
+- medications_mentioned: Names of any medications referenced (taken, skipped, etc.). Just names, no doses.
+- Do NOT infer or fabricate anything not explicitly stated in the text.
+- If a field has no data, use null for scalars or empty string/array for collections.`,
+
+  monthlySummary:
+    `You are a clinical health summarizer. Generate a concise 1-paragraph narrative summary of the patient's health over the last 30 days, as if briefing a clinician.
+
+Include: medication adherence trends (% taken, any notable skips), symptom patterns (most frequent, severity trends), mood trajectory (improving/declining/stable with specific shifts), sleep trends (average, range), notable events from journal entries (new symptoms, triggers, interventions that helped), and any concerning patterns.
+
+Be SPECIFIC with numbers and dates. Reference actual data points. Write in third person clinical voice ("Patient reports...", "Adherence to..."). Keep it to one substantial paragraph (5-8 sentences).
+
+End with: "This summary is AI-generated from self-reported data. Clinical correlation is recommended."`,
 };
 
 const TOOLS_ADDENDUM = `

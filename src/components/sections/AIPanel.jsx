@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Lock, Stethoscope, Shield } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Lock, Stethoscope, Shield, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
@@ -8,7 +8,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchMonthlySummary, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -20,7 +20,7 @@ import CrisisModal from '../ui/CrisisModal';
 import { detectCrisis } from '../../utils/crisis';
 
 // Feature ID → ai.js feature name for lock checking
-const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', house: 'houseConsultation' };
+const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', monthly_summary: 'journalPatterns', house: 'houseConsultation' };
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -29,6 +29,7 @@ const FEATURES = [
   { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose, premium: true },
   { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage, premium: true },
   { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose, premium: true },
+  { id: 'monthly_summary', label: 'Monthly Summary', desc: 'Clinical overview for your provider', icon: FileText, color: C.sage, premium: true },
   { id: 'house', label: 'House Consultation', desc: 'Claude & Gemini debate your health', icon: Stethoscope, color: C.amber, admin: true },
 ];
 
@@ -1116,6 +1117,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         const cycleProfile = `Cycle stats: avg length ${stats.avgLength} days, last period ${stats.lastPeriod}, ${stats.periodStarts.length} tracked cycles\n\nRecent vitals (last 3 months, tagged by cycle phase):\n${recentVitals.join('\n') || 'No recent vitals'}\n\nRecent journal entries (last 3 months, tagged by cycle phase):\n${recentJournal.join('\n') || 'No recent journal entries'}\n\nActive medications: ${activeMeds || 'None'}`;
 
         const r = await fetchCyclePatterns(cycleProfile);
+        setResult(r);
+      } else if (id === 'monthly_summary') {
+        const r = await fetchMonthlySummary(profile);
         setResult(r);
       } else {
         const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];

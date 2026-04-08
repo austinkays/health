@@ -11,13 +11,13 @@ import FormWrap from '../ui/FormWrap';
 import { EMPTY_JOURNAL, MOODS, COMMON_SYMPTOMS } from '../../constants/defaults';
 import { fmtDate, todayISO } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { fetchJournalPatterns, isFeatureLocked } from '../../services/ai';
+import { fetchJournalPatterns, extractJournalData, isFeatureLocked } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import CrisisModal from '../ui/CrisisModal';
 import { getCyclePhaseForDate } from '../../utils/cycles';
-import { getReflectionPrompt, isPositiveMood } from '../../constants/journalPrompts';
+import { getReflectionPrompt, isPositiveMood, getContextualPrompt } from '../../constants/journalPrompts';
 import { detectCrisis } from '../../utils/crisis';
 import useVoiceInput from '../../hooks/useVoiceInput';
 
@@ -76,8 +76,10 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [tagFilter, setTagFilter] = useState(null);
   const [symptomFilter, setSymptomFilter] = useState(null);
   const [crisisType, setCrisisType] = useState(null);
+  const [extracting, setExtracting] = useState(false);
+  const [extraction, setExtraction] = useState(null); // { mood, severity, symptoms, triggers, interventions, medications_mentioned }
   const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') !== 'false');
-  const [reflectionPrompt, setReflectionPrompt] = useState(() => getReflectionPrompt(''));
+  const [reflectionPrompt, setReflectionPrompt] = useState(() => getContextualPrompt(data) || getReflectionPrompt(''));
   const [linksOpen, setLinksOpen] = useState(false);
   const [quickCheck, setQuickCheck] = useState({ sleep: '', hydration: '', activity: '' });
   const del = useConfirmDelete();
@@ -93,6 +95,50 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const refreshPrompt = useCallback(() => {
     setReflectionPrompt(getReflectionPrompt(form.mood));
   }, [form.mood]);
+
+  // --- AI extraction from freeform text ---
+  const runExtraction = async () => {
+    const text = form.content?.trim();
+    if (!text || text.length < 10 || !hasAIConsent()) return;
+    setExtracting(true);
+    setExtraction(null);
+    try {
+      const result = await extractJournalData(text, buildProfile(data));
+      if (result) setExtraction(result);
+    } catch { /* swallow — not critical */ }
+    setExtracting(false);
+  };
+
+  const applyExtraction = () => {
+    if (!extraction) return;
+    const updates = {};
+    if (extraction.mood && MOODS.includes(extraction.mood)) updates.mood = extraction.mood;
+    if (extraction.severity) {
+      const sev = String(Math.max(1, Math.min(10, Math.round(Number(extraction.severity)))));
+      if (sev !== 'NaN') updates.severity = sev;
+    }
+    if (extraction.symptoms?.length) {
+      updates.symptoms = extraction.symptoms.slice(0, 10).map(s => ({
+        name: typeof s === 'string' ? s : (s.name || ''),
+        severity: String(Math.max(1, Math.min(10, Math.round(Number(s.severity || 5))))),
+      })).filter(s => s.name);
+    }
+    if (extraction.triggers) updates.triggers = extraction.triggers;
+    if (extraction.interventions) updates.interventions = extraction.interventions;
+    setForm(p => ({ ...p, ...updates }));
+    setExtraction(null);
+  };
+
+  const removeExtractionField = (field) => {
+    setExtraction(prev => {
+      if (!prev) return null;
+      const next = { ...prev };
+      if (field === 'symptoms') next.symptoms = [];
+      else if (field === 'medications_mentioned') next.medications_mentioned = [];
+      else delete next[field];
+      return next;
+    });
+  };
 
   useEffect(() => {
     setReflectionPrompt(getReflectionPrompt(form.mood));
@@ -381,6 +427,69 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         </div>
 
         <Field label="How are you feeling?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="What's on your mind today..." />
+
+        {/* AI extraction — extract structured data from freeform text */}
+        {hasAIConsent() && (form.content || '').trim().length >= 20 && !extraction && (
+          <div className="-mt-1 mb-3">
+            <button
+              type="button"
+              onClick={runExtraction}
+              disabled={extracting}
+              className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-salve-lav/70 text-[11px] font-montserrat p-0 hover:text-salve-lav transition-colors disabled:opacity-50"
+            >
+              {extracting ? <Loader size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {extracting ? 'Extracting...' : 'Extract mood & symptoms with Sage'}
+            </button>
+          </div>
+        )}
+        {extraction && (
+          <div className="mb-3 px-2.5 py-2 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-semibold text-salve-lav font-montserrat flex items-center gap-1"><Sparkles size={11} /> Sage noticed</span>
+              <button type="button" onClick={() => setExtraction(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss extraction">×</button>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {extraction.mood && (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-card border border-salve-border text-salve-text font-montserrat">
+                  {extraction.mood}
+                  <button type="button" onClick={() => removeExtractionField('mood')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove mood"><X size={10} /></button>
+                </span>
+              )}
+              {extraction.severity && (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-card border border-salve-border text-salve-text font-montserrat">
+                  Severity {extraction.severity}/10
+                  <button type="button" onClick={() => removeExtractionField('severity')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove severity"><X size={10} /></button>
+                </span>
+              )}
+              {(extraction.symptoms || []).map((s, i) => (
+                <span key={i} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-amber/10 border border-salve-amber/25 text-salve-amber font-montserrat">
+                  {typeof s === 'string' ? s : s.name}{s.severity ? ` ${s.severity}/10` : ''}
+                  <button type="button" onClick={() => setExtraction(prev => ({ ...prev, symptoms: prev.symptoms.filter((_, j) => j !== i) }))} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label={`Remove ${typeof s === 'string' ? s : s.name}`}><X size={10} /></button>
+                </span>
+              ))}
+              {extraction.triggers && (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-rose/10 border border-salve-rose/25 text-salve-rose font-montserrat">
+                  ⚡ {extraction.triggers.length > 40 ? extraction.triggers.slice(0, 40) + '…' : extraction.triggers}
+                  <button type="button" onClick={() => removeExtractionField('triggers')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove triggers"><X size={10} /></button>
+                </span>
+              )}
+              {extraction.interventions && (
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-sage/10 border border-salve-sage/25 text-salve-sage font-montserrat">
+                  ✦ {extraction.interventions.length > 40 ? extraction.interventions.slice(0, 40) + '…' : extraction.interventions}
+                  <button type="button" onClick={() => removeExtractionField('interventions')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove interventions"><X size={10} /></button>
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={applyExtraction} className="text-[11px] px-3 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors">
+                <Check size={10} className="inline mr-1 -mt-px" />Apply
+              </button>
+              <button type="button" onClick={() => setExtraction(null)} className="text-[11px] px-3 py-1 rounded-full bg-salve-card border border-salve-border text-salve-textFaint font-montserrat cursor-pointer hover:text-salve-text transition-colors">
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mb-3">
           <button

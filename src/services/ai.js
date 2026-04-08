@@ -455,11 +455,37 @@ export async function fetchCareGapSuggestions(profileText) {
 }
 
 export async function fetchJournalPatterns(entries, profileText) {
-  const desc = entries.map(e => `${e.date}${e.mood ? ' [' + e.mood + ']' : ''}${e.severity ? ' [' + e.severity + '/10]' : ''}: ${e.content || e.title || ''}${e.tags ? ' (tags: ' + e.tags + ')' : ''}`).join('\n');
+  const desc = entries.map(e => `${e.date}${e.mood ? ' [' + e.mood + ']' : ''}${e.severity ? ' [' + e.severity + '/10]' : ''}: ${e.content || e.title || ''}${e.tags ? ' (tags: ' + e.tags + ')' : ''}${e.triggers ? ' (triggers: ' + e.triggers + ')' : ''}${e.interventions ? ' (interventions: ' + e.interventions + ')' : ''}`).join('\n');
   return callAPI(
     [{ role: 'user', content: `Analyze patterns in my journal entries:\n${desc}` }],
     'journalPatterns', profileText,
     1500, false, 'journalPatterns'
+  );
+}
+
+export async function extractJournalData(text, profileText) {
+  const raw = await callAPI(
+    [{ role: 'user', content: `Extract structured data from this journal text:\n\n${text}` }],
+    'extractJournal', profileText,
+    800, false, 'insight'   // use 'insight' (Lite tier) — cheap extraction
+  );
+  // Strip the disclaimer appended by callAPI
+  const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
+  // Try to parse JSON from the response (may be wrapped in code fences)
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) return null;
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMonthlySummary(profileText) {
+  return callAPI(
+    [{ role: 'user', content: 'Generate a clinical summary of my health over the last 30 days.' }],
+    'monthlySummary', profileText,
+    1500, false, 'journalPatterns'   // Pro tier — same as journal patterns
   );
 }
 
