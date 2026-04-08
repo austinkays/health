@@ -38,7 +38,7 @@ export default function AIConsentGate({ children }) {
         </div>
 
         <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
-          Sage is your health companion. To generate personalized insights, Sage sends parts of your health profile to <strong className="text-salve-text">Anthropic</strong> (a third-party AI provider). This may include:
+          Sage is your health companion. To generate personalized insights, Sage sends parts of your health profile to a third-party AI provider&thinsp;&mdash;&thinsp;<strong className="text-salve-text">Google Gemini</strong> on the free plan or <strong className="text-salve-text">Anthropic Claude</strong> on Premium. This may include:
         </p>
 
         <ul className="text-[13px] text-salve-textMid leading-relaxed mb-3 list-disc pl-4 space-y-1">
