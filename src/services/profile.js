@@ -245,7 +245,7 @@ export function buildProfile(data) {
     p += summarizeVitals(vitals.slice(-30));
   }
 
-  // Recent journal entries (last 5)
+  // Recent journal entries (last 15) with symptoms + cross-references
   const journal = data.journal || [];
   if (journal.length) {
     p += '\n— RECENT JOURNAL ENTRIES (last 15) —\n';
@@ -254,9 +254,34 @@ export function buildProfile(data) {
       if (e.mood) p += ' [mood: ' + e.mood + ']';
       if (e.severity) p += ' [severity: ' + e.severity + '/10]';
       p += ': ' + san(e.content || e.title || '');
+      if ((e.symptoms || []).length) {
+        p += ' | Symptoms: ' + e.symptoms.map(s => san(s.name, 50) + ' ' + s.severity + '/10').join(', ');
+      }
       if (e.tags) p += ' (tags: ' + san(e.tags) + ')';
+      if (e.gratitude) p += ' ✨ ' + san(e.gratitude, 200);
+      // Cross-reference linked conditions/meds by name
+      const lc = (e.linked_conditions || []).map(id => (data.conditions || []).find(c => c.id === id)?.name).filter(Boolean);
+      const lm = (e.linked_meds || []).map(id => { const m = (data.meds || []).find(m => m.id === id); return m ? (m.display_name || m.name) : null; }).filter(Boolean);
+      if (lc.length) p += ' [conditions: ' + lc.map(n => san(n, 60)).join(', ') + ']';
+      if (lm.length) p += ' [meds: ' + lm.map(n => san(n, 60)).join(', ') + ']';
       p += '\n';
     });
+    // Symptom frequency summary (last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const recentSymptoms = {};
+    journal.filter(e => e.date >= thirtyDaysAgo).forEach(e => {
+      (e.symptoms || []).forEach(s => {
+        if (!s.name) return;
+        const key = s.name.toLowerCase();
+        if (!recentSymptoms[key]) recentSymptoms[key] = { name: s.name, count: 0, totalSev: 0 };
+        recentSymptoms[key].count++;
+        recentSymptoms[key].totalSev += Number(s.severity) || 0;
+      });
+    });
+    const freqList = Object.values(recentSymptoms).sort((a, b) => b.count - a.count);
+    if (freqList.length) {
+      p += 'Top symptoms (30d): ' + freqList.slice(0, 8).map(s => `${s.name} ×${s.count} (avg ${(s.totalSev / s.count).toFixed(1)}/10)`).join(', ') + '\n';
+    }
   }
 
   // Insurance

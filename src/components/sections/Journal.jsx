@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -8,7 +8,7 @@ import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
-import { EMPTY_JOURNAL, MOODS } from '../../constants/defaults';
+import { EMPTY_JOURNAL, MOODS, COMMON_SYMPTOMS } from '../../constants/defaults';
 import { fmtDate, todayISO } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { fetchJournalPatterns, isFeatureLocked } from '../../services/ai';
@@ -16,8 +16,9 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { getCyclePhaseForDate } from '../../utils/cycles';
+import { getReflectionPrompt, isPositiveMood } from '../../constants/journalPrompts';
 
-export default function Journal({ data, addItem, updateItem, removeItem, highlightId }) {
+export default function Journal({ data, addItem, updateItem, removeItem, highlightId, onNav }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_JOURNAL });
   const [editId, setEditId] = useState(null);
@@ -25,9 +26,51 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [patternsLoading, setPatternsLoading] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [tagFilter, setTagFilter] = useState(null);
+  const [symptomFilter, setSymptomFilter] = useState(null);
   const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') !== 'false');
+  const [reflectionPrompt, setReflectionPrompt] = useState(() => getReflectionPrompt(''));
+  const [linksOpen, setLinksOpen] = useState(false);
   const del = useConfirmDelete();
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // Symptom suggestions: user's condition names + common symptoms, deduped
+  const symptomSuggestions = useMemo(() => {
+    const condNames = (data.conditions || []).filter(c => c.status === 'active').map(c => c.name);
+    return [...new Set([...condNames, ...COMMON_SYMPTOMS])].sort();
+  }, [data.conditions]);
+
+  // Rotate reflection prompt when mood changes
+  const refreshPrompt = useCallback(() => {
+    setReflectionPrompt(getReflectionPrompt(form.mood));
+  }, [form.mood]);
+
+  useEffect(() => {
+    setReflectionPrompt(getReflectionPrompt(form.mood));
+  }, [form.mood]);
+
+  // Symptom builder helpers
+  const addSymptom = () => {
+    if ((form.symptoms || []).length >= 10) return;
+    sf('symptoms', [...(form.symptoms || []), { name: '', severity: '5' }]);
+  };
+  const updateSymptom = (idx, field, value) => {
+    const updated = [...(form.symptoms || [])];
+    updated[idx] = { ...updated[idx], [field]: value };
+    sf('symptoms', updated);
+  };
+  const removeSymptom = (idx) => {
+    sf('symptoms', (form.symptoms || []).filter((_, i) => i !== idx));
+  };
+
+  // Cross-link toggle helpers
+  const toggleLinkedCondition = (id) => {
+    const current = form.linked_conditions || [];
+    sf('linked_conditions', current.includes(id) ? current.filter(x => x !== id) : [...current, id]);
+  };
+  const toggleLinkedMed = (id) => {
+    const current = form.linked_meds || [];
+    sf('linked_meds', current.includes(id) ? current.filter(x => x !== id) : [...current, id]);
+  };
 
   useEffect(() => {
     if (highlightId && data.journal.some(e => e.id === highlightId)) {
@@ -89,7 +132,12 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     setSubView(null);
   };
 
-  if (subView === 'form') return (
+  if (subView === 'form') {
+    const activeConditions = (data.conditions || []).filter(c => c.status === 'active' || c.status === 'managed');
+    const activeMeds = (data.meds || []).filter(m => m.active !== false);
+    const showGratitude = isPositiveMood(form.mood);
+
+    return (
     <FormWrap title={`${editId ? 'Edit' : 'New'} Entry`} onBack={() => { setSubView(null); setForm(EMPTY_JOURNAL); setEditId(null); }}>
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
@@ -103,16 +151,146 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         })()}
         <Field label="Title (optional)" value={form.title} onChange={v => sf('title', v)} placeholder="Quick label for today" />
         <Field label="Mood" value={form.mood} onChange={v => sf('mood', v)} options={MOODS} />
-        <Field label="Symptom Severity" value={form.severity} onChange={v => sf('severity', v)} options={[...Array(10)].map((_, i) => ({ value: String(i + 1), label: `${i + 1}/10${i === 0 ? ' (minimal)' : i === 9 ? ' (worst)' : ''}` }))} />
+
+        {/* Mood-aware reflection prompt */}
+        <div className="flex items-center gap-1.5 -mt-1 mb-2 px-1">
+          <p className="text-xs text-salve-textFaint italic font-montserrat flex-1 leading-relaxed">
+            {reflectionPrompt}
+          </p>
+          <button
+            onClick={refreshPrompt}
+            className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav p-0.5 shrink-0 transition-colors"
+            aria-label="Get a different prompt"
+          >
+            <RefreshCw size={12} />
+          </button>
+        </div>
+
+        <Field label="Overall Severity" value={form.severity} onChange={v => sf('severity', v)} options={[...Array(10)].map((_, i) => ({ value: String(i + 1), label: `${i + 1}/10${i === 0 ? ' (minimal)' : i === 9 ? ' (worst)' : ''}` }))} />
+
+        {/* Symptom builder */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="text-xs font-medium font-montserrat text-salve-textMid">Symptoms</label>
+            {(form.symptoms || []).length < 10 && (
+              <button onClick={addSymptom} className="bg-transparent border-none cursor-pointer text-salve-lav text-[11px] font-montserrat p-0 flex items-center gap-0.5 hover:underline">
+                <Plus size={12} /> Add symptom
+              </button>
+            )}
+          </div>
+          {(form.symptoms || []).map((sym, idx) => {
+            const sev = Number(sym.severity);
+            const sevColor = sev >= 7 ? 'text-salve-rose' : sev >= 4 ? 'text-salve-amber' : 'text-salve-sage';
+            return (
+              <div key={idx} className="flex items-center gap-1.5 mb-1.5">
+                <input
+                  type="text"
+                  value={sym.name}
+                  onChange={e => updateSymptom(idx, 'name', e.target.value)}
+                  placeholder="Symptom name"
+                  list={`symptom-suggestions-${idx}`}
+                  className="flex-1 min-w-0 bg-salve-card border border-salve-border rounded-lg px-2.5 py-1.5 text-xs text-salve-text font-montserrat placeholder:text-salve-textFaint/60 focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+                />
+                <datalist id={`symptom-suggestions-${idx}`}>
+                  {symptomSuggestions.map(s => <option key={s} value={s} />)}
+                </datalist>
+                <select
+                  value={sym.severity}
+                  onChange={e => updateSymptom(idx, 'severity', e.target.value)}
+                  className={`w-16 bg-salve-card border border-salve-border rounded-lg px-1.5 py-1.5 text-xs font-montserrat ${sevColor} focus:outline-none focus:ring-1 focus:ring-salve-lav/40`}
+                  aria-label={`Severity for ${sym.name || 'symptom'}`}
+                >
+                  {[...Array(10)].map((_, i) => <option key={i + 1} value={String(i + 1)}>{i + 1}/10</option>)}
+                </select>
+                <button onClick={() => removeSymptom(idx)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0.5 transition-colors" aria-label={`Remove ${sym.name || 'symptom'}`}>
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+          {(form.symptoms || []).length === 0 && (
+            <p className="text-[11px] text-salve-textFaint/60 font-montserrat italic pl-0.5">Track individual symptoms with their own severity rating</p>
+          )}
+        </div>
+
         <Field label="What's going on?" value={form.content} onChange={v => sf('content', v)} textarea placeholder="Symptoms, triggers, what helped..." />
+
+        {/* Gratitude field — only for positive/neutral moods */}
+        {showGratitude && (
+          <Field
+            label="✨ What made you smile today?"
+            value={form.gratitude || ''}
+            onChange={v => sf('gratitude', v)}
+            placeholder="A small win, a kind word, a moment of joy..."
+            hint="Optional — save the bright spots"
+          />
+        )}
+
         <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="flare, fatigue, headache..." />
+
+        {/* Cross-link to conditions & medications */}
+        {(activeConditions.length > 0 || activeMeds.length > 0) && (
+          <div className="mb-3">
+            <button
+              onClick={() => setLinksOpen(!linksOpen)}
+              className="flex items-center gap-1.5 bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 hover:text-salve-lav transition-colors"
+            >
+              <Link2 size={12} />
+              <span>Link to records</span>
+              <ChevronDown size={12} className={`transition-transform ${linksOpen ? 'rotate-180' : ''}`} />
+              {((form.linked_conditions || []).length + (form.linked_meds || []).length) > 0 && (
+                <span className="text-salve-lav ml-0.5">({(form.linked_conditions || []).length + (form.linked_meds || []).length})</span>
+              )}
+            </button>
+            {linksOpen && (
+              <div className="mt-2 space-y-2.5 pl-0.5">
+                {activeConditions.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Conditions</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {activeConditions.map(c => {
+                        const linked = (form.linked_conditions || []).includes(c.id);
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => toggleLinkedCondition(c.id)}
+                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${linked ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-sage/30'}`}
+                          >{c.name}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {activeMeds.length > 0 && (
+                  <div>
+                    <span className="text-[11px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Medications</span>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {activeMeds.map(m => {
+                        const linked = (form.linked_meds || []).includes(m.id);
+                        return (
+                          <button
+                            key={m.id}
+                            onClick={() => toggleLinkedMed(m.id)}
+                            className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${linked ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+                          >{m.display_name || m.name}{m.dose ? ` ${m.dose}` : ''}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Button onClick={saveJ} disabled={!form.content.trim() && !form.title.trim()}><Check size={15} /> Save</Button>
           <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_JOURNAL); setEditId(null); }}>Cancel</Button>
         </div>
       </Card>
     </FormWrap>
-  );
+    );
+  }
 
   return (
     <div className="mt-2">
@@ -178,20 +356,28 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         </Card>
       )}
 
-      {/* Tag filter pills */}
+      {/* Tag & symptom filter pills */}
       {(() => {
         const allTags = [...new Set(data.journal.flatMap(e => e.tags ? e.tags.split(',').map(t => t.trim()).filter(Boolean) : []))].sort();
-        if (allTags.length === 0) return null;
+        const allSymptoms = [...new Set(data.journal.flatMap(e => (e.symptoms || []).map(s => s.name).filter(Boolean)))].sort();
+        if (allTags.length === 0 && allSymptoms.length === 0) return null;
         return (
           <div className="flex gap-1.5 flex-wrap mb-3">
             <button
-              onClick={() => setTagFilter(null)}
-              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+              onClick={() => { setTagFilter(null); setSymptomFilter(null); }}
+              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter && !symptomFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
             >All</button>
+            {allSymptoms.map(sym => (
+              <button
+                key={`s:${sym}`}
+                onClick={() => { setSymptomFilter(symptomFilter === sym ? null : sym); setTagFilter(null); }}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${symptomFilter === sym ? 'bg-salve-rose/15 border-salve-rose/40 text-salve-rose' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30'}`}
+              >⚬ {sym}</button>
+            ))}
             {allTags.map(tag => (
               <button
-                key={tag}
-                onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                key={`t:${tag}`}
+                onClick={() => { setTagFilter(tagFilter === tag ? null : tag); setSymptomFilter(null); }}
                 className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${tagFilter === tag ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
               >{tag}</button>
             ))}
@@ -200,12 +386,19 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
       })()}
 
       {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
-        <div className="md:grid md:grid-cols-2 md:gap-4">{data.journal.filter(e => !tagFilter || (e.tags && e.tags.split(',').map(t => t.trim()).includes(tagFilter))).map(e => {
+        <div className="md:grid md:grid-cols-2 md:gap-4">{data.journal.filter(e => {
+          if (tagFilter && !(e.tags && e.tags.split(',').map(t => t.trim()).includes(tagFilter))) return false;
+          if (symptomFilter && !(e.symptoms || []).some(s => s.name === symptomFilter)) return false;
+          return true;
+        }).map(e => {
           const sev = Number(e.severity);
           const sevColor = sev >= 7 ? C.rose : sev >= 4 ? C.amber : C.sage;
           const sevBg = sev >= 7 ? 'rgba(232,138,154,0.15)' : sev >= 4 ? 'rgba(232,200,138,0.15)' : 'rgba(143,191,160,0.15)';
           const isExpanded = expandedId === e.id;
           const cyclePhase = data.cycles?.length > 0 ? getCyclePhaseForDate(e.date, data.cycles) : null;
+          const symptoms = e.symptoms || [];
+          const linkedConditions = e.linked_conditions || [];
+          const linkedMeds = e.linked_meds || [];
           return (
             <Card key={e.id} id={`record-${e.id}`} className={`!bg-salve-lav/10 !border-salve-lav/20 cursor-pointer transition-all${highlightId === e.id ? ' highlight-ring' : ''}`} onClick={() => setExpandedId(isExpanded ? null : e.id)}>
               <div className="flex justify-between items-start mb-0.5">
@@ -222,12 +415,86 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </div>
               </div>
-              {!isExpanded && e.content && (
+
+              {/* Symptom pills (collapsed view) */}
+              {symptoms.length > 0 && !isExpanded && (
+                <div className="flex gap-1 flex-wrap mt-1 mb-0.5">
+                  {symptoms.slice(0, 4).map((s, i) => {
+                    const sv = Number(s.severity);
+                    const sc = sv >= 7 ? 'text-salve-rose bg-salve-rose/10' : sv >= 4 ? 'text-salve-amber bg-salve-amber/10' : 'text-salve-sage bg-salve-sage/10';
+                    return <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full font-montserrat ${sc}`}>{s.name} {s.severity}/10</span>;
+                  })}
+                  {symptoms.length > 4 && <span className="text-[10px] text-salve-textFaint font-montserrat">+{symptoms.length - 4}</span>}
+                </div>
+              )}
+
+              {/* Gratitude sparkle badge (collapsed) */}
+              {e.gratitude && !isExpanded && (
+                <div className="text-[10px] text-salve-amber font-montserrat mt-0.5 truncate">✨ {e.gratitude}</div>
+              )}
+
+              {!isExpanded && e.content && !symptoms.length && !e.gratitude && (
                 <div className="text-[13px] text-salve-textMid leading-relaxed line-clamp-2">{e.content}</div>
               )}
+              {!isExpanded && e.content && (symptoms.length > 0 || e.gratitude) && (
+                <div className="text-[12px] text-salve-textFaint leading-relaxed line-clamp-1 mt-0.5">{e.content}</div>
+              )}
+
               <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-1.5 pt-1.5 border-t border-salve-lav/15" onClick={ev => ev.stopPropagation()}>
                   <div className="text-[13px] text-salve-textMid leading-relaxed">{e.content}</div>
+
+                  {/* Expanded symptoms list */}
+                  {symptoms.length > 0 && (
+                    <div className="mt-2 space-y-1">
+                      <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Symptoms</span>
+                      {symptoms.map((s, i) => {
+                        const sv = Number(s.severity);
+                        const sc = sv >= 7 ? C.rose : sv >= 4 ? C.amber : C.sage;
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-xs font-montserrat text-salve-text">{s.name}</span>
+                            <div className="flex-1 h-1 rounded-full bg-salve-card2 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${sv * 10}%`, backgroundColor: sc }} />
+                            </div>
+                            <span className="text-[10px] font-montserrat" style={{ color: sc }}>{s.severity}/10</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Gratitude (expanded) */}
+                  {e.gratitude && (
+                    <div className="mt-2 bg-salve-amber/8 border border-salve-amber/15 rounded-lg px-2.5 py-1.5">
+                      <span className="text-[11px] text-salve-amber font-montserrat">✨ {e.gratitude}</span>
+                    </div>
+                  )}
+
+                  {/* Linked conditions & medications */}
+                  {(linkedConditions.length > 0 || linkedMeds.length > 0) && (
+                    <div className="mt-2 flex gap-1 flex-wrap">
+                      {linkedConditions.map(id => {
+                        const cond = (data.conditions || []).find(c => c.id === id);
+                        if (!cond) return null;
+                        return (
+                          <button key={id} onClick={() => onNav?.('conditions', { highlightId: id })} className="text-[10px] px-2 py-0.5 rounded-full bg-salve-sage/12 border border-salve-sage/25 text-salve-sage font-montserrat cursor-pointer hover:bg-salve-sage/20 transition-colors">
+                            {cond.name}
+                          </button>
+                        );
+                      })}
+                      {linkedMeds.map(id => {
+                        const med = (data.meds || []).find(m => m.id === id);
+                        if (!med) return null;
+                        return (
+                          <button key={id} onClick={() => onNav?.('medications', { highlightId: id })} className="text-[10px] px-2 py-0.5 rounded-full bg-salve-lav/12 border border-salve-lav/25 text-salve-lav font-montserrat cursor-pointer hover:bg-salve-lav/20 transition-colors">
+                            {med.display_name || med.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {e.tags && (
                     <div className="mt-2 flex gap-1 flex-wrap">
                       {e.tags.split(',').map((t, i) => (
@@ -236,7 +503,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                     </div>
                   )}
                   <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm(e); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
+                    <button onClick={() => { setForm({ ...EMPTY_JOURNAL, ...e, symptoms: e.symptoms || [], linked_conditions: e.linked_conditions || [], linked_meds: e.linked_meds || [], gratitude: e.gratitude || '' }); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
                     <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1">Delete</button>
                   </div>
                 </div>

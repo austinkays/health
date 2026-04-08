@@ -23,7 +23,7 @@ const STATUS_COLORS = {
   resolved: { c: C.textFaint, bg: 'rgba(110,106,128,0.15)', label: '✓ Resolved' },
 };
 
-export default function Conditions({ data, addItem, updateItem, removeItem, highlightId }) {
+export default function Conditions({ data, addItem, updateItem, removeItem, highlightId, onNav }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_CONDITION);
   const [editId, setEditId] = useState(null);
@@ -167,6 +167,27 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                 External resources are not medical advice. Always consult your healthcare providers.
               </p>
             </details>
+          );
+        })()}
+        {/* Journal entries linked to this condition */}
+        {(() => {
+          const linked = (data.journal || []).filter(e => (e.linked_conditions || []).includes(c.id)).slice(0, 5);
+          if (!linked.length) return null;
+          return (
+            <div className="mt-2">
+              <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Recent Journal Entries</span>
+              <div className="mt-1 space-y-1">
+                {linked.map(e => (
+                  <button key={e.id} onClick={() => onNav?.('journal', { highlightId: e.id })} className="w-full text-left bg-salve-lav/6 border border-salve-lav/12 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-salve-lav/12 transition-colors">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-salve-text font-montserrat">{e.title || e.date}</span>
+                      {e.mood && <span className="text-xs">{String(e.mood).split(' ')[0]}</span>}
+                      {e.severity && <span className="text-[10px] text-salve-textFaint">{e.severity}/10</span>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           );
         })()}
         <div className="flex gap-2.5 mt-2.5 flex-wrap">

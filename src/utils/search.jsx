@@ -73,7 +73,7 @@ export const ENTITY_CONFIG = {
     icon: BookOpen,
     color: C.lav,
     tab: 'journal',
-    fields: ['title', 'content', 'tags'],
+    fields: ['title', 'content', 'tags', 'gratitude'],
     primary: e => e.title || 'Journal entry',
     secondary: e => e.date || '',
     idField: 'id',
@@ -278,6 +278,15 @@ export function searchEntities(data, query) {
           matchedField = field;
           matchedValue = String(val);
           break;
+        }
+      }
+
+      // Search inside journal symptoms array (JSONB)
+      if (!matchedField && entityKey === 'journal' && Array.isArray(item.symptoms)) {
+        const sym = item.symptoms.find(s => s.name && s.name.toLowerCase().includes(q));
+        if (sym) {
+          matchedField = 'symptoms';
+          matchedValue = sym.name + ' (' + sym.severity + '/10)';
         }
       }
 

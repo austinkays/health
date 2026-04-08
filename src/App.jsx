@@ -338,13 +338,13 @@ function AppContent() {
     const shared = { data, addItem: addItemT, addItemSilent: addItem, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
       case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} dataLoading={dataLoading} />;
-      case 'meds':        return <Medications {...shared} interactions={interactions} />;
+      case 'meds':        return <Medications {...shared} interactions={interactions} onNav={onNav} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
-      case 'conditions':  return <Conditions {...shared} />;
+      case 'conditions':  return <Conditions {...shared} onNav={onNav} />;
       case 'providers':   return <Providers {...shared} />;
       case 'allergies':   return <Allergies {...shared} />;
-      case 'journal':     return <Journal {...shared} />;
+      case 'journal':     return <Journal {...shared} onNav={onNav} />;
       case 'ai':          return <AIPanel {...shared} updateSettings={updateSettingsT} demoMode={demoMode} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
       case 'settings':    return <Settings data={data} updateSettings={updateSettingsT} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAllT} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;

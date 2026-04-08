@@ -154,6 +154,21 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
         if (table === 'journal' && !cleaned.date) {
           cleaned.date = todayISO();
         }
+        // Resolve linked condition/med names to IDs for journal entries
+        if (table === 'journal') {
+          if (cleaned.linked_conditions && Array.isArray(cleaned.linked_conditions)) {
+            cleaned.linked_conditions = cleaned.linked_conditions.map(nameOrId => {
+              const match = (data.conditions || []).find(c => c.id === nameOrId || c.name?.toLowerCase() === String(nameOrId).toLowerCase());
+              return match ? match.id : nameOrId;
+            }).filter(id => (data.conditions || []).some(c => c.id === id));
+          }
+          if (cleaned.linked_meds && Array.isArray(cleaned.linked_meds)) {
+            cleaned.linked_meds = cleaned.linked_meds.map(nameOrId => {
+              const match = (data.meds || []).find(m => m.id === nameOrId || m.name?.toLowerCase() === String(nameOrId).toLowerCase() || m.display_name?.toLowerCase() === String(nameOrId).toLowerCase());
+              return match ? match.id : nameOrId;
+            }).filter(id => (data.meds || []).some(m => m.id === id));
+          }
+        }
         const validationErr = validateToolInput(table, cleaned);
         if (validationErr) return { tool_use_id, content: `Validation failed: ${validationErr}`, is_error: true };
         const saved = await addItem(table, cleaned);

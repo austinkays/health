@@ -243,7 +243,7 @@ export const HEALTH_TOOLS = [
   },
   {
     name: 'add_journal_entry',
-    description: 'Add a new journal entry.',
+    description: 'Add a new journal entry. Can include individual symptoms with their own severity ratings, cross-links to conditions/medications, and a gratitude note.',
     input_schema: {
       type: 'object',
       properties: {
@@ -251,8 +251,12 @@ export const HEALTH_TOOLS = [
         title: { type: 'string', description: 'Entry title' },
         content: { type: 'string', description: 'Entry content/body text' },
         mood: { type: 'string', description: 'Current mood (e.g. "😊 Good", "😔 Low")' },
-        severity: { type: 'string', description: 'Symptom severity 1-10' },
+        severity: { type: 'string', description: 'Overall symptom severity 1-10' },
         tags: { type: 'string', description: 'Comma-separated tags' },
+        symptoms: { type: 'array', description: 'Individual symptoms with per-symptom severity', items: { type: 'object', properties: { name: { type: 'string' }, severity: { type: 'string', description: '1-10' } }, required: ['name', 'severity'] } },
+        linked_conditions: { type: 'array', description: 'Array of condition IDs to link', items: { type: 'string' } },
+        linked_meds: { type: 'array', description: 'Array of medication IDs to link', items: { type: 'string' } },
+        gratitude: { type: 'string', description: 'What made them smile / a bright spot in their day' },
       },
       required: ['content'],
     },

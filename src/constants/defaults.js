@@ -49,7 +49,18 @@ export const EMPTY_APPOINTMENT = {
 export const EMPTY_JOURNAL = {
   date: todayISO(),
   title: '', content: '', severity: '5', tags: '', mood: '',
+  symptoms: [], linked_conditions: [], linked_meds: [], gratitude: '',
 };
+
+export const COMMON_SYMPTOMS = [
+  'Headache', 'Fatigue', 'Nausea', 'Pain', 'Brain fog', 'Dizziness',
+  'Insomnia', 'Back pain', 'Joint pain', 'Muscle ache', 'Cramping',
+  'Bloating', 'Shortness of breath', 'Chest tightness', 'Heart racing',
+  'Numbness', 'Tingling', 'Swelling', 'Rash', 'Itching',
+  'Stomach pain', 'Loss of appetite', 'Dry mouth', 'Blurred vision',
+  'Sensitivity to light', 'Ringing in ears', 'Hot flashes', 'Chills',
+  'Night sweats', 'Tremor',
+];
 
 export const DEFAULT_SETTINGS = {
   name: '', location: '', ai_mode: 'onDemand',

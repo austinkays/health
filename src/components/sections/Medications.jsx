@@ -27,7 +27,7 @@ import SplitView, { useIsDesktop } from '../layout/SplitView';
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
 
-export default function Medications({ data, addItem, updateItem, removeItem, interactions, highlightId }) {
+export default function Medications({ data, addItem, updateItem, removeItem, interactions, highlightId, onNav }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_MED);
   const [editId, setEditId] = useState(null);
@@ -566,6 +566,28 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           )}
         </div>
       )}
+
+      {/* Journal entries linked to this medication */}
+      {(() => {
+        const linked = (data.journal || []).filter(e => (e.linked_meds || []).includes(m.id)).slice(0, 5);
+        if (!linked.length) return null;
+        return (
+          <div className="mt-2">
+            <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Journal Mentions</span>
+            <div className="mt-1 space-y-1">
+              {linked.map(e => (
+                <button key={e.id} onClick={() => onNav?.('journal', { highlightId: e.id })} className="w-full text-left bg-salve-lav/6 border border-salve-lav/12 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-salve-lav/12 transition-colors">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-salve-text font-montserrat">{e.title || e.date}</span>
+                    {e.mood && <span className="text-xs">{String(e.mood).split(' ')[0]}</span>}
+                    {e.severity && <span className="text-[10px] text-salve-textFaint">{e.severity}/10</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       <div className="flex gap-2.5 mt-2.5 flex-wrap">
         <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
