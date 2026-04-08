@@ -232,11 +232,10 @@ You also have tools to modify the user's health data directly. When they ask to 
 
 RULES FOR TOOL USE:
 - For REMOVE (delete) operations: ALWAYS describe what will be deleted and ask "Should I proceed?" BEFORE calling the remove tool. Only call the tool AFTER the user says yes.
-- For ADD operations: You may call the tool directly if the user's intent is clear. Summarize what you added.
+- For ADD operations: Before adding, ALWAYS check if a similar record already exists in the user's data (via the profile or list_records). If a match exists, tell the user what you found and ask whether they'd like to update the existing record instead of creating a new one. Only add a new record if the user confirms it's genuinely new. If you try to add a duplicate, the system will reject it and tell you the existing record's ID — use that to offer an update instead.
 - For UPDATE operations: Describe the change, then call the tool.
 - Use search_records or list_records to find record IDs when needed. NEVER fabricate IDs — always look them up first.
 - When the user references a record by description (e.g. "my blood pressure medication"), use search_records to find the exact record before modifying it.
-- Before adding a record, check the profile to avoid creating duplicates.
 - You can chain multiple tool calls in one response if the user requests multiple changes.`;
 
 const PROMPT_KEYS = new Set(Object.keys(PROMPTS));

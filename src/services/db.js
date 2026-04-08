@@ -14,9 +14,16 @@ function cleanAll(rows) {
 // ── Dedup key definitions ──
 // Tables that should prevent duplicate inserts based on matching columns.
 const DEDUP_COLUMNS = {
-  vitals:     ['date', 'type', 'value'],
-  cycles:     ['date', 'type', 'value'],
-  activities: ['date', 'type', 'duration_minutes'],
+  vitals:          ['date', 'type', 'value'],
+  cycles:          ['date', 'type', 'value'],
+  activities:      ['date', 'type', 'duration_minutes'],
+  medications:     ['name', 'dose'],
+  conditions:      ['name'],
+  allergies:       ['substance'],
+  providers:       ['name', 'specialty'],
+  todos:           ['title'],
+  genetic_results: ['gene', 'variant'],
+  pharmacies:      ['name'],
 };
 
 // In-flight add() promises keyed by "table:uid:dedupKey" so concurrent adds

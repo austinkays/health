@@ -57,6 +57,96 @@ function sanitizeInput(input, operation) {
   return result;
 }
 
+// ── Duplicate detection for identity-based entities ──
+// Returns an error message string if a matching record already exists, or null if OK to add.
+// Maps table → { stateKey, matchFn(existing, cleaned) → label|null, updateTool }
+const DEDUP_RULES = {
+  medications: {
+    stateKey: 'meds',
+    updateTool: 'update_medication',
+    match(existing, cleaned) {
+      const norm = cleaned.name?.trim().toLowerCase();
+      if (!norm) return null;
+      if (existing.name?.toLowerCase() === norm || existing.display_name?.toLowerCase() === norm) {
+        return existing.display_name || existing.name;
+      }
+      return null;
+    },
+    detail: (r) => r.dose ? ` (${r.dose})` : '',
+  },
+  conditions: {
+    stateKey: 'conditions',
+    updateTool: 'update_condition',
+    match(existing, cleaned) {
+      const norm = cleaned.name?.trim().toLowerCase();
+      return norm && existing.name?.toLowerCase() === norm ? existing.name : null;
+    },
+    detail: (r) => r.status ? ` — status: ${r.status}` : '',
+  },
+  allergies: {
+    stateKey: 'allergies',
+    updateTool: null, // no update_allergy tool exists
+    match(existing, cleaned) {
+      const norm = cleaned.substance?.trim().toLowerCase();
+      return norm && existing.substance?.toLowerCase() === norm ? existing.substance : null;
+    },
+    detail: (r) => r.severity ? ` (${r.severity})` : '',
+  },
+  providers: {
+    stateKey: 'providers',
+    updateTool: 'update_provider',
+    match(existing, cleaned) {
+      const norm = cleaned.name?.trim().toLowerCase();
+      return norm && existing.name?.toLowerCase() === norm ? existing.name : null;
+    },
+    detail: (r) => r.specialty ? ` — ${r.specialty}` : '',
+  },
+  todos: {
+    stateKey: 'todos',
+    updateTool: 'update_todo',
+    match(existing, cleaned) {
+      const norm = cleaned.title?.trim().toLowerCase();
+      return norm && existing.title?.toLowerCase() === norm ? existing.title : null;
+    },
+    detail: (r) => r.completed ? ' (completed)' : r.due_date ? ` — due ${r.due_date}` : '',
+  },
+  genetic_results: {
+    stateKey: 'genetic_results',
+    updateTool: null,
+    match(existing, cleaned) {
+      const gene = cleaned.gene?.trim().toLowerCase();
+      return gene && existing.gene?.toLowerCase() === gene ? existing.gene : null;
+    },
+    detail: (r) => r.phenotype ? ` — ${r.phenotype}` : '',
+  },
+  pharmacies: {
+    stateKey: 'pharmacies',
+    updateTool: null,
+    match(existing, cleaned) {
+      const norm = cleaned.name?.trim().toLowerCase();
+      return norm && existing.name?.toLowerCase() === norm ? existing.name : null;
+    },
+    detail: () => '',
+  },
+};
+
+function findExistingRecord(table, cleaned, data) {
+  const rule = DEDUP_RULES[table];
+  if (!rule) return null;
+  const records = data[rule.stateKey] || [];
+  for (const r of records) {
+    const label = rule.match(r, cleaned);
+    if (label) {
+      const detail = rule.detail(r);
+      const updateHint = rule.updateTool
+        ? ` Use ${rule.updateTool} with id "${r.id}" to modify it instead.`
+        : ` The existing record has id "${r.id}".`;
+      return `"${label}" already exists${detail}.${updateHint} Ask the user if they want to update the existing record.`;
+    }
+  }
+  return null;
+}
+
 // State key → db table name (inverse of useHealthData's tableToKey)
 const STATE_KEY_TO_TABLE = {
   meds: 'medications', conditions: 'conditions', allergies: 'allergies',
@@ -180,6 +270,14 @@ export function createToolExecutor({ data, addItem, updateItem, removeItem, upda
         }
         const validationErr = validateToolInput(table, cleaned);
         if (validationErr) return { tool_use_id, content: `Validation failed: ${validationErr}`, is_error: true };
+
+        // ── Duplicate detection for identity-based entities ──
+        // Tells the AI to update the existing record instead of creating a duplicate.
+        const dupCheck = findExistingRecord(table, cleaned, data);
+        if (dupCheck) {
+          return { tool_use_id, content: dupCheck, is_error: true };
+        }
+
         const saved = await addItem(table, cleaned);
         const summaryFn = RECORD_SUMMARIES[table];
         const label = summaryFn ? summaryFn(saved) : (saved.name || saved.substance || 'record');

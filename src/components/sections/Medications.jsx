@@ -236,6 +236,14 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     setBulkLinking(false);
   };
 
+  // Warn if a med with the same name (case-insensitive) already exists
+  const duplicateWarning = useMemo(() => {
+    if (editId || !form.name?.trim()) return null;
+    const norm = form.name.trim().toLowerCase();
+    const dup = data.meds.find(m => m.name?.toLowerCase() === norm || m.display_name?.toLowerCase() === norm);
+    return dup ? `"${dup.display_name || dup.name}" already exists${dup.dose ? ` (${dup.dose})` : ''}. Adding anyway will create a duplicate.` : null;
+  }, [form.name, editId, data.meds]);
+
   const saveMed = async () => {
     const { valid, errors: e } = validateMedication(form);
     if (!valid) { setErrors(e); return; }
@@ -292,6 +300,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             </div>
           )}
           {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier — links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
+          {duplicateWarning && <div className="flex items-start gap-1.5 text-xs text-salve-amber -mt-2 mb-2" role="alert"><AlertTriangle size={12} className="flex-shrink-0 mt-0.5" aria-hidden="true" />{duplicateWarning}</div>}
         </div>
         <Field label="Display Name (optional)" value={form.display_name} onChange={v => sf('display_name', v)} placeholder="e.g. my morning pill" />
         <Field label="Type" value={form.category || 'medication'} onChange={v => sf('category', v)} options={MED_CATEGORIES} />
