@@ -603,29 +603,43 @@ export async function sendSageIntro(messages, profileText, onToolCall) {
   );
 }
 
-export async function fillFormQuestions(questionsText, profileText, imageData) {
+export async function fillFormQuestions(questionsText, profileText, imageDataArray, appointmentContext) {
   const content = [];
-  if (imageData) {
+  // Support single imageData object (legacy) or array of images
+  const images = Array.isArray(imageDataArray) ? imageDataArray : imageDataArray ? [imageDataArray] : [];
+
+  for (const img of images) {
     content.push({
       type: 'image',
-      source: { type: 'base64', media_type: imageData.mediaType, data: imageData.data },
+      source: { type: 'base64', media_type: img.mediaType, data: img.data },
     });
+  }
+
+  const contextPrefix = appointmentContext
+    ? `Appointment context: ${appointmentContext}\n\n`
+    : '';
+
+  if (images.length > 0) {
     content.push({
       type: 'text',
       text: questionsText
-        ? `Please fill out this medical form using my health profile. Here is a photo/screenshot of the form, and some additional text:\n\n${questionsText}`
-        : 'Please fill out this medical form using my health profile. Here is a photo/screenshot of the form. Read all the questions from the image and answer each one.',
+        ? `${contextPrefix}Please fill out this medical form using my health profile. Here ${images.length > 1 ? `are ${images.length} pages of the form` : 'is a photo/screenshot of the form'}, and some additional text:\n\n${questionsText}`
+        : `${contextPrefix}Please fill out this medical form using my health profile. Here ${images.length > 1 ? `are ${images.length} pages of the form — process ALL questions across every page` : 'is a photo/screenshot of the form'}. Read all the questions from the image${images.length > 1 ? 's' : ''} and answer each one.`,
     });
   } else {
     content.push({
       type: 'text',
-      text: `Please fill out this medical form using my health profile. Find every question in the text below and answer each one:\n\n${questionsText}`,
+      text: `${contextPrefix}Please fill out this medical form using my health profile. Find every question in the text below and answer each one:\n\n${questionsText}`,
     });
   }
+
+  // Scale max tokens based on input size — more images/text = likely more Q&A
+  const maxTokens = Math.min(3000 + (images.length > 1 ? images.length * 500 : 0), 6000);
+
   return callAPI(
     [{ role: 'user', content }],
     'formHelper', profileText,
-    3000, false, 'chat'
+    maxTokens, false, 'chat'
   );
 }
 

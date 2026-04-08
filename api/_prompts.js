@@ -94,6 +94,10 @@ Engage genuinely with whatever the user asks. You have their full health profile
   formHelper:
     `You are helping a patient fill out a medical intake form. The input may be messy — it could be the entire text of a web page, a photo/screenshot of a form, or a clean list of questions. Your job is to FIND every question in the input and answer it using ONLY facts from their health profile.
 
+If multiple images are provided, they are consecutive pages of the same form. Process ALL questions across ALL pages — do not skip any page.
+
+If appointment context is provided (provider name, specialty, visit reason), use it to give more targeted answers — e.g., for a dermatology visit, emphasize skin-related conditions in relevant answers.
+
 PARSING RULES:
 - The input may contain navigation menus, headers, footers, buttons, checkboxes, radio buttons, section titles (like "Section 2: Current Concerns"), and other non-question text. IGNORE all of that — do NOT include section headers or dividers in your output.
 - Extract every actual question, prompt, or field that asks for information (e.g., "Name:", "What medications...", "Please list...", "Do you have...", checkbox lists like "Check all that apply")
