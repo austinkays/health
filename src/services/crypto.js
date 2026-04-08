@@ -130,11 +130,15 @@ export async function decrypt(b64, token) {
 
 // Pre-derive the key using the salt from the existing cached data.
 // This way cache.read() → decrypt() finds the key already cached and skips PBKDF2.
+// IMPORTANT: only decode enough base64 to extract the salt (16 bytes).
+// The full cache can be megabytes — decoding it all blocks the main thread.
 export async function prewarmKey(token, cachedB64) {
   try {
-    if (!cachedB64) return;
-    const combined = Uint8Array.from(atob(cachedB64), c => c.charCodeAt(0));
-    if (combined.length <= SALT_LENGTH + IV_LENGTH) return;
+    if (!cachedB64 || cachedB64.length < 40) return;
+    // Base64: 4 chars → 3 bytes. For 28 bytes (salt + IV), need ceil(28/3)*4 = 40 chars.
+    const prefix = cachedB64.slice(0, 40);
+    const combined = Uint8Array.from(atob(prefix), c => c.charCodeAt(0));
+    if (combined.length < SALT_LENGTH) return;
     const salt = combined.slice(0, SALT_LENGTH);
     // Derive with current iterations first (most likely match after first re-encrypt)
     await deriveKey(token, salt, ITERATIONS);

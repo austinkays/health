@@ -17,7 +17,7 @@ import SkeletonList from './components/ui/SkeletonCard';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
-import SageIntroChat from './components/ui/SageIntro';
+const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
@@ -409,15 +409,17 @@ function AppContent() {
         />
       )}
       {sageIntroOpen && (
-        <SageIntroChat
-          data={data}
-          addItem={addItem}
-          updateItem={updateItem}
-          removeItem={removeItem}
-          updateSettings={updateSettings}
-          onClose={() => { setSageIntroOpen(false); reloadData(); }}
-          onNav={onNav}
-        />
+        <Suspense fallback={null}>
+          <SageIntroChat
+            data={data}
+            addItem={addItem}
+            updateItem={updateItem}
+            removeItem={removeItem}
+            updateSettings={updateSettings}
+            onClose={() => { setSageIntroOpen(false); reloadData(); }}
+            onNav={onNav}
+          />
+        </Suspense>
       )}
       {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
     </div>
