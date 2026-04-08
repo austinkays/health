@@ -514,6 +514,23 @@ export async function fetchCostOptimization(profileText) {
   );
 }
 
+export async function fetchCorrelationNarrative(insights, profileText) {
+  const summary = insights.slice(0, 6).map(i => `- ${i.title}: ${i.template}`).join('\n');
+  const raw = await callAPI(
+    [{ role: 'user', content: `Rewrite these health patterns as warm, actionable insight cards:\n\n${summary}` }],
+    'correlationNarrative', profileText,
+    800, false, 'insight'   // Lite tier — cheap
+  );
+  const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
+  const jsonMatch = cleaned.match(/\[[\s\S]*?\]/);
+  if (!jsonMatch) return null;
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch {
+    return null;
+  }
+}
+
 /* ── House Consultation: dual-provider debate ──────────── */
 
 // Call a specific provider endpoint directly, bypassing getModel routing

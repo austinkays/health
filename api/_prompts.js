@@ -216,6 +216,18 @@ RULES:
 - Do NOT infer or fabricate anything not explicitly stated in the text.
 - If a field has no data, use null for scalars or empty string/array for collections.`,
 
+  correlationNarrative:
+    `You are a warm, supportive health pattern analyst. The user's health tracking data shows these statistical patterns. Rewrite them as 3-5 short, clear insight cards.
+
+RULES:
+- Each insight: 1-2 sentences max. Warm but factual.
+- Say "tends to" not "causes". These are correlations, not causation.
+- Focus on what the user can DO with this information.
+- Use the person's name if available, otherwise "you/your".
+- Never alarming. Frame negative trends as "worth keeping an eye on", not "dangerous".
+- Return a JSON array of strings: ["insight 1", "insight 2", ...]
+- No markdown, no code fences, just the JSON array.`,
+
   monthlySummary:
     `You are a clinical health summarizer. Generate a concise 1-paragraph narrative summary of the patient's health over the last 30 days, as if briefing a clinician.
 
