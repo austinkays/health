@@ -38,7 +38,7 @@ const TAB_LABELS = {
   summary: 'Health Summary',
   legal: 'Legal',
   feedback: 'Feedback',
-  formhelper: 'Form Helper',
+  formhelper: 'Scribe',
   aboutme: 'About Me',
 };
 

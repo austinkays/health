@@ -146,7 +146,7 @@ health/
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 27 sections. Desktop: back/search/sage buttons hidden at md+ (sidebar provides these), responsive font sizes
 │   │   │   ├── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow. Hidden on desktop (md:hidden) — SideNav takes over
-│   │   │   ├── SideNav.jsx       # Desktop sidebar navigation (hidden md:flex, 260px fixed left). App branding + user name at top, Search button (full-width, standalone), 7 nav items (Home/Meds/Vitals/Sage/Form Helper/Journal/Settings) with active left-border accent + background tint + dimmed number key hint (1–7) on inactive items for discoverability. Replaces BottomNav at md+ breakpoint
+│   │   │   ├── SideNav.jsx       # Desktop sidebar navigation (hidden md:flex, 260px fixed left). App branding + user name at top, Search button (full-width, standalone), 7 nav items (Home/Meds/Vitals/Sage/Scribe/Journal/Settings) with active left-border accent + background tint + dimmed number key hint (1–7) on inactive items for discoverability. Replaces BottomNav at md+ breakpoint
 │   │   │   └── SplitView.jsx     # Desktop list/detail layout primitive + useIsDesktop() hook. Mobile: passes through list content (sections handle inline expand). Desktop (md+): side-by-side with scrollable list on left (360-420px, min-h-[300px]) and sticky detail pane on right. `detailKey` prop triggers `splitview-detail-enter` fade+slide animation (0.14s) when selection changes. Empty state shows themed icon + message instead of plain text. Used by Medications, Conditions, Labs, Providers
 │   │   └── sections/             # One file per app section (28 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting + tagline, "Today at a glance" chips row (next appt, refills due this week, overdue todos), live search centerpiece (animated gradient border, rotating placeholders, inline results), Quick Navigation Hub (6 hub tiles: Records/Care Team/Tracking/Safety/Plans/Devices), Recent Vitals card + Activity snapshot side-by-side, Health Trends section (sleep bar chart + HR band chart + SpO2 chart), Getting Started tips (dismissible, data-aware, snooze/permanent per tip), unified timeline, Pinned shortcuts (user-starred). Desktop-only "made with love" tagline at bottom of page — scroll-reveal (fades in when scrolled past 80px AND near bottom, `hidden md:block`). Getting Started tips use `dismissBehavior` ('auto'/'snooze'/'permanent') stored as `[{id, permanent?, snoozedUntil?}]` in localStorage `salve:dismissed-tips` with migration from old string-array format; data-aware (add-meds/add-providers auto-hide when data exists); feedback tip removed as card → persistent footer button inside the tips section
@@ -175,7 +175,7 @@ health/
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view + Print Summary button (desktop only, triggers window.print())
-│   │       ├── FormHelper.jsx      # AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading. Navigation: SideNav item on desktop (key 5), dedicated card on Dashboard mobile (hidden md:hidden on desktop)
+│   │       ├── FormHelper.jsx      # "Scribe" — AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading. Navigation: SideNav item on desktop (key 5), dedicated card on Dashboard mobile (hidden md:hidden on desktop)
 │   │       ├── Feedback.jsx        # In-app feedback form: type selector pills (feedback/bug/suggestion), message textarea, submit with confirmation, previously submitted list with expand/delete
 │   │       ├── Legal.jsx          # Privacy Policy, Terms of Service, HIPAA Notice (tabbed interface)
 │   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt, Support section (Report a Bug → GitHub issues, Send Feedback → in-app Feedback section)
@@ -362,7 +362,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 13. **Medication cross-reactivity** - AI analysis of drug-class relationships when adding meds with known allergies (e.g., penicillin→cephalosporin)
 14. **Cost optimization** - web-search-powered analysis of medication costs with generic alternatives, PAPs, discount programs, and savings strategies
 15. **AI-powered data control** - natural language CRUD via Anthropic tool-use API in chat; 26 tools (add/update/remove medications, conditions, allergies, appointments, providers, todos; add vitals/journal/cycle entries/activities/genetic results; remove cycle entries; update profile; search/list records); destructive actions require inline confirmation; tool execution cards show live status; 10-iteration agentic loop cap
-16. **Form Helper** - paste medical intake form questions, Sage generates first-person answers from health profile; per-answer copy buttons + Copy All; sensitive questions (self-harm, trauma, substance use, relationships) flagged with ⚠ for user to answer personally; facts-only from profile, never fabricates
+16. **Scribe** - paste medical intake form questions, Sage generates first-person answers from health profile; per-answer copy buttons + Copy All; sensitive questions (self-harm, trauma, substance use, relationships) flagged with ⚠ for user to answer personally; facts-only from profile, never fabricates
 
 ### Vercel Configuration
 
@@ -513,9 +513,9 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - **Tablet** (768px – 1023px, `md:`): SideNav replaces BottomNav (260px fixed left sidebar). Content column widens to 820px. SplitView list/detail for Medications, Conditions, Labs, Providers. Drag-and-drop file import zones appear.
 - **Desktop** (≥ 1024px, `lg:`): Content column widens to 1060px. Dashboard tile grids expand to 5 columns. All md: features apply.
 - **Responsive strategy:** All desktop behavior is additive via Tailwind `md:`/`lg:` prefixes + `useIsDesktop()` hook. Mobile layout is completely untouched — no breakpoint changes affect < 768px.
-- **SideNav** (desktop): Fixed left, 260px wide, full viewport height. App branding + user name at top, Search button (standalone, full-width with ⌘K hint), 7 nav items (Home/Meds/Vitals/Sage/Form Helper/Journal/Settings) with left-border accent on active + dimmed number key hint (1–7) on inactive items. BottomNav hidden at md+ (`md:hidden`).
+- **SideNav** (desktop): Fixed left, 260px wide, full viewport height. App branding + user name at top, Search button (standalone, full-width with ⌘K hint), 7 nav items (Home/Meds/Vitals/Sage/Scribe/Journal/Settings) with left-border accent on active + dimmed number key hint (1–7) on inactive items. BottomNav hidden at md+ (`md:hidden`).
 - **SplitView** (desktop): List on left (360-420px scrollable, min-h-[300px]), detail pane on right (sticky). `detailKey` prop triggers fade+slide entry animation on selection change. Themed empty state with icon. Used by Medications, Conditions, Labs, Providers. Selected card shows lavender ring. Arrow keys (↑↓) navigate between items in Medications and Labs when no text input is focused.
-- **Keyboard shortcuts:** `Cmd/Ctrl+K` → open search, `Escape` → close Sage popup, `1–7` → jump to Home/Medications/Vitals/Sage/Form Helper/Journal/Settings (blocked when a text input is focused). Number hints shown in SideNav. Implemented via global keydown listener in App.jsx.
+- **Keyboard shortcuts:** `Cmd/Ctrl+K` → open search, `Escape` → close Sage popup, `1–7` → jump to Home/Medications/Vitals/Sage/Scribe/Journal/Settings (blocked when a text input is focused). Number hints shown in SideNav. Implemented via global keydown listener in App.jsx.
 - **Drag-and-drop import** (desktop): DropZone component in Settings (backup .json), AppleHealthImport (.xml/.zip), CycleTracker (Flo .json). Dashed border target with hover/active states. Hidden on mobile, existing file picker buttons remain.
 - **Print support:** Print button on HealthSummary (desktop only). Print CSS hides nav/sidebar/decorative elements, forces expand-sections open, white background, page breaks.
 - Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
@@ -762,20 +762,20 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] Settings: "Send Feedback" button navigates to Feedback section (not mailto)
 - [ ] Dashboard: Getting Started feedback tip navigates to Feedback section (not mailto)
 
-### Form Helper Tests
-- [ ] FormHelper: section reachable via Quick Access tile (Form Helper with ClipboardPaste icon)
-- [ ] FormHelper: AIConsentGate appears if AI consent not yet granted
-- [ ] FormHelper: Paste button reads from clipboard and populates textarea
-- [ ] FormHelper: question count detects lines ending with "?"
-- [ ] FormHelper: "Generate Answers" calls AI with health profile and form questions
-- [ ] FormHelper: loading state shows Sage leaf animation + cycling wellness messages
-- [ ] FormHelper: results display as expandable Q&A cards with per-answer copy buttons
-- [ ] FormHelper: "Copy all" copies all Q&A pairs to clipboard
-- [ ] FormHelper: sensitive questions (self-harm, trauma, substance use, relationships) show ⚠ flag with amber border
-- [ ] FormHelper: "New form" button resets to input state
-- [ ] FormHelper: answers use first-person voice ("I", "my", "me")
-- [ ] FormHelper: questions with no matching profile data show ⚠ "answer this one yourself"
-- [ ] FormHelper: disclaimer card appears below results
+### Scribe Tests
+- [ ] Scribe: section reachable via Quick Access tile (Scribe with PenLine icon)
+- [ ] Scribe: AIConsentGate appears if AI consent not yet granted
+- [ ] Scribe: Paste button reads from clipboard and populates textarea
+- [ ] Scribe: question count detects lines ending with "?"
+- [ ] Scribe: "Generate Answers" calls AI with health profile and form questions
+- [ ] Scribe: loading state shows Sage leaf animation + cycling wellness messages
+- [ ] Scribe: results display as expandable Q&A cards with per-answer copy buttons
+- [ ] Scribe: "Copy all" copies all Q&A pairs to clipboard
+- [ ] Scribe: sensitive questions (self-harm, trauma, substance use, relationships) show ⚠ flag with amber border
+- [ ] Scribe: "New form" button resets to input state
+- [ ] Scribe: answers use first-person voice ("I", "my", "me")
+- [ ] Scribe: questions with no matching profile data show ⚠ "answer this one yourself"
+- [ ] Scribe: disclaimer card appears below results
 
 ## Environment Variables
 

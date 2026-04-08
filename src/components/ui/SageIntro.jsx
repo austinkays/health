@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Leaf, Send, X, Sparkles, Home, ClipboardPaste, MessageCircle } from 'lucide-react';
+import { Leaf, Send, X, Sparkles, Home, PenLine, MessageCircle } from 'lucide-react';
 import { buildProfile } from '../../services/profile';
 import { sendSageIntro, getDailyUsage } from '../../services/ai';
 import { createToolExecutor } from '../../services/toolExecutor';
@@ -317,8 +317,8 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                       onClick={() => { onClose(); onNav?.('formhelper'); }}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-lav/10 text-salve-lav font-montserrat font-medium text-[12px] border border-salve-lav/20 cursor-pointer transition-all hover:bg-salve-lav/20"
                     >
-                      <ClipboardPaste size={12} />
-                      Form Helper
+                      <PenLine size={12} />
+                      Scribe
                     </button>
                     <button
                       onClick={() => { onClose(); onNav?.('ai'); }}
