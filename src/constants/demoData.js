@@ -135,17 +135,22 @@ export function buildDemoData() {
 
   const vitals = [];
   // 14 days of sleep, heart rate, mood, energy
-  const sleepValues = [6.5, 7.0, 5.5, 8.0, 6.0, 7.5, 6.8, 5.5, 7.2, 8.5, 6.0, 7.0, 6.5, 5.8];
-  const hrValues = [62, 65, 71, 59, 68, 61, 64, 72, 60, 58, 67, 63, 66, 69];
-  const moodValues = [7, 8, 5, 8, 6, 7, 7, 5, 7, 8, 6, 7, 7, 6];
-  const energyValues = [6, 7, 4, 8, 5, 7, 6, 4, 7, 8, 5, 6, 7, 5];
+  // Vitals designed to show clear correlations:
+  // - Sleep < 6 → pain/mood/energy notably worse next day
+  // - Exercise days (1, 3, 5, 7, 9 days ago) → mood/energy higher
+  // - Adderall (started 400 days ago) → long-term mood improvement visible
+  const sleepValues =  [6.5, 7.0, 5.5, 8.0, 6.0, 7.5, 6.8, 5.0, 7.2, 8.5, 5.5, 7.0, 6.5, 7.8];
+  const hrValues =     [62, 65, 71, 59, 68, 61, 64, 74, 60, 58, 70, 63, 66, 60];
+  const moodValues =   [7, 8, 4, 8, 5, 7, 7, 3, 7, 9, 4, 7, 6, 8];
+  const energyValues = [6, 7, 3, 8, 5, 7, 6, 3, 7, 9, 4, 6, 6, 8];
+  const painValues =   [2, 1, 5, 1, 4, 2, 2, 6, 1, 0, 5, 2, 3, 1];
   for (let i = 0; i < 14; i++) {
     const date = daysAgo(13 - i);
-    // Sleep + HR synced from Oura Ring, mood + energy logged manually
     vitals.push({ id: did(), date, type: 'sleep', value: sleepValues[i], unit: 'hrs', notes: '', source: 'oura' });
     vitals.push({ id: did(), date, type: 'hr', value: hrValues[i], unit: 'bpm', notes: '', source: 'oura' });
     vitals.push({ id: did(), date, type: 'mood', value: moodValues[i], unit: '/10', notes: '', source: 'manual' });
     vitals.push({ id: did(), date, type: 'energy', value: energyValues[i], unit: '/10', notes: '', source: 'manual' });
+    vitals.push({ id: did(), date, type: 'pain', value: painValues[i], unit: '/10', notes: '', source: 'manual' });
   }
 
   const appts = [
@@ -155,11 +160,14 @@ export function buildDemoData() {
   ];
 
   const journal = [
-    { id: did(), date: daysAgo(1), title: 'Good focus day', mood: '😀 Great', severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night — noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity' },
-    { id: did(), date: daysAgo(3), title: 'IBS flare', mood: '😔 Low', severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday — probably contributed.', tags: 'ibs,flare,stress' },
-    { id: did(), date: daysAgo(6), title: 'Therapy insight', mood: '😊 Good', severity: 3, content: 'Sarah helped me see the connection between perfectionism at work and my IBS flares. Going to try setting earlier stop times this week.', tags: 'anxiety,therapy,insight' },
-    { id: did(), date: daysAgo(9), title: 'Afternoon crash', mood: '😐 Okay', severity: 4, content: 'Meds wore off around 2pm today and I just couldn\'t focus. Ate lunch late (3pm). Need to be better about lunch timing.', tags: 'adhd,meds' },
-    { id: did(), date: daysAgo(12), title: 'First good run in weeks', mood: '😀 Great', severity: 1, content: 'Did 3 miles without stopping. Allergies are calming down finally. HR stayed in a nice zone.', tags: 'exercise,allergies,mood' },
+    { id: did(), date: daysAgo(1), title: 'Good focus day', mood: '😀 Great', severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night — noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity', symptoms: [], triggers: '', interventions: 'Good sleep, morning walk', gratitude: 'Finished the big project', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(3), title: 'IBS flare', mood: '😔 Low', severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday — probably contributed.', tags: 'ibs,flare,stress', symptoms: [{ name: 'Stomach cramps', severity: '4' }, { name: 'Headache', severity: '3' }], triggers: 'Pizza, stress at work', interventions: 'Dicyclomine, heating pad', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(5), title: 'Brain fog after bad sleep', mood: '😐 Okay', severity: 5, content: 'Only got 5 hours last night. Adderall barely made a dent. Everything felt like wading through mud.', tags: 'adhd,sleep,fatigue', symptoms: [{ name: 'Brain fog', severity: '4' }, { name: 'Fatigue', severity: '3' }, { name: 'Headache', severity: '2' }], triggers: 'Poor sleep, stayed up late', interventions: 'Extra coffee, short nap', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(6), title: 'Therapy insight', mood: '😊 Good', severity: 3, content: 'Sarah helped me see the connection between perfectionism at work and my IBS flares. Going to try setting earlier stop times this week.', tags: 'anxiety,therapy,insight', symptoms: [], triggers: '', interventions: 'Therapy, journaling', gratitude: 'Having a good therapist', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(7), title: 'Bad sleep + headache', mood: '😔 Low', severity: 6, content: 'Woke up at 3am and couldn\'t fall back asleep. Pounding headache all morning. Skipped the gym.', tags: 'sleep,headache,fatigue', symptoms: [{ name: 'Headache', severity: '4' }, { name: 'Fatigue', severity: '4' }], triggers: 'Insomnia, screen time before bed', interventions: 'Ibuprofen, dark room', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(9), title: 'Afternoon crash', mood: '😐 Okay', severity: 4, content: 'Meds wore off around 2pm today and I just couldn\'t focus. Ate lunch late (3pm). Need to be better about lunch timing.', tags: 'adhd,meds', symptoms: [{ name: 'Brain fog', severity: '3' }], triggers: 'Late lunch', interventions: '', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(10), title: 'Tough day', mood: '😰 Anxious', severity: 5, content: 'Anxiety was really high today. Work deadline looming. IBS acting up again. Sleep was terrible last night.', tags: 'anxiety,ibs,stress', symptoms: [{ name: 'Stomach cramps', severity: '3' }, { name: 'Headache', severity: '2' }], triggers: 'Work deadline, poor sleep', interventions: 'Breathing exercises', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(12), title: 'First good run in weeks', mood: '😀 Great', severity: 1, content: 'Did 3 miles without stopping. Allergies are calming down finally. HR stayed in a nice zone.', tags: 'exercise,allergies,mood', symptoms: [], triggers: '', interventions: 'Running', gratitude: 'Feeling strong again', linked_conditions: [], linked_meds: [] },
   ];
 
   const labs = [
@@ -184,9 +192,11 @@ export function buildDemoData() {
   const activities = [
     { id: did(), date: daysAgo(1), type: 'walk', duration_minutes: 32, distance: 1.8, calories: 145, heart_rate_avg: 110, source: 'apple_health', notes: 'Lunchtime walk' },
     { id: did(), date: daysAgo(3), type: 'run', duration_minutes: 28, distance: 3.0, calories: 290, heart_rate_avg: 148, source: 'apple_health', notes: 'Easy run' },
-    { id: did(), date: daysAgo(5), type: 'yoga', duration_minutes: 45, distance: 0, calories: 160, heart_rate_avg: 92, source: 'manual', notes: '' },
-    { id: did(), date: daysAgo(7), type: 'strength', duration_minutes: 40, distance: 0, calories: 220, heart_rate_avg: 120, source: 'apple_health', notes: 'Upper body' },
+    { id: did(), date: daysAgo(4), type: 'walk', duration_minutes: 25, distance: 1.5, calories: 120, heart_rate_avg: 105, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(6), type: 'yoga', duration_minutes: 45, distance: 0, calories: 160, heart_rate_avg: 92, source: 'manual', notes: '' },
+    { id: did(), date: daysAgo(8), type: 'strength', duration_minutes: 40, distance: 0, calories: 220, heart_rate_avg: 120, source: 'apple_health', notes: 'Upper body' },
     { id: did(), date: daysAgo(9), type: 'run', duration_minutes: 35, distance: 3.6, calories: 340, heart_rate_avg: 152, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(12), type: 'run', duration_minutes: 30, distance: 3.1, calories: 300, heart_rate_avg: 146, source: 'apple_health', notes: 'Felt great' },
   ];
 
   // Empty collections — user sees empty states for these
