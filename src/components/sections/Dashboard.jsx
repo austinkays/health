@@ -694,9 +694,6 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     if (interactions.length > 0) {
       items.push({ id: 'interactions', icon: AlertTriangle, color: C.rose, text: `${interactions.length} Drug Interaction${interactions.length > 1 ? 's' : ''} detected`, nav: 'interactions' });
     }
-    if (severeAllergyCount > 0) {
-      items.push({ id: 'allergies', icon: ShieldAlert, color: C.rose, text: `${severeAllergyCount} Severe Allergy Alert${severeAllergyCount > 1 ? 's' : ''}`, nav: 'allergies' });
-    }
     if (abnormalLabs.length > 0) {
       items.push({ id: 'labs', icon: FlaskConical, color: C.rose, text: `${abnormalLabs.length} Abnormal Lab Result${abnormalLabs.length > 1 ? 's' : ''}`, nav: 'labs' });
     }
@@ -763,7 +760,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       items.push({ id: `appt-${a.id}`, icon: Calendar, color: C.rose, text: `Appointment with ${a.provider || 'provider'} ${timeLabel}`, nav: 'appts', highlightId: a.id });
     }
     return items;
-  }, [anesthesiaCount, interactions, severeAllergyCount, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, data.appts, activeMeds]);
+  }, [anesthesiaCount, interactions, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, data.appts, activeMeds]);
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
 
