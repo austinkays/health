@@ -27,6 +27,7 @@ export default defineConfig({
       workbox: {
         skipWaiting: true,
         clientsClaim: true,
+        importScripts: ['/push-handler.js'],
         // Only precache the HTML shell and CSS — NOT the 60+ JS chunks.
         // Each deploy generates new hashes, causing a 95-asset download storm
         // that saturates the connection for 10-30 seconds. Code-split JS chunks
