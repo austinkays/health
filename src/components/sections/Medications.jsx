@@ -599,6 +599,49 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         );
       })()}
 
+      {/* Reminders */}
+      <div className="mt-2.5 pt-2.5 border-t border-salve-border/40">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[11px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Reminders</span>
+          <button
+            onClick={() => {
+              const time = prompt('Reminder time (HH:MM, 24hr):', '08:00');
+              if (time && /^\d{2}:\d{2}$/.test(time)) {
+                addItem('medication_reminders', { medication_id: m.id, reminder_time: time + ':00', enabled: true });
+              }
+            }}
+            className="text-[11px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline flex items-center gap-0.5"
+          >
+            <Plus size={11} /> Add
+          </button>
+        </div>
+        {(data.medication_reminders || [])
+          .filter(r => r.medication_id === m.id)
+          .map(r => (
+            <div key={r.id} className="flex items-center justify-between py-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-montserrat text-salve-text">{r.reminder_time?.slice(0, 5)}</span>
+                <span className={`text-[10px] font-montserrat ${r.enabled ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
+                  {r.enabled ? 'Active' : 'Paused'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => updateItem('medication_reminders', r.id, { enabled: !r.enabled })}
+                  className="text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
+                >{r.enabled ? 'Pause' : 'Enable'}</button>
+                <button
+                  onClick={() => removeItem('medication_reminders', r.id)}
+                  className="text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
+                >Remove</button>
+              </div>
+            </div>
+          ))}
+        {(data.medication_reminders || []).filter(r => r.medication_id === m.id).length === 0 && (
+          <p className="text-[10px] text-salve-textFaint/60 font-montserrat italic">No reminders set</p>
+        )}
+      </div>
+
       <div className="flex gap-2.5 mt-2.5 flex-wrap">
         <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
         <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
