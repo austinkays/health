@@ -180,7 +180,6 @@ export function buildDemoData() {
 
     vitals.push({ id: did(), date, type: 'sleep', value: sleep, unit: 'hrs', notes: '', source: 'oura' });
     vitals.push({ id: did(), date, type: 'hr', value: hr, unit: 'bpm', notes: '', source: 'apple_health' });
-    vitals.push({ id: did(), date, type: 'mood', value: mood, unit: '/10', notes: '', source: 'manual' });
     vitals.push({ id: did(), date, type: 'energy', value: energy, unit: '/10', notes: '', source: 'manual' });
     vitals.push({ id: did(), date, type: 'pain', value: pain, unit: '/10', notes: '', source: 'manual' });
     vitals.push({ id: did(), date, type: 'spo2', value: spo2, unit: '%', notes: '', source: 'apple_health' });

@@ -469,7 +469,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
 
       {/* ── BBT Chart ────────────────────────────────────── */}
       {bbtData.length >= 3 && (
-        <Card className="mb-3 !p-3">
+        <Card className="mb-3 !p-3 md:max-w-[420px]">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">BBT</span>
             {bbtShift.confirmed
@@ -513,7 +513,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
       )}
 
       {/* ── Calendar ─────────────────────────────────────── */}
-      <Card className="mb-3 md:max-w-[540px]">
+      <Card className="mb-3 md:max-w-[420px]">
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Previous month"><ChevronLeft size={18} className="text-salve-textMid" /></button>
           <div className="flex items-center gap-2">
