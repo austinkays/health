@@ -28,11 +28,19 @@ import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremi
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
 const RETRY_KEY = 'salve:chunk-retry';
+const RETRY_TAB_KEY = 'salve:chunk-retry-tab';
 function lazyWithRetry(importFn) {
   return lazy(() =>
     importFn().catch(() => {
       if (!sessionStorage.getItem(RETRY_KEY)) {
         sessionStorage.setItem(RETRY_KEY, '1');
+        // Preserve the current tab so user doesn't land on Home after reload
+        const currentTab = sessionStorage.getItem(RETRY_TAB_KEY);
+        if (!currentTab) {
+          // Tab is set by onNav before the chunk loads, read from DOM dataset
+          const tab = document.documentElement.dataset.salveTab;
+          if (tab) sessionStorage.setItem(RETRY_TAB_KEY, tab);
+        }
         window.location.reload();
         return new Promise(() => {}); // never resolves, page is reloading
       }
@@ -132,7 +140,15 @@ function AppContent() {
 
   // Sync demo mode to services/ai.js so AI calls route to canned responses
   useEffect(() => { setAIDemoMode(demoMode); }, [demoMode]);
-  const [tab, setTab] = useState('dash');
+  const [tab, setTab] = useState(() => {
+    // Restore tab after a chunk-retry reload so user doesn't land on Home
+    const retryTab = sessionStorage.getItem(RETRY_TAB_KEY);
+    if (retryTab) {
+      sessionStorage.removeItem(RETRY_TAB_KEY);
+      return retryTab;
+    }
+    return 'dash';
+  });
   const [highlightId, setHighlightId] = useState(null);
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
@@ -192,6 +208,8 @@ function AppContent() {
       if (t !== prev) setNavHistory(h => [...h.slice(-19), prev]);
       return t;
     });
+    // Stamp on DOM so lazyWithRetry can read it during chunk-fail reload
+    document.documentElement.dataset.salveTab = t;
     setHighlightId(opts?.highlightId || null);
     setNavOpts(opts || null);
     window.scrollTo(0, 0);
