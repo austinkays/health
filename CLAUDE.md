@@ -51,9 +51,12 @@ health/
 │   ├── lemon-checkout.js         # Vercel serverless: creates Lemon Squeezy hosted checkout session (auth-gated, returns {url})
 │   ├── lemon-webhook.js          # Vercel serverless: Lemon Squeezy subscription lifecycle webhook (HMAC-SHA256 verified; sets profiles.tier)
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
-│   ├── oura.js                   # Vercel serverless: Oura Ring V2 API proxy (OAuth2 token exchange/refresh, temperature/sleep/readiness data, config)
+│   ├── wearable.js               # Vercel serverless: unified OAuth2 router for ALL wearables (Oura, Dexcom, Withings, Fitbit, Whoop) via ?provider=X&action=token|refresh|data|config. Consolidates 5 integrations into 1 function to stay under the Hobby tier 12-function ceiling. Each provider has its own handler block inline; shared CORS/auth/rate-limit/fetch-with-timeout boilerplate at the top. Per-user rate buckets keyed by (userId, provider).
+│   ├── terra.js                  # Vercel serverless: Terra aggregator — consolidates widget session generation and webhook ingestion into one function. ?route=widget (auth-gated POST → Terra API to generate widget URL). ?route=webhook (HMAC-SHA256 signature-verified over `<ts>.<rawBody>`; 5-min replay window; handles auth/user_reauth/deauth/body/daily/sleep/activity events; maps Terra shapes into vitals/activities tables tagged source: 'terra'). Webhook URL in Terra dashboard must include the ?route=webhook query string.
 │   ├── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
 │   ├── discover.js               # Vercel serverless: RSS feed proxy (NIH News in Health + FDA Drug Safety), condition-matched, 24hr server cache
+│   ├── cron-reminders.js         # Vercel serverless cron: runs daily at 07:00 UTC (configured in vercel.json). Iterates users with opted-in push notifications and sends reminders for upcoming appointments, overdue todos, medication refills. Uses push-send.js under the hood.
+│   ├── push-send.js              # Vercel serverless: Web Push delivery endpoint. Encrypts payload with VAPID keys, POSTs to user's push subscription endpoints. Called by cron-reminders.js and any other reminder trigger.
 │   └── delete-account.js         # Vercel serverless: account deletion endpoint (auth-gated, cascading delete)
 ├── public/
 │   ├── manifest.json             # PWA manifest
@@ -84,7 +87,11 @@ health/
 │       ├── 019_user_tier.sql                  # Add tier column (free/premium) to profiles
 │       ├── 020_trial_expires_at.sql           # Add trial_expires_at to profiles for premium trial tracking
 │       ├── 021_feedback.sql                   # In-app user feedback table with RLS
-│       └── 026_insight_ratings.sql            # Thumbs up/down ratings on AI insights, patterns, news with RLS + unique constraint
+│       ├── 026_insight_ratings.sql            # Thumbs up/down ratings on AI insights, patterns, news with RLS + unique constraint
+│       ├── 027_extend_beta_trial.sql          # Trial extension: 14d → 90d for beta period (superseded by 029)
+│       ├── 028_beta_invites.sql               # Closed-beta invite gate: beta_invites table + check_beta_invite(code,email) + claim_beta_invite(code) RPCs. Reserve-on-validate with 30-min email lock. Anon-callable via SECURITY DEFINER.
+│       ├── 029_trim_beta_trial_to_30_days.sql # Walks trial back from 90 → 30 days. Idempotent; safe whether 027 was applied or not.
+│       └── 030_terra_connections.sql          # terra_connections table (user_id, terra_user_id UNIQUE, provider, status, last_webhook_at, last_sync_at). RLS-scoped select/delete; webhooks use service role to bypass.
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
@@ -121,12 +128,23 @@ health/
 │   │   ├── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness/spo2/stress/workouts via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), syncAllOuraData() bulk sync (temperature→cycles BBT, sleep/HR/SpO2/readiness/stress→vitals, workouts→activities), manual entry override protection, per-data-type dedup
 │   │   ├── ratings.js            # Insight ratings service: rateInsight (upsert), removeRating, loadRatings for thumbs up/down on AI content
 │   │   ├── newsCache.js          # Unified news article cache: merges RSS + Sage AI news + saved bookmarks; cacheSageNewsFromResult() parses markdown; buildNewsFeed() with relevance scoring
-│   │   └── discover.js           # Client service for dynamic Discover RSS articles with 14-day localStorage cache
+│   │   ├── discover.js           # Client service for dynamic Discover RSS articles with 14-day localStorage cache
+│   │   ├── terra.js              # Terra aggregator client: startTerraConnect(providers?) full-redirects to widget URL, listTerraConnections(), disconnectTerraConnection(id), providerLabel(p), TERRA_ENABLED flag
+│   │   ├── dexcom.js             # Dexcom CGM client: OAuth helpers (getDexcomAuthUrl, exchangeDexcomCode), token storage + auto-refresh (single in-flight mutex), fetchDexcomEgvs(), syncDexcomGlucose() aggregates intraday EGVs to daily averages with reading count + min-max range in notes, DEXCOM_ENABLED flag. Calls /api/wearable?provider=dexcom.
+│   │   ├── withings.js           # Withings client: OAuth helpers, token storage + auto-refresh, fetchWithingsMeasurements(days), syncWithingsMeasurements() decodes numeric type codes via MEAS_TYPES constant, groups systolic+diastolic into one bp row, converts kg→lbs and C→F, WITHINGS_ENABLED flag. Calls /api/wearable?provider=withings.
+│   │   ├── fitbit.js             # Fitbit client: OAuth helpers (Basic Auth on token endpoint), syncFitbitData(days) pulls sleep+HR+steps+weight in parallel, FITBIT_ENABLED flag. Calls /api/wearable?provider=fitbit. ⚠️ Legacy API sunsets Sept 2026 — migrate to Google Health API before then.
+│   │   ├── whoop.js              # Whoop client: OAuth helpers (requires 'offline' scope for refresh_token), syncWhoopData(days) pulls recoveries (HRV + RHR + recovery score) and sleep sessions, WHOOP_ENABLED flag. Calls /api/wearable?provider=whoop. App approval required before credentials.
+│   │   ├── push.js               # Web Push API client: VAPID public key registration, service worker integration, subscribeToPush/unsubscribeFromPush/isSubscribed/getPermissionState/sendTestPush helpers
+│   │   ├── quote.js              # Daily wellness quote service (ZenQuotes API), 24-hour localStorage cache
+│   │   ├── sentry.js             # Sentry error reporting: initSentry() only activates when VITE_SENTRY_DSN is set; disabled in dev unless VITE_SENTRY_DSN_DEV; beforeSend scrubs request bodies, form data, and known health field names to prevent PII leaks
+│   │   └── fx.js                 # Cursor-follow micro-interaction helpers: handleSpotlight(e) sets --mx/--my CSS vars on currentTarget from pointer position, handleMagnet(e, strength) translates target toward cursor, resetMagnet(e) snaps back. All DOM writes, no React re-renders.
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
 │   │   ├── useInsightRatings.js  # Thumbs up/down hook: loads all ratings on mount, optimistic local state + background Supabase upsert, toggle-to-unrate
 │   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies --salve-* color vars + --ambiance-* RGB + --salve-gradient-1/2/3 per-theme gradient stops to :root), useTheme() hook (themeId, setTheme, saveTheme, C, themes), getActiveC() standalone getter for non-React contexts
+│   │   ├── useScrollReveal.js    # IntersectionObserver singleton: shared observer for the whole app, adds .reveal-in class when elements scroll into view, one-shot per element. Respects prefers-reduced-motion. Used by Reveal.jsx wrapper.
+│   │   └── useVoiceInput.js      # Web Speech API wrapper: mic access, speech-to-text transcription, error handling for browser support gaps. Used by Journal entry form mic button.
 │   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 10s interval, random no-repeat, fade animation)
 │   ├── components/
 │   │   ├── Auth.jsx              # Magic link / 8-digit OTP sign-in screen (expired-code guard on submit, brute-force protection with escalating cooldown: 3 attempts→30s, 5→120s, 7→300s)
@@ -150,7 +168,14 @@ health/
 │   │   │   ├── OfflineBanner.jsx  # Persistent sticky banner when navigator.onLine is false; shows pending sync count from cache.js; auto-hides on reconnect
 │   │   │   ├── SkeletonCard.jsx   # Shimmer loading skeleton cards (SkeletonCard + SkeletonList); replaces LoadingSpinner as Suspense fallback for code-split sections
 │   │   │   ├── ThumbsRating.jsx  # Compact thumbs up/down rating component for AI content; optimistic toggle with filled/outline states; used on patterns, insights, news stories
+│   │   │   ├── Reveal.jsx        # Scroll-triggered blur-in wrapper. Uses the shared useScrollReveal hook to apply a .reveal-in class when the element enters the viewport. `as` prop picks the tag, `delay` staggers siblings. One-shot per element. Used heavily on Dashboard below-fold sections.
 │   │   │   ├── OnboardingWizard.jsx # First-run 4-screen modal for new users. Asks "what are you tracking?" (8 focus-area checkboxes) and "what devices do you use?" (7 device checkboxes), then pre-seeds `salve:starred` Dashboard tiles and `salve:dismissed-tips` based on answers. Skippable from any screen. App.jsx shows it only when authenticated + not demoMode + no data + not already onboarded. `hasCompletedOnboarding()` / `markOnboardingComplete()` / `resetOnboarding()` helpers for gating and re-run. Settings → Support has a "Re-run onboarding wizard" link.
+│   │   │   ├── WhatsNewModal.jsx # Changelog modal shown on first visit after a deploy. Reads CURRENT_VERSION from constants/changelog.js, compares to localStorage `salve:last-seen-version`. `hasUnseenChanges()` / `markChangesSeen()` helpers. App.jsx hooks it in via `useEffect` on auth load.
+│   │   │   ├── SageIntro.jsx     # Sage AI introduction card/modal used on Home (`SageIntroButton` CTA) and in dedicated sections. Explains AI consent, data usage, and Sage's role. `shouldShowIntro(data, loading)` returns true when profile is sparse.
+│   │   │   ├── CrisisModal.jsx   # Mental health crisis intervention modal. Triggered by Journal entries or Sage chat when crisis.js keyword detection fires. Shows 988 (US suicide line), SAMHSA, Trevor, domestic violence hotlines. Keyboard trap + escape to close + focus management.
+│   │   │   ├── OuraIcon.jsx      # Oura Ring brand icon (SVG inline, currentColor-aware).
+│   │   │   ├── DemoBanner.jsx    # Persistent sticky banner at the top of every view while in demo mode. "Demo mode · sample data" + "Sign up" pill button. `md:hidden` — desktop users see the demo card in SideNav instead.
+│   │   │   ├── ExternalLinkBadge.jsx # Small inline badge indicator on any link that opens a third-party site, so users are never surprised when they're leaving Salve.
 │   │   │   └── SagePopup.jsx     # Bottom-sheet modal chat with Sage. Triggered by Leaf button in Header (mobile) or Ask Sage button in SideNav (desktop). Multi-turn chat via sendChat, consent-gated, auto-scroll, Enter-to-send. "Full chat" shortcut navigates to AI tab. Wider on desktop (md:max-w-[600px]), rounded corners on desktop. On desktop uses `md:pl-[260px]` on the outer wrapper so the dialog centers in the content area rather than the full viewport (accounting for 260px sidebar).
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 27 sections. Desktop: back/search/sage buttons hidden at md+ (sidebar provides these), responsive font sizes
@@ -185,6 +210,11 @@ health/
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view + Print Summary button (desktop only, triggers window.print())
+│   │       ├── AboutMe.jsx        # User-authored "about me" profile fields (identity, lifestyle, preferences, context for Sage). Feeds the profile.js context builder so AI features have warmer personalization beyond clinical data.
+│   │       ├── Hub.jsx            # Quick Navigation Hub section page (records/care/tracking/safety/plans/devices sub-groupings). Used when the user taps a hub_* nav id from the Dashboard hub tile grid. Each hub lists its member sections with counts.
+│   │       ├── Insights.jsx       # AI-powered Insights view surfaces multi-day patterns detected by utils/correlations.js (pain × sleep, mood × med adherence, symptom × trigger). Premium-gated; empty state when there isn't enough data yet.
+│   │       ├── Sleep.jsx          # Dedicated sleep view: trends, stage breakdown if from Oura/Whoop, resting HR overlay, correlation with mood/energy/pain. Data pulls from vitals (type='sleep') and the live Oura/Whoop sources when connected.
+│   │       ├── AppleHealthPage.jsx # Apple Health data management page: shows imported record counts by type, lets the user re-run imports, delete Apple Health-sourced entries, or paste a new JSON export from the iOS Shortcut.
 │   │       ├── News.jsx            # Personalized health news feed: multi-source articles (RSS from NIH/FDA + cached Sage news + saved bookmarks), filter pills (All/Saved/Sage/RSS), condition-matched relevance scoring, bookmark toggle, source badges with accent colors, empty state guidance. Code-split, accessible via SideNav (key 5) + Quick Access tile + Dashboard Discover "See all" link
 │   │       ├── FormHelper.jsx      # "Scribe" — AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading. Navigation: SideNav item on desktop (key 6), dedicated card on Dashboard mobile (hidden md:hidden on desktop)
 │   │       ├── Feedback.jsx        # In-app feedback form: type selector pills (feedback/bug/suggestion), message textarea, submit with confirmation, previously submitted list with expand/delete
@@ -192,13 +222,16 @@ health/
 │   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt, Support section (Report a Bug → GitHub issues, Send Feedback → in-app Feedback section)
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
-│       ├── dates.js              # Date formatting helpers
+│       ├── dates.js              # Date formatting helpers. Exports `localISODate(d)` which returns YYYY-MM-DD in the user's local timezone (fixes UTC drift in trend chart filters — previously many places used `toISOString().slice(0,10)` which rolled west-of-UTC users into tomorrow's date).
 │       ├── interactions.js       # checkInteractions() logic
 │       ├── links.js              # URL generators: dailyMedUrl (direct setid link or cleaned name search), medlinePlusUrl, cdcVaccineUrl, npiRegistryUrl, providerLookupUrl (NPI → registry, else Google with specialty+clinic), googleCalendarUrl, goodRxUrl, clinicalTrialsUrl, costPlusDrugsUrl, amazonPharmacyUrl, blinkHealthUrl
 │       ├── maps.js               # mapsUrl(address) → Google Maps search URL
 │       ├── cycles.js             # Cycle logic: computeCycleStats (period start detection, avg length), getCyclePhase, predictNextPeriod (count-backward rule), getDayOfCycle, getCyclePhaseForDate, estimateFertility (returns {pct, zone} with peak/fertile/buffer/relative/absolute zones based on HPO axis physiology), detectBBTShift (3-day sustained ≥0.3°F rise above 6-day baseline), getCycleAlerts (short cycle, peak mucus, BBT shift/missing)
 │       ├── search.jsx            # Shared search logic: ENTITY_CONFIG, searchEntities(), highlightMatch(), FILTER_TABS, MORE_CATEGORIES
-│       └── validate.js           # Per-entity form validators: validateField (generic), validateVital (VITAL_LIMITS per-type hard ranges), validateMedication, validateLab, getVitalWarning; used by Vitals/Meds/Labs forms + toolExecutor.js
+│       ├── validate.js           # Per-entity form validators: validateField (generic), validateVital (VITAL_LIMITS per-type hard ranges), validateMedication, validateLab, getVitalWarning; used by Vitals/Meds/Labs forms + toolExecutor.js
+│       ├── correlations.js       # Pure-function health pattern correlation engine: detects recurring symptoms, mood-severity correlations, trigger patterns across meds/conditions/vitals. computeCorrelations() consumed by Insights section + Dashboard pattern card. No React, no side effects, no app-specific imports.
+│       ├── crisis.js             # Deterministic crisis keyword detection (offline, no AI dependency). Returns {isCrisis, type} to select appropriate emergency resources. Phrase-level regex patterns grouped by crisis type (self-harm, substance, domestic). Triggers CrisisModal on matching Journal entries.
+│       └── starred.js            # Starred/pinned Dashboard tile state: localStorage `salve:starred` key stores array of section IDs. `getStarred()`, `setStarred(ids)`, `toggleStar(id)`, `isStarred(id)`. Capped at `STAR_MAX = 6`. Dispatches `salve:starred-change` custom event for cross-component sync. Seeded by OnboardingWizard.
 ```
 
 ### Database (Supabase)
@@ -433,10 +466,21 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 {
   "functions": {
     "api/chat.js": { "maxDuration": 120 },
+    "api/gemini.js": { "maxDuration": 120 },
     "api/drug.js": { "maxDuration": 30 },
     "api/provider.js": { "maxDuration": 30 },
-    "api/oura.js": { "maxDuration": 30 }
+    "api/wearable.js": { "maxDuration": 30 },
+    "api/terra.js": { "maxDuration": 30 },
+    "api/cron-reminders.js": { "maxDuration": 30 },
+    "api/lemon-checkout.js": { "maxDuration": 15 },
+    "api/lemon-webhook.js": { "maxDuration": 15 },
+    "api/push-send.js": { "maxDuration": 15 },
+    "api/delete-account.js": { "maxDuration": 15 }
   },
+  // Total: 12 functions — at the Hobby tier ceiling. Wearable + Terra
+  // are consolidated routers (see api/wearable.js and api/terra.js
+  // for the provider/route dispatch). When upgraded to Pro, the
+  // consolidation is optional — routers work fine on Pro too.
   "headers": [
     {
       "source": "/(.*)",
@@ -584,6 +628,53 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
 - "made with love for my best friend & soulmate" tagline — **Mobile**: above BottomNav, scroll-reveal (scrolled past 50px AND near bottom, resets on tab change). **Desktop**: at very bottom of Dashboard page content (`hidden md:block`), scroll-reveal (scrolled past 80px AND near bottom, 500ms fade-in + translateY transition)
 - Magical UI effects: time-aware ambiance (card hover glow shifts sage→lavender→amber→dim by time of day), button shimmer sweep, quick-access tile contained radial gradient, nav item radial glow, gradient-shift greeting text, badge shimmer, field focus glow ring, section-enter fade+slide+deblur transitions, AI prose reveal (paragraph-by-paragraph stagger), celebration sparkle burst on success toasts, breathe meditation loader (10s deep breathing cycle with bloom/rings/glow)
+
+### Motion + Polish Vocabulary (CSS classes in `index.css`)
+
+All theme-aware via CSS custom properties. Every interactive class below was added during the animations/polish pass and is free to reuse on any new element.
+
+- **`.tile-magic`** — cursor-following radial spotlight hover effect for Dashboard hub/quick-access tiles. Uses `--mx/--my` CSS vars updated by `handleSpotlight` (from `utils/fx.js`) on `onPointerMove`. ::before layer renders a radial gradient that tracks the cursor. Layered box-shadow on hover.
+- **`.magnetic`** — buttons translate toward the cursor while hovered. Driven by `handleMagnet(e, strength)` + `resetMagnet(e)`. Applied to Ask Sage button in SideNav.
+- **`.split-word`** — inline-block word-level reveal used by the `<SplitGreeting>` component in `Header.jsx`. Each word fades in with translateY + blur staggered by `animationDelay`.
+- **`.reveal` / `.reveal.reveal-in`** — scroll-triggered blur-in animation. Initial state opacity 0, translateY 22px, blur(8px). When `.reveal-in` is added by the shared IntersectionObserver (`useScrollReveal` hook), it transitions to opacity 1, translateY 0, blur 0 over 0.85s with the gentle spring curve `cubic-bezier(0.16, 1, 0.3, 1)`. Respects `prefers-reduced-motion`. Applied via the `<Reveal>` wrapper component.
+- **`.cta-lift`** — primary CTA hover: translateY(-2px) + 3-layer lavender glow shadow. Used on Auth screen CTAs, OnboardingWizard buttons, EmptyState action buttons.
+- **`.auth-ambient`** — fixed-position drifting radial gradient backdrop for the Auth screen. GPU-composited transform-only drift over 28s, pulls from `--salve-lav`, `--salve-sage`, `--salve-amber` so it tints with each theme.
+- **`.auth-stage`** — entry animation for the Auth card: blur-in + slide up + scale on mount over 0.95s.
+- **`.twinkle`** — 3.8s infinite pulse (scale + opacity) for the decorative ✶·✶ motif on Auth screen. Staggered delays on each star.
+- **`.tagline-slot` + `.tagline-slot-item`** — slot-machine style cycler for the Dashboard tagline. Parent has fixed height + `overflow: hidden`; child is remounted via `key={idx}` each cycle and replays a 0.75s slide-up + blur-in.
+- **`.pulse-dot`** — expanding ping ring for status indicators. ::before layer with `currentColor` background scales 1→2.6× and fades over 1.9s (infinite). Applied to Oura live-sync dot and SagePopup "Sage is thinking" dot.
+- **`.skeleton-bg`** — loading skeleton shimmer. Gradient sweep across placeholder bars using `--salve-border` opacity variants.
+- **`.is-resizing`** — class added to `<html>` by `src/main.jsx` on every `resize` event; removed 180ms after the last resize. CSS rule pauses `animation-play-state` on experimental theme backdrops so window dragging stays smooth while Aurora/Galactic/Blaze/etc. have their heavy GPU layers.
+
+### Fluid Typography + Spacing Scale
+
+Replaces manual `text-[Xpx] md:text-[Ypx]` and `p-X md:p-Y` staircase patterns with `clamp()`-based classes that scale continuously across viewport widths (fixes awkward wrap-and-resize snaps at the md/lg breakpoints). All defined in `index.css`.
+
+**Type scale:**
+- `.text-ui-xs` — 9→11px (eyebrow labels, e.g. PATTERNS, DISCOVER)
+- `.text-ui-sm` — 10→12px (small labels)
+- `.text-ui-base` — 11→13px (small body)
+- `.text-ui-md` — 12→14px (body)
+- `.text-ui-lg` — 13→15px (comfy body)
+- `.text-ui-xl` — 14→16px (input / default body)
+- `.text-display-sub` — 13→16px (subtitle under greeting)
+- `.text-display-md` — 17→18px (section sub-headers like "Coming Up", SectionTitle)
+- `.text-display-lg` — 19→26px (page titles, Salve branding in SideNav)
+- `.text-display-xl` — 24→36px (Hello greeting in Header)
+- `.text-display-2xl` — 30→40px (Auth screen "Salve" logo)
+- `.text-display-hero` — 24→36px with `font-variant-numeric: tabular-nums` (Recent Vitals hero number, so digits don't layout-shift)
+
+**Spacing scale:**
+- `.p-fluid-sm` — 12→16px (icon tile cards)
+- `.p-fluid-md` — 16→24px (section cards)
+- `.p-fluid-lg` — 12→20px (mid-density cards)
+- `.px-fluid-page` — 16→32px (main content gutters in App.jsx, replaces the `px-4 md:px-6 lg:px-8` staircase)
+- `.gap-fluid-xs/sm/md` — 6→8 / 8→12 / 10→16px grid gaps
+- `.mt-fluid-md/lg` and `.mb-fluid-md/lg` — 16→24 / 24→32px vertical spacing
+
+### Global Smart Wrapping
+
+Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (h1–h6) and `text-wrap: pretty` to all paragraphs and list items. Fixes awkward mid-sentence wraps throughout the app without per-element intervention. Falls back to normal wrap in unsupporting browsers (Chrome 114+/Firefox 121+/Safari 17.4+ supported).
 - Dashboard uses "Calm Intelligence" design philosophy — shows only actionable info, not data counts
 - Dashboard sections: contextual greeting → live search centerpiece (hidden on desktop `md:hidden` — sidebar Search button replaces it) → Recent Vitals hero card + Activity Snapshot in 2-column grid at `lg+` → consolidated alerts (dismissible, fully hidden when dismissed) → Sage insight → Discover card (matched resources, per-card dismissible) → unified timeline → journal preview → quick access grid (expandable, 6 default + "More")
 - **Recent Vitals card** (hero + chips layout): one featured vital (top-priority available, usually Sleep) shown hero-style with uppercase label + 32px value + full-width 56px Recharts area chart (neutral textMid stroke at 55% opacity + lav gradient fill) + **natural-language trend caption** (e.g., "↓ 1.2 hrs below your 7-day average") with direction-aware color (sage=good, amber=watch, neutral=flat) based on `VITAL_POLARITY` map (sleep/steps/energy/mood=up-is-good, hr/bp/pain=down-is-good, weight/temp/glucose=neutral). Below a thin divider: 2-3 supporting vital chips (label + value + trend arrow only, no charts). Card uses standard `bg-salve-card` surface — no color tint — so it never hijacks the theme palette. Click navigates to Vitals section.
@@ -790,10 +881,10 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] CycleTracker: Oura sync inserts temperature readings as BBT entries with Oura source note
 - [ ] CycleTracker: Oura-sourced BBT entries show deviation note in card
 - [ ] CycleTracker: BBT shift detection works with Oura-sourced temperatures
-- [ ] api/oura.js: Rejects unauthenticated requests (401)
-- [ ] api/oura.js: Rate limits at 30 req/min per user
-- [ ] api/oura.js: Only allows whitelisted endpoints (daily_readiness, daily_sleep, etc.)
-- [ ] api/oura.js: Returns 500 with "Oura not configured" when env vars missing
+- [ ] api/wearable.js (Oura): Rejects unauthenticated requests (401)
+- [ ] api/wearable.js (Oura): Rate limits at 30 req/min per user per provider
+- [ ] api/wearable.js (Oura): Only allows whitelisted endpoints (daily_readiness, daily_sleep, etc.)
+- [ ] api/wearable.js (Oura): Returns 500 with "Oura not configured" when env vars missing
 
 ### Health To-Do Tests
 - [ ] Todos: CRUD works (add, edit, delete with confirmation)
