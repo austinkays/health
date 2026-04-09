@@ -119,6 +119,15 @@ function AppContent() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally runs once with initial session
 
+  // Safety timeout: if Supabase INITIAL_SESSION event hasn't fired after 3 seconds,
+  // stop showing the splash and let the user see the sign-in screen.
+  // Without this, a stalled token refresh keeps the spinner forever.
+  useEffect(() => {
+    if (!authLoading) return;
+    const timeout = setTimeout(() => setAuthLoading(false), 3000);
+    return () => clearTimeout(timeout);
+  }, [authLoading]);
+
   // Sync demo mode to services/ai.js so AI calls route to canned responses
   useEffect(() => { setAIDemoMode(demoMode); }, [demoMode]);
   const [tab, setTab] = useState('dash');
