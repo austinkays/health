@@ -61,6 +61,31 @@ function getTimeGreeting() {
   return { text: 'Good evening', icon: Moon, motif: 'moon' };
 }
 
+const DAILY_QUOTES = [
+  'Taking care of yourself is productive.',
+  'Small steps still move you forward.',
+  'You are more than your symptoms.',
+  'Rest is not a reward, it is a necessity.',
+  'Progress, not perfection.',
+  'Your body is doing its best for you.',
+  'Be patient with yourself, healing is not linear.',
+  'You deserve the same care you give others.',
+  'Every day is a fresh start.',
+  'Listening to your body is an act of self-respect.',
+  'You are allowed to take things one day at a time.',
+  'Showing up for yourself matters.',
+  'Health is a journey, not a destination.',
+  'What you track, you can understand.',
+  'Gentle consistency beats intense burnout.',
+];
+
+function getDailyQuote() {
+  // Rotate based on day of year so it changes daily but is stable within a day
+  const now = new Date();
+  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
+}
+
 function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount, alertsHidden) {
   // Priority: critical alerts → upcoming events → encouragement
   if (!alertsHidden) {
@@ -942,6 +967,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <span className="font-playfair text-lg md:text-xl font-medium text-salve-textMid">{greeting.text}</span>
             </div>
             <p className="text-[13px] md:text-[15px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
+            <p className="text-[11px] md:text-[12px] text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">{getDailyQuote()}</p>
           </div>
         </div>
       </section>
@@ -1661,6 +1687,33 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </div>
       </div>
 
+      {/* ── Pinned shortcuts (user-starred) ─────── */}
+      {starredTiles.length > 0 && (
+        <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-4">
+          <SectionTitle>Favorites</SectionTitle>
+          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4">
+            {starredTiles.map((t, i) => {
+              const remainder = starredTiles.length % 3;
+              const isLast = i === starredTiles.length - 1;
+              const span = isLast && remainder !== 0 ? 3 - remainder + 1 : 1;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => onNav(t.id)}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
+                >
+                  <div className="absolute top-1.5 right-1.5">
+                    <span className="text-salve-amber text-[8px]">★</span>
+                  </div>
+                  <t.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
+                  <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{t.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* ── Health Trends grid ─────────────────── */}
       {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
         <section aria-label="Health trends" className="dash-stagger dash-stagger-4 mb-4">
@@ -1954,34 +2007,6 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             <Mail size={11} className="text-salve-textFaint/50 group-hover:text-salve-amber transition-colors" />
             <span className="text-[11px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
           </button>
-        </section>
-      )}
-
-      <Divider />
-
-      {/* ── Pinned shortcuts (user-starred) ─────── */}
-      {starredTiles.length > 0 && (
-        <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-3">
-          <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4">
-            {starredTiles.map((t, i) => {
-              const remainder = starredTiles.length % 3;
-              const isLast = i === starredTiles.length - 1;
-              const span = isLast && remainder !== 0 ? 3 - remainder + 1 : 1;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => onNav(t.id)}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
-                >
-                  <div className="absolute top-1.5 right-1.5">
-                    <span className="text-salve-amber text-[8px]">★</span>
-                  </div>
-                  <t.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-                  <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
         </section>
       )}
 
