@@ -956,11 +956,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <span className="greeting-motif">
                 <Motif type={greeting.motif} size={16} color={C.sage} />
               </span>
-              <span className="font-playfair text-lg md:text-xl font-medium text-salve-textMid">{greeting.text}</span>
+              <span className="font-playfair text-display-md font-medium text-salve-textMid">{greeting.text}</span>
             </div>
-            <p className="text-[13px] md:text-[15px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
+            <p className="text-ui-lg text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
             {dailyQuote && (
-              <p className="text-[11px] md:text-[12px] text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">
+              <p className="text-ui-sm text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">
                 "{dailyQuote.q}"{dailyQuote.a && dailyQuote.a !== 'Unknown' && <span className="not-italic"> , {dailyQuote.a}</span>}
               </p>
             )}
@@ -1100,17 +1100,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
       {/* ── Quick Navigation Hub ───────────────── */}
       <section aria-label="Quick navigation" className="dash-stagger dash-stagger-3 mb-5 md:mb-7">
-        <div className={`grid gap-2 md:gap-3 ${hubTiles.length <= 5 ? 'grid-cols-' + hubTiles.length : 'grid-cols-3 md:grid-cols-6'}`}
+        <div className={`grid gap-fluid-sm ${hubTiles.length <= 5 ? 'grid-cols-' + hubTiles.length : 'grid-cols-3 md:grid-cols-6'}`}
           style={{ gridTemplateColumns: `repeat(${Math.min(hubTiles.length, 6)}, 1fr)` }}>
           {hubTiles.map((h) => (
             <button
               key={h.id}
               onClick={() => onNav(h.navId)}
               onPointerMove={handleSpotlight}
-              className="bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
+              className="bg-salve-card border border-salve-border rounded-xl p-fluid-sm flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
             >
               <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-              <span className="text-[10.5px] md:text-[12px] text-salve-textMid font-montserrat text-center leading-tight">{h.label}</span>
+              <span className="text-ui-sm text-salve-textMid font-montserrat text-center leading-tight">{h.label}</span>
             </button>
           ))}
         </div>
@@ -1189,7 +1189,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <button
                     key={a.id}
                     onClick={() => onNav(a.nav, a.highlightId ? { highlightId: a.highlightId } : undefined)}
-                    className={`w-full flex items-center gap-2.5 md:gap-3 px-4 md:px-5 py-3 md:py-3.5 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
+                    className={`w-full flex items-center gap-fluid-sm px-4 md:px-5 py-3 md:py-3.5 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
                   >
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
                     <a.icon size={14} color={a.color} className="flex-shrink-0" />
@@ -1268,7 +1268,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       <Leaf size={16} color={C.sage} strokeWidth={1.5} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[12px] md:text-[13px] font-medium text-salve-text font-montserrat">Daily Insight</div>
+                      <div className="text-ui-md font-medium text-salve-text font-montserrat">Daily Insight</div>
                       <div className="text-[11px] md:text-xs text-salve-textFaint font-montserrat">Personalized health insight from Sage</div>
                     </div>
                     <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
@@ -1370,7 +1370,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                         <div className="flex items-center gap-1.5 mb-0.5">
                           {src === 'EveryCure' && <span className="text-[10px]" aria-hidden="true">🔬</span>}
                           <span
-                            className="text-[9px] md:text-[11px] font-montserrat tracking-wider uppercase"
+                            className="text-ui-xs font-montserrat tracking-wider uppercase"
                             style={{ color: accentColor }}
                           >
                             {src}
@@ -1386,7 +1386,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           {d.resource.title}
                           <ExternalLink size={10} className="text-salve-textFaint/50 flex-shrink-0" />
                         </a>
-                        <p className="text-[11px] md:text-[13px] text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
+                        <p className="text-ui-base text-salve-textFaint leading-relaxed mt-0.5 mb-0">{d.resource.blurb}</p>
                       </div>
                       <button
                         onClick={() => dismissResource(d.resource.id)}
@@ -1432,7 +1432,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onNav('cycles', { quickLog: true }); }}
-                        className="ml-auto py-1 px-2.5 rounded-full text-[10px] md:text-[11px] font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
+                        className="ml-auto py-1 px-2.5 rounded-full text-ui-sm font-medium font-montserrat cursor-pointer border border-salve-rose/30 bg-salve-rose/10 text-salve-rose hover:bg-salve-rose/20 transition-colors flex-shrink-0"
                         aria-label="Log period for today"
                       >
                         Log today
@@ -1452,8 +1452,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       <div className="text-[11px] md:text-xs text-salve-textFaint">{sub}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-[12px] md:text-[13px] font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
-                      <div className="text-[10px] md:text-[11px] text-salve-textFaint">{fmtDate(item._sortDate)}</div>
+                      <div className="text-ui-md font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
+                      <div className="text-ui-sm text-salve-textFaint">{fmtDate(item._sortDate)}</div>
                     </div>
                   </button>
                 );
@@ -1489,15 +1489,15 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-baseline gap-2">
                       <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
-                      <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat">last 14 days</span>
+                      <span className="text-ui-xs text-salve-textFaint font-montserrat">last 14 days</span>
                     </div>
                     <ChevronRight size={12} className="text-salve-textFaint" />
                   </div>
                   <div className="mb-3">
-                    <div className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1">{fLabel}</div>
+                    <div className="text-ui-xs text-salve-textFaint font-montserrat uppercase tracking-wider mb-1">{fLabel}</div>
                     <div className="flex items-baseline gap-2 mb-2">
-                      <div className="text-[32px] font-medium text-salve-text font-montserrat leading-none">{fDisplay}</div>
-                      <div className="text-[12px] md:text-[13px] text-salve-textMid font-montserrat">{fUnit}</div>
+                      <div className="text-display-hero font-medium text-salve-text font-montserrat">{fDisplay}</div>
+                      <div className="text-ui-md text-salve-textMid font-montserrat">{fUnit}</div>
                     </div>
                     {fHasChart && chartsReady && (() => {
                       const { AreaChart, Area, ResponsiveContainer, Tooltip } = chartsRef.current;
@@ -1586,7 +1586,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-2">
                     <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Mood</span>
-                    <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat">last 7 days</span>
+                    <span className="text-ui-xs text-salve-textFaint font-montserrat">last 7 days</span>
                   </div>
                   <ChevronRight size={12} className="text-salve-textFaint" />
                 </div>
@@ -1631,12 +1631,12 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-2">
                     <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Activity</span>
-                    <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat">last 7 days</span>
+                    <span className="text-ui-xs text-salve-textFaint font-montserrat">last 7 days</span>
                   </div>
                   <ChevronRight size={12} className="text-salve-textFaint" />
                 </div>
                 <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-[28px] font-medium text-salve-text font-montserrat leading-none">{activitySnapshot.count}</span>
+                  <span className="text-display-hero font-medium text-salve-text font-montserrat">{activitySnapshot.count}</span>
                   <span className="text-[13px] text-salve-textMid font-montserrat">session{activitySnapshot.count !== 1 ? 's' : ''}</span>
                   {activitySnapshot.totalMinutes > 0 && (
                     <>
@@ -1698,13 +1698,13 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   key={t.id}
                   onClick={() => onNav(t.id)}
                   onPointerMove={handleSpotlight}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-fluid-lg flex flex-col items-center gap-fluid-xs cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
                 >
                   <div className="absolute top-1.5 right-1.5">
                     <span className="text-salve-amber text-[8px]">★</span>
                   </div>
                   <t.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-                  <span className="text-[11px] md:text-[13px] text-salve-textMid font-montserrat">{t.label}</span>
+                  <span className="text-ui-base text-salve-textMid font-montserrat">{t.label}</span>
                 </button>
               );
             })}
@@ -1716,7 +1716,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
         <Reveal as="section" aria-label="Health trends" className="mb-4">
           <SectionTitle>Health Trends</SectionTitle>
-          <div className="grid grid-cols-2 gap-2.5 md:gap-4">
+          <div className="grid grid-cols-2 gap-fluid-md">
 
             {/* Sleep 14-night bar chart */}
             {sleepTrend && (
@@ -1949,7 +1949,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               Hide all
             </button>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-fluid-md">
             {visibleTips.map((tip, i) => {
               const TipIcon = tip.icon;
               const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
@@ -1957,7 +1957,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               return (
                 <div
                   key={tip.id}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
+                  className={`bg-salve-card border border-salve-border rounded-xl p-fluid-lg flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
                 >
                   <button
                     onClick={() => dismissTip(tip.id)}
@@ -1973,7 +1973,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
                   </div>
                   <div className="text-[12px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
-                  <p className="text-[10.5px] md:text-[13px] text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
+                  <p className="text-ui-base text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
                   {tip.href ? (
                     <a
                       href={tip.href}

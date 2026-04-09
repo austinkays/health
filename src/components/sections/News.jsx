@@ -145,7 +145,7 @@ export default function News({ data }) {
                     <div className="flex items-center gap-1.5 mb-1">
                       <SourceIcon size={10} style={{ color: accentColor }} />
                       <span
-                        className="text-[9px] md:text-[10px] font-montserrat tracking-wider uppercase"
+                        className="text-ui-xs font-montserrat tracking-wider uppercase"
                         style={{ color: accentColor }}
                       >
                         {article.source}
@@ -175,7 +175,7 @@ export default function News({ data }) {
 
                     {/* Blurb */}
                     {article.blurb && (
-                      <p className="text-[11px] md:text-[12px] text-salve-textFaint leading-relaxed mt-1 mb-0 line-clamp-3">
+                      <p className="text-ui-sm text-salve-textFaint leading-relaxed mt-1 mb-0 line-clamp-3">
                         {article.blurb}
                       </p>
                     )}

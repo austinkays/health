@@ -50,7 +50,7 @@ export function SageIntroButton({ onClick, compact = false }) {
           <div className={`font-playfair font-semibold text-salve-text ${compact ? 'text-[14px]' : 'text-[16px] md:text-lg'}`}>
             Introduce Yourself to Sage
           </div>
-          <p className={`text-salve-textFaint font-montserrat m-0 ${compact ? 'text-[11px]' : 'text-[12px] md:text-[13px]'} leading-snug mt-0.5`}>
+          <p className={`text-salve-textFaint font-montserrat m-0 ${compact ? 'text-[11px]' : 'text-ui-md'} leading-snug mt-0.5`}>
             {compact
               ? 'Quick chat to set up your profile'
               : 'A quick, friendly chat to get your profile set up, Sage saves everything for you'

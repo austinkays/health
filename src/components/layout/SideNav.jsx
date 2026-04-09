@@ -23,9 +23,9 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
     >
       {/* App name / branding */}
       <div className="px-6 pt-8 pb-4">
-        <h2 className="font-playfair text-2xl font-semibold text-gradient-magic m-0">Salve</h2>
+        <h2 className="font-playfair text-display-lg font-semibold text-gradient-magic m-0">Salve</h2>
         {name && (
-          <p className="text-salve-textFaint text-sm mt-1.5 truncate">{name}</p>
+          <p className="text-salve-textFaint text-ui-lg mt-1.5 truncate">{name}</p>
         )}
       </div>
 
