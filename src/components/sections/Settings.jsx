@@ -1500,9 +1500,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <Card>
         <div className="space-y-3">
           <a
-            href="https://github.com/austinkays/health/issues/new"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="mailto:salveapp@proton.me?subject=Bug Report"
             className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat no-underline hover:text-salve-lav transition-colors"
           >
             <Bug size={14} className="text-salve-textFaint" />
