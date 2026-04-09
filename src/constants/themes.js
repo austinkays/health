@@ -35,7 +35,7 @@ export const themes = {
       rose:      '#c06a8c',
       roseDim:   '#d488a8',
     },
-    gradient: ['lav', 'rose', 'amber'],
+    gradient: ['lav', 'rose', 'lavDim'],
     ambiance: {
       morning: '90, 144, 120',
       day:     '136, 102, 184',
