@@ -32,6 +32,11 @@ const METRIC_LABELS = {
   steps: 'steps',
 };
 
+/** Capitalize first letter of each word for titles */
+function titleCase(str) {
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // Polarity: which direction is "good"
 const POLARITY_UP = new Set(['mood', 'energy', 'sleep', 'steps', 'spo2']);
 const POLARITY_DOWN = new Set(['pain', 'hr']);
@@ -491,7 +496,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
         id: nextId('correlation-sleep-' + type),
         type: 'correlation',
         category: 'sleep',
-        title: `Sleep & ${METRIC_LABELS[type] || type}`,
+        title: `Sleep & ${titleCase(METRIC_LABELS[type] || type)}`,
         template: sleepCorrelation(type, splitData),
         narrative: null,
         score,
@@ -550,7 +555,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
         id: nextId('correlation-exercise-' + type),
         type: 'correlation',
         category: 'exercise',
-        title: `Exercise & ${METRIC_LABELS[type] || type}`,
+        title: `Exercise & ${titleCase(METRIC_LABELS[type] || type)}`,
         template: exerciseCorrelation(type, avgWith, avgWithout),
         narrative: null,
         score,
@@ -601,7 +606,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
         id: nextId(`medication-${medName}-${metric}`),
         type: 'medication',
         category: 'medication',
-        title: `${medName} & ${METRIC_LABELS[metric] || metric}`,
+        title: `${medName} & ${titleCase(METRIC_LABELS[metric] || metric)}`,
         template: medImpact(medName, metric, result),
         narrative: null,
         score,
@@ -666,7 +671,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
         id: nextId('cycle-' + type),
         type: 'cycle',
         category: 'cycle',
-        title: `Cycle Phase & ${METRIC_LABELS[type] || type}`,
+        title: `Cycle Phase & ${titleCase(METRIC_LABELS[type] || type)}`,
         template: cyclePhase(type, splitData),
         narrative: null,
         score,
@@ -713,7 +718,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
       id: nextId('trend-' + type),
       type: 'trend',
       category: 'trend',
-      title: `${METRIC_LABELS[type] || type} trend`,
+      title: `${titleCase(METRIC_LABELS[type] || type)} Trend`,
       template: trend(type, result, polarity),
       narrative: null,
       score,
@@ -802,7 +807,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
         id: nextId(`symptom-sleep-${symptomName}`),
         type: 'correlation',
         category: 'symptom',
-        title: `Sleep & ${symptomName}`,
+        title: `Sleep & ${titleCase(symptomName)}`,
         template,
         narrative: null,
         score,

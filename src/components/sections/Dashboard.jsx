@@ -352,7 +352,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   /* ── Memoized computations ──────────────────── */
   const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
 
-  const allInsights = useMemo(() => computeCorrelations(data, getCyclePhaseForDate), [data]);
+  const allInsights = useMemo(() => computeCorrelations(data, getCyclePhaseForDate), [data.vitals, data.journal_entries, data.meds, data.activities, data.cycles]);
   const topInsights = useMemo(() => allInsights.slice(0, 3), [allInsights]);
 
   const timeline = useMemo(() => {
