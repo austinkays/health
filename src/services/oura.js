@@ -485,6 +485,59 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
 }
 
 /**
+ * Sync Oura daily activity → vitals (steps) + activities (Daily Activity).
+ * The daily_activity endpoint provides: steps, calories, distance, active time.
+ */
+export async function syncOuraDailyActivity(existingVitals, existingActivities, addItem, days = 30) {
+  const { startDate, endDate } = dateRange(days);
+  const actData = await ouraGet('daily_activity', startDate, endDate);
+  const entries = actData?.data || [];
+
+  const existingStepDates = new Set(
+    (existingVitals || []).filter(v => v.type === 'steps' && v.source === 'oura').map(v => v.date)
+  );
+  const existingActivityDates = new Set(
+    (existingActivities || []).filter(a => a.type === 'Daily Activity' && a.source === 'oura').map(a => a.date)
+  );
+
+  let addedSteps = 0, addedActivities = 0;
+  for (const d of entries) {
+    const day = d.day;
+    if (!day) continue;
+
+    // Steps → vitals
+    if (d.steps && d.steps > 0 && !existingStepDates.has(day)) {
+      await addItem('vitals', {
+        date: day, type: 'steps', value: String(d.steps), value2: '', unit: 'steps',
+        notes: `Oura Ring`, source: 'oura',
+      });
+      addedSteps++;
+    }
+
+    // Daily Activity summary → activities table
+    if (!existingActivityDates.has(day) && (d.steps > 0 || d.total_calories > 0)) {
+      const parts = [];
+      if (d.steps) parts.push(`${d.steps.toLocaleString()} steps`);
+      if (d.total_calories) parts.push(`${d.total_calories} kcal total`);
+      if (d.active_calories) parts.push(`${d.active_calories} kcal active`);
+
+      await addItem('activities', {
+        date: day,
+        type: 'Daily Activity',
+        duration_minutes: d.high_activity_time ? Math.round(d.high_activity_time / 60) + Math.round((d.medium_activity_time || 0) / 60) : null,
+        distance: d.equivalent_walking_distance ? Math.round(d.equivalent_walking_distance) / 1000 : null,
+        calories: d.active_calories || d.total_calories || null,
+        heart_rate_avg: null,
+        source: 'oura',
+        notes: parts.join(', '),
+      });
+      addedActivities++;
+    }
+  }
+  return { addedSteps, addedActivities, total: entries.length };
+}
+
+/**
  * Full Oura sync, all data types at once.
  * Guarded against concurrent execution (duplicate prevention).
  * Returns summary of what was synced.
@@ -501,6 +554,7 @@ export async function syncAllOuraData(data, addItem, days = 30, baselineF = 97.7
     try { results.spo2 = await syncOuraSpO2(data.vitals || [], addItem, days); } catch (e) { results.spo2 = { error: e.message }; }
     try { results.readiness = await syncOuraReadinessVitals(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
     try { results.workouts = await syncOuraWorkouts(data.activities || [], addItem, days); } catch (e) { results.workouts = { error: e.message }; }
+    try { results.dailyActivity = await syncOuraDailyActivity(data.vitals || [], data.activities || [], addItem, days); } catch (e) { results.dailyActivity = { error: e.message }; }
     return results;
   } finally {
     _syncing = false;
