@@ -1,5 +1,5 @@
 // ── Oura Ring integration service ──
-// OAuth2 flow, token management (encrypted localStorage), data fetching via /api/oura proxy.
+// OAuth2 flow, token management (encrypted localStorage), data fetching via /api/wearable?provider=oura proxy.
 // Temperature deviation from Oura → approximate BBT for cycle tracking.
 
 import { getAuthToken } from './token';
@@ -49,7 +49,7 @@ export function getOuraRedirectUri() {
 export async function getOuraAuthUrl() {
   const token = await getAuthToken();
   if (!token) return null;
-  const res = await fetch('/api/oura?action=config', {
+  const res = await fetch('/api/wearable?provider=oura&action=config', {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -69,7 +69,7 @@ export async function getOuraAuthUrl() {
 export async function exchangeOuraCode(code) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
-  const res = await fetch('/api/oura?action=token', {
+  const res = await fetch('/api/wearable?provider=oura&action=token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -100,7 +100,7 @@ async function refreshAccessToken() {
     const token = await getAuthToken();
     if (!token) throw new Error('Not signed in');
 
-    const res = await fetch('/api/oura?action=refresh', {
+    const res = await fetch('/api/wearable?provider=oura&action=refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -138,6 +138,7 @@ async function ouraGet(endpoint, startDate, endDate) {
   if (!authToken) throw new Error('Not signed in');
 
   const params = new URLSearchParams({
+    provider: 'oura',
     action: 'data',
     oura_token: ouraToken,
     endpoint,
@@ -145,7 +146,7 @@ async function ouraGet(endpoint, startDate, endDate) {
   if (startDate) params.set('start_date', startDate);
   if (endDate) params.set('end_date', endDate);
 
-  const res = await fetch(`/api/oura?${params}`, {
+  const res = await fetch(`/api/wearable?${params}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
@@ -153,7 +154,7 @@ async function ouraGet(endpoint, startDate, endDate) {
     // Try refresh once
     const newToken = await refreshAccessToken();
     params.set('oura_token', newToken);
-    const retry = await fetch(`/api/oura?${params}`, {
+    const retry = await fetch(`/api/wearable?${params}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) {

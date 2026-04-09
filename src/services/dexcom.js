@@ -1,5 +1,5 @@
 // ── Dexcom CGM integration service ──
-// OAuth2 flow + glucose value sync via /api/dexcom proxy. Patterned after
+// OAuth2 flow + glucose value sync via /api/wearable?provider=dexcom proxy. Patterned after
 // services/oura.js for consistency.
 //
 // Token storage: localStorage (encrypted by cache layer at rest).
@@ -56,7 +56,7 @@ export function getDexcomRedirectUri() {
 export async function getDexcomAuthUrl() {
   const token = await getAuthToken();
   if (!token) return null;
-  const res = await fetch('/api/dexcom?action=config', {
+  const res = await fetch('/api/wearable?provider=dexcom&action=config', {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -78,7 +78,7 @@ export async function getDexcomAuthUrl() {
 export async function exchangeDexcomCode(code) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
-  const res = await fetch('/api/dexcom?action=token', {
+  const res = await fetch('/api/wearable?provider=dexcom&action=token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ async function refreshAccessToken() {
     if (!stored?.refresh_token) throw new Error('No refresh token');
     const token = await getAuthToken();
     if (!token) throw new Error('Not signed in');
-    const res = await fetch('/api/dexcom?action=refresh', {
+    const res = await fetch('/api/wearable?provider=dexcom&action=refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -146,6 +146,7 @@ async function dexcomGet(endpoint, startDate, endDate) {
   if (!authToken) throw new Error('Not signed in');
 
   const params = new URLSearchParams({
+    provider: 'dexcom',
     action: 'data',
     dexcom_token: dexcomToken,
     endpoint,
@@ -153,7 +154,7 @@ async function dexcomGet(endpoint, startDate, endDate) {
   if (startDate) params.set('start_date', startDate);
   if (endDate) params.set('end_date', endDate);
 
-  const res = await fetch(`/api/dexcom?${params}`, {
+  const res = await fetch(`/api/wearable?${params}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
@@ -161,7 +162,7 @@ async function dexcomGet(endpoint, startDate, endDate) {
     // Try refresh once
     const newToken = await refreshAccessToken();
     params.set('dexcom_token', newToken);
-    const retry = await fetch(`/api/dexcom?${params}`, {
+    const retry = await fetch(`/api/wearable?${params}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) {

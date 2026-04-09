@@ -23,7 +23,7 @@ export async function startTerraConnect(providers) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
 
-  const res = await fetch('/api/terra-widget', {
+  const res = await fetch('/api/terra?route=widget', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

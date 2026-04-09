@@ -9,9 +9,6 @@
     "api/provider.js": {
       "maxDuration": 30
     },
-    "api/oura.js": {
-      "maxDuration": 30
-    },
     "api/gemini.js": {
       "maxDuration": 120
     },
@@ -30,22 +27,10 @@
     "api/cron-reminders.js": {
       "maxDuration": 30
     },
-    "api/terra-widget.js": {
-      "maxDuration": 15
-    },
-    "api/terra-webhook.js": {
+    "api/terra.js": {
       "maxDuration": 30
     },
-    "api/dexcom.js": {
-      "maxDuration": 30
-    },
-    "api/withings.js": {
-      "maxDuration": 30
-    },
-    "api/fitbit.js": {
-      "maxDuration": 30
-    },
-    "api/whoop.js": {
+    "api/wearable.js": {
       "maxDuration": 30
     }
   },
