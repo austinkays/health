@@ -134,23 +134,63 @@ export function buildDemoData() {
   ];
 
   const vitals = [];
-  // 14 days of sleep, heart rate, mood, energy
-  // Vitals designed to show clear correlations:
-  // - Sleep < 6 → pain/mood/energy notably worse next day
-  // - Exercise days (1, 3, 5, 7, 9 days ago) → mood/energy higher
-  // - Adderall (started 400 days ago) → long-term mood improvement visible
-  const sleepValues =  [6.5, 7.0, 5.5, 8.0, 6.0, 7.5, 6.8, 5.0, 7.2, 8.5, 5.5, 7.0, 6.5, 7.8];
-  const hrValues =     [62, 65, 71, 59, 68, 61, 64, 74, 60, 58, 70, 63, 66, 60];
-  const moodValues =   [7, 8, 4, 8, 5, 7, 7, 3, 7, 9, 4, 7, 6, 8];
-  const energyValues = [6, 7, 3, 8, 5, 7, 6, 3, 7, 9, 4, 6, 6, 8];
-  const painValues =   [2, 1, 5, 1, 4, 2, 2, 6, 1, 0, 5, 2, 3, 1];
-  for (let i = 0; i < 14; i++) {
-    const date = daysAgo(13 - i);
-    vitals.push({ id: did(), date, type: 'sleep', value: sleepValues[i], unit: 'hrs', notes: '', source: 'oura' });
-    vitals.push({ id: did(), date, type: 'hr', value: hrValues[i], unit: 'bpm', notes: '', source: 'oura' });
-    vitals.push({ id: did(), date, type: 'mood', value: moodValues[i], unit: '/10', notes: '', source: 'manual' });
-    vitals.push({ id: did(), date, type: 'energy', value: energyValues[i], unit: '/10', notes: '', source: 'manual' });
-    vitals.push({ id: did(), date, type: 'pain', value: painValues[i], unit: '/10', notes: '', source: 'manual' });
+  // 35 days of multi-source vitals designed for strong correlations (high confidence).
+  // Patterns baked in:
+  //   Sleep < 6 hrs → mood drops 2-3 pts, energy drops 2-3, pain jumps 2-3
+  //   Exercise days → mood +1.5, energy +1.5 vs rest days
+  //   Sleep trend: improving over the 35 days (avg ~6.2 → ~7.5)
+  //   HR lower on well-rested days, higher on poor sleep
+  //   SpO2 stable 95-98%, resp rate 14-18
+
+  // Base patterns: sleep improves over time, with realistic variance
+  const sleepBase = [
+    5.5, 6.0, 5.0, 7.0, 6.5, 5.5, 6.0, 7.5, 6.0, 5.0,  // days 34-25: rough patch
+    6.5, 7.0, 5.5, 6.0, 7.0, 6.5, 7.5, 5.5, 7.0, 8.0,  // days 24-15: stabilizing
+    6.0, 7.5, 7.0, 8.0, 6.5, 7.0, 8.5, 7.0, 5.5, 7.5,  // days 14-5:  improving
+    7.0, 8.0, 7.5, 6.5, 8.0,                              // days 4-0:  strong finish
+  ];
+  // Exercise on specific days (indices into the 35-day array)
+  const exerciseDays = new Set([1, 3, 5, 8, 11, 14, 16, 19, 21, 24, 26, 28, 30, 32, 34]);
+
+  for (let i = 0; i < 35; i++) {
+    const date = daysAgo(34 - i);
+    const sleep = sleepBase[i];
+    const isExDay = exerciseDays.has(i);
+
+    // Mood/energy keyed to sleep quality + exercise boost
+    const sleepBonus = sleep >= 7 ? 2 : sleep >= 6 ? 0 : -2;
+    const exBonus = isExDay ? 1.5 : 0;
+    const mood = Math.min(10, Math.max(1, Math.round(5.5 + sleepBonus + exBonus + (Math.sin(i * 0.7) * 0.8))));
+    const energy = Math.min(10, Math.max(1, Math.round(5 + sleepBonus + exBonus + (Math.cos(i * 0.5) * 0.7))));
+    const pain = Math.min(10, Math.max(0, Math.round(3 - sleepBonus + (sleep < 6 ? 2 : 0) + (Math.sin(i * 1.1) * 0.5))));
+
+    // HR: lower when well-rested, higher on poor sleep
+    const hrBase = sleep >= 7 ? 58 : sleep >= 6 ? 64 : 72;
+    const hr = hrBase + Math.round(Math.sin(i * 0.9) * 4);
+
+    // SpO2 and respiratory rate (wearable data)
+    const spo2 = 96 + Math.round(Math.sin(i * 0.6) * 1.5);
+    const resp = 15 + Math.round(Math.sin(i * 0.8) * 1.5 * 10) / 10;
+
+    // Weight: slight downtrend over 35 days (fitness journey)
+    const weight = 155 - (i * 0.08) + Math.sin(i * 0.4) * 0.8;
+
+    // Steps from Apple Watch
+    const steps = isExDay ? 9000 + Math.round(Math.random() * 4000) : 4000 + Math.round(Math.random() * 3000);
+
+    vitals.push({ id: did(), date, type: 'sleep', value: sleep, unit: 'hrs', notes: '', source: 'oura' });
+    vitals.push({ id: did(), date, type: 'hr', value: hr, unit: 'bpm', notes: '', source: 'apple_health' });
+    vitals.push({ id: did(), date, type: 'mood', value: mood, unit: '/10', notes: '', source: 'manual' });
+    vitals.push({ id: did(), date, type: 'energy', value: energy, unit: '/10', notes: '', source: 'manual' });
+    vitals.push({ id: did(), date, type: 'pain', value: pain, unit: '/10', notes: '', source: 'manual' });
+    vitals.push({ id: did(), date, type: 'spo2', value: spo2, unit: '%', notes: '', source: 'apple_health' });
+    vitals.push({ id: did(), date, type: 'resp', value: Math.round(resp * 10) / 10, unit: 'rpm', notes: '', source: 'apple_health' });
+    // Weight every 3-4 days
+    if (i % 3 === 0) {
+      vitals.push({ id: did(), date, type: 'weight', value: Math.round(weight * 10) / 10, unit: 'lbs', notes: '', source: 'apple_health' });
+    }
+    // Steps daily
+    vitals.push({ id: did(), date, type: 'steps', value: steps, unit: 'steps', notes: '', source: 'apple_health' });
   }
 
   const appts = [
@@ -160,6 +200,7 @@ export function buildDemoData() {
   ];
 
   const journal = [
+    { id: did(), date: daysAgo(0), title: 'Feeling optimistic', mood: '😊 Good', severity: 2, content: 'Slept well, good energy all day. Starting to see a real pattern, when I get 7+ hours everything just works better.', tags: 'sleep,mood,progress', symptoms: [], triggers: '', interventions: 'Consistent bedtime', gratitude: 'Making real progress with sleep habits', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(1), title: 'Good focus day', mood: '😀 Great', severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night, noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity', symptoms: [], triggers: '', interventions: 'Good sleep, morning walk', gratitude: 'Finished the big project', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(3), title: 'IBS flare', mood: '😔 Low', severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday, probably contributed.', tags: 'ibs,flare,stress', symptoms: [{ name: 'Stomach cramps', severity: '4' }, { name: 'Headache', severity: '3' }], triggers: 'Pizza, stress at work', interventions: 'Dicyclomine, heating pad', gratitude: '', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(5), title: 'Brain fog after bad sleep', mood: '😐 Okay', severity: 5, content: 'Only got 5 hours last night. Adderall barely made a dent. Everything felt like wading through mud.', tags: 'adhd,sleep,fatigue', symptoms: [{ name: 'Brain fog', severity: '4' }, { name: 'Fatigue', severity: '3' }, { name: 'Headache', severity: '2' }], triggers: 'Poor sleep, stayed up late', interventions: 'Extra coffee, short nap', gratitude: '', linked_conditions: [], linked_meds: [] },
@@ -168,13 +209,29 @@ export function buildDemoData() {
     { id: did(), date: daysAgo(9), title: 'Afternoon crash', mood: '😐 Okay', severity: 4, content: 'Meds wore off around 2pm today and I just couldn\'t focus. Ate lunch late (3pm). Need to be better about lunch timing.', tags: 'adhd,meds', symptoms: [{ name: 'Brain fog', severity: '3' }], triggers: 'Late lunch', interventions: '', gratitude: '', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(10), title: 'Tough day', mood: '😰 Anxious', severity: 5, content: 'Anxiety was really high today. Work deadline looming. IBS acting up again. Sleep was terrible last night.', tags: 'anxiety,ibs,stress', symptoms: [{ name: 'Stomach cramps', severity: '3' }, { name: 'Headache', severity: '2' }], triggers: 'Work deadline, poor sleep', interventions: 'Breathing exercises', gratitude: '', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(12), title: 'First good run in weeks', mood: '😀 Great', severity: 1, content: 'Did 3 miles without stopping. Allergies are calming down finally. HR stayed in a nice zone.', tags: 'exercise,allergies,mood', symptoms: [], triggers: '', interventions: 'Running', gratitude: 'Feeling strong again', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(14), title: 'Oura says I\'m recovering', mood: '😊 Good', severity: 2, content: 'Oura readiness score was 87 today, highest in weeks. Resting HR is trending down. The magnesium + consistent bedtime routine seems to be paying off.', tags: 'sleep,oura,recovery', symptoms: [], triggers: '', interventions: 'Magnesium, 10pm bedtime', gratitude: 'Seeing data confirm my habits are working', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(16), title: 'Allergy day', mood: '😐 Okay', severity: 4, content: 'Pollen count must be insane today. Even with Zyrtec I was sneezing all morning. Eyes watery. At least the IBS was calm.', tags: 'allergies,sneezing', symptoms: [{ name: 'Sneezing', severity: '3' }, { name: 'Watery eyes', severity: '2' }], triggers: 'High pollen count', interventions: 'Zyrtec, stayed indoors', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(19), title: 'Great weekend hike', mood: '😀 Great', severity: 1, content: 'Did the Rattlesnake Ridge trail, 4 miles round trip. Heart rate data from Apple Watch looked great. Mood was sky high all afternoon.', tags: 'exercise,outdoors,mood', symptoms: [], triggers: '', interventions: 'Hiking, nature', gratitude: 'Living in the PNW with trails everywhere', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(22), title: 'Work stress → IBS', mood: '😔 Low', severity: 6, content: 'Big presentation at work. Stress was through the roof and my gut let me know. Classic stress-gut connection. Took dicyclomine.', tags: 'ibs,stress,work', symptoms: [{ name: 'Stomach cramps', severity: '5' }, { name: 'Nausea', severity: '2' }], triggers: 'Work presentation', interventions: 'Dicyclomine, warm tea, early bedtime', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(25), title: 'Terrible sleep spiral', mood: '😢 Sad', severity: 7, content: 'Third bad night in a row. Only got 5 hours. Everything hurts, brain is mush. Called in sick. Need to break this cycle.', tags: 'sleep,fatigue,pain', symptoms: [{ name: 'Fatigue', severity: '5' }, { name: 'Brain fog', severity: '4' }, { name: 'Headache', severity: '3' }], triggers: 'Insomnia, anxiety loop', interventions: 'Called in sick, no screens after 8pm', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(28), title: 'Started tracking with Salve', mood: '😊 Good', severity: 2, content: 'Set up Salve today and imported all my Apple Health + Oura data. Excited to see patterns between sleep, ADHD symptoms, and IBS. Already seeing some interesting correlations.', tags: 'tracking,setup', symptoms: [], triggers: '', interventions: '', gratitude: 'Having a tool that connects everything', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(31), title: 'Yoga helped a lot', mood: '😊 Good', severity: 2, content: 'Did a 45 min yoga session at home. Anxiety dropped noticeably. Apple Watch showed HR recovery was really fast.', tags: 'exercise,yoga,anxiety', symptoms: [], triggers: '', interventions: 'Yoga', gratitude: 'Finding exercise that helps anxiety specifically', linked_conditions: [], linked_meds: [] },
   ];
 
   const labs = [
+    // Recent panel (2 months ago)
     { id: did(), date: daysAgo(55), name: 'Vitamin D 25-OH', value: '28', unit: 'ng/mL', flag: 'low', range: '30-100', provider: 'Dr. Priya Patel', notes: 'Started supplementation' },
     { id: did(), date: daysAgo(55), name: 'TSH', value: '2.1', unit: 'mIU/L', flag: 'normal', range: '0.4-4.0', provider: 'Dr. Priya Patel', notes: '' },
     { id: did(), date: daysAgo(55), name: 'Ferritin', value: '42', unit: 'ng/mL', flag: 'normal', range: '15-200', provider: 'Dr. Priya Patel', notes: '' },
     { id: did(), date: daysAgo(55), name: 'Hemoglobin A1C', value: '5.3', unit: '%', flag: 'normal', range: '<5.7', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), name: 'Total Cholesterol', value: '195', unit: 'mg/dL', flag: 'normal', range: '<200', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), name: 'LDL Cholesterol', value: '118', unit: 'mg/dL', flag: 'normal', range: '<130', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), name: 'HDL Cholesterol', value: '52', unit: 'mg/dL', flag: 'normal', range: '>40', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), name: 'CBC - WBC', value: '6.2', unit: 'K/uL', flag: 'normal', range: '4.5-11.0', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), name: 'CBC - Hemoglobin', value: '14.1', unit: 'g/dL', flag: 'normal', range: '12.0-16.0', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), name: 'B12', value: '380', unit: 'pg/mL', flag: 'normal', range: '200-900', provider: 'Dr. Priya Patel', notes: '' },
+    // Follow-up vitamin D (improving)
+    { id: did(), date: daysAgo(10), name: 'Vitamin D 25-OH', value: '38', unit: 'ng/mL', flag: 'normal', range: '30-100', provider: 'Dr. Priya Patel', notes: 'Improved with 2000 IU daily supplementation' },
   ];
 
   const todos = [
@@ -190,23 +247,45 @@ export function buildDemoData() {
   ];
 
   const activities = [
-    { id: did(), date: daysAgo(1), type: 'walk', duration_minutes: 32, distance: 1.8, calories: 145, heart_rate_avg: 110, source: 'apple_health', notes: 'Lunchtime walk' },
-    { id: did(), date: daysAgo(3), type: 'run', duration_minutes: 28, distance: 3.0, calories: 290, heart_rate_avg: 148, source: 'apple_health', notes: 'Easy run' },
-    { id: did(), date: daysAgo(4), type: 'walk', duration_minutes: 25, distance: 1.5, calories: 120, heart_rate_avg: 105, source: 'apple_health', notes: '' },
-    { id: did(), date: daysAgo(6), type: 'yoga', duration_minutes: 45, distance: 0, calories: 160, heart_rate_avg: 92, source: 'manual', notes: '' },
-    { id: did(), date: daysAgo(8), type: 'strength', duration_minutes: 40, distance: 0, calories: 220, heart_rate_avg: 120, source: 'apple_health', notes: 'Upper body' },
-    { id: did(), date: daysAgo(9), type: 'run', duration_minutes: 35, distance: 3.6, calories: 340, heart_rate_avg: 152, source: 'apple_health', notes: '' },
-    { id: did(), date: daysAgo(12), type: 'run', duration_minutes: 30, distance: 3.1, calories: 300, heart_rate_avg: 146, source: 'apple_health', notes: 'Felt great' },
+    // Recent week
+    { id: did(), date: daysAgo(0), type: 'Walking', duration_minutes: 35, distance: 2.0, calories: 155, heart_rate_avg: 108, source: 'apple_health', notes: 'Morning walk' },
+    { id: did(), date: daysAgo(1), type: 'Walking', duration_minutes: 32, distance: 1.8, calories: 145, heart_rate_avg: 110, source: 'apple_health', notes: 'Lunchtime walk' },
+    { id: did(), date: daysAgo(3), type: 'Running', duration_minutes: 28, distance: 3.0, calories: 290, heart_rate_avg: 148, source: 'apple_health', notes: 'Easy run' },
+    { id: did(), date: daysAgo(4), type: 'Walking', duration_minutes: 25, distance: 1.5, calories: 120, heart_rate_avg: 105, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(6), type: 'Yoga', duration_minutes: 45, distance: null, calories: 160, heart_rate_avg: 92, source: 'manual', notes: 'Evening wind-down' },
+    // Week 2
+    { id: did(), date: daysAgo(8), type: 'Strength Training', duration_minutes: 40, distance: null, calories: 220, heart_rate_avg: 120, source: 'apple_health', notes: 'Upper body' },
+    { id: did(), date: daysAgo(9), type: 'Running', duration_minutes: 35, distance: 3.6, calories: 340, heart_rate_avg: 152, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(11), type: 'Walking', duration_minutes: 40, distance: 2.3, calories: 170, heart_rate_avg: 106, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(12), type: 'Running', duration_minutes: 30, distance: 3.1, calories: 300, heart_rate_avg: 146, source: 'apple_health', notes: 'Felt great' },
+    { id: did(), date: daysAgo(14), type: 'Cycling', duration_minutes: 50, distance: 12.5, calories: 380, heart_rate_avg: 132, source: 'apple_health', notes: 'Burke-Gilman trail' },
+    // Week 3
+    { id: did(), date: daysAgo(16), type: 'Strength Training', duration_minutes: 35, distance: null, calories: 200, heart_rate_avg: 118, source: 'apple_health', notes: 'Lower body' },
+    { id: did(), date: daysAgo(19), type: 'Hiking', duration_minutes: 120, distance: 6.4, calories: 560, heart_rate_avg: 128, source: 'apple_health', notes: 'Rattlesnake Ridge' },
+    { id: did(), date: daysAgo(21), type: 'Running', duration_minutes: 32, distance: 3.4, calories: 320, heart_rate_avg: 150, source: 'apple_health', notes: '' },
+    // Week 4
+    { id: did(), date: daysAgo(24), type: 'Yoga', duration_minutes: 45, distance: null, calories: 155, heart_rate_avg: 88, source: 'manual', notes: '' },
+    { id: did(), date: daysAgo(26), type: 'Walking', duration_minutes: 28, distance: 1.6, calories: 130, heart_rate_avg: 104, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(28), type: 'Running', duration_minutes: 25, distance: 2.6, calories: 260, heart_rate_avg: 144, source: 'apple_health', notes: '' },
+    { id: did(), date: daysAgo(30), type: 'Strength Training', duration_minutes: 38, distance: null, calories: 210, heart_rate_avg: 122, source: 'apple_health', notes: 'Full body' },
+    { id: did(), date: daysAgo(31), type: 'Yoga', duration_minutes: 45, distance: null, calories: 150, heart_rate_avg: 86, source: 'manual', notes: '' },
+    { id: did(), date: daysAgo(32), type: 'Running', duration_minutes: 30, distance: 3.0, calories: 295, heart_rate_avg: 148, source: 'apple_health', notes: '' },
   ];
 
-  // Empty collections, user sees empty states for these
-  const immunizations = [];
+  const immunizations = [
+    { id: did(), name: 'COVID-19 Booster (Pfizer)', date: daysAgo(120), provider: 'Dr. Priya Patel', lot_number: '', notes: 'No significant side effects' },
+    { id: did(), name: 'Influenza (Flu)', date: daysAgo(180), provider: 'Walgreens', lot_number: '', notes: 'Arm sore for 2 days' },
+    { id: did(), name: 'Tdap (Tetanus, Diphtheria, Pertussis)', date: daysAgo(900), provider: 'Dr. Priya Patel', lot_number: '', notes: '10-year booster' },
+  ];
+
   const procedures = [];
   const care_gaps = [];
   const anesthesia_flags = [];
   const appeals_and_disputes = [];
   const surgical_planning = [];
-  const insurance = [];
+  const insurance = [
+    { id: did(), plan_name: 'Regence BlueShield', plan_type: 'PPO', member_id: 'RBS-555-1234', group_number: 'GRP-9876', phone: '1-800-555-0199', notes: 'Through employer, renews January' },
+  ];
   const insurance_claims = [];
   const drug_prices = [];
   // Cycle tracking, imported from Flo GDPR export, shows predicted period
@@ -214,22 +293,45 @@ export function buildDemoData() {
   // and Journal.
   const cycles = [
     // Last period (5 days, starting ~20 days ago)
-    { id: did(), date: daysAgo(20), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
-    { id: did(), date: daysAgo(19), type: 'period', value: 'heavy', symptom: '', notes: 'imported from Flo' },
-    { id: did(), date: daysAgo(18), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
-    { id: did(), date: daysAgo(17), type: 'period', value: 'light', symptom: '', notes: 'imported from Flo' },
-    { id: did(), date: daysAgo(16), type: 'period', value: 'spotting', symptom: '', notes: 'imported from Flo' },
-    // Previous period (5 days, ~48 days ago, so ~28 day cycle)
+    { id: did(), date: daysAgo(20), type: 'period', value: 'medium', symptom: '', notes: '' },
+    { id: did(), date: daysAgo(19), type: 'period', value: 'heavy', symptom: '', notes: '' },
+    { id: did(), date: daysAgo(18), type: 'period', value: 'medium', symptom: '', notes: '' },
+    { id: did(), date: daysAgo(17), type: 'period', value: 'light', symptom: '', notes: '' },
+    { id: did(), date: daysAgo(16), type: 'period', value: 'spotting', symptom: '', notes: '' },
+    // Previous period (~48 days ago, ~28 day cycle)
     { id: did(), date: daysAgo(48), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(47), type: 'period', value: 'heavy', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(46), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(45), type: 'period', value: 'light', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(44), type: 'period', value: 'spotting', symptom: '', notes: 'imported from Flo' },
-    // Symptom logs around ovulation and luteal
+    // Third period (~76 days ago, consistent 28-day cycle)
+    { id: did(), date: daysAgo(76), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(75), type: 'period', value: 'heavy', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(74), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
+    { id: did(), date: daysAgo(73), type: 'period', value: 'light', symptom: '', notes: 'imported from Flo' },
+    // BBT from Oura (around ovulation, ~6-8 days ago)
+    { id: did(), date: daysAgo(10), type: 'bbt', value: '97.6', symptom: '', notes: 'Oura' },
+    { id: did(), date: daysAgo(9), type: 'bbt', value: '97.5', symptom: '', notes: 'Oura' },
+    { id: did(), date: daysAgo(8), type: 'bbt', value: '97.7', symptom: '', notes: 'Oura' },
+    { id: did(), date: daysAgo(7), type: 'bbt', value: '98.1', symptom: '', notes: 'Oura, shift detected' },
+    { id: did(), date: daysAgo(6), type: 'bbt', value: '98.2', symptom: '', notes: 'Oura' },
+    { id: did(), date: daysAgo(5), type: 'bbt', value: '98.0', symptom: '', notes: 'Oura' },
+    // Cervical mucus + symptoms
+    { id: did(), date: daysAgo(9), type: 'cervical_mucus', value: 'eggwhite', symptom: '', notes: 'Peak fertility' },
+    { id: did(), date: daysAgo(10), type: 'cervical_mucus', value: 'creamy', symptom: '', notes: '' },
     { id: did(), date: daysAgo(6), type: 'symptom', value: '', symptom: 'cramps', notes: '' },
     { id: did(), date: daysAgo(10), type: 'symptom', value: '', symptom: 'bloating', notes: '' },
+    { id: did(), date: daysAgo(8), type: 'symptom', value: '', symptom: 'breast tenderness', notes: '' },
   ];
-  const genetic_results = [];
+  const genetic_results = [
+    { id: did(), source: '23andMe + Promethease', gene: 'CYP2D6', variant: '*1/*4', phenotype: 'Intermediate Metabolizer', affected_drugs: ['codeine', 'tramadol', 'amitriptyline', 'fluoxetine'], category: 'pharmacogenomic', notes: 'May need dose adjustments for CYP2D6 substrates' },
+    { id: did(), source: '23andMe + Promethease', gene: 'CYP2C19', variant: '*1/*1', phenotype: 'Normal Metabolizer', affected_drugs: ['omeprazole', 'clopidogrel', 'escitalopram'], category: 'pharmacogenomic', notes: 'Standard dosing expected' },
+    { id: did(), source: '23andMe + Promethease', gene: 'MTHFR', variant: 'C677T heterozygous', phenotype: 'Intermediate Activity', affected_drugs: ['methotrexate'], category: 'pharmacogenomic', notes: 'May benefit from methylfolate supplementation' },
+    { id: did(), source: '23andMe + Promethease', gene: 'COMT', variant: 'Val/Met', phenotype: 'Intermediate Activity', affected_drugs: [], category: 'pharmacogenomic', notes: 'Moderate dopamine clearance, relevant to ADHD' },
+  ];
+
+  const feedback = [];
+  const medication_reminders = [];
 
   return {
     meds, conditions, allergies, providers, pharmacies,
@@ -237,6 +339,7 @@ export function buildDemoData() {
     care_gaps, anesthesia_flags, appeals_and_disputes, surgical_planning,
     insurance, insurance_claims, drug_prices,
     todos, cycles, activities, genetic_results,
+    feedback, medication_reminders,
     settings,
   };
 }
