@@ -791,6 +791,17 @@ function ToolExecutionCard({ execution, onConfirm }) {
   );
 }
 
+function fmtMsgTime(ts) {
+  if (!ts) return null;
+  const d = new Date(ts);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays > 6) return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (diffDays > 0) return `${diffDays}d ago`;
+  return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
 const ChatMessageList = memo(function ChatMessageList({ messages, toolExecutions, loading, confirmPending, chatEndRef }) {
   return (
     <div className="flex flex-col gap-2 mb-3" style={{ minHeight: 200 }}>
@@ -807,7 +818,7 @@ const ChatMessageList = memo(function ChatMessageList({ messages, toolExecutions
                   <Leaf size={9} className="text-salve-sage" />
                 </div>
                 <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
-                <span className="text-[9px] text-salve-textFaint font-montserrat ml-auto">via {getAIProvider() === 'anthropic' ? 'Claude' : 'Gemini'}</span>
+                <span className="text-[9px] text-salve-textFaint font-montserrat ml-auto">{fmtMsgTime(m.ts)}{fmtMsgTime(m.ts) && ' · '}via {getAIProvider() === 'anthropic' ? 'Claude' : 'Gemini'}</span>
               </div>
               <AIMarkdown compact>{stripDisclaimer(m.content)}</AIMarkdown>
               {m.toolExecutions?.length > 0 && (
@@ -821,7 +832,12 @@ const ChatMessageList = memo(function ChatMessageList({ messages, toolExecutions
                 <CopyButton text={stripDisclaimer(m.content)} className="!text-[10px] !px-2 !py-0.5" />
               </div>
             </>
-          ) : m.content}
+          ) : (
+            <>
+              {m.content}
+              {m.ts && <div className="text-[9px] text-salve-lav/40 font-montserrat text-right mt-1">{fmtMsgTime(m.ts)}</div>}
+            </>
+          )}
         </article>
       ))}
       {toolExecutions.length > 0 && loading && (
@@ -1163,7 +1179,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       setCrisisType(crisis.type);
       return;
     }
-    const msgs = [...chatMessages, { role: 'user', content: chatInput }];
+    const msgs = [...chatMessages, { role: 'user', content: chatInput, ts: Date.now() }];
     setChatMessages(msgs);
     setChatInput('');
     chatInputRef.current?.focus();
@@ -1174,12 +1190,12 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       if (hasCrud) {
         const r = await sendChatWithTools(msgs, profile, onToolCall);
         const executions = toolExecutionsRef.current.length ? [...toolExecutionsRef.current] : undefined;
-        const updated = [...msgs, { role: 'assistant', content: r.text, toolExecutions: executions }];
+        const updated = [...msgs, { role: 'assistant', content: r.text, toolExecutions: executions, ts: Date.now() }];
         setChatMessages(updated);
         saveConversation(updated);
       } else {
         const r = await sendChat(msgs, profile);
-        const updated = [...msgs, { role: 'assistant', content: r }];
+        const updated = [...msgs, { role: 'assistant', content: r, ts: Date.now() }];
         setChatMessages(updated);
         saveConversation(updated);
       }
@@ -1190,7 +1206,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       const errMsg = isDailyLimit
         ? '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT. Upgrade to Claude Premium in Settings for unlimited access.'
         : 'Error: ' + e.message;
-      const updated = [...msgs, { role: 'assistant', content: errMsg }];
+      const updated = [...msgs, { role: 'assistant', content: errMsg, ts: Date.now() }];
       setChatMessages(updated);
     } finally {
       setLoading(false);
