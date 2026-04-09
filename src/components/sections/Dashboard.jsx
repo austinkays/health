@@ -29,6 +29,7 @@ import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
 import { fetchDiscoverArticles } from '../../services/discover';
+import { fetchDailyQuote } from '../../services/quote';
 import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
 import { computeCorrelations } from '../../utils/correlations';
@@ -59,31 +60,6 @@ function getTimeGreeting() {
   if (h < 17) return { text: 'Good afternoon', icon: Sun, motif: 'sparkle' };
   if (h < 21) return { text: 'Good evening', icon: Sunset, motif: 'star' };
   return { text: 'Good evening', icon: Moon, motif: 'moon' };
-}
-
-const DAILY_QUOTES = [
-  'Taking care of yourself is productive.',
-  'Small steps still move you forward.',
-  'You are more than your symptoms.',
-  'Rest is not a reward, it is a necessity.',
-  'Progress, not perfection.',
-  'Your body is doing its best for you.',
-  'Be patient with yourself, healing is not linear.',
-  'You deserve the same care you give others.',
-  'Every day is a fresh start.',
-  'Listening to your body is an act of self-respect.',
-  'You are allowed to take things one day at a time.',
-  'Showing up for yourself matters.',
-  'Health is a journey, not a destination.',
-  'What you track, you can understand.',
-  'Gentle consistency beats intense burnout.',
-];
-
-function getDailyQuote() {
-  // Rotate based on day of year so it changes daily but is stable within a day
-  const now = new Date();
-  const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
-  return DAILY_QUOTES[dayOfYear % DAILY_QUOTES.length];
 }
 
 function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount, alertsHidden) {
@@ -844,6 +820,12 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   /* ── Discover (matched resources + dynamic RSS articles) ─────────── */
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
   const [dynamicArticles, setDynamicArticles] = useState([]);
+  const [dailyQuote, setDailyQuote] = useState(null);
+
+  // Fetch daily quote (24hr cache)
+  useEffect(() => {
+    fetchDailyQuote().then(setDailyQuote);
+  }, []);
 
   // Fetch dynamic articles from trusted RSS feeds (14-day client cache)
   useEffect(() => {
@@ -967,7 +949,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <span className="font-playfair text-lg md:text-xl font-medium text-salve-textMid">{greeting.text}</span>
             </div>
             <p className="text-[13px] md:text-[15px] text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
-            <p className="text-[11px] md:text-[12px] text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">{getDailyQuote()}</p>
+            {dailyQuote && (
+              <p className="text-[11px] md:text-[12px] text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">
+                "{dailyQuote.q}"{dailyQuote.a && dailyQuote.a !== 'Unknown' && <span className="not-italic"> , {dailyQuote.a}</span>}
+              </p>
+            )}
           </div>
         </div>
       </section>
