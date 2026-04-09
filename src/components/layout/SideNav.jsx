@@ -104,20 +104,15 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
 
       {/* Demo mode card */}
       {demoMode && (
-        <div className="mx-3 mb-3 px-3 py-2.5 bg-salve-lav/10 border border-salve-lav/25 rounded-xl">
-          <div className="flex items-center gap-2">
-            <Sparkles size={12} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
-            <span className="text-ui-lg font-semibold text-salve-text flex-1">Demo mode</span>
-            <button
-              onClick={onExitDemo}
-              className="bg-salve-lav text-white rounded-lg text-ui-sm font-semibold px-3 py-1 border-none cursor-pointer hover:opacity-90 transition-opacity font-montserrat flex-shrink-0"
-            >
-              Sign up →
-            </button>
-          </div>
-          <p className="text-ui-sm text-salve-textFaint leading-snug m-0 mt-1 pl-5">
-            Exploring with sample data.
-          </p>
+        <div className="mx-3 mb-3 px-2.5 py-1.5 bg-salve-lav/10 border border-salve-lav/25 rounded-lg flex items-center gap-2">
+          <Sparkles size={11} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
+          <span className="text-ui-base font-medium text-salve-text flex-1 truncate">Demo mode</span>
+          <button
+            onClick={onExitDemo}
+            className="bg-salve-lav text-white rounded-md text-ui-xs font-semibold px-2 py-0.5 border-none cursor-pointer hover:opacity-90 transition-opacity font-montserrat flex-shrink-0"
+          >
+            Sign up
+          </button>
         </div>
       )}
     </nav>

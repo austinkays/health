@@ -103,6 +103,17 @@ html[class*="theme-"] body::before {
   transition: opacity 0.6s ease;
 }
 
+/* Pause every theme backdrop animation while the window is being resized.
+   Driven by main.jsx, which adds .is-resizing on resize and removes it
+   180ms after the last resize event. Fixes choppy repaints on the
+   viewport-dependent fixed layers in experimental themes. */
+html.is-resizing body::before,
+html.is-resizing body::after,
+html.is-resizing::before,
+html.is-resizing::after {
+  animation-play-state: paused !important;
+}
+
 /* ── Neon: grid + hot pink/cyan glows + text glow ── */
 /* Static radial glows on ::before */
 html.theme-neon body::before {
