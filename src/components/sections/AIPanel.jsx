@@ -399,7 +399,7 @@ function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} insightRatings={insightRatings} />
+        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} />
         <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -415,7 +415,7 @@ function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
 
   return (
     <div>
-      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} insightRatings={insightRatings} />
+      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} />
       <div className="flex flex-col gap-2.5">
         {stories.map((story, i) => (
           <div
@@ -428,13 +428,16 @@ function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
                 <div className="flex items-start gap-2.5 mb-2">
                   <Newspaper size={14} className="text-salve-amber mt-0.5 flex-shrink-0" strokeWidth={1.5} />
                   <span className="flex-1 text-[14px] font-semibold text-salve-text font-playfair leading-snug">{story.headline}</span>
-                  <button
-                    onClick={() => toggleSave(story.headline, story.body, story.sourceName, story.sourceUrl)}
-                    className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5 transition-colors"
-                    aria-label={isSaved(story.headline) ? 'Remove from saved' : 'Save story'}
-                  >
-                    <Bookmark size={14} className={isSaved(story.headline) ? 'text-salve-amber fill-salve-amber' : 'text-salve-textFaint hover:text-salve-amber'} strokeWidth={1.5} />
-                  </button>
+                  <span className="flex items-center gap-0.5 flex-shrink-0">
+                    {insightRatings && <ThumbsRating surface="news" contentKey={`story-${i}`} getRating={insightRatings.getRating} rate={insightRatings.rate} metadata={{ headline: story.headline }} size={12} />}
+                    <button
+                      onClick={() => toggleSave(story.headline, story.body, story.sourceName, story.sourceUrl)}
+                      className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5 transition-colors"
+                      aria-label={isSaved(story.headline) ? 'Remove from saved' : 'Save story'}
+                    >
+                      <Bookmark size={14} className={isSaved(story.headline) ? 'text-salve-amber fill-salve-amber' : 'text-salve-textFaint hover:text-salve-amber'} strokeWidth={1.5} />
+                    </button>
+                  </span>
                 </div>
               )}
               {confirmUnsave === story.headline && (
