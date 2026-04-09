@@ -63,7 +63,7 @@ function getTimeGreeting() {
 }
 
 function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount, alertsHidden) {
-  // Priority: critical alerts → upcoming events → encouragement
+  // Priority: critical alerts → upcoming events → rotating encouragement
   if (!alertsHidden) {
     const now = new Date(); now.setHours(0, 0, 0, 0);
     const overdueTodoCount = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now).length;
@@ -83,8 +83,16 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
   });
   if (refills.length > 0) return `${refills.length} refill${refills.length > 1 ? 's' : ''} coming up soon`;
 
-  if (data.journal.length > 0) return 'Your health journal is up to date';
-  return 'All caught up, take care of yourself today';
+  // Rotate encouragement so it doesn't feel static
+  const encouragements = [
+    'All caught up, take care of yourself today',
+    'Everything looks good, you\'re on top of it',
+    'No action items right now, enjoy the calm',
+    'You\'re all set, make today a good one',
+    'Nothing urgent, a great day to focus on you',
+  ];
+  const h = new Date().getHours();
+  return encouragements[h % encouragements.length];
 }
 
 /* ── Alert dismissal ──────────────────────────────────── */

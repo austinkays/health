@@ -391,9 +391,17 @@ export function trend(metric, result, polarity = 'neutral') {
   }
 
   const dirWord = result.totalChange > 0 ? 'up' : 'down';
+  // Vary the sentiment so multiple trends don't all say the same thing
+  const positivePhrases = [", that's encouraging", ', keep it up', ', a positive sign', ', nice progress'];
+  const negativePhrases = [', worth keeping an eye on', ', something to watch', ', worth noting'];
   let sentiment = '';
-  if (result.direction === 'improving') sentiment = ", that's encouraging";
-  else if (result.direction === 'worsening') sentiment = ', worth keeping an eye on';
+  if (result.direction === 'improving') {
+    const idx = Math.abs(label.charCodeAt(0)) % positivePhrases.length;
+    sentiment = positivePhrases[idx];
+  } else if (result.direction === 'worsening') {
+    const idx = Math.abs(label.charCodeAt(0)) % negativePhrases.length;
+    sentiment = negativePhrases[idx];
+  }
 
   return `Your ${label} has been trending ${dirWord} over the last 2 weeks (${changeStr})${sentiment}.`;
 }
