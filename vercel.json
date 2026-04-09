@@ -41,6 +41,12 @@
     },
     "api/withings.js": {
       "maxDuration": 30
+    },
+    "api/fitbit.js": {
+      "maxDuration": 30
+    },
+    "api/whoop.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

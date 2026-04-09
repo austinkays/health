@@ -377,6 +377,23 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Sync behavior:** Groups systolic+diastolic into a single `bp` vital row. Converts kg → lbs and C → F. Dedupes against existing vitals on (date, type, source) so re-sync is idempotent. Tagged `source: 'withings'`.
 - **Why direct vs Terra:** Withings makes the most popular consumer health hardware brand for chronic illness users — smart scale, BP cuff, sleep mat, thermometer all share the same API. Direct integration is free and covers the brand entirely.
 
+**`api/fitbit.js`** — Fitbit direct integration (OAuth2):
+- **Actions:** `token`, `refresh`, `data`, `config`
+- **Allowed paths:** `/1/user/-/activities/...`, `/1.2/user/-/sleep/...`, `/1/user/-/sleep/...`, `/1/user/-/body/...`, `/1/user/-/profile.json`, `/1/user/-/devices.json`. Whitelist prevents using us as a generic Fitbit proxy.
+- **Quirk:** token endpoint requires HTTP Basic Auth header (`Basic <base64(clientId:clientSecret)>`), not body parameters. Handled by `basicAuthHeader()` helper.
+- **Token lifetime:** 8 hours by default, refresh tokens are single-use.
+- **Client service:** `src/services/fitbit.js` — `getFitbitAuthUrl()`, `exchangeFitbitCode(code)`, `syncFitbitData(existingVitals, addItem, days)`, `FITBIT_ENABLED` flag from `VITE_FITBIT_ENABLED`
+- **Sync behavior:** Fetches sleep, resting HR, daily steps, and weight in parallel (4 calls per sync — well under Fitbit's 150/hr per-user rate limit). Sleep groups multiple sessions per day. Resting HR comes embedded in the activities-heart day records. Steps come as date-keyed daily totals. Weight is logged entries (kg → lbs conversion). All tagged `source: 'fitbit'`.
+
+**`api/whoop.js`** — Whoop direct integration (OAuth2):
+- **Actions:** `token`, `refresh`, `data`, `config`
+- **Allowed endpoints:** `v1/cycle`, `v1/recovery` (HRV + RHR + recovery score), `v1/activity/sleep`, `v1/activity/workout`, `v1/user/profile/basic`
+- **OAuth2 flow:** Authorization code grant → `api.prod.whoop.com/oauth/oauth2/auth` (scopes: `offline read:recovery read:cycles read:sleep read:workout read:profile`) → callback with code → server exchanges via `api.prod.whoop.com/oauth/oauth2/token`. The `offline` scope is required to receive a refresh_token.
+- **Approval required:** Whoop reviews each developer app before granting credentials. Expect a 1-2 week delay between applying and being able to flip `VITE_WHOOP_ENABLED=true`.
+- **Client service:** `src/services/whoop.js` — `getWhoopAuthUrl()`, `exchangeWhoopCode(code)`, `syncWhoopData(existingVitals, addItem, days)`, `WHOOP_ENABLED` flag
+- **Sync behavior:** Pulls recoveries (HRV RMSSD ms, resting HR, recovery score) and sleep sessions in parallel. Sleep records are grouped by date in case of multiple naps. Recovery records contribute resting HR vitals. HRV is currently surfaced in notes (no `hrv` vital type yet — split out when added). All tagged `source: 'whoop'`.
+- **Why valuable for chronic illness:** Whoop is the gold standard for HRV/recovery tracking. HRV is the key autonomic nervous system marker — extremely valuable for dysautonomia, POTS, long COVID, ME/CFS, and any condition involving autonomic dysregulation. Smaller user base than Fitbit but the data is exactly what these conditions need to track.
+
 **`src/utils/maps.js`** — Google Maps URL helper:
 - `mapsUrl(address)` returns `https://www.google.com/maps/search/?api=1&query=<encoded>` — no API key needed
 - Used in Providers (address + clinic), Appointments (location), Medications (pharmacy — skipped for non-physical values like OTC, N/A, none, self)
@@ -873,6 +890,12 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | `WITHINGS_CLIENT_ID` | Vercel env vars only | Withings OAuth2 client ID (from developer.withings.com). Required for the direct Withings integration. |
 | `WITHINGS_CLIENT_SECRET` | Vercel env vars only | Withings OAuth2 client secret. Server-side only, never exposed to client. |
 | `VITE_WITHINGS_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect Withings" card in Settings. Hides the UI when unset. |
+| `FITBIT_CLIENT_ID` | Vercel env vars only | Fitbit OAuth2 client ID (from dev.fitbit.com). Required for the direct Fitbit integration. |
+| `FITBIT_CLIENT_SECRET` | Vercel env vars only | Fitbit OAuth2 client secret. Sent via HTTP Basic Auth on token requests. Server-side only. |
+| `VITE_FITBIT_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect Fitbit" card in Settings. |
+| `WHOOP_CLIENT_ID` | Vercel env vars only | Whoop OAuth2 client ID (from developer.whoop.com — requires app review). Required for the direct Whoop integration. |
+| `WHOOP_CLIENT_SECRET` | Vercel env vars only | Whoop OAuth2 client secret. Server-side only. |
+| `VITE_WHOOP_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect Whoop" card in Settings. |
 
 ## Reference Docs
 

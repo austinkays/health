@@ -16,6 +16,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 //   salve-oura      → Oura Ring
 //   salve-dexcom    → Dexcom CGM
 //   salve-withings  → Withings (scales, BP cuffs, sleep mats)
+//   salve-fitbit    → Fitbit (sleep, HR, steps, weight)
+//   salve-whoop     → Whoop (HRV, recovery, sleep)
 const _params = new URLSearchParams(window.location.search);
 const _oauthState = _params.get('state');
 const _oauthCode = _params.get('code');
@@ -23,6 +25,8 @@ if (_oauthCode && _oauthState && _oauthState.startsWith('salve-')) {
   if (_oauthState === 'salve-oura') window.__ouraCode = _oauthCode;
   else if (_oauthState === 'salve-dexcom') window.__dexcomCode = _oauthCode;
   else if (_oauthState === 'salve-withings') window.__withingsCode = _oauthCode;
+  else if (_oauthState === 'salve-fitbit') window.__fitbitCode = _oauthCode;
+  else if (_oauthState === 'salve-whoop') window.__whoopCode = _oauthCode;
   _params.delete('code');
   _params.delete('state');
   const clean = _params.toString();

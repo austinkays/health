@@ -16,6 +16,8 @@ import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
+import { isFitbitConnected, getFitbitAuthUrl, exchangeFitbitCode, clearFitbitTokens, syncFitbitData, FITBIT_ENABLED } from '../../services/fitbit';
+import { isWhoopConnected, getWhoopAuthUrl, exchangeWhoopCode, clearWhoopTokens, syncWhoopData, WHOOP_ENABLED } from '../../services/whoop';
 import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
@@ -453,6 +455,132 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       setWithingsError(e.message);
     } finally {
       setWithingsSyncing(false);
+    }
+  }
+
+  // Fitbit state
+  const [fitbitConnected, setFitbitConnected] = useState(() => isFitbitConnected());
+  const [fitbitLoading, setFitbitLoading] = useState(false);
+  const [fitbitError, setFitbitError] = useState(null);
+  const [fitbitSuccess, setFitbitSuccess] = useState(null);
+  const [fitbitSyncing, setFitbitSyncing] = useState(false);
+
+  useEffect(() => {
+    const code = window.__fitbitCode;
+    if (!code) return;
+    delete window.__fitbitCode;
+    setFitbitLoading(true);
+    exchangeFitbitCode(code)
+      .then(() => {
+        setFitbitConnected(true);
+        setFitbitSuccess('Fitbit connected!');
+        setFitbitError(null);
+      })
+      .catch(e => setFitbitError(e.message))
+      .finally(() => setFitbitLoading(false));
+  }, []);
+
+  async function connectFitbit() {
+    setFitbitLoading(true);
+    setFitbitError(null);
+    try {
+      const url = await getFitbitAuthUrl();
+      if (!url) {
+        setFitbitError('Fitbit is not configured on this server');
+        setFitbitLoading(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (e) {
+      setFitbitError(e.message);
+      setFitbitLoading(false);
+    }
+  }
+
+  function disconnectFitbit() {
+    clearFitbitTokens();
+    setFitbitConnected(false);
+    setFitbitSuccess(null);
+    setFitbitError(null);
+  }
+
+  async function handleFitbitSync() {
+    setFitbitSyncing(true);
+    setFitbitError(null);
+    setFitbitSuccess(null);
+    try {
+      const { added } = await syncFitbitData(data.vitals || [], addItem, 30);
+      setFitbitSuccess(added > 0
+        ? `Imported ${added} new vital${added !== 1 ? 's' : ''} from Fitbit.`
+        : 'Already up to date — no new data.');
+      reloadData?.();
+    } catch (e) {
+      setFitbitError(e.message);
+    } finally {
+      setFitbitSyncing(false);
+    }
+  }
+
+  // Whoop state
+  const [whoopConnected, setWhoopConnected] = useState(() => isWhoopConnected());
+  const [whoopLoading, setWhoopLoading] = useState(false);
+  const [whoopError, setWhoopError] = useState(null);
+  const [whoopSuccess, setWhoopSuccess] = useState(null);
+  const [whoopSyncing, setWhoopSyncing] = useState(false);
+
+  useEffect(() => {
+    const code = window.__whoopCode;
+    if (!code) return;
+    delete window.__whoopCode;
+    setWhoopLoading(true);
+    exchangeWhoopCode(code)
+      .then(() => {
+        setWhoopConnected(true);
+        setWhoopSuccess('Whoop connected!');
+        setWhoopError(null);
+      })
+      .catch(e => setWhoopError(e.message))
+      .finally(() => setWhoopLoading(false));
+  }, []);
+
+  async function connectWhoop() {
+    setWhoopLoading(true);
+    setWhoopError(null);
+    try {
+      const url = await getWhoopAuthUrl();
+      if (!url) {
+        setWhoopError('Whoop is not configured on this server');
+        setWhoopLoading(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (e) {
+      setWhoopError(e.message);
+      setWhoopLoading(false);
+    }
+  }
+
+  function disconnectWhoop() {
+    clearWhoopTokens();
+    setWhoopConnected(false);
+    setWhoopSuccess(null);
+    setWhoopError(null);
+  }
+
+  async function handleWhoopSync() {
+    setWhoopSyncing(true);
+    setWhoopError(null);
+    setWhoopSuccess(null);
+    try {
+      const { added } = await syncWhoopData(data.vitals || [], addItem, 30);
+      setWhoopSuccess(added > 0
+        ? `Imported ${added} new vital${added !== 1 ? 's' : ''} from Whoop.`
+        : 'Already up to date — no new data.');
+      reloadData?.();
+    } catch (e) {
+      setWhoopError(e.message);
+    } finally {
+      setWhoopSyncing(false);
     }
   }
 
@@ -1340,6 +1468,136 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 )}
                 {withingsSuccess && (
                   <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{withingsSuccess}</div>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ── Fitbit ── */}
+        {FITBIT_ENABLED && (
+          <Card>
+            <button onClick={() => toggleSource('fitbit')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${fitbitConnected ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
+                  <Heart size={14} className={fitbitConnected ? 'text-salve-sage' : 'text-salve-textFaint'} />
+                </div>
+                <div className="text-left">
+                  <span className="text-ui-lg text-salve-text font-medium block">Fitbit</span>
+                  <span className="text-ui-xs text-salve-textFaint">
+                    {fitbitConnected ? 'Connected · sleep, HR, steps, weight' : 'Sleep, resting HR, steps, weight'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {fitbitConnected && <span className="w-2 h-2 rounded-full bg-salve-sage" />}
+                {expandedSource === 'fitbit' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+              </div>
+            </button>
+            {expandedSource === 'fitbit' && (
+              <div className="mt-3 pt-3 border-t border-salve-border/50">
+                {fitbitConnected ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleFitbitSync}
+                      disabled={fitbitSyncing || demoMode}
+                      className="flex-1 py-2 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {fitbitSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {fitbitSyncing ? 'Syncing…' : 'Sync last 30 days'}
+                    </button>
+                    <button
+                      onClick={disconnectFitbit}
+                      className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                    >
+                      <Unlink size={12} /> Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
+                      Connect your Fitbit to import sleep duration, resting heart rate, daily steps, and weight. Works with any Fitbit tracker or watch.
+                    </p>
+                    <button
+                      onClick={connectFitbit}
+                      disabled={fitbitLoading || demoMode}
+                      className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-sage font-medium text-sm font-montserrat hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {fitbitLoading ? <Loader size={16} className="animate-spin" /> : <Heart size={16} />}
+                      {fitbitLoading ? 'Connecting…' : 'Connect Fitbit'}
+                    </button>
+                  </>
+                )}
+                {fitbitError && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{fitbitError}</div>
+                )}
+                {fitbitSuccess && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{fitbitSuccess}</div>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ── Whoop ── */}
+        {WHOOP_ENABLED && (
+          <Card>
+            <button onClick={() => toggleSource('whoop')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${whoopConnected ? 'bg-salve-amber/15' : 'bg-salve-card2'}`}>
+                  <Heart size={14} className={whoopConnected ? 'text-salve-amber' : 'text-salve-textFaint'} />
+                </div>
+                <div className="text-left">
+                  <span className="text-ui-lg text-salve-text font-medium block">Whoop</span>
+                  <span className="text-ui-xs text-salve-textFaint">
+                    {whoopConnected ? 'Connected · recovery, HRV, sleep' : 'Recovery score, HRV, resting HR, sleep'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {whoopConnected && <span className="w-2 h-2 rounded-full bg-salve-amber" />}
+                {expandedSource === 'whoop' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+              </div>
+            </button>
+            {expandedSource === 'whoop' && (
+              <div className="mt-3 pt-3 border-t border-salve-border/50">
+                {whoopConnected ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleWhoopSync}
+                      disabled={whoopSyncing || demoMode}
+                      className="flex-1 py-2 rounded-lg bg-salve-amber/15 border border-salve-amber/30 text-salve-amber text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-amber/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {whoopSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {whoopSyncing ? 'Syncing…' : 'Sync last 30 days'}
+                    </button>
+                    <button
+                      onClick={disconnectWhoop}
+                      className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                    >
+                      <Unlink size={12} /> Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
+                      Connect your Whoop to import recovery score, HRV (RMSSD ms), resting heart rate, and sleep. Especially valuable for dysautonomia and POTS — HRV is the key marker for autonomic nervous system function.
+                    </p>
+                    <button
+                      onClick={connectWhoop}
+                      disabled={whoopLoading || demoMode}
+                      className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-amber font-medium text-sm font-montserrat hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {whoopLoading ? <Loader size={16} className="animate-spin" /> : <Heart size={16} />}
+                      {whoopLoading ? 'Connecting…' : 'Connect Whoop'}
+                    </button>
+                  </>
+                )}
+                {whoopError && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{whoopError}</div>
+                )}
+                {whoopSuccess && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{whoopSuccess}</div>
                 )}
               </div>
             )}
