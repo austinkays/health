@@ -339,7 +339,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 
 **`api/oura.js`** — Oura Ring V2 API proxy:
 - **Actions:** `token` (exchange OAuth2 authorization code for access/refresh tokens, POST), `refresh` (refresh expired access token, POST), `data` (proxy GET to Oura V2 usercollection endpoints), `config` (return client_id + configured status)
-- **Allowed endpoints:** `daily_temperature`, `daily_sleep`, `daily_readiness`, `heartrate`, `daily_spo2`
+- **Allowed endpoints:** `daily_readiness` (includes `temperature_deviation`), `daily_sleep`, `heartrate`, `daily_spo2`
 - **Rate limited:** 30 requests/minute per user
 - **OAuth2 flow:** Authorization code grant → `https://cloud.ouraring.com/oauth/authorize` (scope: `daily`) → callback with code → server exchanges for tokens (client_secret stays server-side)
 - **Client service:** `src/services/oura.js` — `getOuraAuthUrl()`, `exchangeOuraCode(code)`, `syncOuraTemperature(cycles, addItem, days, baseline)`, `fetchOuraTemperature(start, end)`, `ouraDeviationToBBT(deviationC, baselineF)`
@@ -791,7 +791,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] CycleTracker: BBT shift detection works with Oura-sourced temperatures
 - [ ] api/oura.js: Rejects unauthenticated requests (401)
 - [ ] api/oura.js: Rate limits at 30 req/min per user
-- [ ] api/oura.js: Only allows whitelisted endpoints (daily_temperature, daily_sleep, etc.)
+- [ ] api/oura.js: Only allows whitelisted endpoints (daily_readiness, daily_sleep, etc.)
 - [ ] api/oura.js: Returns 500 with "Oura not configured" when env vars missing
 
 ### Health To-Do Tests

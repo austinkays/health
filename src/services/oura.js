@@ -174,11 +174,18 @@ async function ouraGet(endpoint, startDate, endDate) {
 
 /**
  * Fetch daily temperature data from Oura.
- * Returns array of { day, temperature_deviation, temperature_trend_deviation }
+ * Returns array of { day, temperature_deviation, temperature_trend_deviation, ... }
  * temperature_deviation is in Celsius, relative to personal baseline.
+ *
+ * NOTE: Oura API v2 does not have a dedicated daily_temperature endpoint.
+ * Temperature deviation is a field on the daily_readiness response. This
+ * function queries daily_readiness and the caller extracts the temperature
+ * fields — daily_readiness records have the same shape (day +
+ * temperature_deviation) so the extraction code in
+ * ouraTemperatureToCycleEntries() works unchanged.
  */
 export async function fetchOuraTemperature(startDate, endDate) {
-  const data = await ouraGet('daily_temperature', startDate, endDate);
+  const data = await ouraGet('daily_readiness', startDate, endDate);
   return data?.data || [];
 }
 
