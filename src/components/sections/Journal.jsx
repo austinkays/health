@@ -78,7 +78,8 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
   const [crisisType, setCrisisType] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [extraction, setExtraction] = useState(null); // { mood, severity, symptoms, triggers, interventions, medications_mentioned }
-  const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') !== 'false');
+  const [moodPhaseOpen, setMoodPhaseOpen] = useState(() => localStorage.getItem('salve:journal-mood-phase') === 'true');
+  const [filterOpen, setFilterOpen] = useState(false);
   const [reflectionPrompt, setReflectionPrompt] = useState(() => getContextualPrompt(data) || getReflectionPrompt(''));
   const [openSections, setOpenSections] = useState({});
   const [quickCheck, setQuickCheck] = useState({ sleep: '', hydration: '', activity: '', sleepQuality: '', wakeUps: '', sleepTrouble: [] });
@@ -913,31 +914,48 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         </Card>
       )}
 
-      {/* Tag & symptom filter pills */}
+      {/* Tag & symptom filter pills, collapsed behind toggle */}
       {(() => {
         const allTags = [...new Set(data.journal.flatMap(e => e.tags ? String(e.tags).split(',').map(t => t.trim()).filter(Boolean) : []))].sort();
         const allSymptoms = [...new Set(data.journal.flatMap(e => (e.symptoms || []).map(s => s.name).filter(Boolean)))].sort();
         if (allTags.length === 0 && allSymptoms.length === 0) return null;
+        const hasActiveFilter = tagFilter || symptomFilter;
         return (
-          <div className="flex gap-1.5 flex-wrap mb-3">
-            <button
-              onClick={() => { setTagFilter(null); setSymptomFilter(null); }}
-              className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter && !symptomFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
-            >All</button>
-            {allSymptoms.map(sym => (
+          <div className="mb-3">
+            <div className="flex gap-1.5 items-center flex-wrap">
               <button
-                key={`s:${sym}`}
-                onClick={() => { setSymptomFilter(symptomFilter === sym ? null : sym); setTagFilter(null); }}
-                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${symptomFilter === sym ? 'bg-salve-rose/15 border-salve-rose/40 text-salve-rose' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30'}`}
-              >⚬ {sym}</button>
-            ))}
-            {allTags.map(tag => (
+                onClick={() => { setTagFilter(null); setSymptomFilter(null); }}
+                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter && !symptomFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+              >All</button>
+              {hasActiveFilter && (
+                <span className="text-[11px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/40 text-salve-lav font-montserrat">
+                  {symptomFilter || tagFilter}
+                  <button onClick={() => { setTagFilter(null); setSymptomFilter(null); }} className="ml-1 bg-transparent border-none cursor-pointer text-salve-lav p-0 text-[11px]">×</button>
+                </span>
+              )}
               <button
-                key={`t:${tag}`}
-                onClick={() => { setTagFilter(tagFilter === tag ? null : tag); setSymptomFilter(null); }}
-                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${tagFilter === tag ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
-              >{tag}</button>
-            ))}
+                onClick={() => setFilterOpen(!filterOpen)}
+                className="text-[11px] px-2.5 py-1 rounded-full border border-salve-border bg-salve-card text-salve-textFaint hover:border-salve-lav/30 cursor-pointer font-montserrat transition-colors"
+              >{filterOpen ? 'Hide filters' : `Filter (${allSymptoms.length + allTags.length})`}</button>
+            </div>
+            {filterOpen && (
+              <div className="flex gap-1.5 flex-wrap mt-2">
+                {allSymptoms.map(sym => (
+                  <button
+                    key={`s:${sym}`}
+                    onClick={() => { setSymptomFilter(symptomFilter === sym ? null : sym); setTagFilter(null); }}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${symptomFilter === sym ? 'bg-salve-rose/15 border-salve-rose/40 text-salve-rose' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30'}`}
+                  >⚬ {sym}</button>
+                ))}
+                {allTags.map(tag => (
+                  <button
+                    key={`t:${tag}`}
+                    onClick={() => { setTagFilter(tagFilter === tag ? null : tag); setSymptomFilter(null); }}
+                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${tagFilter === tag ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+                  >{tag}</button>
+                ))}
+              </div>
+            )}
           </div>
         );
       })()}
