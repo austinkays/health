@@ -30,6 +30,17 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Smart text wrapping: headings balance line lengths, body text prefers
+     sentence-boundary breaks + avoids orphan words. Fixes awkward mid-
+     sentence wraps throughout the app. Falls back to normal wrap in
+     unsupporting browsers. */
+  h1, h2, h3, h4, h5, h6 {
+    text-wrap: balance;
+  }
+  p, li {
+    text-wrap: pretty;
+  }
+
   * {
     box-sizing: border-box;
   }

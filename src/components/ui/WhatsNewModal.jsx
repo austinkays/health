@@ -33,7 +33,7 @@ export default function WhatsNewModal({ onClose }) {
     >
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className={`relative bg-salve-card border border-salve-border rounded-2xl w-full max-w-[380px] max-h-[80vh] overflow-y-auto px-7 py-6 shadow-xl transition-transform duration-200 ${visible ? 'scale-100' : 'scale-95'}`}
+        className={`relative bg-salve-card border border-salve-border rounded-2xl w-full max-w-[440px] max-h-[80vh] overflow-y-auto px-7 py-6 shadow-xl transition-transform duration-200 ${visible ? 'scale-100' : 'scale-95'}`}
         onClick={e => e.stopPropagation()}
       >
         <div className="text-center mb-5">

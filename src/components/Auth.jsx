@@ -324,8 +324,11 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             >
               Explore without signing in <span aria-hidden="true">→</span>
             </button>
-            <p className="text-salve-textFaint text-[10px] md:text-xs mt-2.5 leading-relaxed max-w-[320px] md:max-w-[380px] mx-auto">
-              Browse the app with an example user's data. Nothing saves until you sign up.
+            <p className="text-salve-textFaint text-[11px] md:text-xs mt-2.5 leading-relaxed">
+              Browse the app with an example user's data.
+            </p>
+            <p className="text-salve-textFaint text-[11px] md:text-xs leading-relaxed">
+              Nothing saves until you sign up.
             </p>
           </div>
         )}
