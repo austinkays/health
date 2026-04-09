@@ -21,6 +21,7 @@ export default function useHealthData(session, demoMode = false) {
       activities: [],
       genetic_results: [],
       feedback: [],
+      medication_reminders: [],
       settings: cachedSettings ?? { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
     };
   });
@@ -178,6 +179,7 @@ function tableToKey(table) {
     activities: 'activities',
     genetic_results: 'genetic_results',
     feedback: 'feedback',
+    medication_reminders: 'medication_reminders',
   };
   return map[table] || table;
 }

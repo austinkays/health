@@ -155,6 +155,8 @@ export const db = {
   activities: crud('activities', { orderBy: 'date', ascending: false }),
   genetic_results: crud('genetic_results'),
   feedback: crud('feedback', { orderBy: 'created_at', ascending: false }),
+  push_subscriptions: crud('push_subscriptions'),
+  medication_reminders: crud('medication_reminders', { orderBy: 'reminder_time', ascending: true }),
 
   bulkAdd, // For large imports (Apple Health)
 
@@ -237,10 +239,11 @@ export const db = {
       activities: cleanAll(d.activities),
       genetic_results: cleanAll(d.genetic_results),
       feedback: cleanAll(d.feedback),
+      medication_reminders: cleanAll(d.medication_reminders),
     };
   },
 
-  // Fallback: 24 parallel queries (used if RPC not available)
+  // Fallback: parallel queries (used if RPC not available)
   async _loadAllFallback() {
     const results = await Promise.allSettled([
       db.profile.get(),
@@ -267,6 +270,7 @@ export const db = {
       db.activities.list(),
       db.genetic_results.list(),
       db.feedback.list(),
+      db.medication_reminders.list(),
     ]);
 
     const v = (i, fallback) => results[i].status === 'fulfilled' ? results[i].value : fallback;
@@ -284,6 +288,7 @@ export const db = {
       activities: v(21, []),
       genetic_results: v(22, []),
       feedback: v(23, []),
+      medication_reminders: v(24, []),
     };
   },
 
@@ -300,6 +305,7 @@ export const db = {
       'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',
       'insurance_claims', 'drug_prices', 'todos', 'cycles', 'activities', 'genetic_results',
       'feedback',
+      'medication_reminders',
     ];
 
     const errors = [];
