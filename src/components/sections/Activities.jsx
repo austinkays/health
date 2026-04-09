@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Apple } from 'lucide-react';
+import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Apple, Footprints, Zap, TrendingUp } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -107,6 +107,40 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
     return { weekCount: thisWeek.length, totalCal, totalMin, total: workouts.length };
   }, [sorted]);
 
+  // 7-day steps trend (from vitals)
+  const stepsTrend = useMemo(() => {
+    const stepVitals = (data.vitals || []).filter(v => v.type === 'steps');
+    if (!stepVitals.length) return null;
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const dateStr = d.toISOString().slice(0, 10);
+      const daySteps = stepVitals.filter(v => v.date === dateStr).reduce((s, v) => s + (Number(v.value) || 0), 0);
+      days.push({ date: dateStr, steps: daySteps, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
+    }
+    const withData = days.filter(d => d.steps > 0);
+    if (withData.length < 2) return null;
+    const avg = Math.round(withData.reduce((s, d) => s + d.steps, 0) / withData.length);
+    return { days, avg };
+  }, [data.vitals]);
+
+  // 7-day calories trend (from activities)
+  const calTrend = useMemo(() => {
+    const acts = data.activities || [];
+    if (!acts.length) return null;
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayCal = acts.filter(a => a.date === dateStr).reduce((s, a) => s + (Number(a.calories) || 0), 0);
+      days.push({ date: dateStr, cal: dayCal, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
+    }
+    const withData = days.filter(d => d.cal > 0);
+    if (withData.length < 2) return null;
+    const avg = Math.round(withData.reduce((s, d) => s + d.cal, 0) / withData.length);
+    return { days, avg };
+  }, [data.activities]);
+
   // Save
   const save = async () => {
     if (!form.type) return;
@@ -188,6 +222,71 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
             )}
           </div>
         </Card>
+      )}
+
+      {/* Steps + Calories 7-day charts */}
+      {(stepsTrend || calTrend) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-3">
+          {stepsTrend && (
+            <Card className="!p-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Footprints size={12} className="text-salve-sage" />
+                  <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Steps</span>
+                </div>
+                <span className="text-[10px] text-salve-textFaint font-montserrat">{stepsTrend.avg.toLocaleString()} avg</span>
+              </div>
+              <div className="flex items-end gap-1 h-12">
+                {stepsTrend.days.map((d, i) => {
+                  const max = Math.max(...stepsTrend.days.map(x => x.steps), 1);
+                  const pct = d.steps > 0 ? Math.max(d.steps / max, 0.08) : 0;
+                  const isToday = i === 6;
+                  const color = d.steps >= 10000 ? C.sage : d.steps >= 5000 ? C.amber : C.rose;
+                  return (
+                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                      <div className="w-full rounded-sm" style={{ height: d.steps > 0 ? `${Math.round(pct * 40)}px` : '2px', background: d.steps > 0 ? (isToday ? color : `${color}55`) : C.border }} />
+                      <span className="text-[7px] font-montserrat" style={{ color: isToday ? color : C.textFaint }}>{d.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-salve-border/50">
+                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm" style={{ background: C.sage }} /><span className="text-[8px] text-salve-textFaint font-montserrat">10k+</span></div>
+                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm" style={{ background: C.amber }} /><span className="text-[8px] text-salve-textFaint font-montserrat">5k+</span></div>
+                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm" style={{ background: C.rose }} /><span className="text-[8px] text-salve-textFaint font-montserrat">&lt;5k</span></div>
+              </div>
+            </Card>
+          )}
+          {calTrend && (
+            <Card className="!p-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5">
+                  <Zap size={12} className="text-salve-amber" />
+                  <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Calories</span>
+                </div>
+                <span className="text-[10px] text-salve-textFaint font-montserrat">{calTrend.avg.toLocaleString()} avg</span>
+              </div>
+              <div className="flex items-end gap-1 h-12">
+                {calTrend.days.map((d, i) => {
+                  const max = Math.max(...calTrend.days.map(x => x.cal), 1);
+                  const pct = d.cal > 0 ? Math.max(d.cal / max, 0.08) : 0;
+                  const isToday = i === 6;
+                  return (
+                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                      <div className="w-full rounded-sm" style={{ height: d.cal > 0 ? `${Math.round(pct * 40)}px` : '2px', background: d.cal > 0 ? (isToday ? C.amber : `${C.amber}55`) : C.border }} />
+                      <span className="text-[7px] font-montserrat" style={{ color: isToday ? C.amber : C.textFaint }}>{d.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {calTrend.avg > 0 && (
+                <div className="mt-2 pt-2 border-t border-salve-border/50">
+                  <span className="text-[9px] text-salve-textFaint font-montserrat">{calTrend.days.reduce((s, d) => s + d.cal, 0).toLocaleString()} total this week</span>
+                </div>
+              )}
+            </Card>
+          )}
+        </div>
       )}
 
       {/* Filter pills */}

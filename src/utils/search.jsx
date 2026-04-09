@@ -163,7 +163,7 @@ export const ENTITY_CONFIG = {
     icon: Activity,
     color: C.sage,
     tab: 'vitals',
-    fields: ['type', 'notes'],
+    fields: ['type', 'value', 'unit', 'notes'],
     primary: v => `${v.type || 'Vital'}: ${v.value || ''}${v.unit ? ' ' + v.unit : ''}`,
     secondary: v => v.date || '',
     idField: 'id',
@@ -257,10 +257,58 @@ const FIELD_LABELS = {
   policy_number: 'policy #', category: 'category', status: 'status',
 };
 
+// Aliases: natural language → stored field values
+const SEARCH_ALIASES = {
+  'heart': ['hr', 'heart rate'],
+  'heart rate': ['hr'],
+  'heartrate': ['hr'],
+  'blood pressure': ['bp'],
+  'bp': ['bp', 'blood pressure'],
+  'oxygen': ['spo2', 'oxygen saturation'],
+  'blood oxygen': ['spo2'],
+  'spo2': ['spo2', 'oxygen'],
+  'respiratory': ['resp', 'respiratory rate'],
+  'breathing': ['resp'],
+  'temperature': ['temp'],
+  'temp': ['temp', 'temperature'],
+  'weight': ['weight', 'body mass'],
+  'steps': ['steps', 'Daily Activity'],
+  'step': ['steps', 'Daily Activity'],
+  'calories': ['calories', 'kcal', 'active energy'],
+  'glucose': ['glucose', 'blood sugar'],
+  'blood sugar': ['glucose'],
+  'sleep': ['sleep'],
+  'pain': ['pain'],
+  'mood': ['mood'],
+  'energy': ['energy'],
+  'running': ['Running', 'run'],
+  'run': ['Running', 'run'],
+  'walking': ['Walking', 'walk'],
+  'walk': ['Walking', 'walk'],
+  'yoga': ['Yoga'],
+  'cycling': ['Cycling', 'bike'],
+  'strength': ['Strength Training', 'strength'],
+  'hiking': ['Hiking', 'hike'],
+};
+
+function expandQuery(q) {
+  const terms = [q];
+  // Check exact match first, then prefix match
+  for (const [alias, expansions] of Object.entries(SEARCH_ALIASES)) {
+    if (q === alias || alias.startsWith(q) || q.startsWith(alias)) {
+      for (const e of expansions) {
+        if (!terms.includes(e.toLowerCase())) terms.push(e.toLowerCase());
+      }
+    }
+  }
+  return terms;
+}
+
 export function searchEntities(data, query) {
   if (!query || query.length < 2) return [];
 
   const q = query.toLowerCase();
+  const searchTerms = expandQuery(q);
   const results = [];
 
   for (const [entityKey, config] of Object.entries(ENTITY_CONFIG)) {
@@ -274,7 +322,8 @@ export function searchEntities(data, query) {
       for (const field of config.fields) {
         const val = item[field];
         if (!val) continue;
-        if (String(val).toLowerCase().includes(q)) {
+        const valLower = String(val).toLowerCase();
+        if (searchTerms.some(t => valLower.includes(t))) {
           matchedField = field;
           matchedValue = String(val);
           break;
@@ -283,7 +332,7 @@ export function searchEntities(data, query) {
 
       // Search inside journal symptoms array (JSONB)
       if (!matchedField && entityKey === 'journal' && Array.isArray(item.symptoms)) {
-        const sym = item.symptoms.find(s => s.name && s.name.toLowerCase().includes(q));
+        const sym = item.symptoms.find(s => s.name && searchTerms.some(t => s.name.toLowerCase().includes(t)));
         if (sym) {
           matchedField = 'symptoms';
           matchedValue = sym.name + ' (' + sym.severity + '/10)';
@@ -294,7 +343,7 @@ export function searchEntities(data, query) {
         // Check if the match is already visible in primary/secondary text
         const pri = String(config.primary(item) || '').toLowerCase();
         const sec = String(config.secondary(item) || '').toLowerCase();
-        const visibleInDisplay = pri.includes(q) || sec.includes(q);
+        const visibleInDisplay = searchTerms.some(t => pri.includes(t) || sec.includes(t));
 
         results.push({
           entityKey,
