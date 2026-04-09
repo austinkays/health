@@ -945,11 +945,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               {/* ── Recommended: Claude Project (one-time setup) ── */}
               <div className="bg-salve-lav/5 border border-salve-lav/20 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Recommended · one-time setup</span>
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Highly recommended · saves tokens</span>
                 </div>
                 <h4 className="text-[13px] text-salve-text font-medium font-montserrat mb-1">Create a Claude Project</h4>
                 <p className="text-[11px] text-salve-textFaint leading-relaxed mb-3">
-                  Set this up once on Claude.ai and every future sync is one short message like "sync my records", no re-attaching files, no re-pasting prompts.
+                  The sync file is large and uses significant tokens every time you attach it. A project stores it once, so future syncs are just "sync my records" with no re-uploading.
                 </p>
 
                 <ol className="text-[11px] text-salve-textMid space-y-2.5 leading-relaxed list-decimal pl-5 mb-3">
@@ -1007,7 +1007,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <details className="group">
                 <summary className="cursor-pointer text-[11px] text-salve-textMid font-montserrat hover:text-salve-text flex items-center gap-1.5">
                   <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
-                  Or do a one-off sync without setting up a project
+                  One-off sync (uses more tokens each time)
                 </summary>
                 <div className="mt-3 pl-4 space-y-4 border-l-2 border-salve-border/40">
                   <p className="text-[11px] text-salve-textFaint leading-relaxed">
