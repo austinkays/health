@@ -224,68 +224,109 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
         </Card>
       )}
 
-      {/* Steps + Calories 7-day charts */}
+      {/* Steps + Calories + Distance dashboard */}
       {(stepsTrend || calTrend) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 mb-3">
+        <div className="space-y-2.5 mb-4">
+          {/* Steps card with hero number + chart */}
           {stepsTrend && (
-            <Card className="!p-3.5">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <Footprints size={12} className="text-salve-sage" />
-                  <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Steps</span>
-                </div>
-                <span className="text-[10px] text-salve-textFaint font-montserrat">{stepsTrend.avg.toLocaleString()} avg</span>
+            <Card className="!p-4 md:!p-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Footprints size={13} className="text-salve-sage" />
+                <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Daily Steps</span>
+                <span className="text-[10px] text-salve-textFaint font-montserrat ml-auto">7-day avg: {stepsTrend.avg.toLocaleString()}</span>
               </div>
-              <div className="flex items-end gap-1 h-12">
+              <div className="flex items-end gap-1.5 h-20">
                 {stepsTrend.days.map((d, i) => {
                   const max = Math.max(...stepsTrend.days.map(x => x.steps), 1);
-                  const pct = d.steps > 0 ? Math.max(d.steps / max, 0.08) : 0;
+                  const pct = d.steps > 0 ? Math.max(d.steps / max, 0.06) : 0;
                   const isToday = i === 6;
-                  const color = d.steps >= 10000 ? C.sage : d.steps >= 5000 ? C.amber : C.rose;
+                  const barColor = d.steps >= 10000 ? C.sage : d.steps >= 5000 ? C.lav : C.textFaint;
                   return (
-                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                      <div className="w-full rounded-sm" style={{ height: d.steps > 0 ? `${Math.round(pct * 40)}px` : '2px', background: d.steps > 0 ? (isToday ? color : `${color}55`) : C.border }} />
-                      <span className="text-[7px] font-montserrat" style={{ color: isToday ? color : C.textFaint }}>{d.label}</span>
+                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-1">
+                      {d.steps > 0 && (
+                        <span className="text-[8px] font-montserrat font-medium" style={{ color: isToday ? barColor : C.textFaint }}>
+                          {d.steps >= 1000 ? `${(d.steps / 1000).toFixed(1)}k` : d.steps}
+                        </span>
+                      )}
+                      <div className="w-full rounded-md" style={{ height: d.steps > 0 ? `${Math.round(pct * 52)}px` : '2px', background: d.steps > 0 ? (isToday ? barColor : `${barColor}44`) : C.border }} />
+                      <span className="text-[8px] font-montserrat" style={{ color: isToday ? barColor : C.textFaint }}>{d.label}</span>
                     </div>
                   );
                 })}
               </div>
-              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-salve-border/50">
-                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm" style={{ background: C.sage }} /><span className="text-[8px] text-salve-textFaint font-montserrat">10k+</span></div>
-                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm" style={{ background: C.amber }} /><span className="text-[8px] text-salve-textFaint font-montserrat">5k+</span></div>
-                <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-sm" style={{ background: C.rose }} /><span className="text-[8px] text-salve-textFaint font-montserrat">&lt;5k</span></div>
-              </div>
             </Card>
           )}
-          {calTrend && (
-            <Card className="!p-3.5">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <Zap size={12} className="text-salve-amber" />
+
+          {/* Calories + Distance side-by-side */}
+          <div className="grid grid-cols-2 gap-2.5">
+            {calTrend && (
+              <Card className="!p-3.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Flame size={12} className="text-salve-rose" />
                   <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Calories</span>
                 </div>
-                <span className="text-[10px] text-salve-textFaint font-montserrat">{calTrend.avg.toLocaleString()} avg</span>
-              </div>
-              <div className="flex items-end gap-1 h-12">
-                {calTrend.days.map((d, i) => {
-                  const max = Math.max(...calTrend.days.map(x => x.cal), 1);
-                  const pct = d.cal > 0 ? Math.max(d.cal / max, 0.08) : 0;
-                  const isToday = i === 6;
-                  return (
-                    <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                      <div className="w-full rounded-sm" style={{ height: d.cal > 0 ? `${Math.round(pct * 40)}px` : '2px', background: d.cal > 0 ? (isToday ? C.amber : `${C.amber}55`) : C.border }} />
-                      <span className="text-[7px] font-montserrat" style={{ color: isToday ? C.amber : C.textFaint }}>{d.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {calTrend.avg > 0 && (
-                <div className="mt-2 pt-2 border-t border-salve-border/50">
-                  <span className="text-[9px] text-salve-textFaint font-montserrat">{calTrend.days.reduce((s, d) => s + d.cal, 0).toLocaleString()} total this week</span>
+                <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
+                  {calTrend.days.reduce((s, d) => s + d.cal, 0).toLocaleString()}
                 </div>
-              )}
-            </Card>
-          )}
+                <span className="text-[10px] text-salve-textFaint font-montserrat">burned this week</span>
+                <div className="flex items-end gap-0.5 h-8 mt-2">
+                  {calTrend.days.map((d, i) => {
+                    const max = Math.max(...calTrend.days.map(x => x.cal), 1);
+                    const pct = d.cal > 0 ? Math.max(d.cal / max, 0.08) : 0;
+                    return (
+                      <div key={d.date} className="flex-1 rounded-sm" style={{ height: d.cal > 0 ? `${Math.round(pct * 28)}px` : '2px', background: d.cal > 0 ? (i === 6 ? C.rose : `${C.rose}44`) : C.border }} />
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
+            {(() => {
+              const weekDist = sorted.filter(a => {
+                const d = new Date(a.date + 'T00:00:00');
+                return d >= new Date(Date.now() - 7 * 86400000) && Number(a.distance) > 0;
+              }).reduce((s, a) => s + Number(a.distance), 0);
+              if (!weekDist) return null;
+              return (
+                <Card className="!p-3.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <MapPin size={12} className="text-salve-lav" />
+                    <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Distance</span>
+                  </div>
+                  <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
+                    {weekDist.toFixed(1)}
+                  </div>
+                  <span className="text-[10px] text-salve-textFaint font-montserrat">km this week</span>
+                </Card>
+              );
+            })()}
+            {(() => {
+              const weekDist = sorted.filter(a => {
+                const d = new Date(a.date + 'T00:00:00');
+                return d >= new Date(Date.now() - 7 * 86400000) && Number(a.distance) > 0;
+              }).reduce((s, a) => s + Number(a.distance), 0);
+              if (weekDist) return null; // distance card shown instead
+              if (!calTrend) return null; // already showing calories
+              // Show average HR if available
+              const weekHR = sorted.filter(a => {
+                const d = new Date(a.date + 'T00:00:00');
+                return d >= new Date(Date.now() - 7 * 86400000) && Number(a.heart_rate_avg) > 0;
+              });
+              if (!weekHR.length) return null;
+              const avgHR = Math.round(weekHR.reduce((s, a) => s + Number(a.heart_rate_avg), 0) / weekHR.length);
+              return (
+                <Card className="!p-3.5">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Heart size={12} className="text-salve-lav" />
+                    <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Avg HR</span>
+                  </div>
+                  <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
+                    {avgHR}
+                  </div>
+                  <span className="text-[10px] text-salve-textFaint font-montserrat">bpm during workouts</span>
+                </Card>
+              );
+            })()}
+          </div>
         </div>
       )}
 
