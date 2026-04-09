@@ -396,7 +396,7 @@ function AppContent() {
       case 'todos':      return <Todos {...shared} />;
       case 'genetics':   return <Genetics {...shared} />;
       case 'activities': return <Activities {...shared} />;
-      case 'insights':   return <Insights data={data} />;
+      case 'insights':   return <Insights data={data} onNav={onNav} />;
       case 'sleep':      return <Sleep {...shared} />;
       // Hub category pages
       case 'hub_records':  return <Hub hubId="records" data={data} onNav={onNav} />;
