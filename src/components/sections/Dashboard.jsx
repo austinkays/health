@@ -35,6 +35,7 @@ import { useIsDesktop } from '../layout/SplitView';
 import { computeCorrelations } from '../../utils/correlations';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { handleSpotlight } from '../../utils/fx';
+import Reveal from '../ui/Reveal';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
 const VITAL_POLARITY = {
@@ -1338,7 +1339,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
           {/* Discover resources */}
           {displayedDiscover.length > 0 && (
-            <section aria-label="Discover resources" className="dash-stagger dash-stagger-4 mb-4">
+            <Reveal as="section" aria-label="Discover resources" className="mb-4">
               <Card className="!p-0 overflow-hidden">
                 <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
                   <div className="flex items-center gap-2">
@@ -1398,7 +1399,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   );
                 })}
               </Card>
-            </section>
+            </Reveal>
           )}
         </div>}
 
@@ -1406,7 +1407,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         <div className={!hasLeftContent ? 'md:grid md:grid-cols-2 md:gap-4 lg:gap-6' : ''}>
           {/* Coming Up timeline */}
           {displayedTimeline.length > 0 && (
-            <section aria-label="Coming up" className={`dash-stagger dash-stagger-3 mb-4 ${!hasLeftContent ? 'md:col-span-2' : ''}`}>
+            <Reveal as="section" aria-label="Coming up" className={`mb-4 ${!hasLeftContent ? 'md:col-span-2' : ''}`}>
               <SectionTitle>Coming Up</SectionTitle>
               {displayedTimeline.map((item, i) => {
                 const isAppt = item._type === 'appt';
@@ -1457,7 +1458,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   </button>
                 );
               })}
-            </section>
+            </Reveal>
           )}
 
           {/* Vitals (full width), then Mood + Activity side-by-side at lg+ */}
@@ -1483,7 +1484,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             const fSignalColor = f.signal === 'good' ? C.sage : f.signal === 'watch' ? C.amber : C.textMid;
             const fArrow = f.direction === 'up' ? '↑' : f.direction === 'down' ? '↓' : '→';
             return (
-              <section aria-label="Recent vitals" className="dash-stagger dash-stagger-4 mb-2">
+              <Reveal as="section" aria-label="Recent vitals" className="mb-2">
                 <Card className="!p-4 md:!p-6 cursor-pointer" onClick={() => onNav('vitals')}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-baseline gap-2">
@@ -1573,14 +1574,14 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     </div>
                   )}
                 </Card>
-              </section>
+              </Reveal>
             );
           })()}
           {/* Mood + Activity, side-by-side at lg+ only when both exist */}
           <div className={moodSnapshot && activitySnapshot ? 'lg:grid lg:grid-cols-2 lg:gap-4' : ''}>
           {/* Mood snapshot */}
           {moodSnapshot && (
-            <section aria-label="Mood this week" className="dash-stagger dash-stagger-4 mb-2">
+            <Reveal as="section" aria-label="Mood this week" className="mb-2">
               <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('journal')}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-2">
@@ -1621,11 +1622,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   </div>
                 )}
               </Card>
-            </section>
+            </Reveal>
           )}
           {/* Activity snapshot */}
           {activitySnapshot && (
-            <section aria-label="Recent activity" className="dash-stagger dash-stagger-4 mb-2">
+            <Reveal as="section" aria-label="Recent activity" className="mb-2">
               <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('activities')}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-2">
@@ -1677,7 +1678,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   </div>
                 )}
               </Card>
-            </section>
+            </Reveal>
           )}
           </div>{/* end mood+activity grid */}
         </div>
@@ -1685,7 +1686,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
       {/* ── Pinned shortcuts (user-starred) ─────── */}
       {starredTiles.length > 0 && (
-        <section aria-label="Pinned shortcuts" className="dash-stagger dash-stagger-5 mb-4">
+        <Reveal as="section" aria-label="Pinned shortcuts" className="mb-4">
           <SectionTitle>Favorites</SectionTitle>
           <div className="grid grid-cols-3 gap-2 md:grid-cols-4 md:gap-3 lg:grid-cols-5 lg:gap-4">
             {starredTiles.map((t, i) => {
@@ -1708,12 +1709,12 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               );
             })}
           </div>
-        </section>
+        </Reveal>
       )}
 
       {/* ── Health Trends grid ─────────────────── */}
       {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
-        <section aria-label="Health trends" className="dash-stagger dash-stagger-4 mb-4">
+        <Reveal as="section" aria-label="Health trends" className="mb-4">
           <SectionTitle>Health Trends</SectionTitle>
           <div className="grid grid-cols-2 gap-2.5 md:gap-4">
 
@@ -1929,12 +1930,12 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               </button>
             )}
           </div>
-        </section>
+        </Reveal>
       )}
 
       {/* ── Getting Started tips (onboarding, dismissible) ── */}
       {visibleTips.length > 0 && (
-        <section aria-label="Getting started" className="dash-stagger dash-stagger-5 mb-4 mt-4">
+        <Reveal as="section" aria-label="Getting started" className="mb-4 mt-4">
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <Lightbulb size={13} className="text-salve-amber" />
@@ -2004,7 +2005,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             <Mail size={11} className="text-salve-textFaint/50 group-hover:text-salve-amber transition-colors" />
             <span className="text-[11px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
           </button>
-        </section>
+        </Reveal>
       )}
 
       {/* Desktop "made with love" tagline, mirrors mobile BottomNav behaviour */}
