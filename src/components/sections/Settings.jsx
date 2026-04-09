@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
@@ -308,9 +308,28 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     }).catch(() => {});
   }, []);
 
-  // Source detection
+  // Source detection + counts
   const hasAppleHealth = (data.vitals || []).some(v => v.source === 'apple_health' || v.source === 'Apple Health')
     || (data.activities || []).some(a => a.source === 'apple_health' || a.source === 'Apple Health');
+
+  const sourceCounts = useMemo(() => {
+    const counts = { oura: 0, apple_health: 0, manual: 0, mcp: 0 };
+    const all = [
+      ...(data.vitals || []),
+      ...(data.activities || []),
+      ...(data.cycles || []),
+    ];
+    for (const r of all) {
+      const s = (r.source || '').toLowerCase();
+      if (s === 'oura') counts.oura++;
+      else if (s === 'apple_health' || s === 'apple health' || s.includes('apple')) counts.apple_health++;
+      else if (s === 'mcp' || s === 'mcp-sync') counts.mcp++;
+      else counts.manual++;
+    }
+    // MCP sync imports also land in meds/conditions/etc with no source field,
+    // so count records imported via merge (rough heuristic: non-empty tables)
+    return counts;
+  }, [data.vitals, data.activities, data.cycles]);
 
   // Oura state
   const [ouraConnected, setOuraConnected] = useState(() => isOuraConnected());
@@ -995,7 +1014,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <span className="text-[13px] text-salve-text font-medium block">Oura Ring</span>
                 <span className="text-[10px] text-salve-textFaint">
                   {ouraConnected
-                    ? `Connected${getOuraTokens()?.connected_at ? ` · ${new Date(getOuraTokens().connected_at).toLocaleDateString()}` : ''}`
+                    ? `Connected${sourceCounts.oura > 0 ? ` · ${sourceCounts.oura} records` : ''}`
                     : 'Sleep, readiness, temperature, workouts'}
                 </span>
               </div>
@@ -1069,7 +1088,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <div className="text-left">
                 <span className="text-[13px] text-salve-text font-medium block">Apple Health</span>
                 <span className="text-[10px] text-salve-textFaint">
-                  {hasAppleHealth ? 'Data imported' : 'Vitals, workouts, labs from iPhone'}
+                  {hasAppleHealth ? `${sourceCounts.apple_health} records imported` : 'Vitals, workouts, labs from iPhone'}
                 </span>
               </div>
             </div>
