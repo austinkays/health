@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react';
 import { Upload } from 'lucide-react';
 
 /**
- * DropZone — drag-and-drop file target for desktop, with click-to-browse fallback.
+ * DropZone, drag-and-drop file target for desktop, with click-to-browse fallback.
  * Hidden on mobile (md:block only) unless `alwaysVisible` is set.
  *
  * @param {function} onFile - called with the dropped/selected File

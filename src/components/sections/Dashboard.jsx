@@ -83,7 +83,7 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
   if (refills.length > 0) return `${refills.length} refill${refills.length > 1 ? 's' : ''} coming up soon`;
 
   if (data.journal.length > 0) return 'Your health journal is up to date';
-  return 'All caught up — take care of yourself today';
+  return 'All caught up, take care of yourself today';
 }
 
 /* ── Alert dismissal ──────────────────────────────────── */
@@ -93,9 +93,9 @@ const SEEN_RESOURCES_KEY = 'salve:seen-resources';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
 
 // dismissBehavior:
-//   'auto'      — hidden by data check (no dismiss needed); snoozes 7d if dismissed before data exists
-//   'snooze'    — first X snoozes for snoozeDays, second X is permanent
-//   'permanent' — one X and it's gone for good (optional integrations user may not want)
+//   'auto'     , hidden by data check (no dismiss needed); snoozes 7d if dismissed before data exists
+//   'snooze'   , first X snoozes for snoozeDays, second X is permanent
+//   'permanent', one X and it's gone for good (optional integrations user may not want)
 const STARTER_TIPS = [
   {
     id: 'add-meds',
@@ -183,7 +183,7 @@ const STARTER_TIPS = [
     dismissBehavior: 'snooze',
     snoozeDays: 14,
   },
-  // feedback is not a card — it renders as a persistent footer line in the section
+  // feedback is not a card, it renders as a persistent footer line in the section
 ];
 
 function getDismissedTips() {
@@ -217,7 +217,7 @@ function getAlertDismissal() {
   }
 }
 
-/* ── Quick Access config (static — outside component) ──── */
+/* ── Quick Access config (static, outside component) ──── */
 
 // Icon + label lookup for starred section tiles
 const STARRED_META = {
@@ -252,7 +252,7 @@ const STARRED_META = {
   news:          { label: 'News',       icon: Newspaper },
 };
 
-// Hub tiles — always 6 (or 5 when no devices). Tappable → category page.
+// Hub tiles, always 6 (or 5 when no devices). Tappable → category page.
 const HUB_TILES = [
   { id: 'records',  navId: 'hub_records',  label: 'Records',   icon: ClipboardList },
   { id: 'care',     navId: 'hub_care',     label: 'Care Team', icon: User },
@@ -271,7 +271,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
-  /* ── Lazy-load Recharts (367KB) — keep it off the critical render path ── */
+  /* ── Lazy-load Recharts (367KB), keep it off the critical render path ── */
   const [chartsReady, setChartsReady] = useState(false);
   const chartsRef = useRef({});
   useEffect(() => {
@@ -356,7 +356,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return () => clearInterval(id);
   }, [searchFocused, searchQuery]);
 
-  // Live search results — only compute when actually searching (not on every data change)
+  // Live search results, only compute when actually searching (not on every data change)
   const allSearchResults = useMemo(
     () => debouncedSearch.length >= 2 ? searchEntities(data, debouncedSearch) : [],
     [data, debouncedSearch]
@@ -431,7 +431,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     [data.journal]
   );
 
-  /* Vitals snapshot — one featured vital (with 14-day chart) + compact supporting chips */
+  /* Vitals snapshot, one featured vital (with 14-day chart) + compact supporting chips */
   const vitalsSnapshot = useMemo(() => {
     const today = Date.now();
     const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
@@ -494,7 +494,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return { featured, chips };
   }, [data.vitals]);
 
-  /* Activity snapshot — last 7 days summary + per-day bar data */
+  /* Activity snapshot, last 7 days summary + per-day bar data */
   const activitySnapshot = useMemo(() => {
     const activities = data.activities || [];
     if (!activities.length) return null;
@@ -514,7 +514,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return { count: recent.length, totalMinutes, totalCalories, dayBars, lastActivity };
   }, [data.activities]);
 
-  /* Mood snapshot — 7-day mood dots from journal entries (no Recharts, pure CSS) */
+  /* Mood snapshot, 7-day mood dots from journal entries (no Recharts, pure CSS) */
   const moodSnapshot = useMemo(() => {
     const journal = data.journal || [];
     if (!journal.length) return null;
@@ -616,7 +616,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return { days, avg, lowNights, minVal };
   }, [data.vitals]);
 
-  // Lab highlights — recent 6 labs sorted by date
+  // Lab highlights, recent 6 labs sorted by date
   const labHighlights = useMemo(() => {
     const labs = data.labs || [];
     if (labs.length < 2) return [];
@@ -689,7 +689,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const alerts = useMemo(() => {
     const items = [];
     if (anesthesiaCount > 0) {
-      items.push({ id: 'anesthesia', icon: AlertOctagon, color: C.rose, text: `${anesthesiaCount} Anesthesia Flag${anesthesiaCount > 1 ? 's' : ''} — review before procedures`, nav: 'anesthesia' });
+      items.push({ id: 'anesthesia', icon: AlertOctagon, color: C.rose, text: `${anesthesiaCount} Anesthesia Flag${anesthesiaCount > 1 ? 's' : ''}, review before procedures`, nav: 'anesthesia' });
     }
     if (interactions.length > 0) {
       items.push({ id: 'interactions', icon: AlertTriangle, color: C.rose, text: `${interactions.length} Drug Interaction${interactions.length > 1 ? 's' : ''} detected`, nav: 'interactions' });
@@ -767,7 +767,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
 
-  /* Today chips — compact at-a-glance strip above search */
+  /* Today chips, compact at-a-glance strip above search */
   const todayChips = useMemo(() => {
     const chips = [];
     const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -891,7 +891,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       if (!record) return true;
       if (record.permanent) return false;
       if (record.snoozedUntil && now < record.snoozedUntil) return false;
-      return true; // Snooze expired — resurface
+      return true; // Snooze expired, resurface
     });
   }, [dismissedTips, activeMeds, data.providers, hasOura]);
 
@@ -972,18 +972,18 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </section>
       )}
 
-      {/* ── Centerpiece Search — hidden on desktop (SideNav ⌘K handles it) ── */}
+      {/* ── Centerpiece Search, hidden on desktop (SideNav ⌘K handles it) ── */}
       <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7 md:hidden">
         <div className={`search-hero ${searchFocused ? 'search-hero-focused' : ''}`}>
           <div className="search-hero-inner">
             <div className="relative flex items-center">
-              {/* Sparkle accent — visible when idle */}
+              {/* Sparkle accent, visible when idle */}
               {!searchQuery && (
                 <div className="absolute left-3.5 top-1/2 -translate-y-1/2 search-sparkle pointer-events-none z-10">
                   <Sparkles size={15} color={C.lav} strokeWidth={1.5} />
                 </div>
               )}
-              {/* Search icon — visible when typing */}
+              {/* Search icon, visible when typing */}
               {searchQuery && (
                 <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-salve-lav pointer-events-none z-10" />
               )}
@@ -1122,7 +1122,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </section>
       )}
 
-      {/* ── Scribe (mobile only — desktop uses sidebar) ── */}
+      {/* ── Scribe (mobile only, desktop uses sidebar) ── */}
       <section className="dash-stagger dash-stagger-3 mb-5 md:hidden">
         <button
           onClick={() => onNav('formhelper')}
@@ -1139,7 +1139,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </button>
       </section>
 
-      {/* ── Two-column grid zone (desktop) — collapses to single col when left is empty ── */}
+      {/* ── Two-column grid zone (desktop), collapses to single col when left is empty ── */}
       <div className={hasLeftContent ? 'md:grid md:grid-cols-[3fr_2fr] md:gap-6 lg:gap-8 md:items-start' : ''}>
         {/* ── Left column ── */}
         {hasLeftContent && <div>
@@ -1451,7 +1451,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             const fDisplay = f.type === 'bp' && f.value2 ? `${f.value}/${f.value2}` : f.value;
             const fHasChart = f.series && f.series.length >= 2;
             const fmtNum = (n) => {
-              if (n === null || n === undefined) return '—';
+              if (n === null || n === undefined) return ', ';
               return Math.abs(n) >= 10 ? Math.round(n).toString() : n.toFixed(1);
             };
             const captionText = (() => {
@@ -1557,7 +1557,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               </section>
             );
           })()}
-          {/* Mood + Activity — side-by-side at lg+ */}
+          {/* Mood + Activity, side-by-side at lg+ */}
           <div className="lg:grid lg:grid-cols-2 lg:gap-4">
           {/* Mood snapshot */}
           {moodSnapshot && (
@@ -1689,7 +1689,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <div className="relative flex items-end gap-[3px] h-12 mt-2">
                   {(() => {
                     const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
-                    // Goal line at 7h — positioned proportionally within the 36px bar area (10px label offset)
+                    // Goal line at 7h, positioned proportionally within the 36px bar area (10px label offset)
                     const goalBottom = Math.round((7 / maxVal) * 36) + 10;
                     return (<>
                       <div
@@ -1865,7 +1865,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     return (
                       <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
                         <div className="min-w-0 flex-1">
-                          <div className="text-[11px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || '—'}</div>
+                          <div className="text-[11px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || ', '}</div>
                           <div className="text-[10px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
                         </div>
                         <div className="flex-shrink-0 text-right">
@@ -1949,7 +1949,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               );
             })}
           </div>
-          {/* Persistent feedback footer — always present at bottom of onboarding section */}
+          {/* Persistent feedback footer, always present at bottom of onboarding section */}
           <button
             onClick={() => onNav('feedback')}
             className="w-full flex items-center justify-center gap-1.5 mt-3 pt-2.5 border-t border-salve-border/40 bg-transparent border-x-0 border-b-0 cursor-pointer font-montserrat group"
@@ -1988,7 +1988,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </section>
       )}
 
-      {/* Desktop "made with love" tagline — mirrors mobile BottomNav behaviour */}
+      {/* Desktop "made with love" tagline, mirrors mobile BottomNav behaviour */}
       <p className={`hidden md:block text-center text-salve-textFaint text-[10px] tracking-wider py-6 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         made with love for my best friend &amp; soulmate
       </p>

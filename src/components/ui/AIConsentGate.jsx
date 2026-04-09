@@ -54,7 +54,7 @@ export default function AIConsentGate({ children }) {
 
         <div className="flex gap-2">
           <Button variant="lavender" onClick={grant} className="flex-1 justify-center">
-            I Understand — Enable Sage
+            I Understand, Enable Sage
           </Button>
         </div>
 

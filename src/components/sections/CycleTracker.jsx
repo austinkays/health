@@ -269,10 +269,10 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
                 <div className="text-[11px] font-montserrat px-1 -mt-1 mb-2" style={{
                   color: form.value === 'eggwhite' ? C.amber : form.value === 'creamy' ? C.lav : form.value === 'sticky' ? C.textMid : C.sage
                 }}>
-                  {form.value === 'dry' && '→ Infertile — dense mucus blocks sperm'}
-                  {form.value === 'sticky' && '→ Low fertility — minimal sperm survival'}
-                  {form.value === 'creamy' && '→ Medium fertility — approaching ovulation'}
-                  {form.value === 'eggwhite' && '→ Peak fertility — ovulation likely within 1–2 days'}
+                  {form.value === 'dry' && '→ Infertile, dense mucus blocks sperm'}
+                  {form.value === 'sticky' && '→ Low fertility, minimal sperm survival'}
+                  {form.value === 'creamy' && '→ Medium fertility, approaching ovulation'}
+                  {form.value === 'eggwhite' && '→ Peak fertility, ovulation likely within 1–2 days'}
                 </div>
               )}
             </>
@@ -327,7 +327,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
             onFile={processFloFile}
             accept=".json"
             label="Drop Flo export here"
-            hint="Or click to browse — accepts .json"
+            hint="Or click to browse, accepts .json"
             className="mb-3"
           />
           <input ref={fileRef} type="file" accept=".json" onChange={(e) => processFloFile(e.target.files?.[0])} className="block w-full text-sm text-salve-textMid md:hidden file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-medium file:bg-salve-rose/15 file:text-salve-rose file:cursor-pointer cursor-pointer font-montserrat" />
@@ -408,7 +408,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
-              <div className="text-2xl font-playfair font-semibold" style={{ color: C.rose }}>{dayOfCycle > 0 ? dayOfCycle : '—'}</div>
+              <div className="text-2xl font-playfair font-semibold" style={{ color: C.rose }}>{dayOfCycle > 0 ? dayOfCycle : ', '}</div>
               <div className="text-[10px] text-salve-textFaint font-montserrat uppercase">Day</div>
             </div>
             <div>
@@ -417,7 +417,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
             </div>
             <div>
               <div className="text-2xl font-playfair font-semibold" style={{ color: C.amber }}>
-                {nextPeriod ? Math.max(0, Math.ceil((new Date(nextPeriod + 'T00:00:00') - new Date().setHours(0,0,0,0)) / 86400000)) : '—'}
+                {nextPeriod ? Math.max(0, Math.ceil((new Date(nextPeriod + 'T00:00:00') - new Date().setHours(0,0,0,0)) / 86400000)) : ', '}
               </div>
               <div className="text-[10px] text-salve-textFaint font-montserrat uppercase">Days until</div>
             </div>
@@ -532,7 +532,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
           <button onClick={nextMonth} className="p-1 rounded-lg hover:bg-salve-card2 cursor-pointer transition-colors" aria-label="Next month"><ChevronRight size={18} className="text-salve-textMid" /></button>
         </div>
 
-        {/* Overlay toggles — tap to show/hide calendar layers */}
+        {/* Overlay toggles, tap to show/hide calendar layers */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {[
             { key: 'predicted', label: 'Predicted Period', color: C.rose, swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0 border border-dashed" style={{ borderColor: `${C.rose}88`, backgroundColor: `${C.rose}18` }} /> },

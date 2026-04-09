@@ -43,18 +43,18 @@ function Privacy() {
           <li>Vercel (application hosting + serverless API proxies)</li>
           <li>Google Gemini and/or Anthropic Claude (AI features, only with your consent)</li>
           <li>Government medical APIs (RxNorm, OpenFDA, NPPES) for drug and provider lookups (no personal data sent)</li>
-          <li>Oura API (only if you connect a Ring — OAuth2, tokens stored encrypted locally)</li>
+          <li>Oura API (only if you connect a Ring, OAuth2, tokens stored encrypted locally)</li>
         </ul>
       </Section>
 
       <Section title="Your Rights (GDPR / CCPA)">
         <p>You have the right to:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>Access</strong> — view all your data at any time within the app</li>
-          <li><strong>Portability</strong> — export all data as a JSON backup (optionally encrypted) from Settings</li>
-          <li><strong>Rectification</strong> — edit or correct any record in the app</li>
-          <li><strong>Erasure</strong> — erase all data OR permanently delete your entire account (including your authentication record) from Settings. Deletion cascades across every table and cannot be reversed.</li>
-          <li><strong>Withdraw AI consent</strong> — revoke AI data-sharing consent at any time in Settings</li>
+          <li><strong>Access</strong>, view all your data at any time within the app</li>
+          <li><strong>Portability</strong>, export all data as a JSON backup (optionally encrypted) from Settings</li>
+          <li><strong>Rectification</strong>, edit or correct any record in the app</li>
+          <li><strong>Erasure</strong>, erase all data OR permanently delete your entire account (including your authentication record) from Settings. Deletion cascades across every table and cannot be reversed.</li>
+          <li><strong>Withdraw AI consent</strong>, revoke AI data-sharing consent at any time in Settings</li>
         </ul>
       </Section>
 

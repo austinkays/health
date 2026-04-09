@@ -109,7 +109,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     try {
       const result = await extractJournalData(text, buildProfile(data));
       if (result) setExtraction(result);
-    } catch { /* swallow — not critical */ }
+    } catch { /* swallow, not critical */ }
     setExtracting(false);
   };
 
@@ -117,7 +117,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     if (!extraction) return;
     const updates = {};
     if (extraction.mood && MOODS.includes(extraction.mood)) updates.mood = extraction.mood;
-    // Severity is auto-computed from symptoms on save — don't apply extraction severity
+    // Severity is auto-computed from symptoms on save, don't apply extraction severity
     if (extraction.symptoms?.length) {
       updates.symptoms = extraction.symptoms.slice(0, 10).map(s => ({
         name: typeof s === 'string' ? s : (s.name || ''),
@@ -164,7 +164,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
     { v: '5', label: 'Extreme', active: 'bg-salve-rose/20 border-salve-rose/50 text-salve-rose', hover: 'hover:border-salve-rose/30' },
   ];
 
-  // Frequent symptoms — mined from user's past journal entries
+  // Frequent symptoms, mined from user's past journal entries
   const frequentSymptoms = useMemo(() => {
     const counts = {};
     (data.journal || []).forEach(e => {
@@ -260,7 +260,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
       const maxSev = Math.max(...syms.map(s => Number(s.severity) || 3));
       persistForm.severity = String(maxSev * 2); // 1-5 → 2-10
     }
-    // Crisis check — show resources but still save (journal is the user's space)
+    // Crisis check, show resources but still save (journal is the user's space)
     const crisis = detectCrisis(persistForm.content);
     if (editId) {
       await updateItem('journal', editId, persistForm);
@@ -402,7 +402,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             })}
           </div>
 
-          {/* Hydration + Activity — quick body check alongside mood */}
+          {/* Hydration + Activity, quick body check alongside mood */}
           <div className="flex items-center gap-4 mt-2.5 pl-0.5">
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-salve-textFaint font-montserrat">Hydration</span>
@@ -438,7 +438,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           type="button"
           onClick={refreshPrompt}
           className="w-full mb-3 px-3.5 py-2.5 rounded-xl bg-salve-lav/5 border border-salve-lav/15 text-left cursor-pointer hover:bg-salve-lav/8 hover:border-salve-lav/25 transition-all group"
-          aria-label="Reflection prompt — click for a different one"
+          aria-label="Reflection prompt, click for a different one"
         >
           <div className="flex items-center gap-1.5 mb-1">
             <Sparkles size={11} className="text-salve-lav/60" />
@@ -515,7 +515,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         {/* ── Tags ── */}
         <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="flare, fatigue, headache..." />
 
-        {/* ══════════ MORE ABOUT TODAY — Topic Pills ══════════ */}
+        {/* ══════════ MORE ABOUT TODAY, Topic Pills ══════════ */}
         <div className="mt-1 mb-4">
           <div className="flex items-center gap-2 mb-2.5">
             <div className="flex-1 h-px bg-salve-border/50" />
@@ -788,7 +788,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               value={form.gratitude || ''}
               onChange={v => sf('gratitude', v)}
               placeholder="A small win, a kind word, a moment of joy..."
-              hint="Optional — save the bright spots"
+              hint="Optional, save the bright spots"
             />
           </div>
         )}
@@ -942,7 +942,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         );
       })()}
 
-      {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty — start tracking patterns" motif="moon" /> :
+      {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty, start tracking patterns" motif="moon" /> :
         <div className="md:grid md:grid-cols-2 md:gap-4">{data.journal.filter(e => {
           if (tagFilter && !(e.tags && String(e.tags).split(',').map(t => t.trim()).includes(tagFilter))) return false;
           if (symptomFilter && !(e.symptoms || []).some(s => s.name === symptomFilter)) return false;

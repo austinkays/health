@@ -24,7 +24,7 @@ export function daysUntil(d) {
 }
 
 // Returns today's LOCAL calendar date as YYYY-MM-DD. Do not use
-// .toISOString().slice(0,10) — that returns UTC and can be off by one
+// .toISOString().slice(0,10), that returns UTC and can be off by one
 // day for users west of UTC in the evening (e.g., Apr 4 evening PT
 // would be recorded as Apr 5). Every form default + "today" comparison
 // in the app should use this helper.

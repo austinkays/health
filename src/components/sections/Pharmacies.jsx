@@ -252,7 +252,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
                 {/* ── Upcoming refills summary ── */}
                 {refills.length > 0 && meds.length === 0 && (
                   <div className="mt-2 text-xs text-salve-amber flex items-center gap-1">
-                    <Clock size={11} /> Next refill: {fmtRefill(refills[0].refill_date)} — {refills[0].display_name || refills[0].name}
+                    <Clock size={11} /> Next refill: {fmtRefill(refills[0].refill_date)}, {refills[0].display_name || refills[0].name}
                   </div>
                 )}
 

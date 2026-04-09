@@ -27,7 +27,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
   const [cooldownLeft, setCooldownLeft] = useState(0);
   const inputRefs = useRef([]);
 
-  // Countdown timer — resets when a new code is sent
+  // Countdown timer, resets when a new code is sent
   useEffect(() => {
     if (!sent) return;
     setOtpSecondsLeft(OTP_TTL);
@@ -125,7 +125,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
         setCooldownUntil(Date.now() + cd * 1000);
         setError('');
       } else {
-        setError(err.message || 'Invalid code — please try again');
+        setError(err.message || 'Invalid code, please try again');
       }
       setCode(['', '', '', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
@@ -184,7 +184,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             <p className={`text-xs md:text-sm mb-4 ${otpSecondsLeft <= 60 ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
               {otpSecondsLeft > 0
                 ? `Code expires in ${Math.floor(otpSecondsLeft / 60)}:${String(otpSecondsLeft % 60).padStart(2, '0')}`
-                : 'Code expired — please request a new one'
+                : 'Code expired, please request a new one'
               }
             </p>
 
@@ -213,7 +213,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
 
             {cooldownLeft > 0 && (
               <p className="text-salve-rose text-sm mb-3">
-                Too many attempts — try again in {cooldownLeft}s
+                Too many attempts, try again in {cooldownLeft}s
               </p>
             )}
 
@@ -303,10 +303,10 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
         )}
 
         <p className="text-center text-salve-textFaint text-xs md:text-sm mt-6">
-          No password needed — we'll send a code to your email.
+          No password needed, we'll send a code to your email.
         </p>
 
-        {/* Demo mode — explore without signing up */}
+        {/* Demo mode, explore without signing up */}
         {onEnterDemo && (
           <div className="mt-8 pt-6 border-t border-salve-border text-center">
             <p className="text-salve-textFaint text-xs md:text-sm mb-3">Not ready to sign up?</p>

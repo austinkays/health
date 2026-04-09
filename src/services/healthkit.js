@@ -113,7 +113,7 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
   if (typeof input === 'string') {
     processChunkedText(input, input.length, CHUNK_SIZE, OVERLAP, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy, activities, labs, counts, cutoffStr, onProgress);
   } else if (input instanceof ArrayBuffer) {
-    // ArrayBuffer mode (large ZIP files — decode in chunks, never hold full string)
+    // ArrayBuffer mode (large ZIP files, decode in chunks, never hold full string)
     const decoder = new TextDecoder('utf-8');
     const totalBytes = input.byteLength;
     const DECODE_CHUNK = 2 * 1024 * 1024; // 2MB decode window
@@ -199,7 +199,7 @@ function processTextChunk(chunk, rawVitals, rawBP, rawSleep, rawSteps, rawEnergy
     }
   }
 
-  // Parse <ClinicalRecord> with FHIR data (no date filter — labs are always relevant)
+  // Parse <ClinicalRecord> with FHIR data (no date filter, labs are always relevant)
   const clinicalRegex = /<ClinicalRecord\s+([^>]+?)\/>/g;
   while ((match = clinicalRegex.exec(chunk)) !== null) {
     const attrs = parseAttributes(match[1]);

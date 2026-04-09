@@ -121,7 +121,7 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
     setSubView('form');
   };
 
-  // Paste import — processes JSON from the textarea
+  // Paste import, processes JSON from the textarea
   const processPaste = async () => {
     setPasteError('');
     if (!pasteText.trim()) return;

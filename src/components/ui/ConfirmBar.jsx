@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 // Renders a fixed confirmation bar anchored just above where the user tapped.
 // Uses a portal-style fixed overlay so it always appears near the thumb,
 // regardless of scroll position or card nesting depth.
-// Pass itemId to each instance — it only activates when pending.id matches.
+// Pass itemId to each instance, it only activates when pending.id matches.
 export default function ConfirmBar({ pending, onConfirm, onCancel, itemId }) {
   if (!pending || pending.id !== itemId) return null;
 
@@ -14,7 +14,7 @@ export default function ConfirmBar({ pending, onConfirm, onCancel, itemId }) {
         className="fixed inset-0 z-40"
         onClick={onCancel}
       />
-      {/* Confirmation bar — fixed near bottom of screen where thumb is */}
+      {/* Confirmation bar, fixed near bottom of screen where thumb is */}
       <div
         role="alertdialog"
         aria-label={`Confirm delete ${pending.label || 'item'}`}

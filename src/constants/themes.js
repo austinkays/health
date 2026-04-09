@@ -1,4 +1,4 @@
-// Theme presets — single source of truth for all color themes.
+// Theme presets, single source of truth for all color themes.
 // To add a new theme: add one more entry to the `themes` object. Nothing else changes.
 
 export const THEME_STORAGE_KEY = 'salve:theme';
@@ -340,7 +340,7 @@ export const themes = {
   blaze: {
     id: 'blaze',
     label: 'Blaze',
-    description: 'Ember cranked to eleven — raging inferno',
+    description: 'Ember cranked to eleven, raging inferno',
     type: 'dark',
     experimental: true,
     colors: {

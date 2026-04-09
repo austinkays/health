@@ -46,7 +46,7 @@ const BURST_COLORS = ['text-salve-sage', 'text-salve-lav', 'text-salve-amber', '
 function CelebrationBurst() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-visible" aria-hidden="true">
-      {/* Inner ring — small fast sparkles */}
+      {/* Inner ring, small fast sparkles */}
       {[...Array(8)].map((_, i) => (
         <Sparkles
           key={`s-${i}`}
@@ -60,7 +60,7 @@ function CelebrationBurst() {
           }}
         />
       ))}
-      {/* Outer ring — bigger stars that travel further */}
+      {/* Outer ring, bigger stars that travel further */}
       {[...Array(6)].map((_, i) => (
         <Star
           key={`b-${i}`}

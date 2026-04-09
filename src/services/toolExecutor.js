@@ -81,7 +81,7 @@ const DEDUP_RULES = {
       const norm = cleaned.name?.trim().toLowerCase();
       return norm && existing.name?.toLowerCase() === norm ? existing.name : null;
     },
-    detail: (r) => r.status ? ` — status: ${r.status}` : '',
+    detail: (r) => r.status ? `, status: ${r.status}` : '',
   },
   allergies: {
     stateKey: 'allergies',
@@ -99,7 +99,7 @@ const DEDUP_RULES = {
       const norm = cleaned.name?.trim().toLowerCase();
       return norm && existing.name?.toLowerCase() === norm ? existing.name : null;
     },
-    detail: (r) => r.specialty ? ` — ${r.specialty}` : '',
+    detail: (r) => r.specialty ? `, ${r.specialty}` : '',
   },
   todos: {
     stateKey: 'todos',
@@ -108,7 +108,7 @@ const DEDUP_RULES = {
       const norm = cleaned.title?.trim().toLowerCase();
       return norm && existing.title?.toLowerCase() === norm ? existing.title : null;
     },
-    detail: (r) => r.completed ? ' (completed)' : r.due_date ? ` — due ${r.due_date}` : '',
+    detail: (r) => r.completed ? ' (completed)' : r.due_date ? `, due ${r.due_date}` : '',
   },
   genetic_results: {
     stateKey: 'genetic_results',
@@ -117,7 +117,7 @@ const DEDUP_RULES = {
       const gene = cleaned.gene?.trim().toLowerCase();
       return gene && existing.gene?.toLowerCase() === gene ? existing.gene : null;
     },
-    detail: (r) => r.phenotype ? ` — ${r.phenotype}` : '',
+    detail: (r) => r.phenotype ? `, ${r.phenotype}` : '',
   },
   pharmacies: {
     stateKey: 'pharmacies',

@@ -90,7 +90,7 @@ function stripDisclaimer(text) {
 function splitSections(text) {
   if (!text) return [];
   const cleaned = stripDisclaimer(text);
-  // Split by ## headings — keep the heading with its content
+  // Split by ## headings, keep the heading with its content
   const parts = cleaned.split(/(?=^## )/m).filter(s => s.trim());
   if (parts.length > 1) {
     // Drop preamble text before first ## heading
@@ -345,7 +345,7 @@ function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
   const toggleSave = (headline, body, sourceName, sourceUrl) => {
     const exists = saved.find(s => s.headline === headline);
     if (exists) {
-      // Unsaving — require confirmation
+      // Unsaving, require confirmation
       setConfirmUnsave(headline);
       return;
     }
@@ -455,7 +455,7 @@ function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
                   {story.sourceUrl ? (
                     <a href={story.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-salve-amber hover:text-salve-text transition-colors font-montserrat font-medium no-underline hover:underline">
                       <ExternalLink size={10} />
-                      {story.sourceName} — Read full article
+                      {story.sourceName}, Read full article
                     </a>
                   ) : (
                     <span className="text-[11px] text-salve-textFaint italic font-montserrat">Source: {story.sourceName}</span>
@@ -624,7 +624,7 @@ function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inp
           <span className="text-[12px] font-semibold font-montserrat text-salve-amber">Group Consultation</span>
         </div>
         <p className="text-[11px] text-salve-textFaint leading-relaxed font-montserrat">
-          A group chat with Claude and Gemini. Claude responds first, then Gemini reacts — they can agree, disagree, or build on each other's ideas.
+          A group chat with Claude and Gemini. Claude responds first, then Gemini reacts, they can agree, disagree, or build on each other's ideas.
         </p>
       </div>
 
@@ -764,7 +764,7 @@ function ToolExecutionCard({ execution, onConfirm }) {
         <div className="flex items-center gap-1.5 mb-1.5">
           <AlertTriangle size={13} className="text-salve-rose" />
           <span className="font-semibold text-salve-rose">{label}</span>
-          {summary && <span className="text-salve-textFaint">— {summary}</span>}
+          {summary && <span className="text-salve-textFaint">,  {summary}</span>}
         </div>
         <div className="flex gap-2">
           <button onClick={() => onConfirm(true)} className="text-[11px] font-semibold text-salve-text bg-salve-rose/20 hover:bg-salve-rose/30 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Confirm</button>
@@ -785,7 +785,7 @@ function ToolExecutionCard({ execution, onConfirm }) {
     <div className={`rounded-lg border ${colors.border} ${colors.bg} px-2.5 py-1.5 text-[11px] font-montserrat flex items-center gap-1.5`}>
       {colors.icon}
       <span className="text-salve-textMid">{label}</span>
-      {summary && <span className="text-salve-textFaint">— {summary}</span>}
+      {summary && <span className="text-salve-textFaint">,  {summary}</span>}
       {status === 'cancelled' && <span className="text-salve-textFaint italic ml-1">cancelled</span>}
     </div>
   );
@@ -1157,7 +1157,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
   const handleChat = async () => {
     if (!chatInput.trim() || cooldown) return;
-    // Crisis detection — show resources instead of sending to AI
+    // Crisis detection, show resources instead of sending to AI
     const crisis = detectCrisis(chatInput);
     if (crisis.isCrisis) {
       setCrisisType(crisis.type);
@@ -1223,7 +1223,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       {usage.remaining <= 3 && (
         <div className="text-center mb-2">
           <span className="text-[10px] font-montserrat text-salve-rose">
-            {usage.remaining === 0 ? 'Daily limit reached — resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
+            {usage.remaining === 0 ? 'Daily limit reached, resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
           </span>
         </div>
       )}

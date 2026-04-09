@@ -31,7 +31,7 @@ function buildSections(data) {
       items: activeMeds.map(m => ({
         text: m.display_name || m.name,
         detail: [m.dose, m.frequency].filter(Boolean).join(' · ') || undefined,
-        badge: m.rxcui ? undefined : undefined, // clean — no badge noise
+        badge: m.rxcui ? undefined : undefined, // clean, no badge noise
       })),
     });
   }
@@ -252,7 +252,7 @@ export default function AIProfilePreview({ data }) {
             </p>
             <p className="text-[10px] text-salve-lav/70 mb-3 leading-relaxed flex items-center gap-1">
               <MessageSquare size={9} className="flex-shrink-0" />
-              <span>Tell <strong className="text-salve-lav">Sage</strong> to update anything — e.g. "add Lexapro 10mg"</span>
+              <span>Tell <strong className="text-salve-lav">Sage</strong> to update anything, e.g. "add Lexapro 10mg"</span>
             </p>
 
             {sections.length === 0 ? (

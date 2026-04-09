@@ -1,6 +1,6 @@
 // Common lab reference ranges for display purposes
 // Source: standard clinical reference ranges (may vary by lab)
-// These are general adult ranges — individual lab reports may differ
+// These are general adult ranges, individual lab reports may differ
 
 export const LAB_RANGES = {
   // Complete Blood Count (CBC)
@@ -102,7 +102,7 @@ export function findLabRange(testName) {
   const key = testName.trim().toLowerCase();
   // Direct match
   if (LAB_RANGES[key]) return LAB_RANGES[key];
-  // Partial match — check if the test name contains a known key
+  // Partial match, check if the test name contains a known key
   for (const [k, v] of Object.entries(LAB_RANGES)) {
     if (key.includes(k) || k.includes(key)) return v;
   }

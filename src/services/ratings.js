@@ -1,4 +1,4 @@
-// Insight ratings service — thumbs up/down on AI-generated content.
+// Insight ratings service, thumbs up/down on AI-generated content.
 // Uses upsert (one rating per user per surface+content_key).
 
 import { supabase } from './supabase';
@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 const TABLE = 'insight_ratings';
 
 /**
- * Rate a piece of content. Upserts — calling again with the same
+ * Rate a piece of content. Upserts, calling again with the same
  * surface+content_key replaces the previous rating (toggle off by removing).
  */
 export async function rateInsight(surface, contentKey, rating, metadata = null) {
@@ -33,7 +33,7 @@ export async function removeRating(surface, contentKey) {
   if (error) throw error;
 }
 
-/** Load all ratings for the current user (lightweight — typically <100 rows). */
+/** Load all ratings for the current user (lightweight, typically <100 rows). */
 export async function loadRatings() {
   const { data, error } = await supabase
     .from(TABLE)

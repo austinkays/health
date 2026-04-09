@@ -61,9 +61,9 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
     { value: '', label: 'Select provider...' },
     ...(data.providers || []).map(p => ({
       value: p.name,
-      label: `${p.name}${p.specialty ? ` — ${p.specialty}` : ''}`,
+      label: `${p.name}${p.specialty ? `, ${p.specialty}` : ''}`,
     })),
-    { value: '__custom', label: '— Type custom —' },
+    { value: '__custom', label: ',  Type custom , ' },
   ], [data.providers]);
 
   /* ── Resources matched against user data ── */
@@ -149,7 +149,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                       </div>
                     </div>
                     <p className="text-[10px] text-salve-rose/80 mt-1.5 leading-snug italic">
-                      ⚠ Research-stage — not standard care. Always discuss with your healthcare provider before making treatment decisions.
+                      ⚠ Research-stage, not standard care. Always discuss with your healthcare provider before making treatment decisions.
                     </p>
                   </div>
                 ))}

@@ -1,5 +1,5 @@
 /**
- * Oura Ring logo icon — an "O" with a macron (line over it).
+ * Oura Ring logo icon, an "O" with a macron (line over it).
  * Accepts same props as lucide-react icons: size, color, className, style.
  */
 export function OuraIcon({ size = 24, color = 'currentColor', className = '', style, ...rest }) {

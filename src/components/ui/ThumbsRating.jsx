@@ -1,5 +1,5 @@
 // Thumbs up/down rating component for AI-generated content.
-// Compact — fits inline with other action buttons.
+// Compact, fits inline with other action buttons.
 
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 import { C } from '../../constants/colors';

@@ -84,17 +84,17 @@ export function normalizeCondition(name) {
 }
 
 // ---------------------------------------------------------------------------
-// matchResources — rank resources against a user's health data
+// matchResources, rank resources against a user's health data
 // ---------------------------------------------------------------------------
 
 /**
  * Match registered resources against the user's health profile.
  *
  * Reads:
- *   data.conditions        — [{ name, status }]
- *   data.medications       — [{ name, active }]
- *   data.journal_entries   — [{ tags }]  (comma-separated string)
- *   data.settings          — { health_background }
+ *   data.conditions       , [{ name, status }]
+ *   data.medications      , [{ name, active }]
+ *   data.journal_entries  , [{ tags }]  (comma-separated string)
+ *   data.settings         , { health_background }
  *
  * Returns a ranked, URL-deduplicated array of { resource, score }.
  *

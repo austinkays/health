@@ -121,7 +121,7 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
     setEditId(null);
   };
 
-  // Complete toggle — auto-create next occurrence for recurring todos
+  // Complete toggle, auto-create next occurrence for recurring todos
   const toggleComplete = async (t) => {
     const nowCompleted = !t.completed;
     await updateItem('todos', t.id, {

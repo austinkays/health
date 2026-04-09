@@ -1,6 +1,6 @@
 /**
- * correlations.js — Health pattern correlation engine
- * Pure functions only — no React, no side effects, no app-specific imports.
+ * correlations.js, Health pattern correlation engine
+ * Pure functions only, no React, no side effects, no app-specific imports.
  * All date strings are 'YYYY-MM-DD' ISO format.
  */
 
@@ -314,7 +314,7 @@ function extractSeveritySeries(journal) {
 }
 
 /**
- * Exercise days as {date, value: 1}[] — one entry per date that has activities.
+ * Exercise days as {date, value: 1}[], one entry per date that has activities.
  */
 function extractExerciseSeries(activities) {
   if (!activities?.length) return [];
@@ -379,7 +379,7 @@ export function cyclePhase(metric, splitData) {
 }
 
 /**
- * "Your {metric} has been trending {up/down} over the last 2 weeks ({change}). — {sentiment}"
+ * "Your {metric} has been trending {up/down} over the last 2 weeks ({change})., {sentiment}"
  */
 export function trend(metric, result, polarity = 'neutral') {
   const label = METRIC_LABELS[metric] || metric;
@@ -392,8 +392,8 @@ export function trend(metric, result, polarity = 'neutral') {
 
   const dirWord = result.totalChange > 0 ? 'up' : 'down';
   let sentiment = '';
-  if (result.direction === 'improving') sentiment = " — that's encouraging";
-  else if (result.direction === 'worsening') sentiment = ' — worth keeping an eye on';
+  if (result.direction === 'improving') sentiment = ", that's encouraging";
+  else if (result.direction === 'worsening') sentiment = ', worth keeping an eye on';
 
   return `Your ${label} has been trending ${dirWord} over the last 2 weeks (${changeStr})${sentiment}.`;
 }
@@ -485,7 +485,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
       const totalN = splitData.reduce((s, d) => s + d.count, 0);
       const polarity = POLARITY_UP.has(type) ? 'up_is_good' : POLARITY_DOWN.has(type) ? 'down_is_good' : 'neutral';
 
-      // For pain/down_is_good, lower is better when you sleep more — so high sleep → lower pain = positive
+      // For pain/down_is_good, lower is better when you sleep more, so high sleep → lower pain = positive
       const isPositive = (polarity === 'up_is_good' && high.avg > low.avg) ||
                          (polarity === 'down_is_good' && high.avg < low.avg);
       const direction = isPositive ? 'positive' : 'negative';

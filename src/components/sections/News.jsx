@@ -106,7 +106,7 @@ export default function News({ data }) {
         <Card className="text-center py-8">
           <Newspaper size={24} className="text-salve-textFaint/30 mx-auto mb-2" />
           <p className="text-sm text-salve-textFaint font-montserrat">
-            {filter === 'saved' ? 'No saved articles yet — bookmark articles to find them here' :
+            {filter === 'saved' ? 'No saved articles yet, bookmark articles to find them here' :
              filter === 'sage' ? 'No Sage articles yet' :
              'No articles found'}
           </p>
@@ -116,7 +116,7 @@ export default function News({ data }) {
                 Tap <strong>Sage</strong> &rarr; <strong>Health News</strong> to get AI-curated articles matched to your conditions.
               </p>
               <p className="text-xs text-salve-textFaint/40 font-montserrat">
-                Each time you do, the articles are saved here — your feed grows smarter over time.
+                Each time you do, the articles are saved here, your feed grows smarter over time.
               </p>
             </div>
           )}
@@ -203,7 +203,7 @@ export default function News({ data }) {
       {/* Footer hint */}
       {filtered.length > 0 && (
         <p className="text-center text-[10px] text-salve-textFaint/50 font-montserrat mt-4">
-          Articles from trusted sources — matched to your health profile
+          Articles from trusted sources, matched to your health profile
         </p>
       )}
     </div>

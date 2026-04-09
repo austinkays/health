@@ -41,7 +41,7 @@ function StatCard({ icon: Icon, label, value, unit, sub, color }) {
         <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-[22px] font-playfair font-semibold" style={{ color }}>{value ?? '—'}</span>
+        <span className="text-[22px] font-playfair font-semibold" style={{ color }}>{value ?? ', '}</span>
         {unit && <span className="text-[11px] text-salve-textFaint">{unit}</span>}
       </div>
       {sub && <span className="text-[10px] text-salve-textFaint leading-snug">{sub}</span>}
@@ -68,7 +68,7 @@ export default function AppleHealthPage({ data, onNav }) {
 
   const ahVitals = useMemo(() => (data.vitals || []).filter(isAppleHealth), [data.vitals]);
   const ahActivitiesAll = useMemo(() => (data.activities || []).filter(isAppleHealth), [data.activities]);
-  // Filter out passive/tiny activities — real workouts only
+  // Filter out passive/tiny activities, real workouts only
   const ahActivities = useMemo(() => ahActivitiesAll.filter(a => {
     const t = (a.type || '').toLowerCase();
     if (t === 'daily activity' || t === 'daily_activity') return false;

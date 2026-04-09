@@ -72,7 +72,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/common-myths-about-dyslexia-reading-issues',
     source: 'Understood.org',
     blurb:
-      'Debunks widespread misconceptions about dyslexia — including that it\'s a vision problem, that kids will outgrow it, or that letter reversal is the main sign.',
+      'Debunks widespread misconceptions about dyslexia, including that it\'s a vision problem, that kids will outgrow it, or that letter reversal is the main sign.',
     conditions: ['dyslexia', 'learning disability'],
     symptomTags: ['reading', 'spelling'],
     audience: 'both',
@@ -141,7 +141,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/7-common-myths-about-dyscalculia',
     source: 'Understood.org',
     blurb:
-      'Separates fact from fiction about dyscalculia — including myths that it\'s rare, that kids are just lazy, or that it only affects basic arithmetic.',
+      'Separates fact from fiction about dyscalculia, including myths that it\'s rare, that kids are just lazy, or that it only affects basic arithmetic.',
     conditions: ['dyscalculia', 'learning disability'],
     symptomTags: ['math', 'numbers'],
     audience: 'both',
@@ -202,7 +202,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/what-is-executive-function',
     source: 'Understood.org',
     blurb:
-      'Executive function is the brain\'s management system — controlling working memory, focus, planning, and emotional regulation. Learn about signs and treatment.',
+      'Executive function is the brain\'s management system, controlling working memory, focus, planning, and emotional regulation. Learn about signs and treatment.',
     conditions: ['adhd', 'executive function disorder', 'learning disability'],
     symptomTags: ['focus', 'planning', 'organization', 'memory', 'executive function'],
     audience: 'both',
@@ -246,7 +246,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/executive-function-at-work',
     source: 'Understood.org',
     blurb:
-      'Executive function challenges are common and real — they make it hard to start tasks, stay organized, and finish work on time. Practical strategies for the workplace.',
+      'Executive function challenges are common and real, they make it hard to start tasks, stay organized, and finish work on time. Practical strategies for the workplace.',
     conditions: ['adhd', 'executive function disorder'],
     symptomTags: ['organization', 'planning', 'focus', 'workplace', 'executive function'],
     audience: 'self',
@@ -279,7 +279,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/processing-speed-what-you-need-to-know',
     source: 'Understood.org',
     blurb:
-      'Slow processing speed affects how fast someone can take in and use information. It\'s not about intelligence — it\'s about pace. Learn the signs and how to help.',
+      'Slow processing speed affects how fast someone can take in and use information. It\'s not about intelligence, it\'s about pace. Learn the signs and how to help.',
     conditions: ['adhd', 'learning disability'],
     symptomTags: ['processing speed', 'focus', 'learning'],
     audience: 'both',
@@ -412,7 +412,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/classroom-accommodations-executive-function-challenges',
     source: 'Understood.org',
     blurb:
-      'Accommodations for students who struggle with planning, time management, and organization — including structured routines, step-by-step directions, and visual schedules.',
+      'Accommodations for students who struggle with planning, time management, and organization, including structured routines, step-by-step directions, and visual schedules.',
     conditions: ['adhd', 'executive function disorder'],
     symptomTags: ['organization', 'planning', 'classroom', 'accommodations', 'executive function'],
     audience: 'parent',
@@ -445,7 +445,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/articles/understanding-evaluations',
     source: 'Understood.org',
     blurb:
-      'A guide to the evaluation process for learning and thinking differences — what to expect, how to request one, and what the results mean for your child\'s support.',
+      'A guide to the evaluation process for learning and thinking differences, what to expect, how to request one, and what the results mean for your child\'s support.',
     conditions: ['adhd', 'dyslexia', 'dyscalculia', 'learning disability'],
     symptomTags: ['evaluation', 'diagnosis', 'testing'],
     audience: 'parent',
@@ -553,7 +553,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/topics/assistive-technology',
     source: 'Understood.org',
     blurb:
-      'An overview of assistive technology tools that can help people who learn and think differently — from speech-to-text to graphic organizers and reading pens.',
+      'An overview of assistive technology tools that can help people who learn and think differently, from speech-to-text to graphic organizers and reading pens.',
     conditions: ['dyslexia', 'dysgraphia', 'learning disability', 'adhd'],
     symptomTags: ['assistive technology', 'reading', 'writing', 'accessibility'],
     audience: 'both',
@@ -567,7 +567,7 @@ const UNDERSTOOD_ARTICLES = [
     url: 'https://www.understood.org/en/topics/learning-thinking-differences',
     source: 'Understood.org',
     blurb:
-      'A comprehensive guide to learning and thinking differences like ADHD and dyslexia. With the right support, people can thrive — get facts, stories, and resources.',
+      'A comprehensive guide to learning and thinking differences like ADHD and dyslexia. With the right support, people can thrive, get facts, stories, and resources.',
     conditions: ['adhd', 'dyslexia', 'dyscalculia', 'dysgraphia', 'learning disability'],
     symptomTags: ['learning', 'neurodiversity'],
     audience: 'both',

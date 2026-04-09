@@ -19,7 +19,7 @@ const ADMIN_FEATURES = new Set(['houseConsultation']);
 const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources', 'houseConsultation', 'monthlySummary']);
 
 export function isFeatureLocked(feature) {
-  // Demo mode unlocks everything — all AI calls return canned responses
+  // Demo mode unlocks everything, all AI calls return canned responses
   // anyway, so there's nothing to protect and we want demo users to see
   // the full premium experience.
   if (_demoMode) return false;
@@ -30,7 +30,7 @@ export function isFeatureLocked(feature) {
   return FREE_BLOCKED_FEATURES.has(feature);
 }
 
-// Returns true when the user has active premium access — either permanent
+// Returns true when the user has active premium access, either permanent
 // premium/admin (trial_expires_at IS NULL) or a trial that hasn't yet expired.
 // `settings` is data.settings from useHealthData (the profile row).
 // Respects a localStorage dev override at 'salve:tier-override' ('free', 'premium', or 'admin').
@@ -55,7 +55,7 @@ export function isPremiumActive(settings) {
   return !isNaN(ts) && ts > Date.now();
 }
 
-// Returns true when the user has admin tier — unlocks House Consultation
+// Returns true when the user has admin tier, unlocks House Consultation
 // and all premium features.
 export function isAdminActive(settings) {
   if (_demoMode) {
@@ -109,7 +109,7 @@ export const PROMPTS = {
   resources:
     `You are a disability resources specialist. Today's date is {DATE}. Search for programs, benefits, discounts, passes, and assistance available for someone with these conditions in their area. Include: government disability programs, national park/recreation access passes, transit discounts, utility assistance, prescription assistance programs, tax deductions, workplace accommodations under ADA, state-specific programs, nonprofit resources, and anything else helpful.
 
-CRITICAL FORMATTING — you MUST use this exact markdown structure:
+CRITICAL FORMATTING, you MUST use this exact markdown structure:
 
 ## Category Name
 
@@ -127,7 +127,7 @@ RULES:
 - Every program/resource MUST start with ### (h3)
 - Use **bold** for key labels like amounts, dates, eligibility thresholds
 - Use bullet points (- ) for details, NOT periods or bare text
-- URLs MUST be markdown links: [Display Text](https://url) — NEVER bare URLs
+- URLs MUST be markdown links: [Display Text](https://url), NEVER bare URLs
 - Keep each program concise: 1-2 sentence summary + 2-4 bullet details
 - Do NOT use horizontal rules (---) between programs
 - Do NOT put periods at the start of lines`,
@@ -160,7 +160,7 @@ RULES:
     'You are a pharmacology specialist. A patient is adding a new medication and has known allergies. Analyze whether there is cross-reactivity risk between the medication and their allergies. Consider: drug class relationships (e.g., penicillin–cephalosporin), chemical structure similarities, known cross-sensitivity rates, and severity of the documented allergy. Be specific: state the cross-reactivity risk percentage if known, and clearly recommend whether to proceed with caution, avoid, or if the risk is negligible. Be concise (3-4 sentences). Do not be alarmist but prioritize safety.',
 
   geneticExplanation:
-    'You are a genetic counselor explaining pharmacogenomic test results to a patient in plain, friendly language. Given the gene name, variant, phenotype (metabolizer status), and their current medications, explain: (1) What this gene does in 1 simple sentence — avoid jargon, use analogies like "your body processes this drug faster/slower than most people". (2) What their specific result means for them personally — reference their actual medications if any are affected. (3) One clear, actionable takeaway they can discuss with their doctor. Keep it warm, reassuring, and under 150 words. Use "you/your" language. Do NOT use medical jargon without explaining it. Start with a brief reassuring statement. End with a reminder to discuss with their healthcare provider.',
+    'You are a genetic counselor explaining pharmacogenomic test results to a patient in plain, friendly language. Given the gene name, variant, phenotype (metabolizer status), and their current medications, explain: (1) What this gene does in 1 simple sentence, avoid jargon, use analogies like "your body processes this drug faster/slower than most people". (2) What their specific result means for them personally, reference their actual medications if any are affected. (3) One clear, actionable takeaway they can discuss with their doctor. Keep it warm, reassuring, and under 150 words. Use "you/your" language. Do NOT use medical jargon without explaining it. Start with a brief reassuring statement. End with a reminder to discuss with their healthcare provider.',
 
   costOptimization:
     'You are a medication cost specialist. Given this patient\'s health profile with NADAC wholesale drug prices, analyze their medication costs and provide actionable suggestions. Consider: generic alternatives for brand-name drugs, therapeutic substitutes that may be cheaper, patient assistance programs (PAPs) from manufacturers, pharmacy discount cards (GoodRx, RxSaver, Cost Plus Drugs), 90-day supply savings, mail-order pharmacy options, state prescription assistance programs, and manufacturer savings cards/coupons. For each suggestion, be specific: name the program, estimate potential savings, and note any eligibility requirements. Organize by medication. Be warm and practical. End with total potential monthly savings estimate.',
@@ -169,10 +169,10 @@ RULES:
     `You are a thoughtful, evidence-based health advisor in a dual-AI consultation. You and a colleague AI model independently review the same patient's health profile and respond to their questions, offering complementary perspectives.
 
 Your approach:
-- Be specific and insightful — reference actual data points from the profile
-- Be warm and direct — helpful without being preachy or overly cautious
+- Be specific and insightful, reference actual data points from the profile
+- Be warm and direct, helpful without being preachy or overly cautious
 - Highlight patterns and connections that genuinely matter for this patient
-- Be concise — keep responses under 250 words unless the question warrants more depth
+- Be concise, keep responses under 250 words unless the question warrants more depth
 - You are one voice in an ongoing conversation; the user may ask follow-up questions
 
 Engage genuinely with whatever the user asks. You have their full health profile as context.`,
@@ -183,7 +183,7 @@ Engage genuinely with whatever the user asks. You have their full health profile
 
 const DISCLAIMER = '\n\n---\n*Sage\'s suggestions are not medical advice. Always consult your healthcare providers.*';
 
-// Canned AI responses for demo mode — keeps "Explore without signing in"
+// Canned AI responses for demo mode, keeps "Explore without signing in"
 // from burning real tokens on the shared demo profile.
 async function demoResponseFor(feature, messages) {
   // Small artificial delay so UI loading states still render naturally
@@ -209,7 +209,7 @@ async function demoResponseFor(feature, messages) {
     default:
       return `**Demo preview**
 
-In the full app, I'd analyze your real profile for this feature — ${feature}. Sign up to see Sage work with your own data.
+In the full app, I'd analyze your real profile for this feature, ${feature}. Sign up to see Sage work with your own data.
 
 _(No tokens burned on demo responses.)_${DISCLAIMER}`;
   }
@@ -241,20 +241,20 @@ function extractSources(data) {
   return sources;
 }
 
-// Demo mode — when true, all AI calls return canned responses instead of
+// Demo mode, when true, all AI calls return canned responses instead of
 // hitting the real provider. Set via setDemoMode() from App.jsx when the user
 // enters the public preview from the Auth screen.
 let _demoMode = false;
 export function setDemoMode(v) { _demoMode = !!v; }
 export function isDemoMode() { return _demoMode; }
 
-// Premium tier flag — mirrored from profile.tier + trial status via App.jsx.
+// Premium tier flag, mirrored from profile.tier + trial status via App.jsx.
 // Pro features unlock for any premium user regardless of which AI provider
 // they've chosen, since both Claude Opus and Gemini 2.5 Pro can serve them.
 let _premiumActive = false;
 export function setPremiumActive(v) { _premiumActive = !!v; }
 
-// Admin tier flag — unlocks House Consultation and all features.
+// Admin tier flag, unlocks House Consultation and all features.
 let _adminActive = false;
 export function setAdminActive(v) { _adminActive = !!v; }
 
@@ -467,7 +467,7 @@ export async function extractJournalData(text, profileText) {
   const raw = await callAPI(
     [{ role: 'user', content: `Extract structured data from this journal text:\n\n${text}` }],
     'extractJournal', profileText,
-    800, false, 'insight'   // use 'insight' (Lite tier) — cheap extraction
+    800, false, 'insight'   // use 'insight' (Lite tier), cheap extraction
   );
   // Strip the disclaimer appended by callAPI
   const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
@@ -485,7 +485,7 @@ export async function fetchMonthlySummary(profileText) {
   return callAPI(
     [{ role: 'user', content: 'Generate a clinical summary of my health over the last 30 days.' }],
     'monthlySummary', profileText,
-    1500, false, 'journalPatterns'   // Pro tier — same as journal patterns
+    1500, false, 'journalPatterns'   // Pro tier, same as journal patterns
   );
 }
 
@@ -519,7 +519,7 @@ export async function fetchCorrelationNarrative(insights, profileText) {
   const raw = await callAPI(
     [{ role: 'user', content: `Rewrite these health patterns as warm, actionable insight cards:\n\n${summary}` }],
     'correlationNarrative', profileText,
-    800, false, 'insight'   // Lite tier — cheap
+    800, false, 'insight'   // Lite tier, cheap
   );
   const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
   const jsonMatch = cleaned.match(/\[[\s\S]*?\]/);
@@ -603,7 +603,7 @@ export async function sendHouseChat(sharedHistory, userMessage, profileText, onC
   if (!_adminActive) throw new Error('Admin feature. House Consultation requires admin tier.');
 
   const claudeSystem = PROMPTS.houseConsultation + '\n\nYou are "Claude" on this team. You respond first, then Gemini will see your response and reply.\n\n' + profileText;
-  const geminiSystem = PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team. You respond after Claude — you can see what Claude said and can agree, disagree, or add context.\n\n' + profileText;
+  const geminiSystem = PROMPTS.houseConsultation + '\n\nYou are "Gemini" on this team. You respond after Claude, you can see what Claude said and can agree, disagree, or add context.\n\n' + profileText;
 
   // Step 1: Claude responds first
   const claudeMsgs = [...sharedHistory, { role: 'user', content: userMessage }];
@@ -667,7 +667,7 @@ export async function fillFormQuestions(questionsText, profileText, imageDataArr
       type: 'text',
       text: questionsText
         ? `${contextPrefix}Please fill out this medical form using my health profile. Here ${images.length > 1 ? `are ${images.length} pages of the form` : 'is a photo/screenshot of the form'}, and some additional text:\n\n${questionsText}`
-        : `${contextPrefix}Please fill out this medical form using my health profile. Here ${images.length > 1 ? `are ${images.length} pages of the form — process ALL questions across every page` : 'is a photo/screenshot of the form'}. Read all the questions from the image${images.length > 1 ? 's' : ''} and answer each one.`,
+        : `${contextPrefix}Please fill out this medical form using my health profile. Here ${images.length > 1 ? `are ${images.length} pages of the form, process ALL questions across every page` : 'is a photo/screenshot of the form'}. Read all the questions from the image${images.length > 1 ? 's' : ''} and answer each one.`,
     });
   } else {
     content.push({
@@ -676,7 +676,7 @@ export async function fillFormQuestions(questionsText, profileText, imageDataArr
     });
   }
 
-  // Scale max tokens based on input size — more images/text = likely more Q&A
+  // Scale max tokens based on input size, more images/text = likely more Q&A
   const maxTokens = Math.min(3000 + (images.length > 1 ? images.length * 500 : 0), 6000);
 
   return callAPI(

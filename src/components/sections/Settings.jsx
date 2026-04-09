@@ -9,7 +9,7 @@ import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import { getAIProvider, setAIProvider, isPremiumActive, isAdminActive, trialDaysRemaining } from '../../services/ai';
-// Auto-set AI provider based on tier — no manual model picker needed
+// Auto-set AI provider based on tier, no manual model picker needed
 import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
@@ -20,18 +20,18 @@ import { supabase } from '../../services/supabase';
 import { startCheckout, openCustomerPortal } from '../../services/billing';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
-const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync" — a health-data sync tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
+const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
 
-When the file arrives, do this immediately — no commentary, no questions first:
+When the file arrives, do this immediately, no commentary, no questions first:
 
 1. Create a React artifact. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE file contents into the artifact, unchanged. Do not rewrite, refactor, summarize, shorten, or "fix" anything. The code is already complete and working.
 
 2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
 3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have the required MCP connectors enabled in Claude. The artifact needs these two:
-   - healthex (URL: https://api.healthex.io/mcp) — pulls records from my patient portals
-   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp) — pulls my Function Health lab panels
-   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives — spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
+   - healthex (URL: https://api.healthex.io/mcp), pulls records from my patient portals
+   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp), pulls my Function Health lab panels
+   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
 
 Ready? I'll attach the file next.`;
 
@@ -39,16 +39,16 @@ const PROJECT_INSTRUCTIONS = `This project is for syncing my health records into
 
 The knowledge file salve-sync.jsx is the complete source code for a React artifact called "Salve Health Sync". It uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON that I import into Salve.
 
-Whenever I ask you to sync, pull records, start the sync artifact, or anything similar, do this immediately — no commentary, no questions first:
+Whenever I ask you to sync, pull records, start the sync artifact, or anything similar, do this immediately, no commentary, no questions first:
 
 1. Create a React artifact. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE contents of salve-sync.jsx into the artifact, unchanged. Do not rewrite, refactor, summarize, shorten, or "fix" anything. The code is already complete and working.
 
 2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
 3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have the required MCP connectors enabled in Claude. The artifact needs these two:
-   - healthex (URL: https://api.healthex.io/mcp) — pulls records from my patient portals
-   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp) — pulls my Function Health lab panels
-   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives — spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
+   - healthex (URL: https://api.healthex.io/mcp), pulls records from my patient portals
+   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp), pulls my Function Health lab panels
+   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
 
 Dependencies available in the Claude artifacts runtime: react and lucide-react. No other imports needed, no external API calls from the file itself.`;
 
@@ -85,7 +85,7 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
   return (
     <button
       onClick={() => !isLocked && onSelect(theme.id)}
-      aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ' — premium' : ''}`}
+      aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ', premium' : ''}`}
       aria-pressed={isActive}
       style={{ backgroundColor: c.bg, borderColor: isActive ? undefined : c.border }}
       className={`relative p-2 rounded-xl border transition-all font-montserrat text-center ${
@@ -99,7 +99,7 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
       {isLocked && (
         <div className="absolute top-1 right-1.5 text-[9px]" style={{ color: c.lav }} aria-hidden="true">🔒</div>
       )}
-      {/* Palette bar — accent colours as segmented strip */}
+      {/* Palette bar, accent colours as segmented strip */}
       <div className="flex gap-px mb-1.5 rounded-md overflow-hidden h-1.5">
         {['lav', 'sage', 'amber', 'rose'].map(key => (
           <span key={key} className="flex-1 h-full" style={{ backgroundColor: c[key] }} />
@@ -139,7 +139,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
   const handleSelect = (id) => {
     const isExperimental = !!allThemes[id]?.experimental;
     if (isExperimental && userTier === 'free') {
-      setTheme(id); // preview only — auto-reverts on unmount
+      setTheme(id); // preview only, auto-reverts on unmount
     } else {
       saveTheme(id); // persist immediately
     }
@@ -166,12 +166,12 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
       {isPreviewing && (
         <div className="mb-3 flex items-center justify-between px-3 py-2 rounded-xl border border-salve-amber/25 bg-salve-amber/5">
           <span className="text-[11px] text-salve-textMid font-montserrat">
-            Previewing <strong className="text-salve-amber">{allThemes[themeId]?.label}</strong> — resets when you leave
+            Previewing <strong className="text-salve-amber">{allThemes[themeId]?.label}</strong>, resets when you leave
           </span>
           <span className="text-[9px] text-salve-textFaint font-montserrat">Premium to keep</span>
         </div>
       )}
-      {/* ── Core themes — 3-col grid (6 themes = 2 perfect rows, no orphans) ── */}
+      {/* ── Core themes, 3-col grid (6 themes = 2 perfect rows, no orphans) ── */}
       <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
         {core.map(t => (
           <ThemeTile
@@ -184,7 +184,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
         ))}
       </div>
 
-      {/* ── Experimental / Premium themes — collapsible panel ── */}
+      {/* ── Experimental / Premium themes, collapsible panel ── */}
       {experimental.length > 0 && (
         <div className="mt-3">
           <button
@@ -259,7 +259,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [deleteError, setDeleteError] = useState(null);
   const [dedupStatus, setDedupStatus] = useState(null); // null | 'running' | { results }
   const [aiConsent, setAiConsent] = useState(() => hasAIConsent());
-  // Effective tier — factors in trial expiry + localStorage dev override
+  // Effective tier, factors in trial expiry + localStorage dev override
   const userTier = isAdminActive(s) ? 'admin' : isPremiumActive(s) ? 'premium' : 'free';
   const trialDays = trialDaysRemaining(s);
   const isOnTrial = trialDays != null && trialDays > 0;
@@ -270,7 +270,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
-      await startCheckout(); // redirects — never returns on success
+      await startCheckout(); // redirects, never returns on success
     } catch (err) {
       setCheckoutError(err.message || 'Could not start checkout. Try again.');
       setCheckoutLoading(false);
@@ -297,7 +297,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
   const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
 
-  // Auto-set AI provider based on tier — premium gets Claude, free gets Gemini
+  // Auto-set AI provider based on tier, premium gets Claude, free gets Gemini
   useEffect(() => {
     const shouldBe = userTier === 'premium' ? 'anthropic' : 'gemini';
     if (getAIProvider() !== shouldBe) setAIProvider(shouldBe);
@@ -427,7 +427,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       const selected = pharmacies.find(p => p.id === pharmacyId);
       if (selected) {
         await updateItem('pharmacies', selected.id, { is_preferred: true });
-        set('pharmacy', selected.name + (selected.address ? ` — ${selected.address}` : ''));
+        set('pharmacy', selected.name + (selected.address ? `, ${selected.address}` : ''));
       }
     } else {
       set('pharmacy', '');
@@ -619,7 +619,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <p className="text-sm font-montserrat font-medium text-salve-text">Push Notifications</p>
               <p className="text-[11px] text-salve-textFaint font-montserrat mt-0.5">
                 {pushPermission === 'denied'
-                  ? 'Blocked by your browser — check browser settings to allow'
+                  ? 'Blocked by your browser, check browser settings to allow'
                   : pushPermission === 'unsupported'
                     ? 'Not supported in this browser'
                     : pushEnabled
@@ -690,7 +690,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <div className="flex-1 min-w-0">
               <span className="text-sm text-salve-text font-medium">☽ On Demand</span>
               <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                Sage responds when you ask — included free
+                Sage responds when you ask, included free
               </p>
             </div>
           </button>
@@ -775,7 +775,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         {isOnTrial && (
           <div className="mt-2 space-y-2">
             <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
-              You're on a 14-day free trial with full access to every feature. Enjoy the ride — no payment needed to explore.
+              You're on a 14-day free trial with full access to every feature. Enjoy the ride, no payment needed to explore.
             </p>
             <button
               onClick={handleUpgrade}
@@ -842,7 +842,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             Manage subscription →
           </button>
         )}
-        {/* Dev-mode tier override — lets you preview the free/expired state without waiting */}
+        {/* Dev-mode tier override, lets you preview the free/expired state without waiting */}
         {import.meta.env.DEV && (
           <div className="mt-3 pt-3 border-t border-salve-border">
             <p className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1.5">Dev: tier override</p>
@@ -927,7 +927,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           value={s.health_background || ''}
           onChange={v => set('health_background', v)}
           textarea
-          placeholder="Context for Sage — e.g. chronic fatigue since 2019, pain flares in cold weather..."
+          placeholder="Context for Sage, e.g. chronic fatigue since 2019, pain flares in cold weather..."
         />
         <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
       </Card>
@@ -945,7 +945,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <option value="">No preferred pharmacy</option>
                 {pharmacies.sort((a, b) => a.name.localeCompare(b.name)).map(p => (
                   <option key={p.id} value={p.id}>
-                    {p.is_preferred ? '★ ' : ''}{p.name}{p.address ? ` — ${p.address}` : ''}
+                    {p.is_preferred ? '★ ' : ''}{p.name}{p.address ? `, ${p.address}` : ''}
                   </option>
                 ))}
               </select>
@@ -1001,7 +1001,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </div>
                 <h4 className="text-[13px] text-salve-text font-medium font-montserrat mb-1">Create a Claude Project</h4>
                 <p className="text-[11px] text-salve-textFaint leading-relaxed mb-3">
-                  Set this up once on Claude.ai and every future sync is one short message like "sync my records" — no re-attaching files, no re-pasting prompts.
+                  Set this up once on Claude.ai and every future sync is one short message like "sync my records", no re-attaching files, no re-pasting prompts.
                 </p>
 
                 <ol className="text-[11px] text-salve-textMid space-y-2.5 leading-relaxed list-decimal pl-5 mb-3">
@@ -1063,7 +1063,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                   </li>
                 </ul>
                 <p className="text-[10px] text-salve-textFaint italic leading-relaxed">
-                  Don't worry if you're not sure how to add connectors — Claude will walk you through it once the artifact loads and checks what's missing.
+                  Don't worry if you're not sure how to add connectors, Claude will walk you through it once the artifact loads and checks what's missing.
                 </p>
               </div>
 
@@ -1078,7 +1078,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     Open a new chat on Claude.ai and follow these steps in order.
                   </p>
 
-                  {/* Step 1 — Prep prompt */}
+                  {/* Step 1, Prep prompt */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">1</span>
@@ -1092,14 +1092,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     </div>
                   </div>
 
-                  {/* Step 2 — Attach file */}
+                  {/* Step 2, Attach file */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">2</span>
                       <span className="text-[12px] text-salve-text font-medium font-montserrat">Attach the file</span>
                     </div>
                     <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
-                      Download it, then attach it as your next message in Claude. You don't need to type anything — Claude already has its instructions from step 1.
+                      Download it, then attach it as your next message in Claude. You don't need to type anything, Claude already has its instructions from step 1.
                     </p>
                     <div className="pl-7">
                       <a
@@ -1116,7 +1116,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     </div>
                   </div>
 
-                  {/* Step 3 — Import */}
+                  {/* Step 3, Import */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">3</span>
@@ -1361,7 +1361,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               onFile={processImportFile}
               accept=".json"
               label="Drop backup file here"
-              hint="Or click to browse — accepts .json backups"
+              hint="Or click to browse, accepts .json backups"
               className="mb-3"
             />
 
@@ -1571,7 +1571,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                       setDeleteError(null);
                       try {
                         await deleteAccount();
-                        // Account is gone — force a clean reload
+                        // Account is gone, force a clean reload
                         window.location.href = '/';
                       } catch (err) {
                         setDeleteError(err.message || 'Deletion failed');
@@ -1622,7 +1622,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <div>
               <div className="text-sm font-medium text-salve-text font-montserrat mb-1">Add Salve to your home screen</div>
               <p className="text-[12px] text-salve-textFaint font-montserrat leading-relaxed m-0">
-                Salve works as a full app when installed — faster launch, offline access, and no browser bar.
+                Salve works as a full app when installed, faster launch, offline access, and no browser bar.
               </p>
             </div>
           </div>

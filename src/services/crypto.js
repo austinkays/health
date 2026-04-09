@@ -6,7 +6,7 @@ const SALT_LENGTH = 16;
 const IV_LENGTH = 12;
 const CHUNK = 8192; // Process base64 in 8KB chunks to avoid call-stack overflow
 
-// Chunked base64 encode — btoa(String.fromCharCode(...bytes)) crashes or
+// Chunked base64 encode, btoa(String.fromCharCode(...bytes)) crashes or
 // blocks the main thread for seconds when bytes.length > ~50KB.
 function uint8ToBase64(bytes) {
   let binary = '';
@@ -105,7 +105,7 @@ export async function decrypt(b64, token) {
         { name: 'AES-GCM', iv }, key, ciphertext
       );
       return new TextDecoder().decode(decrypted);
-    } catch { /* not 10k — try legacy */ }
+    } catch { /* not 10k, try legacy */ }
 
     // Try legacy 100k iterations (data encrypted before this change)
     try {
@@ -131,7 +131,7 @@ export async function decrypt(b64, token) {
 // Pre-derive the key using the salt from the existing cached data.
 // This way cache.read() → decrypt() finds the key already cached and skips PBKDF2.
 // IMPORTANT: only decode enough base64 to extract the salt (16 bytes).
-// The full cache can be megabytes — decoding it all blocks the main thread.
+// The full cache can be megabytes, decoding it all blocks the main thread.
 export async function prewarmKey(token, cachedB64) {
   try {
     if (!cachedB64 || cachedB64.length < 40) return;

@@ -14,7 +14,7 @@ export default function DemoBanner({ onExit }) {
       <div className="max-w-[480px] mx-auto px-4 py-2 flex items-center gap-2 md:max-w-[720px] lg:max-w-[960px]">
         <Sparkles size={13} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
         <p className="text-[11px] text-salve-text font-montserrat flex-1 leading-tight m-0">
-          Demo mode — exploring with an example user's data.
+          Demo mode, exploring with an example user's data.
         </p>
         <button
           onClick={onExit}

@@ -928,7 +928,7 @@ export default function FormHelper({ data, onNav }) {
                     Tired of filling out the same medical forms?
                   </p>
                   <p className="text-xs text-salve-textMid font-montserrat m-0 leading-relaxed">
-                    Select all the form text, copy it, and paste below — or snap a screenshot. Sage will match the questions to your health records and draft your answers.
+                    Select all the form text, copy it, and paste below, or snap a screenshot. Sage will match the questions to your health records and draft your answers.
                   </p>
                 </div>
               </div>
@@ -1038,7 +1038,7 @@ export default function FormHelper({ data, onNav }) {
                   {dragOver ? 'Drop your form here' : 'Drop a screenshot or PDF, or tap to upload'}
                 </span>
                 <span className="text-[11px] text-salve-textFaint font-montserrat">
-                  PNG, JPG, PDF — up to {MAX_IMAGES} pages, 5 MB each
+                  PNG, JPG, PDF, up to {MAX_IMAGES} pages, 5 MB each
                 </span>
               </div>
             )}
@@ -1197,7 +1197,7 @@ export default function FormHelper({ data, onNav }) {
 
             <Card className="!border-salve-border/50">
               <p className="text-[10px] text-salve-textFaint font-montserrat italic text-center m-0 leading-relaxed">
-                Always review before submitting — Sage fills in what it can from your records. Answers marked with ⚠ are personal questions only you can answer.
+                Always review before submitting, Sage fills in what it can from your records. Answers marked with ⚠ are personal questions only you can answer.
               </p>
             </Card>
           </>

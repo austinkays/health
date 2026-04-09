@@ -62,7 +62,7 @@ export async function deleteAccount() {
     const detail = await res.json().catch(() => ({}));
     throw new Error(detail.error || 'Account deletion failed');
   }
-  // Local session is dead now — sign out client-side to clear it cleanly
+  // Local session is dead now, sign out client-side to clear it cleanly
   await supabase.auth.signOut().catch(() => {});
 }
 

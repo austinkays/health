@@ -25,7 +25,7 @@ if (_params.get('state') === 'salve-oura' && _params.get('code')) {
 export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     // Disable navigator.locks to prevent lock contention.
-    // db.loadAll() fires 24 parallel queries — each internally calls getSession()
+    // db.loadAll() fires 24 parallel queries, each internally calls getSession()
     // which acquires an exclusive lock. With 24 concurrent requests, the 5-second
     // lock timeout cascades and stalls initial page load for 60+ seconds.
     // Salve is a single-tab PWA; cross-tab session coordination is unnecessary.

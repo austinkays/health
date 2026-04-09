@@ -56,7 +56,7 @@ function summarizeVitals(vitals) {
     groups[v.type].push(v);
   });
 
-  let out = '\n— VITALS SUMMARY —\n';
+  let out = '\n,  VITALS SUMMARY , \n';
   for (const [type, entries] of Object.entries(groups)) {
     const t = VITAL_TYPES.find(x => x.id === type);
     const label = t ? t.label : type;
@@ -108,7 +108,7 @@ function summarizeVitals(vitals) {
     out += 'Recent notes: ';
     out += withNotes.map(v => {
       const t = VITAL_TYPES.find(x => x.id === v.type);
-      return (t ? t.label : v.type) + ' ' + v.value + ' on ' + v.date + ' — ' + v.notes;
+      return (t ? t.label : v.type) + ' ' + v.value + ' on ' + v.date + ', ' + v.notes;
     }).join('; ');
     out += '\n';
   }
@@ -124,11 +124,11 @@ export function buildProfile(data) {
   if (s.name) p += 'Patient name: ' + san(s.name) + '\n';
   if (s.location) p += 'Location: ' + san(s.location) + '\n';
 
-  // About Me — personal context for form filling and AI
+  // About Me, personal context for form filling and AI
   const about = s.about_me || {};
   const aboutEntries = Object.entries(about).filter(([, v]) => v && String(v).trim());
   if (aboutEntries.length > 0) {
-    p += '\n— ABOUT ME —\n';
+    p += '\n,  ABOUT ME , \n';
     const labels = {
       pronouns: 'Pronouns', occupation: 'Occupation', employer: 'Employer/School',
       education: 'Education', living_situation: 'Living Situation',
@@ -150,8 +150,8 @@ export function buildProfile(data) {
     }
   }
 
-  // Active medications — condensed FDA data
-  p += '\n— ACTIVE MEDICATIONS —\n';
+  // Active medications, condensed FDA data
+  p += '\n,  ACTIVE MEDICATIONS , \n';
   const active = (data.meds || []).filter(m => m.active !== false);
   if (active.length === 0) p += '(none)\n';
   active.forEach(m => {
@@ -163,7 +163,7 @@ export function buildProfile(data) {
     if (m.route) p += ' (' + m.route + ')';
     if (m.fda_data?.pharm_class?.length) p += ' [class: ' + m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ') + ']';
     if (m.fda_data?.pharm_class_moa?.length) p += ' [mechanism: ' + m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ') + ']';
-    if (m.purpose) p += ' — for: ' + m.purpose;
+    if (m.purpose) p += ', for: ' + m.purpose;
     if (m.prescriber) p += ' [prescribed by ' + m.prescriber + ']';
     p += condenseFDA(m.fda_data);
     // Append price data if available
@@ -204,17 +204,17 @@ export function buildProfile(data) {
   // Discontinued medications
   const disc = (data.meds || []).filter(m => m.active === false);
   if (disc.length) {
-    p += '\n— DISCONTINUED MEDICATIONS —\n';
+    p += '\n,  DISCONTINUED MEDICATIONS , \n';
     disc.forEach(m => {
       p += '- ' + m.name;
       if (m.dose) p += ' ' + m.dose;
-      if (m.notes) p += ' — ' + m.notes;
+      if (m.notes) p += ', ' + m.notes;
       p += '\n';
     });
   }
 
   // Conditions
-  p += '\n— CONDITIONS & DIAGNOSES —\n';
+  p += '\n,  CONDITIONS & DIAGNOSES , \n';
   const conds = data.conditions || [];
   if (conds.length === 0) p += '(none)\n';
   conds.forEach(c => {
@@ -222,24 +222,24 @@ export function buildProfile(data) {
     if (c.diagnosed_date) p += ', diagnosed ' + c.diagnosed_date;
     if (c.provider) p += ', treated by ' + c.provider;
     if (c.linked_meds) p += ', meds: ' + c.linked_meds;
-    if (c.notes) p += ' — ' + c.notes;
+    if (c.notes) p += ', ' + c.notes;
     p += '\n';
   });
 
   // Allergies
   const allergies = data.allergies || [];
   if (allergies.length) {
-    p += '\n— ALLERGIES —\n';
+    p += '\n,  ALLERGIES , \n';
     allergies.forEach(a => {
       p += '- ' + a.substance + ' (' + a.severity + ')';
       if (a.type) p += ' [type: ' + a.type + ']';
-      if (a.reaction) p += ' — reaction: ' + a.reaction;
-      if (a.notes) p += ' — ' + san(a.notes);
+      if (a.reaction) p += ', reaction: ' + a.reaction;
+      if (a.notes) p += ', ' + san(a.notes);
       p += '\n';
     });
   }
 
-  // Vitals — aggregated summary instead of individual readings
+  // Vitals, aggregated summary instead of individual readings
   const vitals = data.vitals || [];
   if (vitals.length) {
     p += summarizeVitals(vitals.slice(-30));
@@ -248,7 +248,7 @@ export function buildProfile(data) {
   // Recent journal entries (last 15) with symptoms + cross-references
   const journal = data.journal || [];
   if (journal.length) {
-    p += '\n— RECENT JOURNAL ENTRIES (last 15) —\n';
+    p += '\n,  RECENT JOURNAL ENTRIES (last 15) , \n';
     journal.slice(-15).forEach(e => {
       p += '- ' + e.date;
       if (e.mood) p += ' [mood: ' + e.mood + ']';
@@ -294,7 +294,7 @@ export function buildProfile(data) {
 
   // Insurance
   if (s.insurance_plan) {
-    p += '\n— INSURANCE —\n';
+    p += '\n,  INSURANCE , \n';
     p += 'Plan: ' + s.insurance_plan;
     if (s.insurance_id) p += ', ID: ' + s.insurance_id;
     p += '\n';
@@ -302,7 +302,7 @@ export function buildProfile(data) {
 
   // Health background
   if (s.health_background) {
-    p += '\n— ADDITIONAL HEALTH BACKGROUND —\n' + san(s.health_background) + '\n';
+    p += '\n,  ADDITIONAL HEALTH BACKGROUND , \n' + san(s.health_background) + '\n';
   }
 
   // Labs (highlight abnormal results, last 10)
@@ -311,7 +311,7 @@ export function buildProfile(data) {
     const abnormal = labs.filter(l => l.flag && l.flag !== 'normal');
     const recent = labs.slice(0, 10);
     if (abnormal.length) {
-      p += '\n— ABNORMAL LAB RESULTS —\n';
+      p += '\n,  ABNORMAL LAB RESULTS , \n';
       abnormal.forEach(l => {
         p += '- ' + l.test_name + ': ' + l.result;
         if (l.unit) p += ' ' + l.unit;
@@ -323,7 +323,7 @@ export function buildProfile(data) {
     }
     const normal = recent.filter(l => !l.flag || l.flag === 'normal');
     if (normal.length) {
-      p += '\n— RECENT LAB RESULTS (normal) —\n';
+      p += '\n,  RECENT LAB RESULTS (normal) , \n';
       normal.slice(0, 10).forEach(l => {
         p += '- ' + l.test_name + ': ' + l.result;
         if (l.unit) p += ' ' + l.unit;
@@ -336,13 +336,13 @@ export function buildProfile(data) {
   // Procedures (last 5)
   const procedures = data.procedures || [];
   if (procedures.length) {
-    p += '\n— PROCEDURES —\n';
+    p += '\n,  PROCEDURES , \n';
     procedures.slice(0, 10).forEach(pr => {
       p += '- ' + pr.name;
       if (pr.date) p += ' on ' + pr.date;
       if (pr.provider) p += ' by ' + pr.provider;
-      if (pr.outcome) p += ' — outcome: ' + pr.outcome;
-      if (pr.notes) p += ' — ' + pr.notes;
+      if (pr.outcome) p += ', outcome: ' + pr.outcome;
+      if (pr.notes) p += ', ' + pr.notes;
       p += '\n';
     });
   }
@@ -350,7 +350,7 @@ export function buildProfile(data) {
   // Immunizations
   const immunizations = data.immunizations || [];
   if (immunizations.length) {
-    p += '\n— IMMUNIZATIONS —\n';
+    p += '\n,  IMMUNIZATIONS , \n';
     immunizations.forEach(i => {
       p += '- ' + i.name;
       if (i.date) p += ' on ' + i.date;
@@ -364,13 +364,13 @@ export function buildProfile(data) {
   // Care gaps
   const careGaps = data.care_gaps || [];
   if (careGaps.length) {
-    p += '\n— CARE GAPS (overdue screenings/preventive care) —\n';
+    p += '\n,  CARE GAPS (overdue screenings/preventive care) , \n';
     careGaps.forEach(g => {
       p += '- ' + g.item;
       if (g.urgency) p += ' [' + g.urgency + ']';
       if (g.category) p += ' (' + g.category + ')';
       if (g.last_done) p += ' last done ' + g.last_done;
-      if (g.notes) p += ' — ' + g.notes;
+      if (g.notes) p += ', ' + g.notes;
       p += '\n';
     });
   }
@@ -378,7 +378,7 @@ export function buildProfile(data) {
   // Anesthesia flags
   const anesthesiaFlags = data.anesthesia_flags || [];
   if (anesthesiaFlags.length) {
-    p += '\n— ANESTHESIA FLAGS (safety-critical) —\n';
+    p += '\n,  ANESTHESIA FLAGS (safety-critical) , \n';
     anesthesiaFlags.forEach(f => {
       p += '- ' + f.condition;
       if (f.implication) p += ': ' + f.implication;
@@ -390,7 +390,7 @@ export function buildProfile(data) {
   // Surgical planning
   const surgical = data.surgical_planning || [];
   if (surgical.length) {
-    p += '\n— SURGICAL PLANNING —\n';
+    p += '\n,  SURGICAL PLANNING , \n';
     surgical.forEach(sp => {
       const procs = Array.isArray(sp.procedures) ? sp.procedures.join(', ') : '';
       p += '- ' + (procs || 'Surgical plan');
@@ -406,13 +406,13 @@ export function buildProfile(data) {
   // Appeals & disputes
   const appeals = data.appeals_and_disputes || [];
   if (appeals.length) {
-    p += '\n— INSURANCE APPEALS & DISPUTES —\n';
+    p += '\n,  INSURANCE APPEALS & DISPUTES , \n';
     appeals.forEach(a => {
       p += '- ' + a.subject;
       if (a.status) p += ' (' + a.status + ')';
       if (a.date_filed) p += ' filed ' + a.date_filed;
       if (a.deadline) p += ' deadline ' + a.deadline;
-      if (a.notes) p += ' — ' + a.notes;
+      if (a.notes) p += ', ' + a.notes;
       p += '\n';
     });
   }
@@ -420,12 +420,12 @@ export function buildProfile(data) {
   // Providers
   const providers = data.providers || [];
   if (providers.length) {
-    p += '\n— HEALTHCARE PROVIDERS —\n';
+    p += '\n,  HEALTHCARE PROVIDERS , \n';
     providers.forEach(pr => {
       p += '- ' + pr.name;
       if (pr.specialty) p += ' (' + pr.specialty + ')';
       if (pr.clinic) p += ' at ' + pr.clinic;
-      if (pr.notes) p += ' — ' + san(pr.notes);
+      if (pr.notes) p += ', ' + san(pr.notes);
       p += '\n';
     });
   }
@@ -434,13 +434,13 @@ export function buildProfile(data) {
   const appts = data.appts || [];
   const upcoming = appts.filter(a => new Date(a.date) >= new Date(new Date().toDateString())).sort((a, b) => new Date(a.date) - new Date(b.date));
   if (upcoming.length) {
-    p += '\n— UPCOMING APPOINTMENTS —\n';
+    p += '\n,  UPCOMING APPOINTMENTS , \n';
     upcoming.slice(0, 10).forEach(a => {
       p += '- ' + a.date;
       if (a.time) p += ' ' + a.time;
       if (a.provider) p += ' with ' + a.provider;
       if (a.location) p += ' at ' + a.location;
-      if (a.reason) p += ' — ' + san(a.reason);
+      if (a.reason) p += ', ' + san(a.reason);
       if (a.questions) p += ' [questions: ' + san(a.questions) + ']';
       p += '\n';
     });
@@ -449,7 +449,7 @@ export function buildProfile(data) {
   // Past appointments (last 5 with notes)
   const past = appts.filter(a => new Date(a.date) < new Date(new Date().toDateString()) && a.post_notes).sort((a, b) => new Date(b.date) - new Date(a.date));
   if (past.length) {
-    p += '\n— RECENT APPOINTMENT NOTES —\n';
+    p += '\n,  RECENT APPOINTMENT NOTES , \n';
     past.slice(0, 5).forEach(a => {
       p += '- ' + a.date;
       if (a.provider) p += ' with ' + a.provider;
@@ -461,12 +461,12 @@ export function buildProfile(data) {
   // Pharmacies
   const pharmacies = data.pharmacies || [];
   if (pharmacies.length) {
-    p += '\n— PHARMACIES —\n';
+    p += '\n,  PHARMACIES , \n';
     pharmacies.forEach(ph => {
       p += '- ' + ph.name;
       if (ph.is_preferred) p += ' (preferred)';
-      if (ph.address) p += ' — ' + ph.address;
-      if (ph.notes) p += ' — ' + san(ph.notes);
+      if (ph.address) p += ', ' + ph.address;
+      if (ph.notes) p += ', ' + san(ph.notes);
       p += '\n';
     });
   }
@@ -474,7 +474,7 @@ export function buildProfile(data) {
   // Insurance claims
   const claims = data.insurance_claims || [];
   if (claims.length) {
-    p += '\n— INSURANCE CLAIMS —\n';
+    p += '\n,  INSURANCE CLAIMS , \n';
     claims.slice(0, 10).forEach(c => {
       p += '- ' + c.date + ': ' + c.description;
       if (c.provider) p += ' (' + c.provider + ')';
@@ -488,7 +488,7 @@ export function buildProfile(data) {
   // Cycle & fertility data
   const cycles = data.cycles || [];
   if (cycles.length) {
-    p += '\n— CYCLE & FERTILITY —\n';
+    p += '\n,  CYCLE & FERTILITY , \n';
     const periods = cycles.filter(c => c.type === 'period').map(c => c.date).sort();
     if (periods.length) {
       const starts = [];
@@ -559,7 +559,7 @@ export function buildProfile(data) {
   // Wearable summaries (Oura Ring)
   const ouraVitals = (data.vitals || []).filter(v => v.source === 'oura');
   if (ouraVitals.length) {
-    p += '\n— WEARABLE DATA (Oura Ring) —\n';
+    p += '\n,  WEARABLE DATA (Oura Ring) , \n';
     const recent = ouraVitals.filter(v => {
       const d = new Date(v.date + 'T00:00:00');
       return d >= new Date(Date.now() - 7 * 86400000);
@@ -599,7 +599,7 @@ export function buildProfile(data) {
     return d >= new Date(Date.now() - 30 * 86400000);
   });
   if (activities.length) {
-    p += '\n— RECENT WORKOUTS (30 days) —\n';
+    p += '\n,  RECENT WORKOUTS (30 days) , \n';
     p += `Total workouts: ${activities.length}\n`;
     const types = {};
     activities.forEach(a => { types[a.type] = (types[a.type] || 0) + 1; });
@@ -620,7 +620,7 @@ export function buildProfile(data) {
       return d >= new Date(Date.now() - 7 * 86400000);
     });
     if (recent.length) {
-      p += '\n— APPLE HEALTH DATA (7-day) —\n';
+      p += '\n,  APPLE HEALTH DATA (7-day) , \n';
       const steps = recent.filter(v => v.type === 'steps').map(v => Number(v.value)).filter(n => !isNaN(n));
       if (steps.length) p += `Avg daily steps: ${Math.round(steps.reduce((a, b) => a + b, 0) / steps.length).toLocaleString()}\n`;
       const energy = recent.filter(v => v.type === 'active_energy').map(v => Number(v.value)).filter(n => !isNaN(n));
@@ -633,13 +633,13 @@ export function buildProfile(data) {
   // Active to-dos
   const todos = (data.todos || []).filter(t => !t.completed);
   if (todos.length) {
-    p += '\n— ACTIVE TO-DO ITEMS —\n';
+    p += '\n,  ACTIVE TO-DO ITEMS , \n';
     todos.forEach(t => {
       p += '- ' + san(t.title);
       if (t.priority && t.priority !== 'low') p += ' [' + t.priority + ']';
       if (t.due_date) p += ' due ' + t.due_date;
       if (t.category && t.category !== 'custom') p += ' (' + t.category + ')';
-      if (t.notes) p += ' — ' + san(t.notes, 200);
+      if (t.notes) p += ', ' + san(t.notes, 200);
       p += '\n';
     });
   }

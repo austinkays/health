@@ -37,7 +37,7 @@
 
 /* ── Theme transition ──────────────────────────── */
 /* When body is invisible during a theme switch,    */
-/* html's bg shows through — match the theme bg so  */
+/* html's bg shows through, match the theme bg so  */
 /* there's no flash of white/wrong color.           */
 html {
   background: rgb(var(--salve-bg));
@@ -70,7 +70,7 @@ html {
   --salve-rose: 192 106 140;
   --salve-roseDim: 212 136 168;
 
-  /* Ambiance RGB (comma-separated for rgba()) — set per-theme by JS */
+  /* Ambiance RGB (comma-separated for rgba()), set per-theme by JS */
   --ambiance-morning: 90, 144, 120;
   --ambiance-day: 136, 102, 184;
   --ambiance-evening: 196, 136, 80;
@@ -104,7 +104,7 @@ html.theme-neon body::before {
   opacity: 1;
   animation: neon-pulse 4s ease-in-out infinite;
 }
-/* Grid lines on ::after — GPU-composited transform drift */
+/* Grid lines on ::after, GPU-composited transform drift */
 html.theme-neon body::after {
   content: '';
   position: fixed;
@@ -142,11 +142,11 @@ html.theme-neon .font-playfair {
 html.theme-aurora body::before {
   will-change: transform, opacity;
   background-image:
-    /* Aurora curtain 1 — green sheet, upper left */
+    /* Aurora curtain 1, green sheet, upper left */
     radial-gradient(ellipse 90% 28% at 20% 22%, rgba(132, 220, 180, 0.28), transparent 65%),
-    /* Aurora curtain 2 — cyan sheet, upper right */
+    /* Aurora curtain 2, cyan sheet, upper right */
     radial-gradient(ellipse 80% 24% at 75% 30%, rgba(112, 204, 232, 0.24), transparent 65%),
-    /* Aurora curtain 3 — violet tail, mid */
+    /* Aurora curtain 3, violet tail, mid */
     radial-gradient(ellipse 70% 22% at 45% 48%, rgba(180, 162, 236, 0.20), transparent 65%),
     /* Ambient low glow along horizon */
     radial-gradient(ellipse 120% 18% at 50% 70%, rgba(132, 220, 180, 0.14), transparent 70%);
@@ -161,7 +161,7 @@ html.theme-aurora body::after {
   pointer-events: none;
   z-index: 0;
   background-image:
-    /* Scattered neon stars — dense field across the viewport */
+    /* Scattered neon stars, dense field across the viewport */
     radial-gradient(circle 2px at 8% 12%, rgba(255, 255, 255, 0.85), transparent 70%),
     radial-gradient(circle 2px at 22% 38%, rgba(112, 204, 232, 0.8), transparent 70%),
     radial-gradient(circle 2px at 38% 8%, rgba(255, 255, 255, 0.8), transparent 70%),
@@ -186,7 +186,7 @@ html.theme-aurora body::after {
     radial-gradient(circle 2px at 78% 6%, rgba(255, 255, 255, 0.85), transparent 70%);
   animation: aurora-stars 6s ease-in-out infinite;
 }
-/* Aurora shooting streak — cyan/green meteor via html pseudo-element */
+/* Aurora shooting streak, cyan/green meteor via html pseudo-element */
 html.theme-aurora::before {
   content: '';
   position: fixed;
@@ -220,7 +220,7 @@ html.theme-aurora::before {
   50% { opacity: 0.4; }
 }
 @keyframes aurora-meteor {
-  /* y = x * tan(18°) ≈ x * 0.325 — keep motion aligned with rotation */
+  /* y = x * tan(18°) ≈ x * 0.325, keep motion aligned with rotation */
   0%, 94%  { transform: rotate(18deg) translate(0, 0);          opacity: 0; }
   94.8%    { transform: rotate(18deg) translate(6vw, 2vw);      opacity: 0.3; }
   95.6%    { transform: rotate(18deg) translate(20vw, 6.5vw);   opacity: 0.85; }
@@ -279,7 +279,7 @@ html.theme-ember body::after {
   to   { transform: translateY(-200vh); }
 }
 
-/* ── Blaze: ember cranked to eleven — raging inferno ── */
+/* ── Blaze: ember cranked to eleven, raging inferno ── */
 html.theme-blaze body::before {
   will-change: opacity;
   background-image:
@@ -307,7 +307,7 @@ html.theme-blaze body::after {
   z-index: 0;
   will-change: transform;
   background-image:
-    /* Storm of flying embers — denser, brighter, whiter-hot than ember */
+    /* Storm of flying embers, denser, brighter, whiter-hot than ember */
     radial-gradient(circle 4px at 6% 96%, rgba(255, 255, 255, 1), transparent 60%),
     radial-gradient(circle 3px at 18% 82%, rgba(255, 234, 0, 0.98), transparent 65%),
     radial-gradient(circle 5px at 30% 70%, rgba(255, 61, 0, 1), transparent 60%),
@@ -371,7 +371,7 @@ html.theme-cherry body::after {
   z-index: 0;
   will-change: transform;
   background-image:
-    /* Scattered petals — random-feeling positions, varied sizes, pink + white */
+    /* Scattered petals, random-feeling positions, varied sizes, pink + white */
     radial-gradient(circle 5px at 7% 3%,   rgba(224, 132, 168, 0.75), transparent 62%),
     radial-gradient(circle 3px at 19% 8%,  rgba(255, 255, 255, 0.85), transparent 65%),
     radial-gradient(circle 4px at 34% 14%, rgba(248, 200, 220, 0.80), transparent 65%),
@@ -412,7 +412,7 @@ html.theme-cherry body::after {
 /* Sky + sun + rays all on ::before (static, animated only by opacity pulse) */
 html.theme-sunbeam body::before {
   background-image:
-    /* Diagonal sun rays — boosted from 0.08-0.10 to 0.14-0.16 for visibility */
+    /* Diagonal sun rays, boosted from 0.08-0.10 to 0.14-0.16 for visibility */
     linear-gradient(200deg, transparent 45%, rgba(255, 232, 140, 0.16) 48%, transparent 52%),
     linear-gradient(210deg, transparent 52%, rgba(255, 232, 140, 0.14) 56%, transparent 60%),
     linear-gradient(220deg, transparent 60%, rgba(255, 232, 140, 0.16) 64%, transparent 68%),
@@ -428,7 +428,7 @@ html.theme-sunbeam body::before {
   opacity: 1;
   animation: sunbeam-pulse 8s ease-in-out infinite;
 }
-/* Dust motes on ::after — GPU-composited transform drift (not background-position) */
+/* Dust motes on ::after, GPU-composited transform drift (not background-position) */
 html.theme-sunbeam body::after {
   content: '';
   position: fixed;
@@ -461,7 +461,7 @@ html.theme-sunbeam body::after {
 }
 
 /* ── Galactic: deep space, drifting stars, occasional shooting star ── */
-/* Nebula wash on body — static, never animated */
+/* Nebula wash on body, static, never animated */
 html.theme-galactic body {
   background-image:
     radial-gradient(ellipse 120% 80% at 30% 20%, rgba(106, 164, 255, 0.20), transparent 65%),
@@ -469,7 +469,7 @@ html.theme-galactic body {
   background-size: 100% 100%;
   background-repeat: no-repeat;
 }
-/* Stars on ::before — GPU-composited transform drift (not background-position) */
+/* Stars on ::before, GPU-composited transform drift (not background-position) */
 html.theme-galactic body::before {
   /* Override shared inset: 0 to make element wider for seamless horizontal tiling */
   left: -100vw;
@@ -517,7 +517,7 @@ html.theme-galactic body::before {
     radial-gradient(circle 2px at 92% 88%, rgba(255, 255, 255, 0.7), transparent 60%),
     radial-gradient(circle 2px at 36% 4%, rgba(200, 220, 255, 0.85), transparent 60%),
     radial-gradient(circle 2px at 50% 98%, rgba(255, 255, 255, 0.8), transparent 60%),
-    /* ── Dim background dust (1px, faint — fills the gaps) ── */
+    /* ── Dim background dust (1px, faint, fills the gaps) ── */
     radial-gradient(circle 1px at 2% 18%, rgba(255, 255, 255, 0.4), transparent 70%),
     radial-gradient(circle 1px at 14% 26%, rgba(200, 220, 255, 0.35), transparent 70%),
     radial-gradient(circle 1px at 22% 38%, rgba(255, 255, 255, 0.3), transparent 70%),
@@ -546,7 +546,7 @@ html.theme-galactic body::before {
 html.theme-galactic body::after {
   content: '';
   position: fixed;
-  /* Short rotated streak — a tiny fixed-dimension bar that zips across */
+  /* Short rotated streak, a tiny fixed-dimension bar that zips across */
   top: -8vw;
   left: -30vw;
   width: 28vw;
@@ -566,7 +566,7 @@ html.theme-galactic body::after {
   animation: galactic-shooting-star 22s linear infinite;
 }
 @keyframes galactic-drift {
-  /* Stars drift right in a gentle arc — GPU-composited transform, zero repaints.
+  /* Stars drift right in a gentle arc, GPU-composited transform, zero repaints.
      Element is 300vw wide (left:-100vw), stars repeat at 100vw, so
      translating +100vw produces a seamless loop. */
   0%   { transform: translate(0, 0); }
@@ -663,7 +663,7 @@ html.theme-crystal body::after {
   z-index: 0;
   will-change: opacity;
   background-image:
-    /* Stationary twinkling crystal sparkles — bright radial points */
+    /* Stationary twinkling crystal sparkles, bright radial points */
     radial-gradient(circle 2px at 10% 14%, rgba(74, 224, 255, 0.95), transparent 55%),
     radial-gradient(circle 3px at 26% 32%, rgba(255, 255, 255, 0.9), transparent 55%),
     radial-gradient(circle 2px at 42% 20%, rgba(255, 74, 212, 0.85), transparent 55%),
@@ -686,7 +686,7 @@ html.theme-crystal body::after {
   50% { opacity: 1; }
   75% { opacity: 0.6; }
 }
-/* Hologram gleam on cards — diagonal white glare that sweeps on hover */
+/* Hologram gleam on cards, diagonal white glare that sweeps on hover */
 html.theme-crystal .card-hover {
   position: relative;
   overflow: hidden;
@@ -719,7 +719,7 @@ html.theme-crystal .card-hover:hover::before {
 /* ══════════════════════════════════════════════════ */
 /* Default (Cherry Blossom, Sunny Day) keeps Playfair Display from tailwind. */
 
-/* Soft romantic — Fraunces with soft axis, lighter weight */
+/* Soft romantic, Fraunces with soft axis, lighter weight */
 html.theme-lilac .font-playfair,
 html.theme-dawnlight .font-playfair,
 html.theme-sunrise .font-playfair {
@@ -728,7 +728,7 @@ html.theme-sunrise .font-playfair {
   font-weight: 500;
 }
 
-/* Dark editorial — Instrument Serif, airy and high-contrast */
+/* Dark editorial, Instrument Serif, airy and high-contrast */
 html.theme-midnight .font-playfair,
 html.theme-forest .font-playfair,
 html.theme-noir .font-playfair {
@@ -737,7 +737,7 @@ html.theme-noir .font-playfair {
   letter-spacing: 0.005em;
 }
 
-/* Warm dramatic — Fraunces with harder axis, bolder */
+/* Warm dramatic, Fraunces with harder axis, bolder */
 html.theme-blaze .font-playfair,
 html.theme-ember .font-playfair,
 html.theme-aurora .font-playfair {
@@ -746,7 +746,7 @@ html.theme-aurora .font-playfair {
   font-weight: 600;
 }
 
-/* Architectural — Space Grotesk uppercase with letter-spacing */
+/* Architectural, Space Grotesk uppercase with letter-spacing */
 html.theme-crystal .font-playfair,
 html.theme-neon .font-playfair,
 html.theme-galactic .font-playfair,
@@ -1008,7 +1008,7 @@ html.theme-crystal .border-salve-border {
 .dash-stagger-4 { animation-delay: 0.26s; }
 .dash-stagger-5 { animation-delay: 0.33s; }
 
-/* AI prose reveal — paragraphs/headings fade in sequentially */
+/* AI prose reveal, paragraphs/headings fade in sequentially */
 @keyframes proseReveal {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
@@ -1343,7 +1343,7 @@ html.theme-crystal .border-salve-border {
   animation: celebrationFlash 0.7s ease-out forwards;
 }
 
-/* Section enter animation — gentle arrival */
+/* Section enter animation, gentle arrival */
 @keyframes sectionEnter {
   from {
     opacity: 0;
@@ -1360,7 +1360,7 @@ html.theme-crystal .border-salve-border {
   animation: sectionEnter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Accordion expand/collapse — uses grid for smooth auto-height */
+/* Accordion expand/collapse, uses grid for smooth auto-height */
 .expand-section {
   display: grid;
   grid-template-rows: 0fr;
@@ -1375,7 +1375,7 @@ html.theme-crystal .border-salve-border {
   overflow: hidden;
 }
 
-/* ── Search Hero — centerpiece search on Dashboard ──────── */
+/* ── Search Hero, centerpiece search on Dashboard ──────── */
 
 @keyframes searchBorderRotate {
   0%   { --search-angle: 0deg; }
@@ -1404,7 +1404,7 @@ html.theme-crystal .border-salve-border {
   100%     { opacity: 1; }
 }
 
-/* Search hero wrapper — animated gradient border */
+/* Search hero wrapper, animated gradient border */
 .search-hero {
   position: relative;
   border-radius: 20px;

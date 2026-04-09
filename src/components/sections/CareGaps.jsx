@@ -17,8 +17,8 @@ import AIMarkdown from '../ui/AIMarkdown';
 const EMPTY = { category: '', item: '', last_done: '', urgency: '', notes: '' };
 
 const CATEGORIES = [
-  '', 'Lab — never done', 'Lab — outdated', 'Immunization — overdue',
-  'Treatment gap', 'Medication — pending',
+  '', 'Lab, never done', 'Lab, outdated', 'Immunization, overdue',
+  'Treatment gap', 'Medication, pending',
 ];
 const URGENCIES = ['', 'urgent', 'needs prompt attention', 'worth raising at next appointment', 'routine', 'completed'];
 

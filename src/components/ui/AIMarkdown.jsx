@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 // Convert bare URLs (not already in markdown link/image syntax) into markdown links
 function linkifyBareUrls(text) {
   if (!text) return text;
-  // Match URLs not preceded by ]( or ( or " or ' — i.e. bare URLs in text
+  // Match URLs not preceded by ]( or ( or " or ', i.e. bare URLs in text
   return text.replace(
     /(?<!\]\()(?<!\()(?<!")(?<!')(?<!=)(https?:\/\/[^\s)<>\]"']+)/g,
     '[$1]($1)'

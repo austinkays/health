@@ -1,9 +1,9 @@
 /**
  * External info link generators for health data entities.
- * All URLs are constructed from user data — no API keys needed.
+ * All URLs are constructed from user data, no API keys needed.
  */
 
-/** DailyMed drug label — direct link when setid available, name search fallback */
+/** DailyMed drug label, direct link when setid available, name search fallback */
 export function dailyMedUrl(name, rxcui, setid) {
   if (setid) return `https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=${encodeURIComponent(setid)}`;
   // Strip dosage/form/route noise for cleaner search
@@ -23,7 +23,7 @@ export function medlinePlusUrl(topic) {
   return `https://medlineplus.gov/search?query=${encodeURIComponent(topic)}`;
 }
 
-/** MedlinePlus lab test search — cleans verbose Apple Health/FHIR names */
+/** MedlinePlus lab test search, cleans verbose Apple Health/FHIR names */
 export function medlinePlusLabUrl(testName) {
   let clean = testName
     .replace(/\s*\[.*?\]\s*/g, '')          // strip bracketed codes [LOINC], [Mass/Vol], etc.
@@ -107,7 +107,7 @@ export function clinicalTrialsUrl(condition, city) {
   return `https://clinicaltrials.gov/search?${params.toString()}`;
 }
 
-/** Cost Plus Drugs price search (Mark Cuban venture — generics only) */
+/** Cost Plus Drugs price search (Mark Cuban venture, generics only) */
 export function costPlusDrugsUrl(drugName) {
   if (!drugName?.trim()) return null;
   // Slug: lowercase, strip dosage forms/strengths, spaces→hyphens

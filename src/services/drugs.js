@@ -3,7 +3,7 @@
 
 import { getAuthToken } from './token';
 
-// In-flight request deduplication — concurrent calls with the same key share one fetch
+// In-flight request deduplication, concurrent calls with the same key share one fetch
 const inFlight = new Map();
 
 async function drugAPI(action, params = {}) {

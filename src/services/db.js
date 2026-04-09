@@ -31,7 +31,7 @@ const DEDUP_COLUMNS = {
 // check-then-insert race in a single browser tab.
 const _inFlightAdds = new Map();
 
-// In-flight loadAll() promise — prevents duplicate concurrent calls
+// In-flight loadAll() promise, prevents duplicate concurrent calls
 // (React Strict Mode double-mount, session changes firing multiple times, etc.)
 let _inFlightLoadAll = null;
 
@@ -71,7 +71,7 @@ function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
             else query = query.is(col, null);
           }
           const { data: existing } = await query.limit(1);
-          if (existing?.length) return clean(existing[0]); // already exists — skip silently
+          if (existing?.length) return clean(existing[0]); // already exists, skip silently
         }
 
         const { data, error } = await supabase
@@ -160,7 +160,7 @@ export const db = {
 
   bulkAdd, // For large imports (Apple Health)
 
-  // Profile is 1:1 with user — different pattern
+  // Profile is 1:1 with user, different pattern
   profile: {
     async get() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -186,7 +186,7 @@ export const db = {
     },
   },
 
-  // Load all data at once (initial hydration) — single RPC call instead of 24 parallel queries
+  // Load all data at once (initial hydration), single RPC call instead of 24 parallel queries
   // Deduplicates concurrent calls (React Strict Mode, rapid session changes) by sharing in-flight promise.
   async loadAll() {
     if (_inFlightLoadAll) return _inFlightLoadAll;
@@ -319,7 +319,7 @@ export const db = {
       }
     }
 
-    // Reset profile (not deleted — 1:1 with user)
+    // Reset profile (not deleted, 1:1 with user)
     try {
       await supabase.from('profiles').update({
         name: '', location: '', pharmacy: '',
@@ -331,7 +331,7 @@ export const db = {
     }
 
     if (errors.length > 0) {
-      console.error('Partial erase — some tables failed:', errors);
+      console.error('Partial erase, some tables failed:', errors);
       throw new Error(`Erase incomplete: ${errors.map(e => e.table).join(', ')} failed. Some data may remain.`);
     }
   },

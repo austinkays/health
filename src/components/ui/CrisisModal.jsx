@@ -7,7 +7,7 @@ const RESOURCES = {
   mental: {
     icon: Heart,
     title: 'You are not alone',
-    subtitle: 'If you\'re in crisis, please reach out — help is available right now.',
+    subtitle: 'If you\'re in crisis, please reach out, help is available right now.',
     items: [
       { label: '988 Suicide & Crisis Lifeline', action: 'tel:988', actionLabel: 'Call 988', secondary: 'sms:988', secondaryLabel: 'Text 988', desc: 'Free, confidential, 24/7 support' },
       { label: 'Crisis Text Line', action: 'sms:741741&body=HELLO', actionLabel: 'Text HOME to 741741', desc: 'Free crisis counseling via text' },
@@ -48,7 +48,7 @@ export default function CrisisModal({ type, onClose }) {
     setTimeout(() => closeRef.current?.focus(), 60);
   }, []);
 
-  // Block Escape key — must use the explicit close button
+  // Block Escape key, must use the explicit close button
   useEffect(() => {
     const block = (e) => {
       if (e.key === 'Escape') e.preventDefault();
@@ -85,7 +85,7 @@ export default function CrisisModal({ type, onClose }) {
   return (
     <div
       className={`fixed inset-0 z-[9999] flex items-center justify-center px-4 transition-opacity duration-200 ${visible ? 'opacity-100' : 'opacity-0'}`}
-      // NOT dismissible by clicking outside — user must use the close button
+      // NOT dismissible by clicking outside, user must use the close button
     >
       <div className="absolute inset-0 bg-black/60" />
       <div

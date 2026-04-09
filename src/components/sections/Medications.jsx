@@ -248,7 +248,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   }, [form.name, editId, data.meds]);
 
   /* ── Pharmacy filter support (must be above early return for hooks ordering) ── */
-  const NON_PHARMACY = new Set(['otc', 'n/a', 'na', 'none', 'self', 'online', '-', '—', 'over the counter']);
+  const NON_PHARMACY = new Set(['otc', 'n/a', 'na', 'none', 'self', 'online', '-', ', ', 'over the counter']);
   const pharmacyNames = useMemo(() => {
     const names = new Set();
     (data.meds || []).forEach(m => { if (m.pharmacy?.trim() && !NON_PHARMACY.has(m.pharmacy.trim().toLowerCase())) names.add(m.pharmacy.trim()); });
@@ -347,7 +347,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               ))}
             </div>
           )}
-          {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier — links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
+          {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier, links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
           {duplicateWarning && <div className="flex items-start gap-1.5 text-xs text-salve-amber -mt-2 mb-2" role="alert"><AlertTriangle size={12} className="flex-shrink-0 mt-0.5" aria-hidden="true" />{duplicateWarning}</div>}
         </div>
         <Field label="Display Name (optional)" value={form.display_name} onChange={v => sf('display_name', v)} placeholder="e.g. my morning pill" />
@@ -360,7 +360,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           options={[
             { value: '', label: 'Select pharmacy...' },
             ...((data.pharmacies || []).map(p => ({ value: p.name, label: p.name + (p.is_preferred ? ' ★' : '') }))),
-            { value: '__custom', label: '— Type custom —' },
+            { value: '__custom', label: ',  Type custom , ' },
           ]}
         />
         {form.pharmacy === '__custom' && (
@@ -383,7 +383,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             {allergyWarnings.map((a, i) => (
               <div key={i} className="text-xs text-salve-textMid leading-relaxed">
                 Known allergy to <span className="font-semibold text-salve-rose">{a.substance}</span>
-                {a.reaction ? ` — ${a.reaction}` : ''}{a.severity ? ` (${a.severity})` : ''}
+                {a.reaction ? `, ${a.reaction}` : ''}{a.severity ? ` (${a.severity})` : ''}
               </div>
             ))}
           </div>
@@ -458,7 +458,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       {m.prescriber && <div className="text-xs text-salve-textFaint flex items-center gap-1">Rx: <a href={providerLookupUrl(m.prescriber, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{m.prescriber}</a></div>}
       {m.pharmacy && (() => {
         const pLC = m.pharmacy.trim().toLowerCase();
-        const notMappable = ['otc', 'n/a', 'na', 'none', 'self', 'online', '-', '—', 'over the counter'].includes(pLC);
+        const notMappable = ['otc', 'n/a', 'na', 'none', 'self', 'online', '-', ', ', 'over the counter'].includes(pLC);
         return notMappable
           ? <div className="text-xs text-salve-textFaint">{m.pharmacy}</div>
           : <div className="text-xs text-salve-textFaint flex items-center gap-1">
@@ -817,7 +817,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 <RefreshCw size={11} className="text-salve-textFaint" />
                 <span>
                   {hasAnyProgress ? 'Working…' :
-                   hasAnyResult ? 'Done — tap to review' :
+                   hasAnyResult ? 'Done, tap to review' :
                    `${tasks.length} maintenance task${tasks.length !== 1 ? 's' : ''}`}
                 </span>
                 {!isOpen && (

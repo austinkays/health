@@ -42,7 +42,7 @@ export default function Interactions({ interactions, meds }) {
           ) : active.map(m => (
             <span key={m.id} className="bg-salve-card2 border border-salve-border rounded-full px-2.5 py-0.5 text-[11px] text-salve-text flex items-center gap-1">
               <Pill size={10} /> {m.name}
-              {m.rxcui && <span className="text-[9px] text-salve-sage" title="Has RxCUI — eligible for live NLM interaction checking">✓</span>}
+              {m.rxcui && <span className="text-[9px] text-salve-sage" title="Has RxCUI, eligible for live NLM interaction checking">✓</span>}
             </span>
           ))}
         </div>

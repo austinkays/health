@@ -36,7 +36,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['codeine', 'tramadol', 'hydrocodone', 'oxycodone'],
-    msg: 'Reduced conversion to active metabolite — may have reduced pain relief',
+    msg: 'Reduced conversion to active metabolite, may have reduced pain relief',
     rec: 'Consider non-CYP2D6 alternatives (morphine, oxymorphone)',
   },
   {
@@ -44,7 +44,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['ultrarapid metabolizer'],
     severity: 'danger',
     drugs: ['codeine', 'tramadol'],
-    msg: 'Rapid conversion to active metabolite — risk of toxicity and respiratory depression',
+    msg: 'Rapid conversion to active metabolite, risk of toxicity and respiratory depression',
     rec: 'Avoid codeine/tramadol; use alternative analgesics',
   },
   {
@@ -52,7 +52,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['fluoxetine', 'paroxetine', 'fluvoxamine', 'venlafaxine', 'atomoxetine', 'duloxetine'],
-    msg: 'Elevated drug levels — increased risk of side effects',
+    msg: 'Elevated drug levels, increased risk of side effects',
     rec: 'Consider dose reduction or alternative SSRI/SNRI (sertraline, escitalopram)',
   },
   {
@@ -60,7 +60,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'caution',
     drugs: ['metoprolol', 'carvedilol', 'propranolol', 'timolol'],
-    msg: 'Higher beta-blocker levels — risk of bradycardia and hypotension',
+    msg: 'Higher beta-blocker levels, risk of bradycardia and hypotension',
     rec: 'Consider dose reduction or alternative beta-blocker (atenolol, bisoprolol)',
   },
   {
@@ -68,7 +68,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'caution',
     drugs: ['tamoxifen'],
-    msg: 'Reduced conversion to active endoxifen — may reduce efficacy',
+    msg: 'Reduced conversion to active endoxifen, may reduce efficacy',
     rec: 'Consider aromatase inhibitor alternative if post-menopausal',
   },
   {
@@ -76,7 +76,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['aripiprazole', 'haloperidol', 'risperidone', 'perphenazine'],
-    msg: 'Elevated antipsychotic levels — increased side effect risk',
+    msg: 'Elevated antipsychotic levels, increased side effect risk',
     rec: 'Consider dose reduction (50% for aripiprazole)',
   },
 
@@ -86,7 +86,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'danger',
     drugs: ['clopidogrel'],
-    msg: 'Reduced activation — significantly reduced antiplatelet effect',
+    msg: 'Reduced activation, significantly reduced antiplatelet effect',
     rec: 'Use prasugrel or ticagrelor instead',
   },
   {
@@ -94,7 +94,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['omeprazole', 'esomeprazole', 'lansoprazole', 'pantoprazole'],
-    msg: 'Higher PPI levels — increased efficacy but monitor for long-term effects',
+    msg: 'Higher PPI levels, increased efficacy but monitor for long-term effects',
     rec: 'May need lower dose; monitor B12 and magnesium',
   },
   {
@@ -102,7 +102,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['ultrarapid metabolizer'],
     severity: 'caution',
     drugs: ['omeprazole', 'esomeprazole', 'lansoprazole'],
-    msg: 'Rapid PPI metabolism — may have reduced acid suppression',
+    msg: 'Rapid PPI metabolism, may have reduced acid suppression',
     rec: 'Consider higher dose or alternative PPI (rabeprazole)',
   },
   {
@@ -110,7 +110,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['citalopram', 'escitalopram', 'sertraline'],
-    msg: 'Elevated SSRI levels — increased side effect risk',
+    msg: 'Elevated SSRI levels, increased side effect risk',
     rec: 'Consider 50% dose reduction',
   },
   {
@@ -118,7 +118,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['ultrarapid metabolizer'],
     severity: 'caution',
     drugs: ['citalopram', 'escitalopram', 'sertraline', 'amitriptyline', 'clomipramine', 'imipramine'],
-    msg: 'Rapid drug metabolism — may have reduced efficacy',
+    msg: 'Rapid drug metabolism, may have reduced efficacy',
     rec: 'Consider dose increase or alternative antidepressant',
   },
   {
@@ -126,7 +126,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['diazepam', 'clobazam'],
-    msg: 'Slower benzodiazepine metabolism — prolonged sedation risk',
+    msg: 'Slower benzodiazepine metabolism, prolonged sedation risk',
     rec: 'Consider dose reduction and longer monitoring intervals',
   },
 
@@ -136,7 +136,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'danger',
     drugs: ['warfarin'],
-    msg: 'Reduced warfarin metabolism — higher bleeding risk',
+    msg: 'Reduced warfarin metabolism, higher bleeding risk',
     rec: 'Reduce starting dose significantly; use pharmacogenomic dosing algorithm',
   },
   {
@@ -144,7 +144,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['celecoxib', 'flurbiprofen', 'piroxicam'],
-    msg: 'Higher NSAID levels — increased GI and cardiovascular risk',
+    msg: 'Higher NSAID levels, increased GI and cardiovascular risk',
     rec: 'Consider 50% dose reduction or alternative analgesic',
   },
   {
@@ -152,7 +152,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['phenytoin'],
-    msg: 'Reduced phenytoin clearance — toxicity risk',
+    msg: 'Reduced phenytoin clearance, toxicity risk',
     rec: 'Reduce dose by 25-50%; monitor levels closely',
   },
 
@@ -162,7 +162,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'danger',
     drugs: ['warfarin'],
-    msg: 'Increased warfarin sensitivity — lower dose needed',
+    msg: 'Increased warfarin sensitivity, lower dose needed',
     rec: 'Use pharmacogenomic warfarin dosing calculator (warfarindosing.org)',
   },
 
@@ -172,7 +172,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['tacrolimus', 'cyclosporine', 'sirolimus'],
-    msg: 'Elevated immunosuppressant levels — toxicity risk',
+    msg: 'Elevated immunosuppressant levels, toxicity risk',
     rec: 'Monitor trough levels closely; consider dose reduction',
   },
   {
@@ -180,7 +180,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['simvastatin', 'atorvastatin', 'lovastatin'],
-    msg: 'Higher statin levels — increased myopathy risk',
+    msg: 'Higher statin levels, increased myopathy risk',
     rec: 'Consider lower dose or rosuvastatin/pravastatin (less CYP3A4 dependent)',
   },
 
@@ -190,7 +190,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'caution',
     drugs: ['simvastatin', 'atorvastatin', 'rosuvastatin', 'pravastatin'],
-    msg: 'Reduced hepatic uptake — higher plasma statin levels, myopathy risk',
+    msg: 'Reduced hepatic uptake, higher plasma statin levels, myopathy risk',
     rec: 'Use lowest effective dose; consider pravastatin or fluvastatin',
   },
 
@@ -200,7 +200,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'danger',
     drugs: ['fluorouracil', '5-fu', 'capecitabine', 'tegafur'],
-    msg: 'Severely reduced drug clearance — life-threatening toxicity risk',
+    msg: 'Severely reduced drug clearance, life-threatening toxicity risk',
     rec: 'Avoid or reduce dose by 50%+; pre-treatment DPYD testing recommended',
   },
 
@@ -210,7 +210,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'danger',
     drugs: ['azathioprine', 'mercaptopurine', 'thioguanine'],
-    msg: 'Reduced thiopurine metabolism — severe myelosuppression risk',
+    msg: 'Reduced thiopurine metabolism, severe myelosuppression risk',
     rec: 'Reduce dose to 10% (poor) or 50% (intermediate); monitor CBC weekly',
   },
   {
@@ -218,7 +218,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'danger',
     drugs: ['azathioprine', 'mercaptopurine', 'thioguanine'],
-    msg: 'Reduced thiopurine metabolism — severe myelosuppression risk',
+    msg: 'Reduced thiopurine metabolism, severe myelosuppression risk',
     rec: 'Reduce dose; monitor CBC weekly',
   },
 
@@ -228,7 +228,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['irinotecan', 'atazanavir'],
-    msg: 'Reduced drug conjugation — higher active drug levels',
+    msg: 'Reduced drug conjugation, higher active drug levels',
     rec: 'Reduce irinotecan starting dose; monitor for neutropenia',
   },
 
@@ -247,7 +247,7 @@ export const PGX_INTERACTIONS = [
     severity: 'danger',
     drugs: ['abacavir'],
     msg: 'HLA-B*57:01 carriers: risk of severe hypersensitivity reaction',
-    rec: 'Contraindicated — must screen before prescribing',
+    rec: 'Contraindicated, must screen before prescribing',
   },
   {
     gene: 'HLA-B',
@@ -264,7 +264,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['clozapine', 'olanzapine', 'duloxetine', 'theophylline'],
-    msg: 'Reduced metabolism — higher drug levels and side effects',
+    msg: 'Reduced metabolism, higher drug levels and side effects',
     rec: 'Consider dose reduction; monitor for toxicity',
   },
   {
@@ -272,7 +272,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['ultrarapid metabolizer'],
     severity: 'caution',
     drugs: ['clozapine', 'olanzapine'],
-    msg: 'Rapid metabolism — may have subtherapeutic levels',
+    msg: 'Rapid metabolism, may have subtherapeutic levels',
     rec: 'May need higher doses; monitor therapeutic levels',
   },
 
@@ -282,7 +282,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'caution',
     drugs: ['efavirenz', 'methadone', 'bupropion'],
-    msg: 'Reduced metabolism — higher drug levels',
+    msg: 'Reduced metabolism, higher drug levels',
     rec: 'Consider dose reduction; monitor for CNS side effects (efavirenz)',
   },
 
@@ -292,7 +292,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer'],
     severity: 'info',
     drugs: ['levodopa', 'methylphenidate', 'amphetamine'],
-    msg: 'Slower catecholamine breakdown — may affect dopaminergic drug response',
+    msg: 'Slower catecholamine breakdown, may affect dopaminergic drug response',
     rec: 'May be more sensitive to stimulants; monitor response',
   },
 
@@ -302,7 +302,7 @@ export const PGX_INTERACTIONS = [
     phenotypes: ['poor metabolizer', 'intermediate metabolizer'],
     severity: 'info',
     drugs: ['methotrexate', 'folic acid'],
-    msg: 'Reduced folate metabolism — may need active folate (methylfolate)',
+    msg: 'Reduced folate metabolism, may need active folate (methylfolate)',
     rec: 'Consider L-methylfolate supplementation; monitor homocysteine',
   },
 ];

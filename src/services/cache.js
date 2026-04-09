@@ -24,7 +24,7 @@ export const cache = {
   },
 
   // Re-encrypt cached data from oldToken to current _token.
-  // Runs in background — failure is non-fatal (next loadAll will rewrite cache).
+  // Runs in background, failure is non-fatal (next loadAll will rewrite cache).
   async _reencrypt(oldToken) {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
@@ -33,7 +33,7 @@ export const cache = {
       if (!json || !_token) return;
       const freshEncrypted = await encrypt(json, _token);
       localStorage.setItem(CACHE_KEY, freshEncrypted);
-    } catch { /* old token invalid or cache corrupt — network refresh will fix */ }
+    } catch { /* old token invalid or cache corrupt, network refresh will fix */ }
   },
 
   // Clear token and key cache on sign-out
@@ -47,7 +47,7 @@ export const cache = {
   prewarm() {
     if (!_token) return;
     const raw = localStorage.getItem(CACHE_KEY);
-    prewarmKey(_token, raw); // fire-and-forget — result cached in crypto.js
+    prewarmKey(_token, raw); // fire-and-forget, result cached in crypto.js
   },
 
   // Read non-PHI settings synchronously (no decryption needed).
@@ -89,14 +89,14 @@ export const cache = {
         localStorage.setItem(CACHE_KEY, encrypted);
       } catch (e) {
         if (e?.name === 'QuotaExceededError' || e?.code === 22) {
-          // Storage full — save old cache, clear space, retry
+          // Storage full, save old cache, clear space, retry
           const oldCache = localStorage.getItem(CACHE_KEY);
           localStorage.removeItem(CACHE_KEY);
           localStorage.removeItem(PENDING_KEY);
           try {
             localStorage.setItem(CACHE_KEY, encrypted);
           } catch {
-            // Still full — restore old cache rather than losing all offline data
+            // Still full, restore old cache rather than losing all offline data
             if (oldCache) {
               try { localStorage.setItem(CACHE_KEY, oldCache); } catch { /* truly out of space */ }
             }
@@ -104,12 +104,12 @@ export const cache = {
         }
       }
     } catch {
-      // Encrypt failed or token unavailable — skip caching
+      // Encrypt failed or token unavailable, skip caching
     }
   },
 
   // Queue a write operation for when we come back online
-  // Pending ops contain only table/id/action — no PHI, so no encryption needed
+  // Pending ops contain only table/id/action, no PHI, so no encryption needed
   queueWrite(operation) {
     try {
       const pending = this.getPending();
@@ -118,7 +118,7 @@ export const cache = {
         localStorage.setItem(PENDING_KEY, JSON.stringify(pending));
       } catch (e) {
         if (e?.name === 'QuotaExceededError' || e?.code === 22) {
-          // Pending queue full — trim oldest half and retry
+          // Pending queue full, trim oldest half and retry
           const trimmed = pending.slice(Math.floor(pending.length / 2));
           try { localStorage.setItem(PENDING_KEY, JSON.stringify(trimmed)); } catch { /* give up */ }
         }

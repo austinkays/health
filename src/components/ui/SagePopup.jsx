@@ -43,7 +43,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
-  // Focus trap — keep Tab/Shift+Tab inside the panel
+  // Focus trap, keep Tab/Shift+Tab inside the panel
   useEffect(() => {
     if (!open) return;
     const panel = panelRef.current;
@@ -73,7 +73,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
   const send = useCallback(async () => {
     const q = input.trim();
     if (!q || loading || cooldown) return;
-    // Crisis detection — show resources instead of sending to AI
+    // Crisis detection, show resources instead of sending to AI
     const crisis = detectCrisis(q);
     if (crisis.isCrisis) {
       setCrisisType(crisis.type);
@@ -205,7 +205,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
             {usage.remaining <= 3 && (
               <div className="px-3 pt-2 text-center">
                 <span className="text-[10px] font-montserrat text-salve-rose">
-                  {usage.remaining === 0 ? 'Daily limit reached — resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
+                  {usage.remaining === 0 ? 'Daily limit reached, resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
                 </span>
               </div>
             )}

@@ -1,4 +1,4 @@
-// Common medical form templates — static, curated question sets for quick start
+// Common medical form templates, static, curated question sets for quick start
 
 export const FORM_TEMPLATES = [
   {

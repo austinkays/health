@@ -26,7 +26,7 @@ function writeCache(articles) {
       articles,
       expiry: Date.now() + CACHE_TTL,
     }));
-  } catch { /* quota — ignore */ }
+  } catch { /* quota, ignore */ }
 }
 
 /**

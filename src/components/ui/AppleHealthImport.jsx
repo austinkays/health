@@ -66,7 +66,7 @@ export default function AppleHealthImport({ data, reloadData }) {
           || allFiles.find(n => n.endsWith('.xml') && !n.includes('cda'));
         if (!xmlFile) throw new Error('No export.xml found in ZIP. Make sure this is an Apple Health export.');
 
-        // Get arraybuffer — parser handles chunked decoding internally
+        // Get arraybuffer, parser handles chunked decoding internally
         setProgress(10);
         const buf = await zip.files[xmlFile].async('arraybuffer');
         setProgress(20);
@@ -83,7 +83,7 @@ export default function AppleHealthImport({ data, reloadData }) {
             }
           } catch { /* skip unparseable files */ }
         }
-        // For ZIP, we pass the ArrayBuffer directly — parser decodes in chunks
+        // For ZIP, we pass the ArrayBuffer directly, parser decodes in chunks
         const parsed = parseAppleHealthExport(buf, {
           onProgress: (p) => setProgress(20 + Math.round(p * 0.7)),
         });
@@ -233,7 +233,7 @@ export default function AppleHealthImport({ data, reloadData }) {
 
         {totalNew === 0 ? (
           <div className="text-center py-2">
-            <p className="text-xs text-salve-textFaint italic mb-2">All records already exist — nothing new to import.</p>
+            <p className="text-xs text-salve-textFaint italic mb-2">All records already exist, nothing new to import.</p>
             <button onClick={reset} className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline">Back</button>
           </div>
         ) : (
@@ -293,7 +293,7 @@ export default function AppleHealthImport({ data, reloadData }) {
     );
   }
 
-  // Paste state — textarea for iOS Shortcut data
+  // Paste state, textarea for iOS Shortcut data
   if (stage === 'paste') {
     return (
       <Card>
@@ -321,7 +321,7 @@ export default function AppleHealthImport({ data, reloadData }) {
     );
   }
 
-  // Idle state — file picker + paste button
+  // Idle state, file picker + paste button
   return (
     <Card>
       <p className="text-[13px] text-salve-text font-medium leading-relaxed mb-3">

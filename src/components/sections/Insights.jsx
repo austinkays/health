@@ -330,7 +330,7 @@ export default function Insights({ data, onNav }) {
         </p>
       )}
 
-      {/* Unlock more insights — shows locked categories with progress */}
+      {/* Unlock more insights, shows locked categories with progress */}
       {filter === 'All' && <UnlockSection data={data} unlockedCategories={unlockedCategories} />}
     </div>
   );

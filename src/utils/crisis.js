@@ -1,4 +1,4 @@
-// Deterministic crisis keyword detection — NO AI dependency, works offline, instant.
+// Deterministic crisis keyword detection, NO AI dependency, works offline, instant.
 // Returns { isCrisis, type } to select appropriate emergency resources.
 
 // Phrase-level patterns grouped by crisis type.

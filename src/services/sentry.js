@@ -9,7 +9,7 @@
 
 import * as Sentry from '@sentry/react';
 
-// Fields that should NEVER appear in Sentry events — if a crash happens
+// Fields that should NEVER appear in Sentry events, if a crash happens
 // while rendering a form or API call, this scrubs the values from
 // extra/context/breadcrumb data.
 const PHI_KEYS = new Set([
@@ -51,7 +51,7 @@ export function initSentry() {
   Sentry.init({
     dsn,
     environment: isProd ? 'production' : 'development',
-    // Release is optional — set it during Vercel deploys if you want
+    // Release is optional, set it during Vercel deploys if you want
     // to correlate errors to commits
     release: import.meta.env.VITE_SENTRY_RELEASE || undefined,
 
@@ -67,7 +67,7 @@ export function initSentry() {
 
     // Filter + scrub every event before it goes over the wire
     beforeSend(event) {
-      // Drop request bodies entirely — we don't need them and they
+      // Drop request bodies entirely, we don't need them and they
       // typically carry PHI
       if (event.request) {
         delete event.request.data;

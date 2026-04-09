@@ -24,7 +24,7 @@ function applyThemeVariables(themeId, animate = false) {
     }
     root.classList.add(`theme-${theme.id}`);
   }
-  // Only defer via rAF when animating a theme switch — first render applies synchronously
+  // Only defer via rAF when animating a theme switch, first render applies synchronously
   // (the inline script in index.html already set the vars; sync call just keeps React in sync)
   if (animate) requestAnimationFrame(apply);
   else apply();
@@ -37,7 +37,7 @@ function readCommitted() {
 export function ThemeProvider({ children }) {
   const initial = readCommitted();
   const [committedThemeId, setCommittedThemeId] = useState(initial);
-  // Preview/active theme — what's currently displayed. May differ from committed.
+  // Preview/active theme, what's currently displayed. May differ from committed.
   const [themeId, setThemeIdInternal] = useState(initial);
 
   const isFirstRender = useRef(true);
@@ -47,7 +47,7 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      // inline script in index.html already set all vars — sync call keeps
+      // inline script in index.html already set all vars, sync call keeps
       // React's DOM state in sync without adding an animation frame delay
       applyThemeVariables(themeId, false);
       return;
@@ -64,11 +64,11 @@ export function ThemeProvider({ children }) {
       .getPropertyValue('--salve-bg').trim();
     const oldBg = oldBgRgb ? `rgb(${oldBgRgb})` : 'transparent';
 
-    // Apply new theme vars immediately — content updates to new colors beneath the overlay
+    // Apply new theme vars immediately, content updates to new colors beneath the overlay
     applyThemeVariables(themeId, false);
 
     // Create a fixed overlay covering the viewport with the OLD background colour.
-    // Only this one div needs to animate (GPU-composited opacity) — the rest of the
+    // Only this one div needs to animate (GPU-composited opacity), the rest of the
     // DOM is already in its final state underneath.
     const overlay = document.createElement('div');
     overlay.id = 'salve-theme-overlay';

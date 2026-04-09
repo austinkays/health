@@ -252,7 +252,7 @@ export default function Vitals({ data, addItem, removeItem }) {
         ))}
       </div>
 
-      {/* Source filter pills — only show when multiple sources */}
+      {/* Source filter pills, only show when multiple sources */}
       {sources.length > 1 && (
         <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
           <button
@@ -347,7 +347,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                   return [`${val} ${vi?.unit || ''}`, ct === 'bp' ? 'Systolic' : vi?.label || ''];
                 }}
                 labelFormatter={(label) => {
-                  // For hourly data, label is "Jan 15 08:00" — show it as-is
+                  // For hourly data, label is "Jan 15 08:00", show it as-is
                   // For daily data, label is already a formatted date
                   return label;
                 }}
@@ -387,7 +387,7 @@ export default function Vitals({ data, addItem, removeItem }) {
           </table>
           {vi && (vi.normalLow || vi.normalHigh) && (
             <div className="text-[10px] text-salve-textFaint text-center mt-1.5">
-              Normal range: {vi.normalLow ?? '—'}–{vi.normalHigh ?? '—'} {vi.unit}
+              Normal range: {vi.normalLow ?? ', '}–{vi.normalHigh ?? ', '} {vi.unit}
               {vi.id === 'bp' && vi.normalLow2 ? ` / ${vi.normalLow2}–${vi.normalHigh2} ${vi.unit}` : ''}
             </div>
           )}
@@ -440,7 +440,7 @@ export default function Vitals({ data, addItem, removeItem }) {
       <SectionTitle>Recent Entries</SectionTitle>
       {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
         (() => {
-          // Group filtered entries by date — newest first
+          // Group filtered entries by date, newest first
           const filtered = data.vitals.slice().reverse()
             .filter(v => (ct === 'all' || v.type === ct) && (sourceFilter === 'all' || getSource(v) === sourceFilter))
             .slice(0, 40);
@@ -527,7 +527,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                   onClick={toggleDay}
                   className="w-full flex items-center justify-between px-3.5 py-2.5 bg-salve-card2/40 border-none cursor-pointer text-left transition-colors hover:bg-salve-card2/70"
                   aria-expanded={isOpen}
-                  aria-label={`${fmtDateRelative(date)} — ${entries.length} entries`}
+                  aria-label={`${fmtDateRelative(date)}, ${entries.length} entries`}
                 >
                   <div className="flex items-baseline gap-2 min-w-0">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
@@ -620,7 +620,7 @@ export default function Vitals({ data, addItem, removeItem }) {
                                   {displayVal}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
                                 </span>
                                 {flag && <span className="text-[10px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
-                                {v.notes && <span className="text-[11px] text-salve-textFaint italic">— {v.notes}</span>}
+                                {v.notes && <span className="text-[11px] text-salve-textFaint italic">,  {v.notes}</span>}
                               </div>
                               {SrcIcon && <SrcIcon size={11} style={{ color: SOURCE_COLOR[src] }} className="flex-shrink-0" aria-hidden="true" />}
                               <button

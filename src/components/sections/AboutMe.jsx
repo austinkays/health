@@ -38,8 +38,8 @@ const CATEGORIES = [
     label: 'Family History',
     icon: Users,
     fields: [
-      { key: 'family_mental_health', label: 'Family Mental Health History', placeholder: 'e.g. Mother — depression, Brother — ADHD', textarea: true },
-      { key: 'family_substance_use', label: 'Family Substance Use History', placeholder: 'e.g. Father — alcohol use disorder', textarea: true },
+      { key: 'family_mental_health', label: 'Family Mental Health History', placeholder: 'e.g. Mother, depression, Brother, ADHD', textarea: true },
+      { key: 'family_substance_use', label: 'Family Substance Use History', placeholder: 'e.g. Father, alcohol use disorder', textarea: true },
       { key: 'family_medical', label: 'Family Medical History', placeholder: 'e.g. Heart disease (father), diabetes (grandmother)', textarea: true },
     ],
   },
@@ -128,7 +128,7 @@ export default function AboutMe({ data, updateSettings, onSageIntro }) {
     <div className="space-y-3">
       <div className="px-1 mt-1 mb-1">
         <p className="text-sm text-salve-textMid font-montserrat mb-1">
-          Help Sage fill out forms for you by sharing a bit about yourself. Everything here is optional — add as much or as little as you like.
+          Help Sage fill out forms for you by sharing a bit about yourself. Everything here is optional, add as much or as little as you like.
         </p>
         <p className="text-[11px] text-salve-textFaint font-montserrat">
           {filledTotal} of {totalFields} fields filled · Saves automatically

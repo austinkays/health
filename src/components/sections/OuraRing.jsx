@@ -68,7 +68,7 @@ function StatCard({ icon: Icon, label, value, unit, sub, color, trend }) {
         {trend}
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-[22px] font-playfair font-semibold" style={{ color }}>{value ?? '—'}</span>
+        <span className="text-[22px] font-playfair font-semibold" style={{ color }}>{value ?? ', '}</span>
         {unit && <span className="text-[11px] text-salve-textFaint">{unit}</span>}
       </div>
       {sub && <span className="text-[10px] text-salve-textFaint leading-snug">{sub}</span>}
@@ -96,7 +96,7 @@ export default function OuraRing({ data, addItem, onNav }) {
 
   const connected = isOuraConnected();
 
-  // Fetch fresh Oura data directly (not from DB — real-time from API)
+  // Fetch fresh Oura data directly (not from DB, real-time from API)
   const fetchLiveData = useCallback(async () => {
     if (!connected) return;
     try {
@@ -351,7 +351,7 @@ export default function OuraRing({ data, addItem, onNav }) {
             {Object.entries(latest.readiness.contributors).map(([key, val]) => (
               <div key={key} className="flex items-center justify-between">
                 <span className="text-[10px] text-salve-textMid font-montserrat capitalize">{key.replace(/_/g, ' ')}</span>
-                <span className={`text-[10px] font-medium ${val >= 70 ? 'text-salve-sage' : val >= 50 ? 'text-salve-amber' : 'text-salve-rose'}`}>{val ?? '—'}</span>
+                <span className={`text-[10px] font-medium ${val >= 70 ? 'text-salve-sage' : val >= 50 ? 'text-salve-amber' : 'text-salve-rose'}`}>{val ?? ', '}</span>
               </div>
             ))}
           </div>

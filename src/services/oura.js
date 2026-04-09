@@ -109,7 +109,7 @@ async function refreshAccessToken() {
       body: JSON.stringify({ refresh_token: stored.refresh_token }),
     });
     if (!res.ok) {
-      // If refresh fails, token is revoked — disconnect
+      // If refresh fails, token is revoked, disconnect
       clearOuraTokens();
       throw new Error('Oura session expired. Please reconnect.');
     }
@@ -313,7 +313,7 @@ export async function syncOuraSleep(existingVitals, addItem, days = 30) {
     const hrs = Math.round((totalSec / 3600) * 10) / 10;
     await addItem('vitals', {
       date: day, type: 'sleep', value: String(hrs), value2: '', unit: 'hrs',
-      notes: `Oura Ring (efficiency: ${s.efficiency ?? '—'}%, latency: ${s.latency ? Math.round(s.latency / 60) + 'min' : '—'})`,
+      notes: `Oura Ring (efficiency: ${s.efficiency ?? ', '}%, latency: ${s.latency ? Math.round(s.latency / 60) + 'min' : ', '})`,
       source: 'oura',
     });
     added++;
@@ -427,7 +427,7 @@ export async function syncOuraStress(existingVitals, addItem, days = 30) {
     const stressVal = Math.min(10, Math.round((stressHigh / 3600) * 10));
     await addItem('vitals', {
       date: s.day, type: 'pain', value: String(stressVal), value2: '', unit: '/10',
-      notes: `Oura Ring stress (high: ${Math.round(stressHigh / 60)}min, recovery: ${s.recovery_high ? Math.round(s.recovery_high / 60) : '—'}min)`,
+      notes: `Oura Ring stress (high: ${Math.round(stressHigh / 60)}min, recovery: ${s.recovery_high ? Math.round(s.recovery_high / 60) : ', '}min)`,
       source: 'oura',
     });
     added++;
@@ -477,7 +477,7 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
       calories: w.calories ? Math.round(w.calories) : null,
       heart_rate_avg: w.average_heart_rate || null,
       source: 'oura',
-      notes: `Oura Ring (intensity: ${w.intensity || '—'})`,
+      notes: `Oura Ring (intensity: ${w.intensity || ', '})`,
     });
     added++;
   }
@@ -485,7 +485,7 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
 }
 
 /**
- * Full Oura sync — all data types at once.
+ * Full Oura sync, all data types at once.
  * Guarded against concurrent execution (duplicate prevention).
  * Returns summary of what was synced.
  */

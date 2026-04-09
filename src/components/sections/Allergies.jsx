@@ -63,7 +63,7 @@ export default function Allergies({ data, addItem, updateItem, removeItem, highl
         <Field label="Severity" value={form.severity} onChange={v => sf('severity', v)} options={[
           { value: 'mild', label: 'Mild' },
           { value: 'moderate', label: 'Moderate' },
-          { value: 'severe', label: 'Severe — Anaphylaxis' },
+          { value: 'severe', label: 'Severe, Anaphylaxis' },
         ]} />
         <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Cross-sensitivities..." />
         <div className="flex gap-2">

@@ -1,4 +1,4 @@
-// Unified news article cache — merges RSS, Sage AI news, and saved articles.
+// Unified news article cache, merges RSS, Sage AI news, and saved articles.
 // All articles share a common shape for the News section feed.
 //
 // Article shape:

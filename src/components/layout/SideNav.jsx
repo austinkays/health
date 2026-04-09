@@ -71,7 +71,7 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Feedback link — beta */}
+      {/* Feedback link, beta */}
       <div className="px-3 mb-2">
         <button
           onClick={() => onNav('feedback')}

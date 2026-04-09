@@ -49,7 +49,7 @@ export default function Feedback({ data, addItem, removeItem }) {
     } catch (err) {
       if (err?.message === 'demo_mode_blocked') return;
       console.error('Failed to submit feedback:', err);
-      setSubmitError('Something went wrong — please try again in a moment.');
+      setSubmitError('Something went wrong, please try again in a moment.');
     } finally {
       setSending(false);
     }

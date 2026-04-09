@@ -534,7 +534,7 @@ export default function HealthSummary({ data, onNav }) {
           color={C.amber} defaultOpen={shouldExpand(appeals)} navId="appeals" onNav={onNav}
         >
           {appeals.map(a => {
-            const st = APPEAL_STATUS[a.status] || { c: C.textFaint, label: a.status || '—' };
+            const st = APPEAL_STATUS[a.status] || { c: C.textFaint, label: a.status || ', ' };
             return (
               <Row key={a.id} onClick={() => onNav('appeals')}>
                 <span className="text-salve-text text-sm flex-1 truncate">{a.type || a.name || 'Appeal'}</span>

@@ -91,14 +91,14 @@ export function getCyclePhaseForDate(date, cycles) {
  *   The cervix is open, producing Type E mucus that actively assists sperm transport.
  *   Peak is O-1 and O-day when the LH surge triggers egg release.
  *
- * POST-OVULATORY — ABSOLUTE [ovDay+2 → cycle end]:
+ * POST-OVULATORY, ABSOLUTE [ovDay+2 → cycle end]:
  *   The egg is gone within 24h. Progesterone from the corpus luteum seals the
  *   cervix and reverts mucus to impenetrable Type G. The luteal phase is rigidly
  *   conserved at 12–14 days, making this the most predictable infertile window.
  *
- * PRE-OVULATORY — RELATIVE [day 1 → ovDay-6]:
+ * PRE-OVULATORY, RELATIVE [day 1 → ovDay-6]:
  *   Dense Type G mucus traps and destroys sperm. Labeled "relative" because
- *   follicular phase length varies — in a short cycle, sperm from late in a
+ *   follicular phase length varies, in a short cycle, sperm from late in a
  *   period could survive long enough to meet an early ovulation.
  */
 export function estimateFertility(dayOfCycle, avgLength) {
@@ -175,13 +175,13 @@ export function detectBBTShift(cycles) {
 }
 
 /**
- * Symptothermal Method analysis — combines BBT, cervical mucus, and calendar
+ * Symptothermal Method analysis, combines BBT, cervical mucus, and calendar
  * to determine fertility status using FAM (Fertility Awareness Method) rules.
  *
  * The Symptothermal Method cross-checks three independent biomarkers:
  *  1. Calendar (count-backward prediction of fertile window)
- *  2. Cervical mucus (real-time estrogen indicator — mucus pattern confirms approach of ovulation)
- *  3. BBT (progesterone indicator — thermal shift confirms ovulation retroactively)
+ *  2. Cervical mucus (real-time estrogen indicator, mucus pattern confirms approach of ovulation)
+ *  3. BBT (progesterone indicator, thermal shift confirms ovulation retroactively)
  *
  * Rules for confirming the post-ovulatory infertile phase:
  *  - BBT rule: 3 consecutive temps ≥0.3°F above the previous 6 (standard cover-line rule)
@@ -265,7 +265,7 @@ export function getSymptothermalStatus(cycles, stats) {
 
   // ── PRE-OVULATORY ──
   if (dayOfCycle <= 5) {
-    return { status: 'infertile-pre', confidence: 'medium', details: 'Menstrual phase — generally infertile.', rules };
+    return { status: 'infertile-pre', confidence: 'medium', details: 'Menstrual phase, generally infertile.', rules };
   }
   if (calFertility.zone === 'relative' && mucusDrying) {
     return { status: 'infertile-pre', confidence: 'low', details: 'Dry mucus, early in cycle. Watch for mucus changes.', rules };
@@ -290,7 +290,7 @@ export function getCycleAlerts(stats, cycles) {
       alerts.push({
         type: 'short_cycle',
         severity: 'warning',
-        message: `Last cycle was ${lastLen} days — shorter than typical. Ovulation may happen earlier than expected.`,
+        message: `Last cycle was ${lastLen} days, shorter than typical. Ovulation may happen earlier than expected.`,
       });
     }
   }
@@ -306,7 +306,7 @@ export function getCycleAlerts(stats, cycles) {
       alerts.push({
         type: 'peak_mucus',
         severity: 'info',
-        message: `Peak mucus logged ${daysSinceEW === 0 ? 'today' : `${daysSinceEW}d ago`} — ovulation likely imminent.`,
+        message: `Peak mucus logged ${daysSinceEW === 0 ? 'today' : `${daysSinceEW}d ago`}, ovulation likely imminent.`,
       });
     }
   }

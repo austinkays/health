@@ -53,7 +53,7 @@ export function SageIntroButton({ onClick, compact = false }) {
           <p className={`text-salve-textFaint font-montserrat m-0 ${compact ? 'text-[11px]' : 'text-[12px] md:text-[13px]'} leading-snug mt-0.5`}>
             {compact
               ? 'Quick chat to set up your profile'
-              : 'A quick, friendly chat to get your profile set up — Sage saves everything for you'
+              : 'A quick, friendly chat to get your profile set up, Sage saves everything for you'
             }
           </p>
         </div>
@@ -67,7 +67,7 @@ export function SageIntroButton({ onClick, compact = false }) {
 
 const INTRO_DISMISSED_KEY = 'salve:sage-intro-done';
 
-// Read dismissal synchronously at module load — prevents any render flash
+// Read dismissal synchronously at module load, prevents any render flash
 let _introDismissed = false;
 try { _introDismissed = !!localStorage.getItem(INTRO_DISMISSED_KEY); } catch {}
 
@@ -137,7 +137,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
     return results;
   }, [toolExecutor]);
 
-  // Start the conversation — Sage sends the first message
+  // Start the conversation, Sage sends the first message
   const startIntro = async () => {
     setStarted(true);
     setLoading(true);
@@ -236,7 +236,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                 Hey, I'm Sage 🌿
               </h2>
               <p className="text-salve-textMid font-montserrat text-sm md:text-base leading-relaxed max-w-[360px] mx-auto">
-                I'd love to learn a bit about you. I'll ask a few questions and save everything to your profile — so I can help fill out forms and give better health tips.
+                I'd love to learn a bit about you. I'll ask a few questions and save everything to your profile, so I can help fill out forms and give better health tips.
               </p>
               <p className="text-salve-textFaint font-montserrat text-xs mt-3 max-w-[300px] mx-auto">
                 Takes about 3 minutes · Skip anything you want · Everything stays private
@@ -335,7 +335,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
         )}
       </div>
 
-      {/* Input area — hidden when conversation is complete */}
+      {/* Input area, hidden when conversation is complete */}
       {started && !isConversationComplete(messages) && (
         <div className="shrink-0 border-t border-salve-border/50 bg-salve-card/80 backdrop-blur-sm px-4 py-3 max-w-[600px] mx-auto w-full">
           <div className="flex gap-2">

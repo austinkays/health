@@ -1,4 +1,4 @@
-// Starred sections — user-chosen shortcuts that appear on the Dashboard.
+// Starred sections, user-chosen shortcuts that appear on the Dashboard.
 // Stored as an array of section IDs in localStorage.
 
 const KEY = 'salve:starred';

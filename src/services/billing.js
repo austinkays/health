@@ -29,7 +29,7 @@ export async function startCheckout() {
   const { url } = await res.json();
   if (!url) throw new Error('No checkout URL returned');
 
-  // Full redirect — Lemon Squeezy handles the checkout in their hosted page
+  // Full redirect, Lemon Squeezy handles the checkout in their hosted page
   window.location.href = url;
 }
 

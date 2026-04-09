@@ -161,7 +161,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
               href={`https://npiregistry.cms.hhs.gov/provider-view/${p.npi}`}
               target="_blank"
               rel="noopener noreferrer"
-              aria-label={`NPI ${p.npi} — view in CMS registry (opens in new tab)`}
+              aria-label={`NPI ${p.npi}, view in CMS registry (opens in new tab)`}
               className="text-salve-sage hover:underline"
             >
               {p.npi}

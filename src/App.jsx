@@ -34,7 +34,7 @@ function lazyWithRetry(importFn) {
       if (!sessionStorage.getItem(RETRY_KEY)) {
         sessionStorage.setItem(RETRY_KEY, '1');
         window.location.reload();
-        return new Promise(() => {}); // never resolves — page is reloading
+        return new Promise(() => {}); // never resolves, page is reloading
       }
       sessionStorage.removeItem(RETRY_KEY);
       throw new Error('Failed to load section after retry');
@@ -42,7 +42,7 @@ function lazyWithRetry(importFn) {
   );
 }
 
-// Code-split section components — loaded only when first visited
+// Code-split section components, loaded only when first visited
 const Dashboard = lazyWithRetry(() => import('./components/sections/Dashboard'));
 const Medications = lazyWithRetry(() => import('./components/sections/Medications'));
 const Vitals = lazyWithRetry(() => import('./components/sections/Vitals'));
@@ -93,7 +93,7 @@ export default function App() {
 
 function AppContent() {
   // Check localStorage synchronously for an existing Supabase session.
-  // If one exists, skip the blocking splash — render the app shell immediately
+  // If one exists, skip the blocking splash, render the app shell immediately
   // with cached data while onAuthStateChange refreshes the token in the background.
   const [session, setSession] = useState(() => {
     try {
@@ -104,7 +104,7 @@ function AppContent() {
         const s = stored?.currentSession || stored;
         if (s?.access_token && s?.user?.id) return s;
       }
-    } catch { /* corrupted storage — fall through to auth screen */ }
+    } catch { /* corrupted storage, fall through to auth screen */ }
     return null;
   });
   const [authLoading, setAuthLoading] = useState(() => !session); // skip loading if we found a cached session
@@ -119,7 +119,7 @@ function AppContent() {
       cache.setToken(session.access_token);
       cache.prewarm();
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally runs once with initial session
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps, intentionally runs once with initial session
 
   // Safety timeout: if Supabase INITIAL_SESSION event hasn't fired after 3 seconds,
   // stop showing the splash and let the user see the sign-in screen.
@@ -183,7 +183,7 @@ function AppContent() {
     return updateSettings(changes);
   }, [updateSettings, demoMode, showToast]);
   const eraseAllT = useCallback(async () => {
-    if (demoMode) { showToast('Demo mode — nothing to erase', { type: 'info' }); return; }
+    if (demoMode) { showToast('Demo mode, nothing to erase', { type: 'info' }); return; }
     return eraseAll();
   }, [eraseAll, demoMode, showToast]);
 
@@ -241,7 +241,7 @@ function AppContent() {
     return () => window.removeEventListener('keydown', handler);
   }, [sageOpen]);
 
-  // Time-aware ambiance — shift accent warmth throughout the day
+  // Time-aware ambiance, shift accent warmth throughout the day
   useEffect(() => {
     const applyAmbiance = () => {
       const h = new Date().getHours();
@@ -269,7 +269,7 @@ function AppContent() {
       }
     }
     if (window.__ouraCode) {
-      // Oura OAuth callback — navigate to settings; session arrives via INITIAL_SESSION below
+      // Oura OAuth callback, navigate to settings; session arrives via INITIAL_SESSION below
       setTab('settings');
     }
 
@@ -281,19 +281,19 @@ function AppContent() {
       });
     }
 
-    // Avoid calling getSession() here — it competes with onAuthStateChange for
+    // Avoid calling getSession() here, it competes with onAuthStateChange for
     // the gotrue storage lock and causes a 5-second stall in React Strict Mode.
     // INITIAL_SESSION fires immediately and provides the same initial session.
     const subscription = onAuthChange((event, s) => {
       if (event === 'SIGNED_OUT' && !s) {
-        // User explicitly signed out — clear everything
+        // User explicitly signed out, clear everything
         setSessionExpired(true);
         setSageOpen(false);
         setSageIntroOpen(false);
         clearSentryUser();
         clearTokenCache();
       } else if (event === 'TOKEN_REFRESHED' && !s) {
-        // Transient null during token refresh — do NOT flash auth screen.
+        // Transient null during token refresh, do NOT flash auth screen.
         // The next event will have the refreshed session.
         return;
       } else if (s?.user?.id) {

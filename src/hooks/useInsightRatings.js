@@ -1,4 +1,4 @@
-// Hook for insight ratings — provides rate/unrate with optimistic local state.
+// Hook for insight ratings, provides rate/unrate with optimistic local state.
 // Loads all ratings once on mount, then updates are optimistic.
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,7 +16,7 @@ export default function useInsightRatings(session) {
         for (const r of rows) map.set(`${r.surface}:${r.content_key}`, r.rating);
         setRatings(map);
       })
-      .catch(() => {}); // silent — ratings are non-critical
+      .catch(() => {}); // silent, ratings are non-critical
   }, [session?.user?.id]);
 
   const getRating = useCallback((surface, contentKey) => {
@@ -28,7 +28,7 @@ export default function useInsightRatings(session) {
     const current = ratings.get(key) || 0;
 
     if (current === rating) {
-      // Toggle off — remove rating
+      // Toggle off, remove rating
       setRatings(prev => { const next = new Map(prev); next.delete(key); return next; });
       removeRating(surface, contentKey).catch(() => {
         // Revert on failure

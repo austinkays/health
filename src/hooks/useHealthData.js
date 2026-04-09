@@ -6,7 +6,7 @@ import { buildDemoData } from '../constants/demoData';
 
 export default function useHealthData(session, demoMode = false) {
   const [data, setData] = useState(() => {
-    // Synchronous read of non-PHI settings sidecar — shows name/prefs instantly
+    // Synchronous read of non-PHI settings sidecar, shows name/prefs instantly
     // before the encrypted cache or Supabase have a chance to load.
     const cachedSettings = cache.readSettingsSync();
     return {
@@ -35,7 +35,7 @@ export default function useHealthData(session, demoMode = false) {
   }, [demoMode]);
 
   // Cache-first loading: show cached data instantly, then refresh from Supabase.
-  // Depend on session user ID (stable string) — NOT the session object reference,
+  // Depend on session user ID (stable string), NOT the session object reference,
   // which changes on every token refresh and caused 3× duplicate load_all_data calls.
   const sessionUserId = session?.user?.id;
   const sessionToken = session?.access_token;
@@ -66,7 +66,7 @@ export default function useHealthData(session, demoMode = false) {
         const fresh = await db.loadAll();
         if (!cancelled) {
           setData(fresh);
-          // Defer cache write off the critical path — don't block rendering
+          // Defer cache write off the critical path, don't block rendering
           setTimeout(() => cache.write(fresh).catch(() => {}), 100);
           // If premium is no longer active (trial expired / free tier) but the
           // client still has anthropic selected, force-switch to gemini so
@@ -91,7 +91,7 @@ export default function useHealthData(session, demoMode = false) {
     setData(prev => ({ ...prev, [key]: val }));
   }, []);
 
-  // CRUD helpers that sync to Supabase — state updates AFTER server confirms
+  // CRUD helpers that sync to Supabase, state updates AFTER server confirms
   const addItem = useCallback(async (table, item) => {
     const saved = await db[table].add(item);
     setData(prev => {
@@ -119,7 +119,7 @@ export default function useHealthData(session, demoMode = false) {
   }, []);
 
   const updateSettings = useCallback(async (changes) => {
-    // Optimistic local update — instant UI response
+    // Optimistic local update, instant UI response
     setData(prev => ({ ...prev, settings: { ...prev.settings, ...changes } }));
     // Fire the network save in the background
     try {

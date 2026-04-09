@@ -72,7 +72,7 @@ export default function useVoiceInput() {
       if (e.error === 'aborted') return; // user stopped
       const messages = {
         'not-allowed': 'Microphone permission denied. Enable it in browser settings.',
-        'network': 'Network error — speech recognition needs an internet connection.',
+        'network': 'Network error, speech recognition needs an internet connection.',
         'audio-capture': 'No microphone detected.',
         'service-not-allowed': 'Speech service not available in this browser.',
       };

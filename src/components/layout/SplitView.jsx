@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 
 /**
- * useIsDesktop — returns true when viewport is ≥ 768px.
+ * useIsDesktop, returns true when viewport is ≥ 768px.
  * Exported for sections that need responsive behavior without SplitView.
  */
 export function useIsDesktop() {
@@ -17,7 +17,7 @@ export function useIsDesktop() {
 }
 
 /**
- * SplitView — list/detail layout for desktop.
+ * SplitView, list/detail layout for desktop.
  *
  * Mobile: just renders `list` (sections handle their own inline expand).
  * Desktop (md+): side-by-side with list on left and detail on right.

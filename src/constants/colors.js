@@ -1,4 +1,4 @@
-// Color palette — backward-compatible theme-aware proxy.
+// Color palette, backward-compatible theme-aware proxy.
 // Components that import { C } get hex strings from the active theme.
 // For React components, prefer useTheme().C for explicit reactivity.
 import { getActiveC } from '../hooks/useTheme';

@@ -7,7 +7,7 @@ const PROMPTS = {
   positive: [
     'What made you smile today?',
     'What\'s one thing you\'re grateful for right now?',
-    'Capture this feeling — what made today good?',
+    'Capture this feeling, what made today good?',
     'What\'s something small that went right?',
     'Who or what brought you joy today?',
     'What would you want to remember about today?',
@@ -51,7 +51,7 @@ const PROMPTS = {
   ],
   exhausted: [
     'What would recharge you, even a little?',
-    'Your body is talking to you — what\'s it saying?',
+    'Your body is talking to you, what\'s it saying?',
     'Rest is not laziness. What do you need?',
     'You don\'t have to push through everything.',
     'What\'s one thing you could take off your plate today?',
@@ -61,7 +61,7 @@ const PROMPTS = {
   open: [
     'What\'s on your mind?',
     'How does your body feel right now?',
-    'Check in with yourself — how are you, really?',
+    'Check in with yourself, how are you, really?',
     'What\'s one word that describes how you feel?',
     'What do you want to remember about today?',
     'Is there anything you want to get off your chest?',
@@ -140,7 +140,7 @@ export function getContextualPrompt(data) {
     const daysSinceStart = Math.floor((Date.now() - new Date(tracking.startDate).getTime()) / 86400000) + 1;
 
     if (daysSinceStart > 14) {
-      // Tracking window complete — clear and don't add prompt
+      // Tracking window complete, clear and don't add prompt
       localStorage.removeItem('salve:med-tracking');
     } else {
       // Update day count

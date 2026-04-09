@@ -1,10 +1,10 @@
 // src/constants/demoData.js
 // Curated demo user profile for the "Explore without signing in" mode.
-// Realistic but fictional — represents someone juggling common chronic
+// Realistic but fictional, represents someone juggling common chronic
 // conditions (ADHD, IBS, allergies) and trying to manage them holistically.
 // All dates are computed relative to today so the demo always feels current.
 
-// Use LOCAL calendar date — not UTC. Without this, users west of UTC in the
+// Use LOCAL calendar date, not UTC. Without this, users west of UTC in the
 // evening see "today" roll over to tomorrow's UTC date and the demo ends up
 // with future-dated entries. (Apr 4 PT evening = Apr 5 UTC.)
 function toLocalISODate(d) {
@@ -160,8 +160,8 @@ export function buildDemoData() {
   ];
 
   const journal = [
-    { id: did(), date: daysAgo(1), title: 'Good focus day', mood: '😀 Great', severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night — noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity', symptoms: [], triggers: '', interventions: 'Good sleep, morning walk', gratitude: 'Finished the big project', linked_conditions: [], linked_meds: [] },
-    { id: did(), date: daysAgo(3), title: 'IBS flare', mood: '😔 Low', severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday — probably contributed.', tags: 'ibs,flare,stress', symptoms: [{ name: 'Stomach cramps', severity: '4' }, { name: 'Headache', severity: '3' }], triggers: 'Pizza, stress at work', interventions: 'Dicyclomine, heating pad', gratitude: '', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(1), title: 'Good focus day', mood: '😀 Great', severity: 2, content: 'Adderall felt especially clean today. Got through a big project at work. Slept 8 hours last night, noticing a pattern that sleep > 7hrs makes meds work better.', tags: 'adhd,sleep,productivity', symptoms: [], triggers: '', interventions: 'Good sleep, morning walk', gratitude: 'Finished the big project', linked_conditions: [], linked_meds: [] },
+    { id: did(), date: daysAgo(3), title: 'IBS flare', mood: '😔 Low', severity: 6, content: 'Rough morning. Had pizza last night and paying for it. Taking dicyclomine. Also noticed I was really stressed yesterday, probably contributed.', tags: 'ibs,flare,stress', symptoms: [{ name: 'Stomach cramps', severity: '4' }, { name: 'Headache', severity: '3' }], triggers: 'Pizza, stress at work', interventions: 'Dicyclomine, heating pad', gratitude: '', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(5), title: 'Brain fog after bad sleep', mood: '😐 Okay', severity: 5, content: 'Only got 5 hours last night. Adderall barely made a dent. Everything felt like wading through mud.', tags: 'adhd,sleep,fatigue', symptoms: [{ name: 'Brain fog', severity: '4' }, { name: 'Fatigue', severity: '3' }, { name: 'Headache', severity: '2' }], triggers: 'Poor sleep, stayed up late', interventions: 'Extra coffee, short nap', gratitude: '', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(6), title: 'Therapy insight', mood: '😊 Good', severity: 3, content: 'Sarah helped me see the connection between perfectionism at work and my IBS flares. Going to try setting earlier stop times this week.', tags: 'anxiety,therapy,insight', symptoms: [], triggers: '', interventions: 'Therapy, journaling', gratitude: 'Having a good therapist', linked_conditions: [], linked_meds: [] },
     { id: did(), date: daysAgo(7), title: 'Bad sleep + headache', mood: '😔 Low', severity: 6, content: 'Woke up at 3am and couldn\'t fall back asleep. Pounding headache all morning. Skipped the gym.', tags: 'sleep,headache,fatigue', symptoms: [{ name: 'Headache', severity: '4' }, { name: 'Fatigue', severity: '4' }], triggers: 'Insomnia, screen time before bed', interventions: 'Ibuprofen, dark room', gratitude: '', linked_conditions: [], linked_meds: [] },
@@ -186,7 +186,7 @@ export function buildDemoData() {
 
   const pharmacies = [
     { id: did(), name: 'Walgreens', address: '1531 Broadway, Seattle, WA 98122', phone: '(206) 555-0100', fax: '', hours: 'Mon-Fri 8am-10pm, Sat-Sun 9am-9pm', website: 'https://walgreens.com', is_preferred: true, notes: '' },
-    { id: did(), name: 'Costco', address: '4401 4th Ave S, Seattle, WA 98134', phone: '(206) 555-0155', fax: '', hours: 'Mon-Fri 10am-8:30pm', website: 'https://costco.com', is_preferred: false, notes: 'Member pharmacy — cheaper for supplements' },
+    { id: did(), name: 'Costco', address: '4401 4th Ave S, Seattle, WA 98134', phone: '(206) 555-0155', fax: '', hours: 'Mon-Fri 10am-8:30pm', website: 'https://costco.com', is_preferred: false, notes: 'Member pharmacy, cheaper for supplements' },
   ];
 
   const activities = [
@@ -199,7 +199,7 @@ export function buildDemoData() {
     { id: did(), date: daysAgo(12), type: 'run', duration_minutes: 30, distance: 3.1, calories: 300, heart_rate_avg: 146, source: 'apple_health', notes: 'Felt great' },
   ];
 
-  // Empty collections — user sees empty states for these
+  // Empty collections, user sees empty states for these
   const immunizations = [];
   const procedures = [];
   const care_gaps = [];
@@ -209,7 +209,7 @@ export function buildDemoData() {
   const insurance = [];
   const insurance_claims = [];
   const drug_prices = [];
-  // Cycle tracking — imported from Flo GDPR export, shows predicted period
+  // Cycle tracking, imported from Flo GDPR export, shows predicted period
   // in the Dashboard timeline and enables cycle-phase badges across Vitals
   // and Journal.
   const cycles = [
@@ -219,7 +219,7 @@ export function buildDemoData() {
     { id: did(), date: daysAgo(18), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(17), type: 'period', value: 'light', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(16), type: 'period', value: 'spotting', symptom: '', notes: 'imported from Flo' },
-    // Previous period (5 days, ~48 days ago — so ~28 day cycle)
+    // Previous period (5 days, ~48 days ago, so ~28 day cycle)
     { id: did(), date: daysAgo(48), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(47), type: 'period', value: 'heavy', symptom: '', notes: 'imported from Flo' },
     { id: did(), date: daysAgo(46), type: 'period', value: 'medium', symptom: '', notes: 'imported from Flo' },

@@ -38,9 +38,9 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
     { value: '', label: 'Select provider...' },
     ...(data.providers || []).map(p => ({
       value: p.name,
-      label: `${p.name}${p.specialty ? ` — ${p.specialty}` : ''}`,
+      label: `${p.name}${p.specialty ? `, ${p.specialty}` : ''}`,
     })),
-    { value: '__custom', label: '— Type custom —' },
+    { value: '__custom', label: ',  Type custom , ' },
   ], [data.providers]);
 
   /* ── Location autofill options from provider addresses ── */
@@ -54,7 +54,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
     return [
       { value: '', label: 'Select location...' },
       ...[...locs].map(l => ({ value: l, label: l })),
-      { value: '__custom', label: '— Type custom —' },
+      { value: '__custom', label: ',  Type custom , ' },
     ];
   }, [data.providers]);
 

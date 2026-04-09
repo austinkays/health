@@ -12,7 +12,7 @@ const TABLE_MAP = {
   appts:      'appointments',
   journal:    'journal_entries',
   pharmacies:           'pharmacies',
-  // Comprehensive schema v3 — new 8 sections
+  // Comprehensive schema v3, new 8 sections
   // These use the same name internally and externally
   labs:                 'labs',
   procedures:           'procedures',
@@ -243,14 +243,14 @@ export function validateImport(fileData) {
   return { valid: true, mode, preview, normalized };
 }
 
-// Ensure a value is an array — prevents crashes when malformed imports have non-array fields
+// Ensure a value is an array, prevents crashes when malformed imports have non-array fields
 const asArray = (v) => Array.isArray(v) ? v : [];
 
 /**
  * Normalize any supported file format into a flat structure.
  */
 function normalizeImportData(fileData) {
-  // MCP sync format — both 'mcp-sync' (v1) and 'mcp-sync-comprehensive' (v3)
+  // MCP sync format, both 'mcp-sync' (v1) and 'mcp-sync-comprehensive' (v3)
   if (fileData._export?.type?.startsWith('mcp-sync')) {
     return {
       settings: null,
@@ -262,7 +262,7 @@ function normalizeImportData(fileData) {
       vitals:     asArray(fileData.vitals),
       appts:      asArray(fileData.appointments),
       journal:    asArray(fileData.journal_entries),
-      // Comprehensive v3 — same name internally and externally
+      // Comprehensive v3, same name internally and externally
       labs:                 asArray(fileData.labs),
       procedures:           asArray(fileData.procedures),
       immunizations:        asArray(fileData.immunizations),
@@ -352,7 +352,7 @@ function normalizeImportData(fileData) {
  * Creates an in-memory backup before erasing so data can be recovered on failure.
  */
 export async function importRestore(normalized) {
-  // Create backup of current data before erasing — abort if backup fails
+  // Create backup of current data before erasing, abort if backup fails
   let backup;
   try {
     backup = await exportAll();
@@ -382,7 +382,7 @@ export async function importRestore(normalized) {
       }
     }
   } catch (err) {
-    // Import failed — attempt to restore from backup
+    // Import failed, attempt to restore from backup
     if (backup) {
       console.error('Import failed, attempting to restore backup:', err);
       try {
