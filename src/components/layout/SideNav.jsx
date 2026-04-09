@@ -71,7 +71,20 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Feedback link, beta */}
+      {/* Ask Sage popup shortcut */}
+      {onSage && (
+        <div className="px-3 mb-1">
+          <button
+            onClick={onSage}
+            className="flex items-center gap-2.5 w-full px-3.5 py-2 rounded-lg cursor-pointer bg-salve-sage/10 border border-salve-sage/20 text-left transition-colors text-[13px] text-salve-sage hover:bg-salve-sage/15 hover:border-salve-sage/30"
+          >
+            <Leaf size={15} strokeWidth={1.5} />
+            <span>Ask Sage</span>
+          </button>
+        </div>
+      )}
+
+      {/* Feedback link */}
       <div className="px-3 mb-2">
         <button
           onClick={() => onNav('feedback')}
