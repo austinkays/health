@@ -282,12 +282,17 @@ function AppContent() {
     // the gotrue storage lock and causes a 5-second stall in React Strict Mode.
     // INITIAL_SESSION fires immediately and provides the same initial session.
     const subscription = onAuthChange((event, s) => {
-      if (!s && (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED')) {
+      if (event === 'SIGNED_OUT' && !s) {
+        // User explicitly signed out — clear everything
         setSessionExpired(true);
         setSageOpen(false);
         setSageIntroOpen(false);
         clearSentryUser();
         clearTokenCache();
+      } else if (event === 'TOKEN_REFRESHED' && !s) {
+        // Transient null during token refresh — do NOT flash auth screen.
+        // The next event will have the refreshed session.
+        return;
       } else if (s?.user?.id) {
         setSentryUser(s.user.id);
         // Seed the token cache so services don't call getSession() independently.
