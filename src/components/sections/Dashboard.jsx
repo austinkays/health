@@ -161,6 +161,17 @@ const STARTER_TIPS = [
     dismissBehavior: 'auto',
     snoozeDays: 7,
   },
+  {
+    id: 'explore-news',
+    icon: Newspaper,
+    color: 'lav',
+    title: 'Your personalized news feed',
+    body: 'Health articles from NIH and FDA, matched to your conditions. The more you use Sage, the richer your feed gets.',
+    action: 'news',
+    actionLabel: 'Browse news',
+    dismissBehavior: 'snooze',
+    snoozeDays: 14,
+  },
   // feedback is not a card — it renders as a persistent footer line in the section
 ];
 
