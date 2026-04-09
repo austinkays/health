@@ -9,13 +9,20 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-// ── Intercept Oura OAuth callback before Supabase auto-detects ?code= ──
-// Supabase's createClient auto-parses ?code= as a PKCE auth code.
-// If this is an Oura callback (state=salve-oura), stash the code and
-// clean the URL so Supabase doesn't try to exchange it.
+// ── Intercept device-OAuth callbacks before Supabase auto-detects ?code= ──
+// Supabase's createClient auto-parses ?code= as a PKCE auth code, so we
+// need to stash any third-party OAuth codes onto the window first and
+// clean the URL. Each integration uses a unique state value:
+//   salve-oura      → Oura Ring
+//   salve-dexcom    → Dexcom CGM
+//   salve-withings  → Withings (scales, BP cuffs, sleep mats)
 const _params = new URLSearchParams(window.location.search);
-if (_params.get('state') === 'salve-oura' && _params.get('code')) {
-  window.__ouraCode = _params.get('code');
+const _oauthState = _params.get('state');
+const _oauthCode = _params.get('code');
+if (_oauthCode && _oauthState && _oauthState.startsWith('salve-')) {
+  if (_oauthState === 'salve-oura') window.__ouraCode = _oauthCode;
+  else if (_oauthState === 'salve-dexcom') window.__dexcomCode = _oauthCode;
+  else if (_oauthState === 'salve-withings') window.__withingsCode = _oauthCode;
   _params.delete('code');
   _params.delete('state');
   const clean = _params.toString();

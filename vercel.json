@@ -35,6 +35,12 @@
     },
     "api/terra-webhook.js": {
       "maxDuration": 30
+    },
+    "api/dexcom.js": {
+      "maxDuration": 30
+    },
+    "api/withings.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

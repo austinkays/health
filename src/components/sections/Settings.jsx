@@ -14,6 +14,8 @@ import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
+import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
+import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
 import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
@@ -325,6 +327,134 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       setTerraError(err.message || 'Could not disconnect');
     }
   };
+
+  // Dexcom CGM state
+  const [dexcomConnected, setDexcomConnected] = useState(() => isDexcomConnected());
+  const [dexcomLoading, setDexcomLoading] = useState(false);
+  const [dexcomError, setDexcomError] = useState(null);
+  const [dexcomSuccess, setDexcomSuccess] = useState(null);
+  const [dexcomSyncing, setDexcomSyncing] = useState(false);
+
+  // Withings state
+  const [withingsConnected, setWithingsConnected] = useState(() => isWithingsConnected());
+  const [withingsLoading, setWithingsLoading] = useState(false);
+  const [withingsError, setWithingsError] = useState(null);
+  const [withingsSuccess, setWithingsSuccess] = useState(null);
+  const [withingsSyncing, setWithingsSyncing] = useState(false);
+
+  // Dexcom OAuth callback
+  useEffect(() => {
+    const code = window.__dexcomCode;
+    if (!code) return;
+    delete window.__dexcomCode;
+    setDexcomLoading(true);
+    exchangeDexcomCode(code)
+      .then(() => {
+        setDexcomConnected(true);
+        setDexcomSuccess('Dexcom CGM connected!');
+        setDexcomError(null);
+      })
+      .catch(e => setDexcomError(e.message))
+      .finally(() => setDexcomLoading(false));
+  }, []);
+
+  async function connectDexcom() {
+    setDexcomLoading(true);
+    setDexcomError(null);
+    try {
+      const url = await getDexcomAuthUrl();
+      if (!url) {
+        setDexcomError('Dexcom is not configured on this server');
+        setDexcomLoading(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (e) {
+      setDexcomError(e.message);
+      setDexcomLoading(false);
+    }
+  }
+
+  function disconnectDexcom() {
+    clearDexcomTokens();
+    setDexcomConnected(false);
+    setDexcomSuccess(null);
+    setDexcomError(null);
+  }
+
+  async function handleDexcomSync() {
+    setDexcomSyncing(true);
+    setDexcomError(null);
+    setDexcomSuccess(null);
+    try {
+      const { added, skipped } = await syncDexcomGlucose(data.vitals || [], addItem, 14);
+      setDexcomSuccess(added > 0
+        ? `Synced ${added} day${added !== 1 ? 's' : ''} of glucose data${skipped > 0 ? ` (${skipped} already had readings)` : ''}.`
+        : 'No new readings to sync.');
+      reloadData?.();
+    } catch (e) {
+      setDexcomError(e.message);
+    } finally {
+      setDexcomSyncing(false);
+    }
+  }
+
+  // Withings OAuth callback
+  useEffect(() => {
+    const code = window.__withingsCode;
+    if (!code) return;
+    delete window.__withingsCode;
+    setWithingsLoading(true);
+    exchangeWithingsCode(code)
+      .then(() => {
+        setWithingsConnected(true);
+        setWithingsSuccess('Withings connected!');
+        setWithingsError(null);
+      })
+      .catch(e => setWithingsError(e.message))
+      .finally(() => setWithingsLoading(false));
+  }, []);
+
+  async function connectWithings() {
+    setWithingsLoading(true);
+    setWithingsError(null);
+    try {
+      const url = await getWithingsAuthUrl();
+      if (!url) {
+        setWithingsError('Withings is not configured on this server');
+        setWithingsLoading(false);
+        return;
+      }
+      window.location.href = url;
+    } catch (e) {
+      setWithingsError(e.message);
+      setWithingsLoading(false);
+    }
+  }
+
+  function disconnectWithings() {
+    clearWithingsTokens();
+    setWithingsConnected(false);
+    setWithingsSuccess(null);
+    setWithingsError(null);
+  }
+
+  async function handleWithingsSync() {
+    setWithingsSyncing(true);
+    setWithingsError(null);
+    setWithingsSuccess(null);
+    try {
+      const { added } = await syncWithingsMeasurements(data.vitals || [], addItem, 30);
+      setWithingsSuccess(added > 0
+        ? `Imported ${added} new measurement${added !== 1 ? 's' : ''}.`
+        : 'Already up to date — no new measurements.');
+      reloadData?.();
+    } catch (e) {
+      setWithingsError(e.message);
+    } finally {
+      setWithingsSyncing(false);
+    }
+  }
 
   // Handle OAuth callback (code stashed by supabase.js before Supabase init)
   useEffect(() => {
@@ -1085,6 +1215,136 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           )}
         </Card>
+
+        {/* ── Dexcom CGM ── */}
+        {DEXCOM_ENABLED && (
+          <Card>
+            <button onClick={() => toggleSource('dexcom')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${dexcomConnected ? 'bg-salve-rose/15' : 'bg-salve-card2'}`}>
+                  <Heart size={14} className={dexcomConnected ? 'text-salve-rose' : 'text-salve-textFaint'} />
+                </div>
+                <div className="text-left">
+                  <span className="text-ui-lg text-salve-text font-medium block">Dexcom CGM</span>
+                  <span className="text-ui-xs text-salve-textFaint">
+                    {dexcomConnected ? 'Connected · daily glucose averages' : 'Continuous glucose monitoring'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {dexcomConnected && <span className="w-2 h-2 rounded-full bg-salve-rose" />}
+                {expandedSource === 'dexcom' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+              </div>
+            </button>
+            {expandedSource === 'dexcom' && (
+              <div className="mt-3 pt-3 border-t border-salve-border/50">
+                {dexcomConnected ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDexcomSync}
+                      disabled={dexcomSyncing || demoMode}
+                      className="flex-1 py-2 rounded-lg bg-salve-rose/15 border border-salve-rose/30 text-salve-rose text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-rose/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {dexcomSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {dexcomSyncing ? 'Syncing…' : 'Sync last 14 days'}
+                    </button>
+                    <button
+                      onClick={disconnectDexcom}
+                      className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                    >
+                      <Unlink size={12} /> Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
+                      Connect your Dexcom CGM to import glucose readings. Sage uses these to spot correlations between blood sugar and your symptoms — especially helpful for dysautonomia, POTS, and reactive hypoglycemia.
+                    </p>
+                    <button
+                      onClick={connectDexcom}
+                      disabled={dexcomLoading || demoMode}
+                      className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-rose font-medium text-sm font-montserrat hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {dexcomLoading ? <Loader size={16} className="animate-spin" /> : <Heart size={16} />}
+                      {dexcomLoading ? 'Connecting…' : 'Connect Dexcom CGM'}
+                    </button>
+                  </>
+                )}
+                {dexcomError && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{dexcomError}</div>
+                )}
+                {dexcomSuccess && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{dexcomSuccess}</div>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* ── Withings ── */}
+        {WITHINGS_ENABLED && (
+          <Card>
+            <button onClick={() => toggleSource('withings')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${withingsConnected ? 'bg-salve-lav/15' : 'bg-salve-card2'}`}>
+                  <Heart size={14} className={withingsConnected ? 'text-salve-lav' : 'text-salve-textFaint'} />
+                </div>
+                <div className="text-left">
+                  <span className="text-ui-lg text-salve-text font-medium block">Withings</span>
+                  <span className="text-ui-xs text-salve-textFaint">
+                    {withingsConnected ? 'Connected · scale, BP, sleep, temp' : 'Smart scale, BP cuff, sleep mat, thermometer'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {withingsConnected && <span className="w-2 h-2 rounded-full bg-salve-lav" />}
+                {expandedSource === 'withings' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+              </div>
+            </button>
+            {expandedSource === 'withings' && (
+              <div className="mt-3 pt-3 border-t border-salve-border/50">
+                {withingsConnected ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleWithingsSync}
+                      disabled={withingsSyncing || demoMode}
+                      className="flex-1 py-2 rounded-lg bg-salve-lav/15 border border-salve-lav/30 text-salve-lav text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-lav/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {withingsSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                      {withingsSyncing ? 'Syncing…' : 'Sync last 30 days'}
+                    </button>
+                    <button
+                      onClick={disconnectWithings}
+                      className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                    >
+                      <Unlink size={12} /> Disconnect
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
+                      Connect your Withings devices to auto-import weight, blood pressure, heart rate, body temperature, and SpO2. Great for POTS, hypertension, and chronic illness tracking.
+                    </p>
+                    <button
+                      onClick={connectWithings}
+                      disabled={withingsLoading || demoMode}
+                      className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-lav font-medium text-sm font-montserrat hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {withingsLoading ? <Loader size={16} className="animate-spin" /> : <Heart size={16} />}
+                      {withingsLoading ? 'Connecting…' : 'Connect Withings'}
+                    </button>
+                  </>
+                )}
+                {withingsError && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-rose/10 border border-salve-rose/30 text-salve-rose text-xs">{withingsError}</div>
+                )}
+                {withingsSuccess && (
+                  <div className="mt-2.5 p-2.5 rounded-lg bg-salve-sage/10 border border-salve-sage/30 text-salve-sage text-xs">{withingsSuccess}</div>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* ── Apple Health ── */}
         <Card>

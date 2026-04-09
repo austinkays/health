@@ -357,6 +357,26 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Settings UI:** "Connect a device" card under Connected Sources, gated on `TERRA_ENABLED`. Shows currently-connected providers with status dot + last sync date + per-provider Disconnect button. New `+ Connect another device` button at the bottom.
 - **Data ingestion:** weights converted kg → lbs, temperatures C → F, distances m → mi. CGM glucose stored as `mg/dL`. All ingested rows tagged `source: 'terra'` so they show alongside Oura/Apple Health/Manual entries with the existing source filter pills.
 
+**`api/dexcom.js`** — Dexcom CGM direct integration (OAuth2):
+- **Actions:** `token` (exchange auth code for access/refresh tokens, POST), `refresh` (refresh expired access token, POST), `data` (proxy GET to Dexcom v3 API), `config` (return client_id + sandbox status)
+- **Allowed endpoints:** `egvs` (estimated glucose values), `events` (calibrations/meals/exercise), `devices`, `dataRange`
+- **Sandbox vs production:** `DEXCOM_USE_SANDBOX=true` points at `sandbox-api.dexcom.com` for safer testing before production app approval. Defaults to production at `api.dexcom.com`.
+- **OAuth2 flow:** Authorization code grant → `api.dexcom.com/v2/oauth2/login` (scope: `offline_access` so we get a refresh_token) → callback with code → server exchanges for tokens (client_secret stays server-side)
+- **Client service:** `src/services/dexcom.js` — `getDexcomAuthUrl()`, `exchangeDexcomCode(code)`, `fetchDexcomEgvs(start, end)`, `syncDexcomGlucose(existingVitals, addItem, days)`, `DEXCOM_ENABLED` build-time flag from `VITE_DEXCOM_ENABLED`
+- **Token storage:** localStorage (`salve:dexcom`) with access_token, refresh_token, expires_at, connected_at. Auto-refresh when within 5 minutes of expiry. Single in-flight refresh mutex prevents concurrent races.
+- **Glucose sync:** Aggregates intraday EGV readings into per-day daily averages so charts aren't flooded — chronic illness users care more about daily trends than 5-minute samples. Notes field stores reading count + min-max range. Skips dates that already have a glucose vital from any source so manual/Apple Health entries take priority. Tagged `source: 'dexcom'`.
+- **Why direct vs Terra:** Dexcom is the most-requested CGM for the dysautonomia / POTS / chronic illness audience. Direct integration is free, has no per-user costs, and bypasses the $399/mo Terra subscription. Niche use case but very high value for the people who need it.
+
+**`api/withings.js`** — Withings direct integration (OAuth2):
+- **Actions:** `token`, `refresh`, `data`, `config` (same shape as Dexcom)
+- **Allowed endpoints:** `measure` (weight, BP, HR, temp, SpO2 — uses Withings `getmeas` action), `sleep` (sleep summary)
+- **Quirks handled:** Withings token endpoint takes `action=requesttoken` as a form field (not a URL path), and wraps successful responses as `{ status: 0, body: {...} }` with errors as nonzero status. The proxy unwraps these into a normal `{ access_token, refresh_token, expires_in, userid }` shape. Errors (Withings status 100/401) are surfaced as HTTP 401 even though Withings returns HTTP 200.
+- **OAuth2 flow:** Authorization code grant → `account.withings.com/oauth2_user/authorize2` (scope: `user.metrics,user.activity,user.sleepevents,user.info`) → callback with code → server exchanges via `wbsapi.withings.net/v2/oauth2`
+- **Client service:** `src/services/withings.js` — `getWithingsAuthUrl()`, `exchangeWithingsCode(code)`, `fetchWithingsMeasurements(days)`, `syncWithingsMeasurements(existingVitals, addItem, days)`, `WITHINGS_ENABLED` flag, `MEAS_TYPES` constant
+- **Measurement type mapping:** Withings uses numeric type codes — 1=Weight, 9=Diastolic, 10=Systolic, 11=Heart Pulse, 12/71=Temperature, 54=SpO2. Each measure has a unit field that's a power-of-10 exponent (e.g. unit=-3 with value=72500 → 72.5 kg). Decoded by `decodeMeasure()`.
+- **Sync behavior:** Groups systolic+diastolic into a single `bp` vital row. Converts kg → lbs and C → F. Dedupes against existing vitals on (date, type, source) so re-sync is idempotent. Tagged `source: 'withings'`.
+- **Why direct vs Terra:** Withings makes the most popular consumer health hardware brand for chronic illness users — smart scale, BP cuff, sleep mat, thermometer all share the same API. Direct integration is free and covers the brand entirely.
+
 **`src/utils/maps.js`** — Google Maps URL helper:
 - `mapsUrl(address)` returns `https://www.google.com/maps/search/?api=1&query=<encoded>` — no API key needed
 - Used in Providers (address + clinic), Appointments (location), Medications (pharmacy — skipped for non-physical values like OTC, N/A, none, self)
@@ -846,6 +866,13 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | `TERRA_AUTH_SUCCESS_URL` | Vercel env vars only | URL Terra redirects to after a successful provider auth, e.g. `https://salveapp.com/?terra=success`. |
 | `TERRA_AUTH_FAILURE_URL` | Vercel env vars only | URL Terra redirects to on auth failure, e.g. `https://salveapp.com/?terra=failure`. |
 | `VITE_TERRA_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect a device" card in Settings. Hides the UI when unset so users don't see a non-functional button before Terra is configured. |
+| `DEXCOM_CLIENT_ID` | Vercel env vars only | Dexcom OAuth2 client ID (from developer.dexcom.com). Required for the direct Dexcom CGM integration. |
+| `DEXCOM_CLIENT_SECRET` | Vercel env vars only | Dexcom OAuth2 client secret. Server-side only, never exposed to client. |
+| `DEXCOM_USE_SANDBOX` | Vercel env vars (optional) | Set to `'true'` to point at `sandbox-api.dexcom.com` instead of production. Use during dev / before production app approval. |
+| `VITE_DEXCOM_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect Dexcom CGM" card in Settings. Hides the UI when unset. |
+| `WITHINGS_CLIENT_ID` | Vercel env vars only | Withings OAuth2 client ID (from developer.withings.com). Required for the direct Withings integration. |
+| `WITHINGS_CLIENT_SECRET` | Vercel env vars only | Withings OAuth2 client secret. Server-side only, never exposed to client. |
+| `VITE_WITHINGS_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect Withings" card in Settings. Hides the UI when unset. |
 
 ## Reference Docs
 
