@@ -117,10 +117,15 @@ export default async function handler(req, res) {
   }
 
   // ── Per-user Claude daily call limit ──
-  // Protects against runaway spend on the Anthropic monthly cap. Tune this
-  // based on the active monthly Anthropic budget — see CLAUDE.md notes on
-  // beta cost math.
-  const CLAUDE_DAILY_LIMIT = 50;
+  // Protects against runaway spend on the Anthropic monthly cap. Tuned for
+  // the closed beta: with chat routed to Haiku (~$0.01/call) via the
+  // BETA_LITE_FEATURES override in services/ai.js, plus pro-tier features
+  // staying on Opus for quality, 20/day per user across 10 invited beta
+  // testers stays well under the $50/mo Anthropic budget in realistic use.
+  // Worst-case theoretical: 10 × 20 × $0.05 = $10/day, but realistic average
+  // is $0.05–0.10/user/day = $15–30/month total.
+  // Bump back up once billing is live and the budget is larger.
+  const CLAUDE_DAILY_LIMIT = 20;
   try {
     // Count calls made today (midnight PT, DST-safe via Intl)
     const now = Date.now();

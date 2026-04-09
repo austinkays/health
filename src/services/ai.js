@@ -83,9 +83,18 @@ export function trialDaysRemaining(settings) {
   return Math.ceil(msLeft / 86_400_000);
 }
 
+// Beta cost-control: chat is by far the highest-volume feature, so during
+// the closed beta we route it to the lite tier (Haiku for Anthropic ≈ 3x
+// cheaper than Sonnet, Flash-Lite for Gemini). Pro-tier features like
+// Connections, Care Gaps, and Cycle Patterns stay on Opus/Pro where the
+// analysis quality is the whole point. Remove entries from this set once
+// billing is live and the monthly Anthropic budget is larger.
+const BETA_LITE_FEATURES = new Set(['chat']);
+
 function getModel(feature) {
   const provider = getAIProvider();
-  const tier = LITE_FEATURES.has(feature) ? 'lite' : PRO_FEATURES.has(feature) ? 'pro' : 'flash';
+  let tier = LITE_FEATURES.has(feature) ? 'lite' : PRO_FEATURES.has(feature) ? 'pro' : 'flash';
+  if (BETA_LITE_FEATURES.has(feature)) tier = 'lite';
 
   if (provider === 'anthropic') {
     const models = { lite: 'claude-haiku-4-5-20251001', flash: 'claude-sonnet-4-6', pro: 'claude-opus-4-6' };
