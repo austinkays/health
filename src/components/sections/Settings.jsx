@@ -20,7 +20,7 @@ import { supabase } from '../../services/supabase';
 import { startCheckout, openCustomerPortal } from '../../services/billing';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
-const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
+const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
 
 When the file arrives, do this immediately, no commentary, no questions first:
 
@@ -28,16 +28,13 @@ When the file arrives, do this immediately, no commentary, no questions first:
 
 2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
-3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have the required MCP connectors enabled in Claude. The artifact needs these two:
-   - healthex (URL: https://api.healthex.io/mcp), pulls records from my patient portals
-   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp), pulls my Function Health lab panels
-   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connectors enabled (like Healthex for patient portals, or Function Health for lab panels). If I'm missing connectors the artifact needs, help me set them up step by step: tell me to open Claude settings → Connectors, search for the connector, and complete the OAuth sign-in. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once connected, tell me to click "Pull Health Records" in the artifact.
 
 Ready? I'll attach the file next.`;
 
 const PROJECT_INSTRUCTIONS = `This project is for syncing my health records into Salve (a personal health management app).
 
-The knowledge file salve-sync.jsx is the complete source code for a React artifact called "Salve Health Sync". It uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON that I import into Salve.
+The knowledge file salve-sync.jsx is the complete source code for a React artifact called "Salve Health Sync". It uses MCP connections to pull my medical records and export them as JSON that I import into Salve.
 
 Whenever I ask you to sync, pull records, start the sync artifact, or anything similar, do this immediately, no commentary, no questions first:
 
@@ -45,10 +42,7 @@ Whenever I ask you to sync, pull records, start the sync artifact, or anything s
 
 2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
 
-3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have the required MCP connectors enabled in Claude. The artifact needs these two:
-   - healthex (URL: https://api.healthex.io/mcp), pulls records from my patient portals
-   - function-health (URL: https://services.functionhealth.com/ai-chat/mcp), pulls my Function Health lab panels
-   If either is missing, walk me through adding it step by step: tell me to open Claude settings → Connectors → Add custom connector, paste the URL, and complete the OAuth sign-in for that service. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once both are connected, tell me to click "Pull Health Records" in the artifact.
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connectors enabled (like Healthex for patient portals, or Function Health for lab panels). If I'm missing connectors the artifact needs, help me set them up step by step: tell me to open Claude settings → Connectors, search for the connector, and complete the OAuth sign-in. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once connected, tell me to click "Pull Health Records" in the artifact.
 
 Dependencies available in the Claude artifacts runtime: react and lucide-react. No other imports needed, no external API calls from the file itself.`;
 
@@ -668,78 +662,36 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       {/* ══════════════ 3. Sage ══════════════ */}
       <SectionTitle>Sage</SectionTitle>
       <Card>
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-salve-sage" aria-hidden="true" />
-            <span className="text-sm text-salve-text font-medium font-montserrat">Your health assistant</span>
-          </div>
-          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${(s.ai_mode || 'onDemand') === 'alwaysOn' ? 'bg-salve-lav/15 text-salve-lav' : 'bg-salve-sage/15 text-salve-sage'}`}>
-            {(s.ai_mode || 'onDemand') === 'alwaysOn' ? 'Always On' : 'On Demand'}
-          </span>
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={14} className="text-salve-sage" aria-hidden="true" />
+          <span className="text-sm text-salve-text font-medium font-montserrat">Your health assistant</span>
         </div>
-        <div className="space-y-2">
-          <button
-            onClick={() => set('ai_mode', 'onDemand')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all cursor-pointer font-montserrat text-left ${
-              (s.ai_mode || 'onDemand') === 'onDemand'
-                ? 'border-salve-sage/50 bg-salve-sage/10'
-                : 'border-salve-border bg-salve-card2 hover:border-salve-border2'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${(s.ai_mode || 'onDemand') === 'onDemand' ? 'bg-salve-sage' : 'bg-salve-textFaint/40'}`} />
-            <div className="flex-1 min-w-0">
-              <span className="text-sm text-salve-text font-medium">☽ On Demand</span>
-              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                Sage responds when you ask, included free
-              </p>
-            </div>
-          </button>
-          <button
-            onClick={() => { if (userTier === 'premium') set('ai_mode', 'alwaysOn'); }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all font-montserrat text-left ${
-              s.ai_mode === 'alwaysOn' && userTier === 'premium'
-                ? 'border-salve-lav/50 bg-salve-lav/10 cursor-pointer'
-                : userTier === 'premium'
-                  ? 'border-salve-border bg-salve-card2 hover:border-salve-border2 cursor-pointer'
-                  : 'border-salve-border bg-salve-card2 opacity-50 cursor-not-allowed'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${s.ai_mode === 'alwaysOn' && userTier === 'premium' ? 'bg-salve-lav' : 'bg-salve-textFaint/40'}`} />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-salve-text font-medium">✨ Always On</span>
-                {userTier !== 'premium' && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-salve-lav/15 text-salve-lav font-medium">Premium</span>}
-              </div>
-              <p className="text-[10px] text-salve-textFaint mt-0.5 leading-relaxed">
-                {userTier === 'premium'
-                  ? 'Sage proactively surfaces insights throughout the app'
-                  : 'Proactive insights, smarter analysis, and more'}
-              </p>
-            </div>
-          </button>
-        </div>
+        <p className="text-[11px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
+          Sage helps with health insights, fills out forms, finds relevant news, and can add or update your records through chat.
+        </p>
 
-        {aiConsent && (
-          <>
-            <div className="my-3 border-t border-salve-border/50" />
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Shield size={14} className="text-salve-sage" />
-                <span className="text-[11px] text-salve-textMid font-montserrat">Data sharing enabled</span>
-              </div>
-              <button
-                onClick={() => {
-                  if (window.confirm('Revoke AI data sharing? Past AI conversations will remain visible but no new data will be sent. You can re-enable anytime.')) {
-                    revokeAIConsent();
-                    setAiConsent(false);
-                  }
-                }}
-                className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
-              >
-                Revoke
-              </button>
+        {aiConsent ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield size={14} className="text-salve-sage" />
+              <span className="text-[11px] text-salve-textMid font-montserrat">Data sharing enabled</span>
             </div>
-          </>
+            <button
+              onClick={() => {
+                if (window.confirm('Revoke AI data sharing? Past AI conversations will remain visible but no new data will be sent. You can re-enable anytime.')) {
+                  revokeAIConsent();
+                  setAiConsent(false);
+                }
+              }}
+              className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+            >
+              Revoke
+            </button>
+          </div>
+        ) : (
+          <p className="text-[11px] text-salve-textFaint font-montserrat italic">
+            AI data sharing will be requested when you first use Sage.
+          </p>
         )}
       </Card>
 
@@ -749,7 +701,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           onClick={() => onNav('ai')}
           className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
         >
-          Want to make a change? Chat with Sage →
+          Chat with Sage →
         </button>
       </div>
 
@@ -809,10 +761,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <div className="mt-2 space-y-3">
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-montserrat">
               <div className="text-salve-textFaint font-medium col-span-2 border-b border-salve-border/50 pb-1 mb-0.5">Free vs Premium</div>
-              <span className="text-salve-textMid">☽ On Demand Sage</span>
+              <span className="text-salve-textMid">Sage AI assistant</span>
               <span className="text-salve-sage text-right">✓ Included</span>
-              <span className="text-salve-textMid">✨ Always On Sage</span>
-              <span className="text-salve-lav text-right">Premium</span>
               <span className="text-salve-textMid">Smarter AI models</span>
               <span className="text-salve-lav text-right">Premium</span>
               <span className="text-salve-textMid">Connections & patterns</span>
@@ -1044,26 +994,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </p>
               </div>
 
-              {/* ── MCP connectors required ── */}
+              {/* ── MCP connectors ── */}
               <div className="bg-salve-card2 border border-salve-border rounded-xl p-3">
-                <h4 className="text-[11px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">Connectors you'll need on Claude.ai</h4>
-                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2.5">
-                  The sync artifact pulls records through MCP connectors. Add these once under <strong className="text-salve-textMid">Claude settings → Connectors → Add custom connector</strong>, complete the OAuth sign-in for each, and you're set.
+                <h4 className="text-[11px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">MCP connectors</h4>
+                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2">
+                  The sync artifact pulls records through MCP connectors like <strong className="text-salve-textMid">Healthex</strong> (patient portals) and <strong className="text-salve-textMid">Function Health</strong> (lab panels). Claude will detect which connectors you have and walk you through setting up any that are missing.
                 </p>
-                <ul className="space-y-2 mb-2.5">
-                  <li className="text-[11px] text-salve-textMid leading-relaxed">
-                    <div className="font-medium text-salve-text">healthex</div>
-                    <div className="text-[10px] text-salve-textFaint">Pulls records from patient portals (Epic/MyChart, Cerner, etc.)</div>
-                    <code className="text-[10px] text-salve-lav break-all">https://api.healthex.io/mcp</code>
-                  </li>
-                  <li className="text-[11px] text-salve-textMid leading-relaxed">
-                    <div className="font-medium text-salve-text">function-health</div>
-                    <div className="text-[10px] text-salve-textFaint">Pulls Function Health lab panels (only if you're a Function member)</div>
-                    <code className="text-[10px] text-salve-lav break-all">https://services.functionhealth.com/ai-chat/mcp</code>
-                  </li>
-                </ul>
                 <p className="text-[10px] text-salve-textFaint italic leading-relaxed">
-                  Don't worry if you're not sure how to add connectors, Claude will walk you through it once the artifact loads and checks what's missing.
+                  Just start the artifact and follow the prompts. No manual URL configuration needed.
                 </p>
               </div>
 
