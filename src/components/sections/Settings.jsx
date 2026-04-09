@@ -86,19 +86,19 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
       aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ', premium' : ''}`}
       aria-pressed={isActive}
       style={{ backgroundColor: c.bg, borderColor: isActive ? undefined : c.border }}
-      className={`relative px-2 py-3 rounded-xl border transition-all font-montserrat text-center cursor-pointer hover:brightness-105 ${
+      className={`relative px-2 py-2.5 rounded-xl border transition-all font-montserrat text-center cursor-pointer hover:brightness-105 ${
         isActive ? 'ring-2 ring-salve-lav border-transparent' : ''
       }`}
     >
       {isLocked && (
-        <span className="absolute top-1.5 right-1.5 bg-salve-lav/15 text-salve-lav rounded-full px-1.5 py-0.5 text-[8.5px] font-medium leading-none">
+        <span className="absolute top-1 right-1 bg-salve-lav/15 text-salve-lav rounded-full px-1.5 py-0.5 text-[8px] font-medium leading-none">
           Premium
         </span>
       )}
       <span
         aria-hidden="true"
-        className="block w-[38px] h-[38px] rounded-full mx-auto mb-2 shadow-sm"
-        style={{ background: grad, boxShadow: `0 1px 2px ${c.border2}, 0 4px 12px ${c.border}` }}
+        className="block w-[30px] h-[30px] rounded-full mx-auto mb-1.5 shadow-sm"
+        style={{ background: grad, boxShadow: `0 1px 2px ${c.border2}, 0 3px 8px ${c.border}` }}
       />
       <span className="text-ui-base font-medium block leading-tight" style={{ color: c.text }}>
         {theme.label}
@@ -118,7 +118,8 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
 function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, userTier, onUpgrade }) {
   const core = Object.values(allThemes).filter(t => !t.experimental)
     .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
-  const experimental = Object.values(allThemes).filter(t => t.experimental);
+  const experimental = Object.values(allThemes).filter(t => t.experimental)
+    .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
   const canSavePremium = userTier === 'premium' || userTier === 'admin';
 
   // Auto-save on click. Free users previewing premium themes get the live
@@ -146,7 +147,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
   return (
     <div>
       {/* Core themes — always 3-col */}
-      <div className="grid grid-cols-3 gap-2.5">
+      <div className="grid grid-cols-3 gap-2">
         {core.map(t => (
           <ThemeTile
             key={t.id}
@@ -166,7 +167,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
             <span>Premium themes</span>
             <ChevronDown size={14} className="text-salve-lav ml-auto group-open:rotate-180 transition-transform" aria-hidden="true" />
           </summary>
-          <div className="grid grid-cols-3 gap-2.5 mt-2.5">
+          <div className="grid grid-cols-3 gap-2 mt-2.5">
             {experimental.map(t => (
               <ThemeTile
                 key={t.id}
