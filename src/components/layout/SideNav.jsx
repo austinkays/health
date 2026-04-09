@@ -1,4 +1,5 @@
 import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, PenLine, MessageCircle, Newspaper } from 'lucide-react';
+import { handleMagnet, resetMagnet } from '../../utils/fx';
 
 const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home, key: '1' },
@@ -76,7 +77,9 @@ export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, 
         <div className="px-3 mb-1">
           <button
             onClick={onSage}
-            className="flex items-center gap-2.5 w-full px-3.5 py-2 rounded-lg cursor-pointer bg-salve-sage/10 border border-salve-sage/20 text-left transition-colors text-[13px] text-salve-sage hover:bg-salve-sage/15 hover:border-salve-sage/30"
+            onPointerMove={(e) => handleMagnet(e, 0.22)}
+            onPointerLeave={resetMagnet}
+            className="magnetic flex items-center gap-2.5 w-full px-3.5 py-2 rounded-lg cursor-pointer bg-salve-sage/10 border border-salve-sage/20 text-left text-[13px] text-salve-sage hover:bg-salve-sage/15 hover:border-salve-sage/30"
           >
             <Leaf size={15} strokeWidth={1.5} />
             <span>Ask Sage</span>

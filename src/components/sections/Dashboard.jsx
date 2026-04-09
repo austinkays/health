@@ -34,6 +34,7 @@ import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
 import { computeCorrelations } from '../../utils/correlations';
 import { getCyclePhaseForDate } from '../../utils/cycles';
+import { handleSpotlight } from '../../utils/fx';
 
 /* Vital direction: which way is "good" for color-coded trend signal */
 const VITAL_POLARITY = {
@@ -1104,6 +1105,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             <button
               key={h.id}
               onClick={() => onNav(h.navId)}
+              onPointerMove={handleSpotlight}
               className="bg-salve-card border border-salve-border rounded-xl p-3 md:p-4 flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
             >
               <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
@@ -1694,6 +1696,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <button
                   key={t.id}
                   onClick={() => onNav(t.id)}
+                  onPointerMove={handleSpotlight}
                   className={`bg-salve-card border border-salve-border rounded-xl p-3 md:p-5 flex flex-col items-center gap-1.5 md:gap-2 cursor-pointer tile-magic transition-all relative${span === 2 ? ' col-span-2 md:col-span-1' : span === 3 ? ' col-span-3 md:col-span-1' : ''}`}
                 >
                   <div className="absolute top-1.5 right-1.5">

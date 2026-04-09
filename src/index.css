@@ -1201,13 +1201,14 @@ html.theme-crystal .border-salve-border {
   inset: 0;
   border-radius: inherit;
   background: radial-gradient(
-    circle at 50% 50%,
-    rgb(var(--salve-lav) / 0.08) 0%,
-    rgb(var(--salve-sage) / 0.04) 50%,
-    transparent 80%
+    circle 160px at var(--mx, 50%) var(--my, 50%),
+    rgb(var(--salve-lav) / 0.16) 0%,
+    rgb(var(--salve-sage) / 0.07) 45%,
+    transparent 78%
   );
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
 }
 .tile-magic:hover::before {
   opacity: 1;
@@ -1256,6 +1257,25 @@ html.theme-crystal .border-salve-border {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   animation: gradientShift 6s ease infinite;
+}
+
+/* Per-word reveal: stagger with slide-up + deblur. Used on the Hello greeting. */
+@keyframes splitWordIn {
+  from { opacity: 0; transform: translateY(0.45em); filter: blur(10px); }
+  to   { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+.split-word {
+  display: inline-block;
+  animation: splitWordIn 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Magnetic cursor-follow easing. JS sets transform; this smooths it. */
+.magnetic {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease;
+  will-change: transform;
 }
 
 /* Subtle divider glow */

@@ -1,5 +1,22 @@
 import { ChevronLeft, Search, Leaf } from 'lucide-react';
 
+function SplitGreeting({ name }) {
+  const words = ['Hello,', name || 'there'];
+  return (
+    <>
+      {words.map((w, i) => (
+        <span
+          key={i}
+          className="split-word text-gradient-magic"
+          style={{ animationDelay: `${i * 0.14}s` }}
+        >
+          {w}{i < words.length - 1 && '\u00A0'}
+        </span>
+      ))}
+    </>
+  );
+}
+
 const TAB_LABELS = {
   dash: 'Home',
   meds: 'Medications',
@@ -61,7 +78,7 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
         <div className="flex-1">
           <h1 className={`font-playfair m-0 text-salve-text ${isDash ? 'text-2xl md:text-[28px] font-semibold md:font-normal' : 'text-xl md:text-2xl font-semibold'}`}>
             {isDash ? (
-              <span className="text-gradient-magic">Hello, {name || 'there'}</span>
+              <SplitGreeting name={name} />
             ) : (
               TAB_LABELS[tab] || tab
             )}
