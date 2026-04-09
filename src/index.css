@@ -1322,9 +1322,82 @@ html.theme-crystal .border-salve-border {
   line-height: 1.18;
   letter-spacing: -0.005em;
 }
+.text-display-2xl {
+  font-size: clamp(1.85rem, 1.5rem + 1.6vw, 2.5rem);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
 .text-display-sub {
   font-size: clamp(0.8125rem, 0.76rem + 0.28vw, 0.98rem);
   line-height: 1.5;
+}
+
+/* ─── Auth screen ambient & polish ─── */
+
+/* Drifting radial glow background layer. GPU-composited transform only —
+   no background-position animations (perf rule). Theme-aware. */
+.auth-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 900px 600px at 20% 18%, rgb(var(--salve-lav) / 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 800px 520px at 82% 78%, rgb(var(--salve-sage) / 0.13) 0%, transparent 70%),
+    radial-gradient(ellipse 700px 420px at 50% 105%, rgb(var(--salve-amber) / 0.08) 0%, transparent 60%);
+  animation: authAmbient 28s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes authAmbient {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(1.5%, -1%) scale(1.035); }
+  100% { transform: translate(-1.2%, 0.8%) scale(1.02); }
+}
+
+/* Full stage entrance: blur-in + slide up, once on mount */
+.auth-stage {
+  animation: authStageIn 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+@keyframes authStageIn {
+  from { opacity: 0; transform: translateY(28px); filter: blur(8px); }
+  to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+}
+
+/* Twinkling stars for the decorative ✶·✶ motif */
+.twinkle {
+  display: inline-block;
+  animation: twinkle 3.8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.35; transform: scale(1); }
+  50%      { opacity: 1;    transform: scale(1.18); }
+}
+
+/* Primary CTA: soft lift + lav glow shadow on hover */
+.cta-lift {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease;
+  will-change: transform;
+}
+.cta-lift:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow:
+    rgb(var(--salve-lav) / 0.22) 0 0 0 0.5px inset,
+    rgb(var(--salve-lav) / 0.14) 0 4px 10px,
+    rgb(var(--salve-lav) / 0.28) 0 14px 34px;
+}
+.cta-lift:active:not(:disabled) {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-ambient, .auth-stage, .twinkle, .cta-lift {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* Pulsing status dot: expanding ring + fade. Element paints its own bg via

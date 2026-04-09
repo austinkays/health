@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { signIn, verifyOtp, signInWithGoogle } from '../services/auth';
+import { handleSpotlight } from '../utils/fx';
 
 // OTP codes expire after 10 minutes (600 seconds)
 const OTP_TTL = 600;
@@ -150,16 +151,21 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
   }
 
   return (
-    <div className="min-h-screen bg-salve-bg flex items-center justify-center px-6">
-      <div className="w-full max-w-sm md:max-w-md">
+    <div className="min-h-screen bg-salve-bg flex items-center justify-center px-6 relative overflow-hidden">
+      <div className="auth-ambient" aria-hidden="true" />
+      <div className="w-full max-w-sm md:max-w-md auth-stage relative z-10">
 
         {/* Decorative header */}
         <div className="text-center mb-10">
-          <div className="text-salve-textFaint text-sm md:text-base tracking-widest mb-2">✶ · ✶</div>
-          <h1 className="font-playfair text-3xl md:text-4xl font-semibold text-salve-lav mb-2">
+          <div className="text-salve-textFaint tracking-widest mb-3 text-display-sub" aria-hidden="true">
+            <span className="twinkle">✶</span>
+            <span className="mx-2">·</span>
+            <span className="twinkle" style={{ animationDelay: '1.2s' }}>✶</span>
+          </div>
+          <h1 className="font-playfair text-display-2xl font-semibold text-gradient-magic mb-2">
             Salve
           </h1>
-          <p className="text-salve-textMid text-sm md:text-base">
+          <p className="text-salve-textMid text-display-sub">
             Your health, your story, your power.
           </p>
         </div>
@@ -220,7 +226,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             <button
               onClick={() => handleVerify()}
               disabled={verifying || code.some(d => d === '') || otpSecondsLeft <= 0 || cooldownLeft > 0}
-              className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed mb-3"
+              className="cta-lift w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim disabled:opacity-50 disabled:cursor-not-allowed mb-3"
             >
               {verifying ? 'Verifying...' : otpSecondsLeft <= 0 ? 'Code expired' : cooldownLeft > 0 ? `Wait ${cooldownLeft}s` : 'Sign in'}
             </button>
@@ -255,7 +261,8 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
                 try { await signInWithGoogle(); }
                 catch (err) { setError(err.message || 'Google sign-in failed'); }
               }}
-              className="w-full flex items-center justify-center gap-2.5 bg-salve-card2 border border-salve-border rounded-lg py-3 md:py-3.5 text-sm md:text-base font-medium text-salve-text hover:border-salve-lav/50 hover:bg-salve-card2/80 transition-colors cursor-pointer mb-4"
+              onPointerMove={handleSpotlight}
+              className="tile-magic w-full flex items-center justify-center gap-2.5 bg-salve-card2 border border-salve-border rounded-lg py-3 md:py-3.5 text-sm md:text-base font-medium text-salve-text cursor-pointer mb-4"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
@@ -294,7 +301,7 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
               <button
                 type="submit"
                 disabled={loading || !email}
-                className="w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="cta-lift w-full bg-salve-lav text-salve-bg font-medium rounded-lg py-3 md:py-3.5 text-sm md:text-base hover:bg-salve-lavDim disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Sending...' : 'Send login code'}
               </button>
@@ -312,7 +319,8 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
             <p className="text-salve-textFaint text-xs md:text-sm mb-3">Not ready to sign up?</p>
             <button
               onClick={onEnterDemo}
-              className="inline-flex items-center gap-2 text-sm md:text-base font-medium text-salve-lav hover:text-salve-text bg-transparent border border-salve-lav/30 hover:border-salve-lav/60 cursor-pointer px-5 py-2.5 md:px-6 md:py-3 rounded-lg transition-colors font-montserrat"
+              onPointerMove={handleSpotlight}
+              className="tile-magic inline-flex items-center gap-2 text-sm md:text-base font-medium text-salve-lav bg-transparent border border-salve-lav/30 cursor-pointer px-5 py-2.5 md:px-6 md:py-3 rounded-lg font-montserrat"
             >
               Explore without signing in <span aria-hidden="true">→</span>
             </button>
