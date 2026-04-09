@@ -251,7 +251,16 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
         );
       })()}
 
-      {fl.length === 0 ? <EmptyState icon={FlaskConical} text="No labs or imaging results yet" motif="leaf" /> :
+      {fl.length === 0 ? (
+        <EmptyState
+          icon={FlaskConical}
+          text="No labs or imaging yet"
+          hint="Add bloodwork, imaging, or any test result. Sage auto-flags out-of-range values and can explain what they mean."
+          motif="leaf"
+          actionLabel="Add your first lab"
+          onAction={() => setSubView('form')}
+        />
+      ) :
         fl.map(l => {
           const fc = flagColor(l.flag);
           const isExpanded = expandedId === l.id;

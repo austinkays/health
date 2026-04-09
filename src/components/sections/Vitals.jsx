@@ -438,7 +438,16 @@ export default function Vitals({ data, addItem, removeItem }) {
       </>}
 
       <SectionTitle>Recent Entries</SectionTitle>
-      {data.vitals.length === 0 ? <EmptyState icon={Heart} text="No vitals logged yet" motif="sparkle" /> :
+      {data.vitals.length === 0 ? (
+        <EmptyState
+          icon={Heart}
+          text="No vitals logged yet"
+          hint="Log sleep, heart rate, pain, mood, or any vital you want to track. Sage spots trends and correlations over time."
+          motif="sparkle"
+          actionLabel="Log your first vital"
+          onAction={() => setSubView('form')}
+        />
+      ) :
         (() => {
           // Group filtered entries by date, newest first
           const filtered = data.vitals.slice().reverse()

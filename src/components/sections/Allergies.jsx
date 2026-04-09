@@ -79,7 +79,16 @@ export default function Allergies({ data, addItem, updateItem, removeItem, highl
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
-      {data.allergies.length === 0 ? <EmptyState icon={Shield} text="No allergies recorded" motif="star" /> :
+      {data.allergies.length === 0 ? (
+        <EmptyState
+          icon={Shield}
+          text="No allergies recorded"
+          hint="Add your allergies so Sage and new medication additions can warn you about potential cross-reactivity."
+          motif="star"
+          actionLabel="Add your first allergy"
+          onAction={() => setSubView('form')}
+        />
+      ) :
         <div className="md:grid md:grid-cols-2 md:gap-4">{data.allergies.map(a => {
           const s = SEV[a.severity] || SEV.moderate;
           const isExpanded = expandedId === a.id;

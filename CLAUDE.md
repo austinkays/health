@@ -150,6 +150,7 @@ health/
 │   │   │   ├── OfflineBanner.jsx  # Persistent sticky banner when navigator.onLine is false; shows pending sync count from cache.js; auto-hides on reconnect
 │   │   │   ├── SkeletonCard.jsx   # Shimmer loading skeleton cards (SkeletonCard + SkeletonList); replaces LoadingSpinner as Suspense fallback for code-split sections
 │   │   │   ├── ThumbsRating.jsx  # Compact thumbs up/down rating component for AI content; optimistic toggle with filled/outline states; used on patterns, insights, news stories
+│   │   │   ├── OnboardingWizard.jsx # First-run 4-screen modal for new users. Asks "what are you tracking?" (8 focus-area checkboxes) and "what devices do you use?" (7 device checkboxes), then pre-seeds `salve:starred` Dashboard tiles and `salve:dismissed-tips` based on answers. Skippable from any screen. App.jsx shows it only when authenticated + not demoMode + no data + not already onboarded. `hasCompletedOnboarding()` / `markOnboardingComplete()` / `resetOnboarding()` helpers for gating and re-run. Settings → Support has a "Re-run onboarding wizard" link.
 │   │   │   └── SagePopup.jsx     # Bottom-sheet modal chat with Sage. Triggered by Leaf button in Header (mobile) or Ask Sage button in SideNav (desktop). Multi-turn chat via sendChat, consent-gated, auto-scroll, Enter-to-send. "Full chat" shortcut navigates to AI tab. Wider on desktop (md:max-w-[600px]), rounded corners on desktop. On desktop uses `md:pl-[260px]` on the outer wrapper so the dialog centers in the content area rather than the full viewport (accounting for 260px sidebar).
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 27 sections. Desktop: back/search/sage buttons hidden at md+ (sidebar provides these), responsive font sizes
@@ -337,7 +338,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Client service:** `src/services/npi.js` — `searchProviders(name, state?)`, `lookupNPI(npi)`
 - Parses NPI results into `{npi, name, first_name, last_name, credential, specialty, other_specialties, address, phone, fax, organization, enumeration_type}` format
 
-**`api/oura.js`** — Oura Ring V2 API proxy:
+**Oura (section of `api/wearable.js`)** — Oura Ring V2 API proxy:
 - **Actions:** `token` (exchange OAuth2 authorization code for access/refresh tokens, POST), `refresh` (refresh expired access token, POST), `data` (proxy GET to Oura V2 usercollection endpoints), `config` (return client_id + configured status)
 - **Allowed endpoints:** `daily_readiness` (includes `temperature_deviation`), `daily_sleep`, `heartrate`, `daily_spo2`
 - **Rate limited:** 30 requests/minute per user
@@ -359,7 +360,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Settings UI:** "Connect a device" card under Connected Sources, gated on `TERRA_ENABLED`. Shows currently-connected providers with status dot + last sync date + per-provider Disconnect button. New `+ Connect another device` button at the bottom.
 - **Data ingestion:** weights converted kg → lbs, temperatures C → F, distances m → mi. CGM glucose stored as `mg/dL`. All ingested rows tagged `source: 'terra'` so they show alongside Oura/Apple Health/Manual entries with the existing source filter pills.
 
-**`api/dexcom.js`** — Dexcom CGM direct integration (OAuth2):
+**Dexcom (section of `api/wearable.js`)** — Dexcom CGM direct integration (OAuth2):
 - **Actions:** `token` (exchange auth code for access/refresh tokens, POST), `refresh` (refresh expired access token, POST), `data` (proxy GET to Dexcom v3 API), `config` (return client_id + sandbox status)
 - **Allowed endpoints:** `egvs` (estimated glucose values), `events` (calibrations/meals/exercise), `devices`, `dataRange`
 - **Sandbox vs production:** `DEXCOM_USE_SANDBOX=true` points at `sandbox-api.dexcom.com` for safer testing before production app approval. Defaults to production at `api.dexcom.com`.
@@ -369,7 +370,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Glucose sync:** Aggregates intraday EGV readings into per-day daily averages so charts aren't flooded — chronic illness users care more about daily trends than 5-minute samples. Notes field stores reading count + min-max range. Skips dates that already have a glucose vital from any source so manual/Apple Health entries take priority. Tagged `source: 'dexcom'`.
 - **Why direct vs Terra:** Dexcom is the most-requested CGM for the dysautonomia / POTS / chronic illness audience. Direct integration is free, has no per-user costs, and bypasses the $399/mo Terra subscription. Niche use case but very high value for the people who need it.
 
-**`api/withings.js`** — Withings direct integration (OAuth2):
+**Withings (section of `api/wearable.js`)** — Withings direct integration (OAuth2):
 - **Actions:** `token`, `refresh`, `data`, `config` (same shape as Dexcom)
 - **Allowed endpoints:** `measure` (weight, BP, HR, temp, SpO2 — uses Withings `getmeas` action), `sleep` (sleep summary)
 - **Quirks handled:** Withings token endpoint takes `action=requesttoken` as a form field (not a URL path), and wraps successful responses as `{ status: 0, body: {...} }` with errors as nonzero status. The proxy unwraps these into a normal `{ access_token, refresh_token, expires_in, userid }` shape. Errors (Withings status 100/401) are surfaced as HTTP 401 even though Withings returns HTTP 200.
@@ -390,7 +391,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Client service:** `src/services/fitbit.js` — `getFitbitAuthUrl()`, `exchangeFitbitCode(code)`, `syncFitbitData(existingVitals, addItem, days)`, `FITBIT_ENABLED` flag from `VITE_FITBIT_ENABLED`
 - **Sync behavior:** Fetches sleep, resting HR, daily steps, and weight in parallel (4 calls per sync — well under Fitbit's 150/hr per-user rate limit). Sleep groups multiple sessions per day. Resting HR comes embedded in the activities-heart day records. Steps come as date-keyed daily totals. Weight is logged entries (kg → lbs conversion). All tagged `source: 'fitbit'`.
 
-**`api/whoop.js`** — Whoop direct integration (OAuth2):
+**Whoop (section of `api/wearable.js`)** — Whoop direct integration (OAuth2):
 - **Actions:** `token`, `refresh`, `data`, `config`
 - **Allowed endpoints:** `v1/cycle`, `v1/recovery` (HRV + RHR + recovery score), `v1/activity/sleep`, `v1/activity/workout`, `v1/user/profile/basic`
 - **OAuth2 flow:** Authorization code grant → `api.prod.whoop.com/oauth/oauth2/auth` (scopes: `offline read:recovery read:cycles read:sleep read:workout read:profile`) → callback with code → server exchanges via `api.prod.whoop.com/oauth/oauth2/token`. The `offline` scope is required to receive a refresh_token.
@@ -473,7 +474,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Offline sync** | `setupOfflineSync()` wired up in App.jsx; flushes pending writes when connectivity returns |
 | **Data erase** | `eraseAll()` runs sequential per-table deletes with error handling; throws on partial failure |
 | **Secrets** | `ANTHROPIC_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `OURA_CLIENT_SECRET` server-only; never exposed to client |
-| **Oura OAuth** | OAuth2 authorization code flow; client_secret stays server-side in `api/oura.js`; tokens stored in localStorage with auto-refresh (single in-flight refresh mutex prevents concurrent callers from racing and invalidating the refresh_token); `expires_in` validated as positive finite number; Oura API calls proxied through Vercel (no direct client→Oura) |
+| **Oura OAuth** | OAuth2 authorization code flow; client_secret stays server-side in the Oura section of `api/wearable.js`; tokens stored in localStorage with auto-refresh (single in-flight refresh mutex prevents concurrent callers from racing and invalidating the refresh_token); `expires_in` validated as positive finite number; Oura API calls proxied through Vercel (no direct client→Oura) |
 | **Export integrity** | `exportAll()` records per-table errors in `_export.errors` + `_export.partial: true` instead of silently omitting failed tables, so users can detect incomplete backups |
 | **Encrypted import** | `decryptExport()` distinguishes wrong-passphrase from corrupt-file errors with explicit try/catch around base64 decoding, AES-GCM decrypt, and JSON.parse |
 | **Concurrent-add dedup** | `db.js` shares an in-flight promise keyed by `(table, uid, dedup signature)` so two identical CRUD adds from the same tab collapse to one insert (prevents check-then-insert race for vitals/cycles/activities) |

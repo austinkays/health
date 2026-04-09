@@ -138,7 +138,16 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
 
-      {data.appts.length === 0 ? <EmptyState icon={Calendar} text="No appointments yet" motif="moon" /> : (
+      {data.appts.length === 0 ? (
+        <EmptyState
+          icon={Calendar}
+          text="No appointments yet"
+          hint="Log upcoming visits to get AI-drafted questions, auto-filled provider locations, and calendar links."
+          motif="moon"
+          actionLabel="Add your first appointment"
+          onAction={() => setSubView('form')}
+        />
+      ) : (
         <>
           {up.length > 0 && (
             <div className="text-[11px] font-semibold text-salve-sage uppercase tracking-widest mb-2">

@@ -960,7 +960,16 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         );
       })()}
 
-      {data.journal.length === 0 ? <EmptyState icon={BookOpen} text="Your journal is empty, start tracking patterns" motif="moon" /> :
+      {data.journal.length === 0 ? (
+        <EmptyState
+          icon={BookOpen}
+          text="Your journal is empty"
+          hint="Start tracking moods, symptoms, triggers, and what helped. Sage learns your patterns over time."
+          motif="moon"
+          actionLabel="Write your first entry"
+          onAction={() => setSubView('form')}
+        />
+      ) :
         <div className="md:grid md:grid-cols-2 md:gap-4">{data.journal.filter(e => {
           if (tagFilter && !(e.tags && String(e.tags).split(',').map(t => t.trim()).includes(tagFilter))) return false;
           if (symptomFilter && !(e.symptoms || []).some(s => s.name === symptomFilter)) return false;

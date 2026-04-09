@@ -251,7 +251,20 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
         ))}
       </div>
 
-      {filteredList.length === 0 ? <EmptyState icon={Stethoscope} text={filter === 'all' ? 'No conditions recorded' : `No ${filter} conditions`} motif="star" /> :
+      {filteredList.length === 0 ? (
+        filter === 'all' ? (
+          <EmptyState
+            icon={Stethoscope}
+            text="No conditions recorded"
+            hint="Track diagnoses to unlock condition-matched resources, medication cross-references, and clinical trial suggestions."
+            motif="star"
+            actionLabel="Add your first condition"
+            onAction={() => setSubView('form')}
+          />
+        ) : (
+          <EmptyState icon={Stethoscope} text={`No ${filter} conditions`} motif="star" />
+        )
+      ) :
         filteredList.map(c => {
           const st = STATUS_COLORS[c.status] || STATUS_COLORS.active;
           const isExpanded = expandedId === c.id;

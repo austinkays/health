@@ -260,7 +260,16 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
-      {data.providers.length === 0 ? <EmptyState icon={User} text="No providers added" motif="leaf" /> :
+      {data.providers.length === 0 ? (
+        <EmptyState
+          icon={User}
+          text="No providers added"
+          hint="Add your doctors, therapists, and specialists. NPI lookup pre-fills clinic info, and cross-linking shows which meds and conditions each one manages."
+          motif="leaf"
+          actionLabel="Add your first provider"
+          onAction={() => setSubView('form')}
+        />
+      ) :
         sortedProviders.map(p => {
           const isExpanded = expandedId === p.id;
           const prescribedMeds = medsPerProvider[p.id] || [];

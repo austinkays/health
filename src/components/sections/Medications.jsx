@@ -879,7 +879,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         );
       })()}
 
-      {fl.length === 0 ? <EmptyState icon={Pill} text="No medications yet" motif="leaf" /> :
+      {fl.length === 0 ? (
+        <EmptyState
+          icon={Pill}
+          text="No medications yet"
+          hint="Track your meds to get drug interaction checks, refill reminders, and Sage insights that factor in your current regimen."
+          motif="leaf"
+          actionLabel="Add your first medication"
+          onAction={() => setSubView('form')}
+        />
+      ) :
         fl.map(m => {
           const isExpanded = expandedId === m.id;
           return (
