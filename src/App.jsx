@@ -90,10 +90,34 @@ export default function App() {
 }
 
 function AppContent() {
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  // Check localStorage synchronously for an existing Supabase session.
+  // If one exists, skip the blocking splash — render the app shell immediately
+  // with cached data while onAuthStateChange refreshes the token in the background.
+  const [session, setSession] = useState(() => {
+    try {
+      const key = Object.keys(localStorage).find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+      if (key) {
+        const stored = JSON.parse(localStorage.getItem(key));
+        // gotrue stores { access_token, refresh_token, user, ... } or wrapped in a session key
+        const s = stored?.currentSession || stored;
+        if (s?.access_token && s?.user?.id) return s;
+      }
+    } catch { /* corrupted storage — fall through to auth screen */ }
+    return null;
+  });
+  const [authLoading, setAuthLoading] = useState(() => !session); // skip loading if we found a cached session
   const [sessionExpired, setSessionExpired] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+
+  // Seed token cache from the synchronously-read session so useHealthData
+  // can start loading immediately without waiting for onAuthStateChange.
+  useEffect(() => {
+    if (session?.access_token) {
+      seedToken(session.access_token);
+      cache.setToken(session.access_token);
+      cache.prewarm();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps — intentionally runs once with initial session
 
   // Sync demo mode to services/ai.js so AI calls route to canned responses
   useEffect(() => { setAIDemoMode(demoMode); }, [demoMode]);
