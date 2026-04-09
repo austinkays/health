@@ -190,7 +190,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
           )}
           {loading && (
             <div className="text-[12px] text-salve-textFaint font-montserrat italic flex items-center gap-1.5">
-              <span className="w-1 h-1 rounded-full bg-salve-sage animate-pulse" />
+              <span className="w-1 h-1 rounded-full bg-salve-sage text-salve-sage pulse-dot" />
               Sage is thinking…
             </div>
           )}

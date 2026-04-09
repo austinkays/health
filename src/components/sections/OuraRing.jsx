@@ -251,7 +251,7 @@ export default function OuraRing({ data, addItem, onNav }) {
           <span className="text-[10px] text-salve-textFaint font-montserrat">
             {lastSync ? `Synced ${lastSync.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Auto-syncing every 5 min'}
           </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-salve-sage animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-salve-sage text-salve-sage pulse-dot" />
         </div>
         <button
           onClick={handleSync}

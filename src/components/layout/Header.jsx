@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { ChevronLeft, Search, Leaf } from 'lucide-react';
 
 function SplitGreeting({ name }) {
@@ -14,6 +15,31 @@ function SplitGreeting({ name }) {
         </span>
       ))}
     </>
+  );
+}
+
+const AFFIRMATIONS = [
+  'Your health, your story, your power.',
+  'Small steps, steady progress.',
+  'Showing up today is enough.',
+  'Your body is keeping track.',
+  'Progress, not perfection.',
+  'One breath at a time.',
+  "You're the expert on you.",
+];
+
+function CyclingTagline() {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (reduce) return;
+    const id = setInterval(() => setIdx(i => (i + 1) % AFFIRMATIONS.length), 5500);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    <div className="tagline-slot mt-1.5 text-display-sub text-salve-textFaint font-light italic">
+      <span key={idx} className="tagline-slot-item">{AFFIRMATIONS[idx]}</span>
+    </div>
   );
 }
 
@@ -76,18 +102,14 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action }) 
           </button>
         )}
         <div className="flex-1">
-          <h1 className={`font-playfair m-0 text-salve-text ${isDash ? 'text-2xl md:text-[28px] font-semibold md:font-normal' : 'text-xl md:text-2xl font-semibold'}`}>
+          <h1 className={`font-playfair m-0 text-salve-text ${isDash ? 'text-display-xl font-semibold md:font-normal' : 'text-display-lg font-semibold'}`}>
             {isDash ? (
               <SplitGreeting name={name} />
             ) : (
               TAB_LABELS[tab] || tab
             )}
           </h1>
-          {isDash && (
-            <p className="m-0 mt-1.5 text-[13px] md:text-[15px] text-salve-textFaint font-light italic">
-              Your health, your story, your power.
-            </p>
-          )}
+          {isDash && <CyclingTagline />}
         </div>
         {action}
         {!isSage && onSage && (

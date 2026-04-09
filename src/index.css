@@ -1214,9 +1214,13 @@ html.theme-crystal .border-salve-border {
   opacity: 1;
 }
 .tile-magic:hover {
-  transform: translateY(-1px);
-  border-color: rgb(var(--salve-lav) / 0.2);
-  box-shadow: 0 4px 12px rgb(var(--salve-lav) / 0.08), 0 0 0 1px rgb(var(--salve-sage) / 0.06);
+  transform: translateY(-2px);
+  border-color: rgb(var(--salve-lav) / 0.22);
+  box-shadow:
+    rgb(var(--salve-lav) / 0.18) 0 0 0 0.5px inset,
+    rgb(var(--salve-lav) / 0.04) 0 1px 2px,
+    rgb(var(--salve-lav) / 0.10) 0 6px 16px,
+    rgb(var(--salve-sage) / 0.08) 0 18px 38px;
 }
 .tile-magic:active {
   transform: translateY(0) scale(0.98);
@@ -1303,6 +1307,83 @@ html.theme-crystal .border-salve-border {
     filter: none;
     transition: none;
   }
+}
+
+/* Fluid typography: clamp() display sizes that scale smoothly with viewport
+   width instead of stepping at md/lg breakpoints. Fixes the awkward text
+   wrapping around the 768px boundary. */
+.text-display-xl {
+  font-size: clamp(1.5rem, 1.05rem + 1.8vw, 2.25rem);
+  line-height: 1.14;
+  letter-spacing: -0.012em;
+}
+.text-display-lg {
+  font-size: clamp(1.2rem, 1rem + 0.85vw, 1.6rem);
+  line-height: 1.18;
+  letter-spacing: -0.005em;
+}
+.text-display-sub {
+  font-size: clamp(0.8125rem, 0.76rem + 0.28vw, 0.98rem);
+  line-height: 1.5;
+}
+
+/* Pulsing status dot: expanding ring + fade. Element paints its own bg via
+   Tailwind bg-*; the ::before overlay uses currentColor so set text-* to
+   match. Technique #11 from the best-practices doc. */
+.pulse-dot {
+  position: relative;
+}
+.pulse-dot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0.6;
+  animation: pulseDotPing 1.9s cubic-bezier(0, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+@keyframes pulseDotPing {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  75%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+/* Skeleton shimmer upgrade (doc #10). Gradient sweep across placeholder
+   bars — visually richer than the blanket animate-pulse. Respects theme via
+   --salve-border. */
+.skeleton-bg {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--salve-border) / 0.35) 25%,
+    rgb(var(--salve-border) / 0.9) 50%,
+    rgb(var(--salve-border) / 0.35) 75%
+  );
+  background-size: 600px 100%;
+  animation: skeletonSweep 1.6s ease-in-out infinite;
+}
+@keyframes skeletonSweep {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+/* Tagline slot-machine cycler (doc #7). New text slides up from below with
+   blur, old text is unmounted. React `key` drives re-animation. */
+.tagline-slot {
+  position: relative;
+  overflow: hidden;
+  height: 1.5em;
+}
+.tagline-slot-item {
+  display: block;
+  animation: taglineSlot 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+@keyframes taglineSlot {
+  from { transform: translateY(100%); opacity: 0; filter: blur(5px); }
+  to   { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tagline-slot-item { animation: none; }
 }
 
 /* Subtle divider glow */
