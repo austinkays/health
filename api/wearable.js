@@ -428,6 +428,23 @@ async function withingsHandle(action, req, res, userId) {
 // ════════════════════════════════════════════════════════════════════════
 // ── Fitbit ──────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════
+//
+// ⚠️  DEPRECATION WARNING — legacy Fitbit Web API sunsets September 2026
+//
+// Fitbit is migrating their API to the new Google Health API:
+//   • OAuth endpoint → accounts.google.com/o/oauth2/v2/auth
+//   • API base       → health.googleapis.com/v4/users/me/
+//   • Auth library   → Google Auth Library (not generic OAuth2)
+//   • Existing tokens CANNOT be migrated; users must re-authorize
+//   • New setup requires a Google Cloud project + OAuth consent screen
+//
+// This handler targets the legacy Fitbit Web API and will stop working
+// September 2026. Before that date, either:
+//   (a) rebuild this section against https://developers.google.com/health
+//   (b) delete the Fitbit section entirely if nobody asks for it
+//
+// Until then the current code works fine for beta testing. Leaving it
+// dormant behind VITE_FITBIT_ENABLED costs nothing.
 
 const FITBIT_TOKEN_URL = 'https://api.fitbit.com/oauth2/token';
 const FITBIT_API_BASE = 'https://api.fitbit.com';

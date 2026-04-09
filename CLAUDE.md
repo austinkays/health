@@ -379,7 +379,10 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Sync behavior:** Groups systolic+diastolic into a single `bp` vital row. Converts kg → lbs and C → F. Dedupes against existing vitals on (date, type, source) so re-sync is idempotent. Tagged `source: 'withings'`.
 - **Why direct vs Terra:** Withings makes the most popular consumer health hardware brand for chronic illness users — smart scale, BP cuff, sleep mat, thermometer all share the same API. Direct integration is free and covers the brand entirely.
 
-**`api/fitbit.js`** — Fitbit direct integration (OAuth2):
+**Fitbit (legacy Web API section of `api/wearable.js`)** — OAuth2:
+
+> ⚠️ **Deprecation deadline: September 2026.** Fitbit is migrating to the new Google Health API (`health.googleapis.com/v4/users/me/`), which uses Google OAuth 2.0 and the Google Auth Library. The current Fitbit handler targets `api.fitbit.com` and will stop working in September 2026. Before that date, either rebuild the Fitbit section of `api/wearable.js` against [developers.google.com/health](https://developers.google.com/health) or delete it. Existing tokens cannot be migrated — users will have to re-authorize. Google recommends waiting until end of May 2026 to launch Google Health API integrations to align with legacy Fitbit account deprecation.
+
 - **Actions:** `token`, `refresh`, `data`, `config`
 - **Allowed paths:** `/1/user/-/activities/...`, `/1.2/user/-/sleep/...`, `/1/user/-/sleep/...`, `/1/user/-/body/...`, `/1/user/-/profile.json`, `/1/user/-/devices.json`. Whitelist prevents using us as a generic Fitbit proxy.
 - **Quirk:** token endpoint requires HTTP Basic Auth header (`Basic <base64(clientId:clientSecret)>`), not body parameters. Handled by `basicAuthHeader()` helper.
@@ -938,6 +941,7 @@ Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKL
 - [ ] **Offline mode verification** — enable airplane mode, confirm cached data loads and pending writes queue correctly.
 - [ ] **Support workflow documented** — decide response-time commitment + who owns the `salveapp@proton.me` inbox. Document PHI breach response plan (assess scope → revoke tokens → notify within 72h → patch → post-mortem).
 - [x] **Lemon Squeezy payments** — Code complete: `api/lemon-checkout.js` (creates hosted checkout), `api/lemon-webhook.js` (HMAC-verified subscription lifecycle → flips profiles.tier), `src/services/billing.js` (startCheckout/openCustomerPortal). Settings.jsx shows "Upgrade to Premium →" button for free/trial-expired users, "Manage subscription →" for active premium. App.jsx handles `?checkout=success` redirect with toast. **User still needs to**: create LS account, set up store + product + variant, add 4 env vars (LEMON_API_KEY, LEMON_STORE_ID, LEMON_PREMIUM_VARIANT_ID, LEMON_WEBHOOK_SECRET), configure webhook URL (`/api/lemon-webhook`) in LS dashboard.
+- [ ] **⏰ Fitbit API deprecation — September 2026.** Legacy Fitbit Web API (what the Fitbit section of `api/wearable.js` uses) sunsets Sept 2026. Must either rebuild against Google Health API ([developers.google.com/health](https://developers.google.com/health)) or delete the Fitbit section before that date. Current code works fine for the beta period. Recommended launch date for rebuilt integration: end of May 2026 per Google's guidance. Setting up Google Health API requires a Google Cloud project + OAuth consent screen (not just a dev.fitbit.com app). Existing user tokens cannot be migrated across the switch.
 
 **Support email:** `salveapp@proton.me` (set in `src/components/sections/Legal.jsx`)
 
