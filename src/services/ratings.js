@@ -11,6 +11,7 @@ const TABLE = 'insight_ratings';
  */
 export async function rateInsight(surface, contentKey, rating, metadata = null) {
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) return;
   const { error } = await supabase
     .from(TABLE)
     .upsert(

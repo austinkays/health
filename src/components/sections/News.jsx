@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Newspaper, ExternalLink, Bookmark, BookmarkCheck, Filter, Leaf, Globe, Shield, Heart } from 'lucide-react';
+import { Newspaper, ExternalLink, Bookmark, BookmarkCheck, Leaf, Globe, Shield } from 'lucide-react';
 import Card from '../ui/Card';
 import { C } from '../../constants/colors';
 import { fetchDiscoverArticles } from '../../services/discover';
