@@ -860,11 +860,11 @@ vercel --prod        # Deploy to production
 
 Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md).
 
-- [ ] **Sentry account + DSN** — sign up at sentry.io (free tier), create a React/Vite project, copy DSN, add `VITE_SENTRY_DSN` to Vercel env vars (Production + Preview), redeploy. Verify with `throw new Error('sentry-test')` in the prod DevTools console.
-- [ ] **AI provider spend caps** — set monthly $ limit + 50/75/90% email alerts in Anthropic Console → Billing. If using paid Gemini, do the same in Google Cloud Console → Billing → Budgets.
+- [x] **Sentry account + DSN** — Configured. `VITE_SENTRY_DSN` set in Vercel env vars.
+- [x] **AI provider spend caps** — Monthly limits + alerts configured in Anthropic Console and Google Cloud Billing.
 - [ ] **Uptime monitor** — UptimeRobot or BetterStack free tier, 5-min ping on production URL, email alerts.
 - [ ] **Vercel plan decision** — stay on Hobby if launching free + under quotas. Upgrade to Pro ($20/mo) BEFORE adding any paid tier (commercial use requires Pro).
-- [ ] **RLS end-to-end verification** — follow the DevTools script in `docs/LAUNCH_CHECKLIST.md` section 2. Create two test accounts, try to read each other's data via Supabase REST API, confirm zero cross-contamination on every sensitive table. REQUIRED before public share.
+- [x] **RLS end-to-end verification** — Verified: two test accounts confirmed zero cross-contamination on all sensitive tables.
 - [ ] **Fresh-user walkthrough** — sign up with a clean email, tap through every section, verify all empty states render without crashes. Test on iPhone Safari + Android Chrome. Test PWA install flow (Add to Home Screen).
 - [ ] **Offline mode verification** — enable airplane mode, confirm cached data loads and pending writes queue correctly.
 - [ ] **Support workflow documented** — decide response-time commitment + who owns the `salveapp@proton.me` inbox. Document PHI breach response plan (assess scope → revoke tokens → notify within 72h → patch → post-mortem).
@@ -876,7 +876,9 @@ Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKL
 
 - [x] **Name the AI chatbot "Sage"** — Done. Leaf avatar, "Hey, I'm Sage" greeting, "Sage is thinking" loading, sage-green Daily Insight cards, BottomNav tab renamed, consent gate updated, disclaimers rebranded.
 - [ ] **Configure Google Sign In** — Button is wired up in Auth.jsx, needs Google Cloud Console OAuth credentials + Supabase provider config to work.
-- [ ] **External patient-resource integrations (EveryCure + Understood.org, extensible)** — Build a unified "Discover" / curated-resource framework that cross-references user's conditions, meds, journal tags, etc., against hand-curated external resource libraries. No org has a public query API, so static tagged JSON files are the mechanism. See detailed plan in Roadmap section below.
+- [x] **External patient-resource integrations (EveryCure + Understood.org, extensible)** — Done. Static curated resources + dynamic RSS feeds (NIH News in Health, FDA Drug Safety) via `api/discover.js`. Dedicated News section with multi-source feed, condition-matched relevance scoring, bookmark/save. Sage news results cached and merged into feed. Quarterly GitHub Action reminder to refresh static resources.
+- [x] **Insight ratings** — Done. Thumbs up/down on patterns, daily insight, news stories, and all AIPanel result types. Supabase `insight_ratings` table with unique constraint per user+surface+key. Optimistic UI with background sync.
+- [ ] **Apple Health iOS Shortcut** — Build spec complete (`docs/APPLE_HEALTH_SHORTCUT_BUILD_GUIDE.md`). App-side paste import working. Shortcut partially built on iPhone — needs Count → If > 0 guards on all health queries to handle missing data types gracefully. Once working, share via iCloud link and add install button to Settings.
 - [ ] **Multi-model "Second Opinion" chat** (future exploration) — Let users get a parallel response from the other AI provider (Gemini if Sage was Claude, vice versa) via a "Get a second opinion" button in SagePopup/AIPanel. Both responses render as distinct bubbles with provider badges, framing AI health info as "don't trust just one voice." Trickier parts: tool-use deduplication (only one model gets write tools), cost of dual calls, UX of comparing two answers.
 - [x] **Health To-Do's & Reminders** — Done. Full Todos.jsx section with CRUD, filter tabs, priority badges, due date countdown, complete toggle, recurring support. Dashboard integration (overdue/urgent alerts, due-soon timeline, Quick Access tile). AI tool-use (add/update/remove via Sage chat). Search integration. Active todos in AI profile context.
 - [x] **Cycle Tracker Completion** — Done. Shared `utils/cycles.js` with `getCyclePhaseForDate`, Vitals phase badges + chart overlay, Journal phase badges + mood-phase summary, AI cycle patterns feature, medication cycle awareness badges, Dashboard quick-log.
