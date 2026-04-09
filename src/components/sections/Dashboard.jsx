@@ -1120,9 +1120,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </section>
       )}
 
-      {/* ── Chat with Sage ──────────────────────── */}
+      {/* ── Chat with Sage (mobile only, desktop has sidebar) ──────────────────────── */}
       {onSage && (
-        <section className="dash-stagger dash-stagger-3 mb-5 md:mb-6">
+        <section className="dash-stagger dash-stagger-3 mb-5 md:hidden">
           <button
             onClick={onSage}
             className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-border rounded-xl cursor-pointer hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all group text-left"
