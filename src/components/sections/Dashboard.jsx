@@ -1168,7 +1168,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4 md:mb-6">
               <Card className="!p-0 overflow-hidden">
                 <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
-                  <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
+                  <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
                   <button
                     onClick={() => setShowDismissMenu(!showDismissMenu)}
                     className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors"
@@ -1193,7 +1193,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   >
                     <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
                     <a.icon size={14} color={a.color} className="flex-shrink-0" />
-                    <span className="text-[12.5px] md:text-sm text-salve-textMid text-left flex-1">{a.text}</span>
+                    <span className="text-ui-md text-salve-textMid text-left flex-1">{a.text}</span>
                     <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
                   </button>
                 ))}
@@ -1344,7 +1344,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
                   <div className="flex items-center gap-2">
                     <Compass size={13} className="text-salve-lav" />
-                    <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
+                    <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
                   </div>
                   <button
                     onClick={() => onNav('news')}
@@ -1381,7 +1381,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           href={d.resource.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[12.5px] md:text-sm text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
+                          className="text-ui-md text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1"
                         >
                           {d.resource.title}
                           <ExternalLink size={10} className="text-salve-textFaint/50 flex-shrink-0" />
@@ -1488,7 +1488,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <Card className="!p-4 md:!p-6 cursor-pointer" onClick={() => onNav('vitals')}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
+                      <span className="text-ui-sm text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
                       <span className="text-ui-xs text-salve-textFaint font-montserrat">last 14 days</span>
                     </div>
                     <ChevronRight size={12} className="text-salve-textFaint" />
@@ -1585,7 +1585,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('journal')}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Mood</span>
+                    <span className="text-ui-sm text-salve-textMid font-montserrat tracking-wider uppercase">Mood</span>
                     <span className="text-ui-xs text-salve-textFaint font-montserrat">last 7 days</span>
                   </div>
                   <ChevronRight size={12} className="text-salve-textFaint" />
@@ -1630,7 +1630,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('activities')}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-baseline gap-2">
-                    <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Activity</span>
+                    <span className="text-ui-sm text-salve-textMid font-montserrat tracking-wider uppercase">Activity</span>
                     <span className="text-ui-xs text-salve-textFaint font-montserrat">last 7 days</span>
                   </div>
                   <ChevronRight size={12} className="text-salve-textFaint" />
@@ -1939,7 +1939,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <Lightbulb size={13} className="text-salve-amber" />
-              <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
+              <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
             </div>
             <button
               onClick={dismissAllTips}
