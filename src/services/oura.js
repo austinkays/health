@@ -262,7 +262,14 @@ export async function syncOuraTemperature(existingCycles, addItem, days = 30, ba
   const endDate = new Date().toISOString().slice(0, 10);
   const startDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
 
-  const ouraTemps = await fetchOuraTemperature(startDate, endDate);
+  let ouraTemps;
+  try {
+    ouraTemps = await fetchOuraTemperature(startDate, endDate);
+  } catch (e) {
+    // 404 means the ring hasn't calibrated temperature yet, skip silently
+    if (e.message?.includes('404')) return { added: 0, skipped: 'not available yet' };
+    throw e;
+  }
   const newEntries = ouraTemperatureToCycleEntries(ouraTemps, existingCycles, baselineF);
 
   let added = 0;
