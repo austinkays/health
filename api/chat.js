@@ -116,9 +116,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Unable to verify account tier. Please try again.' });
   }
 
-  // ── Per-user Claude daily call limit (50/day) ──
-  // Protects against runaway spend on the $50 Anthropic monthly cap.
-  // Uses the same api_usage table pattern as api/gemini.js's daily limit.
+  // ── Per-user Claude daily call limit ──
+  // Protects against runaway spend on the Anthropic monthly cap. Tune this
+  // based on the active monthly Anthropic budget — see CLAUDE.md notes on
+  // beta cost math.
   const CLAUDE_DAILY_LIMIT = 50;
   try {
     // Count calls made today (midnight PT, DST-safe via Intl)
@@ -156,8 +157,9 @@ export default async function handler(req, res) {
       const total = parts.length >= 2 ? parseInt(parts[1], 10) : NaN;
       if (!isNaN(total) && total >= CLAUDE_DAILY_LIMIT) {
         return res.status(429).json({
-          error: `Daily AI limit reached (${CLAUDE_DAILY_LIMIT}/day). Resets at midnight PT.`,
+          error: `Daily Sage limit reached (${CLAUDE_DAILY_LIMIT}/day). During the beta we cap usage to keep Sage free for everyone — resets at midnight PT.`,
           daily_limit: true,
+          limit: CLAUDE_DAILY_LIMIT,
         });
       }
     }

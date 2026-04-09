@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { signIn, verifyOtp, signInWithGoogle } from '../services/auth';
+import { supabase } from '../services/supabase';
 import { handleSpotlight } from '../utils/fx';
+
+// Closed-beta invite gate. When VITE_BETA_INVITE_REQUIRED is "true", new
+// signups must enter a valid invite code. Returning users (already in
+// auth.users) skip this — Supabase OTP signin still works for them.
+const BETA_INVITE_REQUIRED = import.meta.env.VITE_BETA_INVITE_REQUIRED === 'true';
+const PENDING_INVITE_KEY = 'salve:pending-invite';
 
 // OTP codes expire after 10 minutes (600 seconds)
 const OTP_TTL = 600;
@@ -17,6 +24,7 @@ function getCooldownSeconds(attempts) {
 
 export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDemo }) {
   const [email, setEmail] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -59,6 +67,23 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
     setLoading(true);
     setError('');
     try {
+      // Beta gate: validate invite code if one was entered. We only check
+      // when the field has a value — returning users (already in auth.users)
+      // can leave it blank and Supabase signin still works for them.
+      if (BETA_INVITE_REQUIRED && inviteCode.trim()) {
+        const trimmed = inviteCode.trim().toUpperCase();
+        const { data, error: rpcError } = await supabase.rpc('check_beta_invite', {
+          code_in: trimmed,
+          email_in: email.trim().toLowerCase(),
+        });
+        if (rpcError || !data) {
+          setError('Invalid or already-used invite code. Returning users can leave this blank.');
+          setLoading(false);
+          return;
+        }
+        // Stash the code so App.jsx can claim it after the user signs in.
+        try { localStorage.setItem(PENDING_INVITE_KEY, trimmed); } catch { /* */ }
+      }
       await signIn(email);
       setSent(true);
     } catch (err) {
@@ -295,6 +320,26 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
                 autoComplete="email"
                 className="w-full bg-salve-card2 border border-salve-border rounded-lg px-4 py-3 md:py-3.5 text-salve-text placeholder-salve-textFaint text-sm md:text-base focus:outline-none focus:border-salve-lav transition-colors mb-4"
               />
+              {BETA_INVITE_REQUIRED && (
+                <>
+                  <label className="block text-salve-textMid text-sm md:text-base mb-2" htmlFor="invite-code">
+                    Invite code <span className="text-salve-textFaint text-xs">(new accounts only)</span>
+                  </label>
+                  <input
+                    id="invite-code"
+                    type="text"
+                    value={inviteCode}
+                    onChange={e => setInviteCode(e.target.value)}
+                    placeholder="SPOONIE-XXXX"
+                    autoCapitalize="characters"
+                    autoComplete="off"
+                    className="w-full bg-salve-card2 border border-salve-border rounded-lg px-4 py-3 md:py-3.5 text-salve-text placeholder-salve-textFaint text-sm md:text-base font-mono focus:outline-none focus:border-salve-lav transition-colors mb-2"
+                  />
+                  <p className="text-salve-textFaint text-xs md:text-sm mb-4 leading-relaxed">
+                    Salve is in closed beta. Returning users can leave this blank.
+                  </p>
+                </>
+              )}
               {error && (
                 <p className="text-salve-rose text-sm md:text-base mb-4">{error}</p>
               )}

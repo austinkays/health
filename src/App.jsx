@@ -322,6 +322,17 @@ function AppContent() {
         // so cache.read() in useHealthData finds the key already cached.
         cache.setToken(s.access_token);
         cache.prewarm();
+        // Closed-beta: if there's a pending invite code stashed by Auth.jsx
+        // before the magic link, claim it now that we have an authenticated
+        // session. Permanently binds the code to this user.
+        try {
+          const pending = localStorage.getItem('salve:pending-invite');
+          if (pending) {
+            supabase.rpc('claim_beta_invite', { code_in: pending })
+              .then(() => { localStorage.removeItem('salve:pending-invite'); })
+              .catch(() => { /* leave it for the next signin to retry */ });
+          }
+        } catch { /* localStorage unavailable, nothing to claim */ }
       }
       setSession(s);
       setAuthLoading(false);

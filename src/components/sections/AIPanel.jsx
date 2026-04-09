@@ -1156,13 +1156,13 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         }
       }
     } catch (e) {
-      const isDailyLimit = e.message?.includes('Daily AI limit');
+      const isDailyLimit = e.message?.includes('Daily AI limit') || e.message?.includes('Daily Sage limit');
       const isPremium = e.message?.includes('Premium feature');
       const isAdmin = e.message?.includes('Admin feature') || e.message?.includes('admin tier');
       const msg = isDailyLimit
         ? (BILLING_ENABLED
-            ? '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for unlimited access.'
-            : '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.')
+            ? '⏳ **Daily Limit Reached**\n\nYou\'ve used your AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for more headroom.'
+            : '⏳ **Daily Sage Limit Reached**\n\nYou\'ve used your AI calls for today. During the beta we cap daily usage so Sage stays free for everyone — your allowance resets at midnight Pacific.\n\nThanks for understanding while we figure out costs.')
         : isAdmin
           ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style consultation.'
           : isPremium
@@ -1207,11 +1207,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       setCooldown(true);
       setTimeout(() => setCooldown(false), 1500);
     } catch (e) {
-      const isDailyLimit = e.message?.includes('Daily AI limit');
+      const isDailyLimit = e.message?.includes('Daily AI limit') || e.message?.includes('Daily Sage limit');
       const errMsg = isDailyLimit
         ? (BILLING_ENABLED
-            ? '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT. Upgrade to Claude Premium in Settings for unlimited access.'
-            : '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT.')
+            ? '⏳ You\'ve used your AI calls for today. Resets at midnight PT.'
+            : '⏳ You\'ve used your daily Sage allowance. During the beta we cap usage so Sage stays free for everyone — resets at midnight PT. Thanks for understanding!')
         : 'Error: ' + e.message;
       const updated = [...msgs, { role: 'assistant', content: errMsg, ts: Date.now() }];
       setChatMessages(updated);
