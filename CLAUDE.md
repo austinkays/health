@@ -811,6 +811,9 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | `docs/MIGRATION_PLAN.md` | Migration planning notes |
 | `docs/superpowers/specs/2026-04-01-cycle-tracker-completion-design.md` | Cycle Tracker completion spec: vitals/journal correlation, AI cycle analysis, med awareness, Dashboard quick-log |
 | `docs/DESKTOP_UI_PLAN.md` | Desktop UI adaptation roadmap: 7 phases (shell/nav, header, dashboard multi-column, list/detail split view, hub enhancements, data-dense polish, keyboard shortcuts). Phases 1-2 + parts of 4 & 7 implemented. |
+| `docs/COMPETITIVE_ROADMAP.md` | 8-phase competitive feature roadmap (Bearable/Medisafe/CareClinic analysis). Phase 1 (Correlation Engine) complete. Includes compliance/HIPAA strategy, Terra API plan, FHIR compliance gates. Phases 2-4 next (push notifications, doctor reports, onboarding). |
+| `docs/superpowers/specs/2026-04-08-correlation-engine-design.md` | Correlation engine design spec: client-side pattern detection, insight scoring, AI narration, Dashboard card + Insights section. |
+| `docs/superpowers/plans/2026-04-08-correlation-engine.md` | Correlation engine implementation plan (7 tasks, all complete). |
 
 ## Commands
 
