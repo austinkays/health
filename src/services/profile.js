@@ -144,6 +144,7 @@ export function buildProfile(data) {
       recreational_drugs: 'Recreational Drug Use',
       hobbies: 'Hobbies & Interests', strengths: 'Strengths',
       whats_going_well: 'What\'s Going Well', support_system: 'Support System',
+      health_context: 'Health Context',
     };
     for (const [k, v] of aboutEntries) {
       p += (labels[k] || k) + ': ' + san(String(v), 500) + '\n';

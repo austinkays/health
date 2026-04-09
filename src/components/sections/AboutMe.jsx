@@ -19,6 +19,7 @@ const CATEGORIES = [
       { key: 'children', label: 'Children', placeholder: 'e.g. 2 kids, ages 5 and 8' },
       { key: 'religion', label: 'Religion / Spirituality', placeholder: 'e.g. Catholic, agnostic, spiritual' },
       { key: 'identities', label: 'Identities', placeholder: 'Race, cultural background, sexual orientation, or anything meaningful to you', textarea: true },
+      { key: 'health_context', label: 'Health Context', placeholder: 'e.g. chronic fatigue since 2019, pain flares in cold weather, managing multiple conditions', textarea: true },
     ],
   },
   {

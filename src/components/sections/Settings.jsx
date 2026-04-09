@@ -831,17 +831,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <SectionTitle>Profile</SectionTitle>
       <Card>
         <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
-        <Field
-          label="Health Background"
-          value={s.health_background || ''}
-          onChange={v => set('health_background', v)}
-          textarea
-          placeholder="Context for Sage, e.g. chronic fatigue since 2019, pain flares in cold weather..."
-        />
-        <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
       </Card>
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 mb-1">
-        <button onClick={() => onNav('aboutme')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Edit full profile →</button>
+        <button onClick={() => onNav('aboutme')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
         <button onClick={() => onNav('pharmacies')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
         <button onClick={() => onNav('insurance')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
       </div>
