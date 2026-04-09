@@ -1554,8 +1554,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               </section>
             );
           })()}
-          {/* Mood + Activity, side-by-side at lg+ */}
-          <div className="lg:grid lg:grid-cols-2 lg:gap-4">
+          {/* Mood + Activity, side-by-side at lg+ only when both exist */}
+          <div className={moodSnapshot && activitySnapshot ? 'lg:grid lg:grid-cols-2 lg:gap-4' : ''}>
           {/* Mood snapshot */}
           {moodSnapshot && (
             <section aria-label="Mood this week" className="dash-stagger dash-stagger-4 mb-2">
