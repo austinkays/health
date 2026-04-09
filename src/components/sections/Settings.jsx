@@ -18,6 +18,7 @@ import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 import { startCheckout, openCustomerPortal } from '../../services/billing';
+import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync" — a health-data sync tool that uses MCP connections (healthex, Function Health, etc.) to pull my medical records and export them as JSON for import into the Salve app.
 
@@ -286,6 +287,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     setTierOverride(val);
     window.location.reload();
   };
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const [pushPermission, setPushPermission] = useState(() => getPermissionState());
+
+  useEffect(() => {
+    isSubscribed().then(setPushEnabled);
+  }, []);
+
   const { themeId, committedThemeId, setTheme, saveTheme, revertTheme, hasUnsavedChanges, themes: allThemes } = useTheme();
 
   // Auto-set AI provider based on tier — premium gets Claude, free gets Gemini
@@ -600,6 +609,61 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           userTier={userTier}
         />
       </Card>
+
+      {/* ── Notifications ── */}
+      <div className="mb-6">
+        <h3 className="text-xs font-montserrat font-semibold text-salve-textFaint uppercase tracking-widest mb-3">Notifications</h3>
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <div>
+              <p className="text-sm font-montserrat font-medium text-salve-text">Push Notifications</p>
+              <p className="text-[11px] text-salve-textFaint font-montserrat mt-0.5">
+                {pushPermission === 'denied'
+                  ? 'Blocked by your browser — check browser settings to allow'
+                  : pushPermission === 'unsupported'
+                    ? 'Not supported in this browser'
+                    : pushEnabled
+                      ? 'Receiving reminders on this device'
+                      : 'Get reminders for medications, appointments, and more'}
+              </p>
+            </div>
+            <button
+              onClick={async () => {
+                setPushLoading(true);
+                try {
+                  if (pushEnabled) {
+                    await unsubscribeFromPush();
+                    setPushEnabled(false);
+                  } else {
+                    await subscribeToPush();
+                    setPushEnabled(true);
+                    setPushPermission('granted');
+                  }
+                } catch (err) {
+                  if (err.message?.includes('denied')) setPushPermission('denied');
+                }
+                setPushLoading(false);
+              }}
+              disabled={pushLoading || pushPermission === 'denied' || pushPermission === 'unsupported' || demoMode}
+              className={`px-4 py-1.5 rounded-lg border text-xs font-montserrat font-medium transition-colors cursor-pointer ${
+                pushEnabled
+                  ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage'
+                  : 'bg-salve-card border-salve-border text-salve-textMid hover:border-salve-lav/30'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {pushLoading ? '...' : pushEnabled ? 'Enabled \u2713' : 'Enable'}
+            </button>
+          </div>
+          {pushEnabled && !demoMode && (
+            <button
+              onClick={async () => { try { await sendTestPush(); } catch {} }}
+              className="text-[11px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
+            >
+              Send test notification
+            </button>
+          )}
+        </Card>
+      </div>
 
       {/* ══════════════ 3. Sage ══════════════ */}
       <SectionTitle>Sage</SectionTitle>
