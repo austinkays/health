@@ -28,6 +28,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
+import { fetchDiscoverArticles } from '../../services/discover';
 import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
 import { computeCorrelations } from '../../utils/correlations';
@@ -795,21 +796,43 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     setShowDismissMenu(false);
   };
 
-  /* ── Discover (matched resources) ─────────── */
+  /* ── Discover (matched resources + dynamic RSS articles) ─────────── */
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
+  const [dynamicArticles, setDynamicArticles] = useState([]);
+
+  // Fetch dynamic articles from trusted RSS feeds (14-day client cache)
+  useEffect(() => {
+    const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
+    if (conditions.length === 0 && (data.meds || []).length === 0) return;
+    fetchDiscoverArticles(conditions).then(articles => {
+      if (articles?.length) setDynamicArticles(articles);
+    });
+  }, [data.conditions?.length, data.meds?.length]);
 
   const discoverItems = useMemo(() => {
     const seenSet = new Set(seenResources);
-    return matchResources({
+    const staticItems = matchResources({
       conditions: data.conditions,
       medications: data.meds,
       journal_entries: data.journal,
       settings: data.settings,
-    })
-      .filter(m => !seenSet.has(m.resource.id));
-  }, [data.conditions, data.meds, data.journal, data.settings, seenResources]);
+    }).filter(m => !seenSet.has(m.resource.id));
 
-  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 2 : 3), [discoverItems, isDesktop]);
+    // Merge dynamic RSS articles (interleave: 1 static, 1 dynamic)
+    const dynamicItems = dynamicArticles
+      .filter(a => !seenSet.has(a.id))
+      .map(a => ({ resource: a, score: 0.5, dynamic: true }));
+
+    const merged = [];
+    let si = 0, di = 0;
+    while (si < staticItems.length || di < dynamicItems.length) {
+      if (si < staticItems.length) merged.push(staticItems[si++]);
+      if (di < dynamicItems.length) merged.push(dynamicItems[di++]);
+    }
+    return merged;
+  }, [data.conditions, data.meds, data.journal, data.settings, seenResources, dynamicArticles]);
+
+  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
 
   /* ── Whether the left column has any visible content (for responsive layout) ── */
   const hasLeftContent = useMemo(() => {
@@ -1280,8 +1303,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
                 </div>
                 {displayedDiscover.map((d, i) => {
-                  const isEveryCure = d.resource.source === 'EveryCure';
-                  const accentColor = isEveryCure ? C.sage : C.rose;
+                  const src = d.resource.source;
+                  const isDynamic = d.dynamic;
+                  const accentColor = src === 'EveryCure' ? C.sage : isDynamic ? C.lav : C.rose;
                   return (
                     <div
                       key={d.resource.id}
@@ -1293,13 +1317,14 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          {isEveryCure && <span className="text-[10px]" aria-hidden="true">🔬</span>}
+                          {src === 'EveryCure' && <span className="text-[10px]" aria-hidden="true">🔬</span>}
                           <span
                             className="text-[9px] md:text-[11px] font-montserrat tracking-wider uppercase"
                             style={{ color: accentColor }}
                           >
-                            {d.resource.source}
+                            {src}
                           </span>
+                          {d.resource.date && <span className="text-[9px] text-salve-textFaint/50 font-montserrat">{d.resource.date}</span>}
                         </div>
                         <a
                           href={d.resource.url}
