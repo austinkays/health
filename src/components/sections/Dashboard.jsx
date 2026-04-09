@@ -779,7 +779,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const todayChips = useMemo(() => {
     const chips = [];
     const now = new Date(); now.setHours(0, 0, 0, 0);
-    const upcomingAppts = [...data.appts]
+    const upcomingAppts = [...(data.appts || [])]
       .filter(a => new Date(a.date + 'T00:00:00') >= now)
       .sort((a, b) => a.date.localeCompare(b.date));
     if (upcomingAppts.length > 0) {

@@ -10,6 +10,7 @@ import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchMonthlySummary, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
+import { BILLING_ENABLED } from '../../services/billing';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import { db } from '../../services/db';
@@ -1159,11 +1160,15 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       const isPremium = e.message?.includes('Premium feature');
       const isAdmin = e.message?.includes('Admin feature') || e.message?.includes('admin tier');
       const msg = isDailyLimit
-        ? '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for unlimited access.'
+        ? (BILLING_ENABLED
+            ? '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for unlimited access.'
+            : '⏳ **Daily Limit Reached**\n\nYou\'ve used all 10 free AI calls for today. Resets at midnight PT.')
         : isAdmin
           ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style consultation.'
           : isPremium
-            ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis.\n\nGo to **Settings → AI Provider** to upgrade.'
+            ? (BILLING_ENABLED
+                ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis.\n\nGo to **Settings → AI Provider** to upgrade.'
+                : '🔒 **Premium Feature**\n\nThis feature is part of the Premium tier. Premium isn\'t open yet — we\'ll let you know when it is.')
             : 'Error: ' + e.message;
       setResult({ text: msg, sources: [] });
     } finally {
@@ -1204,7 +1209,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     } catch (e) {
       const isDailyLimit = e.message?.includes('Daily AI limit');
       const errMsg = isDailyLimit
-        ? '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT. Upgrade to Claude Premium in Settings for unlimited access.'
+        ? (BILLING_ENABLED
+            ? '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT. Upgrade to Claude Premium in Settings for unlimited access.'
+            : '⏳ You\'ve used all 10 free AI calls for today. Resets at midnight PT.')
         : 'Error: ' + e.message;
       const updated = [...msgs, { role: 'assistant', content: errMsg, ts: Date.now() }];
       setChatMessages(updated);
@@ -1337,7 +1344,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
                 if (locked) {
                   const msg = f.admin
                     ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style differential diagnosis.'
-                    : '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.';
+                    : (BILLING_ENABLED
+                        ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.'
+                        : '🔒 **Premium Feature**\n\nThis is part of the Premium tier. Premium isn\'t open yet — we\'ll let you know when it is.');
                   setResult({ text: msg });
                   setMode(f.id);
                   setRevealed(true);

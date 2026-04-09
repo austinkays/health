@@ -17,7 +17,7 @@ import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, get
 import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
-import { startCheckout, openCustomerPortal } from '../../services/billing';
+import { startCheckout, openCustomerPortal, BILLING_ENABLED } from '../../services/billing';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
@@ -184,13 +184,18 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
       {/* Footer for non-premium users — wraps naturally, no em dashes */}
       {!canSavePremium && (
         <p className="mt-3 text-ui-sm text-salve-textFaint font-montserrat leading-relaxed px-1">
-          Preview only. Themes reset on reload.{' '}
-          <button
-            onClick={onUpgrade}
-            className="text-salve-lav hover:text-salve-text underline-offset-2 hover:underline bg-transparent border-none p-0 cursor-pointer font-montserrat text-ui-sm"
-          >
-            Upgrade to save.
-          </button>
+          Preview only. Themes reset on reload.
+          {BILLING_ENABLED && (
+            <>
+              {' '}
+              <button
+                onClick={onUpgrade}
+                className="text-salve-lav hover:text-salve-text underline-offset-2 hover:underline bg-transparent border-none p-0 cursor-pointer font-montserrat text-ui-sm"
+              >
+                Upgrade to save.
+              </button>
+            </>
+          )}
         </p>
       )}
     </div>
@@ -699,16 +704,20 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         {isOnTrial && (
           <div className="mt-2 space-y-2">
             <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
-              You're on a 14-day free trial with full access to every feature. Enjoy the ride, no payment needed to explore.
+              You're on a free Premium trial with full access to every feature. No payment needed.
             </p>
-            <button
-              onClick={handleUpgrade}
-              disabled={checkoutLoading}
-              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav/15 border border-salve-lav/30 text-salve-lav hover:bg-salve-lav/25 transition-colors disabled:opacity-60 cursor-pointer"
-            >
-              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to keep access after trial →'}
-            </button>
-            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+            {BILLING_ENABLED && (
+              <>
+                <button
+                  onClick={handleUpgrade}
+                  disabled={checkoutLoading}
+                  className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav/15 border border-salve-lav/30 text-salve-lav hover:bg-salve-lav/25 transition-colors disabled:opacity-60 cursor-pointer"
+                >
+                  {checkoutLoading ? 'Opening checkout…' : 'Upgrade to keep access after trial →'}
+                </button>
+                {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+              </>
+            )}
           </div>
         )}
         {trialExpired && (
@@ -716,17 +725,25 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <p className="text-[11px] text-salve-rose font-montserrat leading-relaxed">
               Your trial ended. You're now on the free plan.
             </p>
-            <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
-              Upgrading keeps advanced insights, experimental themes, and unlimited access.
-            </p>
-            <button
-              onClick={handleUpgrade}
-              disabled={checkoutLoading}
-              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
-            >
-              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
-            </button>
-            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+            {BILLING_ENABLED ? (
+              <>
+                <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+                  Upgrading keeps advanced insights, experimental themes, and unlimited access.
+                </p>
+                <button
+                  onClick={handleUpgrade}
+                  disabled={checkoutLoading}
+                  className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+                >
+                  {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
+                </button>
+                {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+              </>
+            ) : (
+              <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+                Premium upgrades aren't open yet. We'll let you know when they are.
+              </p>
+            )}
           </div>
         )}
         {userTier === 'free' && !trialExpired && (
@@ -746,17 +763,25 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <span className="text-salve-textMid">Daily AI limit</span>
               <span className="text-salve-textFaint text-right">10 / day → Unlimited</span>
             </div>
-            <button
-              onClick={handleUpgrade}
-              disabled={checkoutLoading}
-              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
-            >
-              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
-            </button>
-            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+            {BILLING_ENABLED ? (
+              <>
+                <button
+                  onClick={handleUpgrade}
+                  disabled={checkoutLoading}
+                  className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+                >
+                  {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
+                </button>
+                {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+              </>
+            ) : (
+              <p className="text-[11px] text-salve-textFaint font-montserrat italic leading-relaxed">
+                Premium upgrades aren't open yet. We'll let you know when they are.
+              </p>
+            )}
           </div>
         )}
-        {userTier === 'premium' && !isOnTrial && (
+        {userTier === 'premium' && !isOnTrial && BILLING_ENABLED && (
           <button
             onClick={openCustomerPortal}
             className="mt-2 text-[11px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0"

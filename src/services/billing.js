@@ -5,6 +5,20 @@
 import { getAuthToken } from './token.js';
 
 /**
+ * Build-time flag for whether Lemon Squeezy is fully configured.
+ * Set VITE_BILLING_ENABLED=true in Vercel env vars once:
+ *   - LS account is set up
+ *   - Store + product + variant are created
+ *   - LEMON_API_KEY / LEMON_STORE_ID / LEMON_PREMIUM_VARIANT_ID /
+ *     LEMON_WEBHOOK_SECRET env vars are populated
+ *   - The webhook URL (/api/lemon-webhook) is configured in LS dashboard
+ *
+ * While false, every upgrade CTA in the app is hidden so beta users
+ * aren't sent to a broken checkout flow.
+ */
+export const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
+
+/**
  * Redirects the current user to a Lemon Squeezy hosted checkout.
  * Requires the user to be signed in (token fetched via getAuthToken).
  * Throws if the checkout URL cannot be obtained.
