@@ -156,10 +156,18 @@ async function ouraGet(endpoint, startDate, endDate) {
     const retry = await fetch(`/api/oura?${params}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
-    if (!retry.ok) throw new Error('Oura API error after refresh');
+    if (!retry.ok) {
+      let detail = 'Oura API error after refresh';
+      try { const b = await retry.json(); detail = b.error || detail; } catch {}
+      throw new Error(detail);
+    }
     return retry.json();
   }
-  if (!res.ok) throw new Error('Oura API error');
+  if (!res.ok) {
+    let detail = 'Oura API error';
+    try { const b = await res.json(); detail = b.error || detail; } catch {}
+    throw new Error(detail);
+  }
   return res.json();
 }
 
