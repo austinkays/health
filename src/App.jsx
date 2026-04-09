@@ -20,6 +20,7 @@ import { ThemeProvider } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
 const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
+import OnboardingWizard, { hasCompletedOnboarding } from './components/ui/OnboardingWizard';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -155,6 +156,7 @@ function AppContent() {
   const [sageOpen, setSageOpen] = useState(false);
   const [sageIntroOpen, setSageIntroOpen] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
   const insightRatings = useInsightRatings(session);
 
@@ -164,6 +166,20 @@ function AppContent() {
       setShowWhatsNew(true);
     }
   }, [authLoading, session, demoMode]);
+
+  // Show the first-run onboarding wizard for real users who haven't
+  // completed it AND whose account is empty (no meds, conditions, or
+  // vitals logged yet). Skip entirely in demo mode.
+  useEffect(() => {
+    if (authLoading || dataLoading || demoMode || !session) return;
+    if (hasCompletedOnboarding()) return;
+    const hasData = (data?.meds?.length || 0) > 0
+      || (data?.conditions?.length || 0) > 0
+      || (data?.vitals?.length || 0) > 0
+      || (data?.journal?.length || 0) > 0;
+    if (hasData) return;
+    setShowOnboarding(true);
+  }, [authLoading, dataLoading, demoMode, session, data?.meds?.length, data?.conditions?.length, data?.vitals?.length, data?.journal?.length]);
 
   // Sync premium status into services/ai.js so isFeatureLocked() sees it.
   // Pro features unlock for premium users regardless of provider choice.
@@ -495,6 +511,7 @@ function AppContent() {
         </Suspense>
       )}
       {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+      {showOnboarding && <OnboardingWizard name={data?.settings?.name} onClose={() => setShowOnboarding(false)} />}
     </div>
   );
 }

@@ -2008,6 +2008,23 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </Reveal>
       )}
 
+      {/* Recovery link for users who dismissed all tips but still have no data —
+          gives them a path back to the onboarding wizard. Silent for engaged users. */}
+      {visibleTips.length === 0 && (data.meds?.length || 0) === 0 && (data.conditions?.length || 0) === 0 && (data.vitals?.length || 0) === 0 && (
+        <Reveal as="section" aria-label="Onboarding recovery" className="mb-4 mt-2">
+          <button
+            onClick={() => {
+              try { localStorage.removeItem('salve:onboarded'); } catch { /* */ }
+              window.location.reload();
+            }}
+            className="w-full flex items-center justify-center gap-1.5 text-ui-sm text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat py-2 transition-colors"
+          >
+            <Sparkles size={11} />
+            Need help getting started? Re-run setup
+          </button>
+        </Reveal>
+      )}
+
       {/* Desktop "made with love" tagline, mirrors mobile BottomNav behaviour */}
       <p className={`hidden md:block text-center text-salve-textFaint text-[10px] tracking-wider py-6 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         made with love for my best friend &amp; soulmate

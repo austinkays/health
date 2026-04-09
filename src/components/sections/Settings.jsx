@@ -23,6 +23,7 @@ import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 import { startCheckout, openCustomerPortal, BILLING_ENABLED } from '../../services/billing';
 import { startTerraConnect, listTerraConnections, disconnectTerraConnection, providerLabel, TERRA_ENABLED } from '../../services/terra';
+import { resetOnboarding } from '../ui/OnboardingWizard';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
@@ -2114,6 +2115,16 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           >
             <MessageCircle size={14} className="text-salve-textFaint" />
             Send Feedback
+          </button>
+          <button
+            onClick={() => {
+              resetOnboarding();
+              window.location.reload();
+            }}
+            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav transition-colors"
+          >
+            <Sparkles size={14} className="text-salve-textFaint" />
+            Re-run onboarding wizard
           </button>
           <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
             <Info size={14} />
