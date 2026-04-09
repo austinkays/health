@@ -1014,16 +1014,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                   <div className="flex justify-end mb-2">
                     <button onClick={() => onNav('oura')} className="text-[10px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Oura data →</button>
                   </div>
-                  <Field
-                    label="BBT Baseline (°F)"
-                    value={ouraBaseline}
-                    onChange={saveOuraBaseline}
-                    placeholder="97.7"
-                    type="number"
-                  />
-                  <p className="text-[10px] text-salve-textFaint italic mb-3 -mt-1 leading-relaxed">
-                    Oura measures temperature deviation from your personal baseline. Average waking BBT is ~97.7°F.
-                  </p>
                   <div className="flex gap-2">
                     <button
                       onClick={handleOuraSync}

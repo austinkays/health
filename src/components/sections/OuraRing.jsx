@@ -299,6 +299,29 @@ export default function OuraRing({ data, addItem, onNav }) {
         </div>
       )}
 
+      {/* BBT Baseline config */}
+      <Card className="mb-3 !p-3.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">BBT Baseline</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            step="0.1"
+            value={parseFloat(localStorage.getItem('salve:oura-baseline')) || 97.7}
+            onChange={e => {
+              const v = parseFloat(e.target.value);
+              if (v && v > 90 && v < 105) localStorage.setItem('salve:oura-baseline', String(v));
+            }}
+            className="w-20 bg-salve-card2 border border-salve-border rounded-lg px-2 py-1.5 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav text-center"
+          />
+          <span className="text-[11px] text-salve-textFaint font-montserrat">°F</span>
+          <p className="flex-1 text-[10px] text-salve-textFaint font-montserrat leading-relaxed">
+            Oura measures deviation from your baseline. Average waking BBT is ~97.7°F. Adjust if yours differs.
+          </p>
+        </div>
+      </Card>
+
       {/* Educational info */}
       <Card className="mb-3 space-y-2.5">
         <InfoCard info={INFO.readiness} />
