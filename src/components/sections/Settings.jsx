@@ -605,9 +605,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       </Card>
 
       {/* ── Notifications ── */}
-      <div className="mb-6">
-        <h3 className="text-xs font-montserrat font-semibold text-salve-textFaint uppercase tracking-widest mb-3">Notifications</h3>
-        <Card>
+      <SectionTitle>Notifications</SectionTitle>
+      <Card>
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-sm font-montserrat font-medium text-salve-text">Push Notifications</p>
@@ -657,7 +656,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </button>
           )}
         </Card>
-      </div>
 
       {/* ══════════════ 3. Sage ══════════════ */}
       <SectionTitle>Sage</SectionTitle>
@@ -880,9 +878,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           placeholder="Context for Sage, e.g. chronic fatigue since 2019, pain flares in cold weather..."
         />
         <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
-      </Card>
 
-      <Card className="!mt-2">
+        <div className="mt-3 pt-3 border-t border-salve-border/50">
         {pharmacies.length > 0 ? (
           <>
             <label className="block text-xs font-medium text-salve-textMid mb-1.5 font-montserrat">Preferred Pharmacy</label>
@@ -921,6 +918,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <Field label="Group #" value={s.insurance_group || ''} onChange={v => set('insurance_group', v)} placeholder="Group #" />
           </div>
           <Field label="Member Services" value={s.insurance_phone || ''} onChange={v => set('insurance_phone', v)} type="tel" placeholder="Phone" />
+        </div>
         </div>
       </Card>
 
