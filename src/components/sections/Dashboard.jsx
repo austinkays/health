@@ -489,6 +489,34 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return { count: recent.length, totalMinutes, totalCalories, dayBars, lastActivity };
   }, [data.activities]);
 
+  /* Mood snapshot — 7-day mood dots from journal entries (no Recharts, pure CSS) */
+  const moodSnapshot = useMemo(() => {
+    const journal = data.journal || [];
+    if (!journal.length) return null;
+    const MOOD_SCORE = { '😀 Great': 5, '😊 Good': 4, '😐 Okay': 3, '😔 Low': 2, '😢 Sad': 1, '😠 Frustrated': 2, '😰 Anxious': 2, '😴 Exhausted': 1 };
+    const MOOD_COLOR = { '😀 Great': 'sage', '😊 Good': 'sage', '😐 Okay': 'textMid', '😔 Low': 'amber', '😢 Sad': 'rose', '😠 Frustrated': 'amber', '😰 Anxious': 'amber', '😴 Exhausted': 'rose' };
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const dateStr = d.toISOString().slice(0, 10);
+      const entry = journal.find(j => j.date === dateStr && j.mood);
+      days.push({
+        date: dateStr,
+        label: d.toLocaleDateString('en', { weekday: 'short' })[0],
+        mood: entry?.mood || null,
+        emoji: entry?.mood ? entry.mood.split(' ')[0] : null,
+        score: entry?.mood ? (MOOD_SCORE[entry.mood] || 3) : null,
+        color: entry?.mood ? (MOOD_COLOR[entry.mood] || 'textMid') : null,
+      });
+    }
+    const withMood = days.filter(d => d.mood);
+    if (withMood.length < 2) return null;
+    const latest = withMood[withMood.length - 1];
+    const avgScore = Math.round(withMood.reduce((s, d) => s + d.score, 0) / withMood.length * 10) / 10;
+    const avgLabel = avgScore >= 4.5 ? 'Great' : avgScore >= 3.5 ? 'Good' : avgScore >= 2.5 ? 'Okay' : 'Low';
+    return { days, latest, avgScore, avgLabel, count: withMood.length };
+  }, [data.journal]);
+
   /* ── Health Trend Cards ─────────────────── */
   // Sleep: 7-night bar chart
   const sleepTrend = useMemo(() => {
@@ -780,17 +808,18 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       .filter(m => !seenSet.has(m.resource.id));
   }, [data.conditions, data.meds, data.journal, data.settings, seenResources]);
 
-  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
+  const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 2 : 3), [discoverItems, isDesktop]);
 
   /* ── Whether the left column has any visible content (for responsive layout) ── */
   const hasLeftContent = useMemo(() => {
     const hasAlerts = alerts.length > 0 && !alertsDismissed;
+    const hasPatterns = topInsights.length > 0;
     const aiConsent = hasAIConsent();
     const hasAITeaser = aiConsent && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0;
     const hasAIInsight = aiConsent && (insight || insightLoading);
     const hasDiscover = displayedDiscover.length > 0;
-    return hasAlerts || hasAITeaser || hasAIInsight || hasDiscover;
-  }, [alerts, alertsDismissed, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length]);
+    return hasAlerts || hasPatterns || hasAITeaser || hasAIInsight || hasDiscover;
+  }, [alerts, alertsDismissed, topInsights.length, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length]);
 
   const dismissResource = useCallback((resourceId) => {
     setSeenResources(prev => {
@@ -1162,14 +1191,20 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
           {/* AI Insight teaser */}
           {hasAIConsent() && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0 && (
             <section aria-label="Get insight from Sage" className="dash-stagger dash-stagger-3 mb-4">
-              <button
-                onClick={loadInsight}
-                className="w-full flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-salve-sage/5 border border-salve-sage/15 cursor-pointer hover:bg-salve-sage/10 hover:border-salve-sage/25 transition-all font-montserrat text-left"
-              >
-                <Leaf size={13} className="text-salve-sage/70 flex-shrink-0" />
-                <span className="text-[12px] md:text-[13px] text-salve-sageDim/80 flex-1">Get today's insight from Sage</span>
-                <ChevronRight size={12} className="text-salve-sage/40 flex-shrink-0" />
-              </button>
+              <Card className="!p-0 overflow-hidden cursor-pointer hover:border-salve-sage/30 transition-colors" onClick={loadInsight}>
+                <div className="px-4 md:px-5 py-3.5 md:py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.sage}15` }}>
+                      <Leaf size={16} color={C.sage} strokeWidth={1.5} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] md:text-[13px] font-medium text-salve-text font-montserrat">Daily Insight</div>
+                      <div className="text-[11px] md:text-xs text-salve-textFaint font-montserrat">Personalized health insight from Sage</div>
+                    </div>
+                    <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
+                  </div>
+                </div>
+              </Card>
             </section>
           )}
 
@@ -1345,8 +1380,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             </section>
           )}
 
-          {/* Vitals + Activity — side-by-side at lg+ */}
-          <div className="lg:grid lg:grid-cols-2 lg:gap-4">
+          {/* Vitals (full width), then Mood + Activity side-by-side at lg+ */}
           {/* Vitals Snapshot */}
           {vitalsSnapshot && vitalsSnapshot.featured && (() => {
             const f = vitalsSnapshot.featured;
@@ -1462,6 +1496,53 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               </section>
             );
           })()}
+          {/* Mood + Activity — side-by-side at lg+ */}
+          <div className="lg:grid lg:grid-cols-2 lg:gap-4">
+          {/* Mood snapshot */}
+          {moodSnapshot && (
+            <section aria-label="Mood this week" className="dash-stagger dash-stagger-4 mb-2">
+              <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('journal')}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] md:text-xs text-salve-textMid font-montserrat tracking-wider uppercase">Mood</span>
+                    <span className="text-[9px] md:text-[11px] text-salve-textFaint font-montserrat">last 7 days</span>
+                  </div>
+                  <ChevronRight size={12} className="text-salve-textFaint" />
+                </div>
+                <div className="flex items-baseline gap-2 mb-3">
+                  <span className="text-[22px] leading-none">{moodSnapshot.latest.emoji}</span>
+                  <span className="text-[13px] text-salve-textMid font-montserrat">{moodSnapshot.latest.mood.split(' ').slice(1).join(' ')}</span>
+                  <span className="text-[11px] text-salve-textFaint font-montserrat ml-auto">{moodSnapshot.avgLabel} avg</span>
+                </div>
+                <div className="flex items-end gap-1 h-10 mb-1">
+                  {moodSnapshot.days.map((d, i) => {
+                    const isToday = i === 6;
+                    const barH = d.score ? Math.round((d.score / 5) * 32) : 2;
+                    const barColor = d.color === 'sage' ? C.sage : d.color === 'amber' ? C.amber : d.color === 'rose' ? C.rose : C.textFaint;
+                    return (
+                      <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                        <div
+                          className="w-full rounded-sm"
+                          style={{
+                            height: `${barH}px`,
+                            background: d.score ? (isToday ? barColor : `${barColor}55`) : C.border,
+                          }}
+                        />
+                        <span className="text-[8px] font-montserrat" style={{ color: isToday ? barColor : C.textFaint }}>
+                          {d.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {moodSnapshot.count >= 3 && (
+                  <div className="mt-2 pt-2 border-t border-salve-border">
+                    <span className="text-[11px] text-salve-textFaint font-montserrat">{moodSnapshot.count} entries this week</span>
+                  </div>
+                )}
+              </Card>
+            </section>
+          )}
           {/* Activity snapshot */}
           {activitySnapshot && (
             <section aria-label="Recent activity" className="dash-stagger dash-stagger-4 mb-2">
@@ -1518,7 +1599,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               </Card>
             </section>
           )}
-          </div>{/* end vitals+activity grid */}
+          </div>{/* end mood+activity grid */}
         </div>
       </div>
 
