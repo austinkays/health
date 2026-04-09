@@ -12,9 +12,28 @@ const SETTINGS_KEY = 'hc:settings'; // unencrypted sidecar for non-PHI settings 
 let _token = null;
 
 export const cache = {
-  // Set the auth token for encrypt/decrypt operations
+  // Set the auth token for encrypt/decrypt operations.
+  // When the token rotates (Supabase auto-refresh ~1hr), re-encrypt the cache
+  // so the next cold boot can decrypt with the new token from localStorage.
   setToken(token) {
+    const prev = _token;
     _token = token;
+    if (prev && token && prev !== token) {
+      this._reencrypt(prev).catch(() => {});
+    }
+  },
+
+  // Re-encrypt cached data from oldToken to current _token.
+  // Runs in background — failure is non-fatal (next loadAll will rewrite cache).
+  async _reencrypt(oldToken) {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return;
+      const json = await decrypt(raw, oldToken);
+      if (!json || !_token) return;
+      const freshEncrypted = await encrypt(json, _token);
+      localStorage.setItem(CACHE_KEY, freshEncrypted);
+    } catch { /* old token invalid or cache corrupt — network refresh will fix */ }
   },
 
   // Clear token and key cache on sign-out
