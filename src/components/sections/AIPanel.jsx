@@ -1127,6 +1127,13 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         const fn = { insight: fetchInsight, connections: fetchConnections, news: fetchNews, resources: fetchResources, costs: fetchCostOptimization }[id];
         const r = await fn(profile);
         setResult(r);
+        // Cache news articles for the News feed section
+        if (id === 'news' && r) {
+          try {
+            const { cacheSageNewsFromResult } = await import('../../services/newsCache');
+            cacheSageNewsFromResult(r);
+          } catch { /* non-critical */ }
+        }
       }
     } catch (e) {
       const isDailyLimit = e.message?.includes('Daily AI limit');

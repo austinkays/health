@@ -7,7 +7,7 @@ import {
   Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
   Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
-  PenLine, UserCircle,
+  PenLine, UserCircle, Newspaper,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -227,6 +227,7 @@ const STARRED_META = {
   formhelper:    { label: 'Form Scribe', icon: PenLine },
   aboutme:       { label: 'About Me',   icon: UserCircle },
   insights:      { label: 'Insights',   icon: Sparkles },
+  news:          { label: 'News',       icon: Newspaper },
 };
 
 // Hub tiles — always 6 (or 5 when no devices). Tappable → category page.
@@ -1298,9 +1299,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
           {displayedDiscover.length > 0 && (
             <section aria-label="Discover resources" className="dash-stagger dash-stagger-4 mb-4">
               <Card className="!p-0 overflow-hidden">
-                <div className="flex items-center gap-2 px-4 md:px-5 py-2.5 border-b border-salve-border/50">
-                  <Compass size={13} className="text-salve-lav" />
-                  <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
+                <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
+                  <div className="flex items-center gap-2">
+                    <Compass size={13} className="text-salve-lav" />
+                    <span className="text-[10px] md:text-xs text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
+                  </div>
+                  <button
+                    onClick={() => onNav('news')}
+                    className="text-[11px] text-salve-lav/70 hover:text-salve-lav font-montserrat transition-colors bg-transparent border-0 cursor-pointer"
+                  >
+                    See all &rarr;
+                  </button>
                 </div>
                 {displayedDiscover.map((d, i) => {
                   const src = d.resource.source;

@@ -52,6 +52,7 @@ const Providers = lazyWithRetry(() => import('./components/sections/Providers'))
 const Allergies = lazyWithRetry(() => import('./components/sections/Allergies'));
 const Journal = lazyWithRetry(() => import('./components/sections/Journal'));
 const AIPanel = lazyWithRetry(() => import('./components/sections/AIPanel'));
+const News = lazyWithRetry(() => import('./components/sections/News'));
 const Interactions = lazyWithRetry(() => import('./components/sections/Interactions'));
 const Settings = lazyWithRetry(() => import('./components/sections/Settings'));
 const Labs = lazyWithRetry(() => import('./components/sections/Labs'));
@@ -387,6 +388,7 @@ function AppContent() {
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} onNav={onNav} />;
       case 'ai':          return <AIPanel {...shared} updateSettings={updateSettingsT} demoMode={demoMode} insightRatings={insightRatings} />;
+      case 'news':        return <News {...shared} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
       case 'settings':    return <Settings data={data} updateSettings={updateSettingsT} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAllT} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
       // Comprehensive sections

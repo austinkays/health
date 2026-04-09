@@ -40,6 +40,7 @@ const TAB_LABELS = {
   legal: 'Legal',
   feedback: 'Feedback',
   formhelper: 'Scribe',
+  news: 'News',
   aboutme: 'About Me',
 };
 
