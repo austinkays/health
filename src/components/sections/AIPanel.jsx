@@ -3,6 +3,7 @@ import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, Exte
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
+import ThumbsRating from '../ui/ThumbsRating';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
@@ -126,7 +127,7 @@ function CopyButton({ text, className = '' }) {
   );
 }
 
-function ResultHeader({ icon: Icon, label, color, text, featureType, savedInsights }) {
+function ResultHeader({ icon: Icon, label, color, text, featureType, savedInsights, insightRatings }) {
   return (
     <div className="flex items-center justify-between mb-3">
       <div className="flex items-center gap-2">
@@ -136,7 +137,8 @@ function ResultHeader({ icon: Icon, label, color, text, featureType, savedInsigh
         <span className="text-[13px] font-semibold text-salve-text font-montserrat tracking-wide">{label}</span>
       </div>
       <div className="flex items-center gap-1.5">
-        {text && savedInsights && <SaveInsightButton type={featureType} label={label} text={text} savedInsights={savedInsights} />}
+        {insightRatings && <ThumbsRating surface={featureType} contentKey={featureType} getRating={insightRatings.getRating} rate={insightRatings.rate} size={12} />}
+        {text && savedInsights && <SaveInsightButton type={featureType} label={label} text={text} savedInsights={savedInsights} insightRatings={insightRatings} />}
         {text && <CopyButton text={stripDisclaimer(text)} />}
       </div>
     </div>
@@ -253,13 +255,13 @@ function SourcesBadges({ sources }) {
 
 /* ── Insight Result ──────────────────────────────────────── */
 
-function InsightResult({ result, savedInsights }) {
+function InsightResult({ result, savedInsights, insightRatings }) {
   const text = typeof result === 'string' ? result : result?.text;
   const cleaned = stripDisclaimer(text);
 
   return (
     <div>
-      <ResultHeader icon={Sparkles} label="Health Insight" color={C.lav} text={text} featureType="insight" savedInsights={savedInsights} />
+      <ResultHeader icon={Sparkles} label="Health Insight" color={C.lav} text={text} featureType="insight" savedInsights={savedInsights} insightRatings={insightRatings} />
       <div className="rounded-xl border border-salve-lav/20 bg-salve-lav/5 insight-glow overflow-hidden dash-stagger">
         <div className="border-l-[3px] border-salve-lav/40 p-4 pl-5">
           <AIMarkdown reveal>{cleaned}</AIMarkdown>
@@ -272,7 +274,7 @@ function InsightResult({ result, savedInsights }) {
 
 /* ── Connections Result ───────────────────────────────────── */
 
-function ConnectionsResult({ result, savedInsights }) {
+function ConnectionsResult({ result, savedInsights, insightRatings }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sections = useMemo(() => splitSections(text), [text]);
 
@@ -280,7 +282,7 @@ function ConnectionsResult({ result, savedInsights }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} featureType="connections" savedInsights={savedInsights} />
+        <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} featureType="connections" savedInsights={savedInsights} insightRatings={insightRatings} />
         <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -301,7 +303,7 @@ function ConnectionsResult({ result, savedInsights }) {
 
   return (
     <div>
-      <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} featureType="connections" savedInsights={savedInsights} />
+      <ResultHeader icon={Link} label="Health Connections" color={C.sage} text={text} featureType="connections" savedInsights={savedInsights} insightRatings={insightRatings} />
       <div className="flex flex-col gap-2.5">
         {parsed.map((section, i) => (
           <div
@@ -330,7 +332,7 @@ function ConnectionsResult({ result, savedInsights }) {
 
 const NEWS_SAVE_KEY = 'salve:saved-news';
 
-function NewsResult({ result, onSaveChange, savedInsights }) {
+function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = useMemo(() => splitSections(text), [text]);
@@ -397,7 +399,7 @@ function NewsResult({ result, onSaveChange, savedInsights }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} />
+        <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} insightRatings={insightRatings} />
         <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-amber/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -413,7 +415,7 @@ function NewsResult({ result, onSaveChange, savedInsights }) {
 
   return (
     <div>
-      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} />
+      <ResultHeader icon={Newspaper} label="Health News" color={C.amber} text={text} featureType="news" savedInsights={savedInsights} insightRatings={insightRatings} />
       <div className="flex flex-col gap-2.5">
         {stories.map((story, i) => (
           <div
@@ -504,7 +506,7 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
 
 /* ── Resources Result ────────────────────────────────────── */
 
-function ResourcesResult({ result, savedInsights }) {
+function ResourcesResult({ result, savedInsights, insightRatings }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = useMemo(() => splitSections(text), [text]);
@@ -513,7 +515,7 @@ function ResourcesResult({ result, savedInsights }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} featureType="resources" savedInsights={savedInsights} />
+        <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} featureType="resources" savedInsights={savedInsights} insightRatings={insightRatings} />
         <div className="rounded-xl border border-salve-rose/20 bg-salve-rose/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-rose/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -535,7 +537,7 @@ function ResourcesResult({ result, savedInsights }) {
 
   return (
     <div>
-      <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} featureType="resources" savedInsights={savedInsights} />
+      <ResultHeader icon={HelpCircle} label="Resources" color={C.rose} text={text} featureType="resources" savedInsights={savedInsights} insightRatings={insightRatings} />
       <div className="flex flex-col gap-2.5">
         {parsed.map((section, i) => (
           <AccordionSection
@@ -555,7 +557,7 @@ function ResourcesResult({ result, savedInsights }) {
 
 /* ── Cost Savings Result ─────────────────────────────────── */
 
-function CostResult({ result, savedInsights }) {
+function CostResult({ result, savedInsights, insightRatings }) {
   const text = typeof result === 'string' ? result : result?.text;
   const sources = typeof result === 'object' ? result?.sources : [];
   const sections = useMemo(() => splitSections(text), [text]);
@@ -563,7 +565,7 @@ function CostResult({ result, savedInsights }) {
   if (sections.length <= 1) {
     return (
       <div>
-        <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} featureType="costs" savedInsights={savedInsights} />
+        <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} featureType="costs" savedInsights={savedInsights} insightRatings={insightRatings} />
         <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
           <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
             <AIMarkdown>{stripDisclaimer(text)}</AIMarkdown>
@@ -584,7 +586,7 @@ function CostResult({ result, savedInsights }) {
 
   return (
     <div>
-      <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} featureType="costs" savedInsights={savedInsights} />
+      <ResultHeader icon={BadgeDollarSign} label="Cost Savings" color={C.sage} text={text} featureType="costs" savedInsights={savedInsights} insightRatings={insightRatings} />
       <div className="flex flex-col gap-2.5">
         {parsed.map((section, i) => (
           <div
@@ -906,7 +908,7 @@ function CyclePatternChart({ data }) {
   );
 }
 
-export default function AIPanel({ data, addItem, updateItem, removeItem, updateSettings }) {
+export default function AIPanel({ data, addItem, updateItem, removeItem, updateSettings, insightRatings }) {
   const [mode, setMode] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -1252,14 +1254,14 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       ) : (loading || (result && !revealed)) ? (
         <FeatureLoading ready={!loading && !!result} onReveal={() => setRevealed(true)} />
       ) : result && revealed ? (
-        mode === 'insight' ? <InsightResult result={result} savedInsights={savedInsights} /> :
-        mode === 'connections' ? <ConnectionsResult result={result} savedInsights={savedInsights} /> :
-        mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} savedInsights={savedInsights} /> :
-        mode === 'resources' ? <ResourcesResult result={result} savedInsights={savedInsights} /> :
-        mode === 'costs' ? <CostResult result={result} savedInsights={savedInsights} /> :
+        mode === 'insight' ? <InsightResult result={result} savedInsights={savedInsights} insightRatings={insightRatings} /> :
+        mode === 'connections' ? <ConnectionsResult result={result} savedInsights={savedInsights} insightRatings={insightRatings} /> :
+        mode === 'news' ? <NewsResult result={result} onSaveChange={setSavedNews} savedInsights={savedInsights} insightRatings={insightRatings} /> :
+        mode === 'resources' ? <ResourcesResult result={result} savedInsights={savedInsights} insightRatings={insightRatings} /> :
+        mode === 'costs' ? <CostResult result={result} savedInsights={savedInsights} insightRatings={insightRatings} /> :
         mode === 'cycle_patterns' ? (
           <div>
-            <ResultHeader icon={Heart} label="Cycle Patterns" color={C.rose} text={typeof result === 'string' ? result : result?.text} featureType="cycle_patterns" savedInsights={savedInsights} />
+            <ResultHeader icon={Heart} label="Cycle Patterns" color={C.rose} text={typeof result === 'string' ? result : result?.text} featureType="cycle_patterns" savedInsights={savedInsights} insightRatings={insightRatings} />
             <CyclePatternChart data={data} />
             <div className="rounded-xl border border-salve-rose/20 bg-salve-rose/5 overflow-hidden">
               <div className="border-l-[3px] border-salve-rose/40 p-4 pl-5">
@@ -1271,7 +1273,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         ) :
         mode === 'monthly_summary' ? (
           <div>
-            <ResultHeader icon={FileText} label="Monthly Summary" color={C.sage} text={typeof result === 'string' ? result : result?.text} featureType="monthly_summary" savedInsights={savedInsights} />
+            <ResultHeader icon={FileText} label="Monthly Summary" color={C.sage} text={typeof result === 'string' ? result : result?.text} featureType="monthly_summary" savedInsights={savedInsights} insightRatings={insightRatings} />
             <div className="rounded-xl border border-salve-sage/20 bg-salve-sage/5 overflow-hidden">
               <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
                 <AIMarkdown reveal>{stripDisclaimer(typeof result === 'string' ? result : result?.text)}</AIMarkdown>
@@ -1382,7 +1384,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       )}
 
       {savedInsights.saved.length > 0 && (
-        <SavedInsightsSection savedInsights={savedInsights} />
+        <SavedInsightsSection savedInsights={savedInsights} insightRatings={insightRatings} />
       )}
 
       <div className="mt-4 flex flex-col items-center gap-1.5">

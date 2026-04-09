@@ -9,6 +9,7 @@ import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import SideNav from './components/layout/SideNav';
 import useHealthData from './hooks/useHealthData';
+import useInsightRatings from './hooks/useInsightRatings';
 import { checkInteractions } from './utils/interactions';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import ErrorBoundary from './components/ui/ErrorBoundary';
@@ -138,6 +139,7 @@ function AppContent() {
   const [sageIntroOpen, setSageIntroOpen] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
+  const insightRatings = useInsightRatings(session);
 
   // Show What's New modal on first load if version changed
   useEffect(() => {
@@ -376,7 +378,7 @@ function AppContent() {
   const renderSection = () => {
     const shared = { data, addItem: addItemT, addItemSilent: addItem, updateItem: updateItemT, removeItem: removeItemT, highlightId };
     switch (tab) {
-      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} dataLoading={dataLoading} />;
+      case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} dataLoading={dataLoading} insightRatings={insightRatings} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} onNav={onNav} />;
       case 'vitals':      return <Vitals {...shared} />;
       case 'appts':       return <Appointments {...shared} />;
@@ -384,7 +386,7 @@ function AppContent() {
       case 'providers':   return <Providers {...shared} />;
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} onNav={onNav} />;
-      case 'ai':          return <AIPanel {...shared} updateSettings={updateSettingsT} demoMode={demoMode} />;
+      case 'ai':          return <AIPanel {...shared} updateSettings={updateSettingsT} demoMode={demoMode} insightRatings={insightRatings} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
       case 'settings':    return <Settings data={data} updateSettings={updateSettingsT} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAllT} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
       // Comprehensive sections

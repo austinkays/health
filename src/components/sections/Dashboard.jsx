@@ -28,6 +28,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
+import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
 import { computeCorrelations } from '../../utils/correlations';
 import { getCyclePhaseForDate } from '../../utils/cycles';
@@ -241,7 +242,7 @@ const HUB_TILES = [
 
 const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
-export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro, dataLoading }) {
+export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro, dataLoading, insightRatings }) {
   const isDesktop = useIsDesktop();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
@@ -1176,9 +1177,12 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                             <span className="text-[11.5px] font-semibold text-salve-text font-montserrat">{ins.title}</span>
                           </div>
                           <p className="text-[11.5px] text-salve-textMid font-montserrat leading-relaxed m-0">{ins.template}</p>
-                          {ins.confidence === 'medium' && (
-                            <span className="inline-block mt-1.5 text-[10px] text-salve-textFaint font-montserrat">Moderate confidence</span>
-                          )}
+                          <div className="flex items-center justify-between mt-1.5">
+                            {ins.confidence === 'medium' ? (
+                              <span className="text-[10px] text-salve-textFaint font-montserrat">Moderate confidence</span>
+                            ) : <span />}
+                            {insightRatings && <ThumbsRating surface="pattern" contentKey={ins.id} getRating={insightRatings.getRating} rate={insightRatings.rate} metadata={{ category: ins.category, title: ins.title }} size={11} />}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1258,6 +1262,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                         className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
                         aria-label="New insight"
                       ><RefreshCw size={12} /></button>
+                      {insightRatings && <ThumbsRating surface="insight" contentKey="daily" getRating={insightRatings.getRating} rate={insightRatings.rate} size={11} />}
                     </div>
                   </div>
                   <AIMarkdown compact>{insight}</AIMarkdown>
