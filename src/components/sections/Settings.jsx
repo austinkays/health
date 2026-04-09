@@ -637,14 +637,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 }
                 setPushLoading(false);
               }}
-              disabled={pushLoading || pushPermission === 'denied' || pushPermission === 'unsupported' || demoMode}
+              disabled={pushLoading || (!pushEnabled && (pushPermission === 'denied' || pushPermission === 'unsupported')) || demoMode}
               className={`px-4 py-1.5 rounded-lg border text-xs font-montserrat font-medium transition-colors cursor-pointer ${
                 pushEnabled
-                  ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage'
+                  ? 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30 hover:text-salve-rose'
                   : 'bg-salve-card border-salve-border text-salve-textMid hover:border-salve-lav/30'
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {pushLoading ? '...' : pushEnabled ? 'Enabled \u2713' : 'Enable'}
+              {pushLoading ? '...' : pushEnabled ? 'Disable' : 'Enable'}
             </button>
           </div>
           {pushEnabled && !demoMode && (
@@ -831,45 +831,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <SectionTitle>Profile</SectionTitle>
       <Card>
         <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
-        <div className="relative">
-          <Field label="Location" value={s.location || ''} onChange={v => set('location', v)} placeholder="City, State" />
-          <button
-            onClick={() => {
-              if (!navigator.geolocation) {
-                setLocationStatus('error');
-                return;
-              }
-              setLocationStatus('detecting');
-              navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                  try {
-                    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`);
-                    const data = await res.json();
-                    const city = data.address?.city || data.address?.town || data.address?.village || data.address?.county || '';
-                    const state = data.address?.state || '';
-                    if (city || state) {
-                      set('location', [city, state].filter(Boolean).join(', '));
-                      setLocationStatus('success');
-                      setTimeout(() => setLocationStatus(null), 2000);
-                    } else {
-                      setLocationStatus('error');
-                    }
-                  } catch {
-                    setLocationStatus('error');
-                  }
-                },
-                () => setLocationStatus('error'),
-                { timeout: 10000 }
-              );
-            }}
-            disabled={locationStatus === 'detecting'}
-            className="absolute right-2 top-6 text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline flex items-center gap-0.5 disabled:opacity-50"
-            aria-label="Detect location"
-          >
-            {locationStatus === 'detecting' ? <Loader size={10} className="animate-spin" /> : <MapPin size={10} />}
-            {locationStatus === 'detecting' ? 'Detecting...' : locationStatus === 'success' ? 'Done' : locationStatus === 'error' ? 'Failed' : 'Detect'}
-          </button>
-        </div>
         <Field
           label="Health Background"
           value={s.health_background || ''}
@@ -878,49 +839,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           placeholder="Context for Sage, e.g. chronic fatigue since 2019, pain flares in cold weather..."
         />
         <p className="text-[10px] text-salve-textFaint mt-1 font-montserrat italic">Sage includes this when analyzing your profile.</p>
-
-        <div className="mt-3 pt-3 border-t border-salve-border/50">
-        {pharmacies.length > 0 ? (
-          <>
-            <label className="block text-xs font-medium text-salve-textMid mb-1.5 font-montserrat">Preferred Pharmacy</label>
-            <div className="relative">
-              <select
-                value={preferredPharmacy?.id || ''}
-                onChange={e => handlePreferredChange(e.target.value || null)}
-                className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2.5 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav appearance-none cursor-pointer pr-8"
-              >
-                <option value="">No preferred pharmacy</option>
-                {pharmacies.sort((a, b) => a.name.localeCompare(b.name)).map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.is_preferred ? '★ ' : ''}{p.name}{p.address ? `, ${p.address}` : ''}
-                  </option>
-                ))}
-              </select>
-              <Star size={14} className={`absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none ${preferredPharmacy ? 'text-salve-amber' : 'text-salve-textFaint'}`} />
-            </div>
-            {preferredPharmacy && (
-              <p className="text-xs text-salve-sage mt-2 flex items-center gap-1">
-                <Star size={10} className="fill-salve-amber text-salve-amber" />
-                {preferredPharmacy.name} is your preferred pharmacy
-              </p>
-            )}
-          </>
-        ) : (
-          <p className="text-[13px] text-salve-textFaint italic leading-relaxed">
-            No pharmacies added yet. Add pharmacies in the Pharmacies section to pick a preferred one here.
-          </p>
-        )}
-
-        <div className="mt-3 pt-3 border-t border-salve-border/50">
-          <Field label="Insurance Plan" value={s.insurance_plan || ''} onChange={v => set('insurance_plan', v)} placeholder="e.g. Kaiser HMO" />
-          <div className="grid grid-cols-2 gap-2">
-            <Field label="Member ID" value={s.insurance_id || ''} onChange={v => set('insurance_id', v)} placeholder="Member ID" />
-            <Field label="Group #" value={s.insurance_group || ''} onChange={v => set('insurance_group', v)} placeholder="Group #" />
-          </div>
-          <Field label="Member Services" value={s.insurance_phone || ''} onChange={v => set('insurance_phone', v)} type="tel" placeholder="Phone" />
-        </div>
-        </div>
       </Card>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 mb-1">
+        <button onClick={() => onNav('aboutme')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Edit full profile →</button>
+        <button onClick={() => onNav('pharmacies')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
+        <button onClick={() => onNav('insurance')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
+      </div>
 
       {/* ══════════════ 6. Connected Sources ══════════════ */}
       <SectionTitle>Connected Sources</SectionTitle>
