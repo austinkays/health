@@ -166,7 +166,7 @@ const STARTER_TIPS = [
     icon: Newspaper,
     color: 'lav',
     title: 'Your personalized news feed',
-    body: 'Health articles from NIH and FDA, matched to your conditions. The more you use Sage, the richer your feed gets.',
+    body: 'Health articles from NIH and FDA, matched to your conditions. The more you use Sage, the more personalized your feed becomes.',
     action: 'news',
     actionLabel: 'Browse news',
     dismissBehavior: 'snooze',
