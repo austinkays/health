@@ -406,7 +406,7 @@ function AppContent() {
       case 'allergies':   return <Allergies {...shared} />;
       case 'journal':     return <Journal {...shared} onNav={onNav} />;
       case 'ai':          return <AIPanel {...shared} updateSettings={updateSettingsT} demoMode={demoMode} insightRatings={insightRatings} />;
-      case 'news':        return <News {...shared} />;
+      case 'news':        return <News {...shared} demoMode={demoMode} />;
       case 'interactions':return <Interactions interactions={interactions} meds={data.meds} />;
       case 'settings':    return <Settings data={data} updateSettings={updateSettingsT} updateItem={updateItemT} addItem={addItemT} addItemSilent={addItem} eraseAll={eraseAllT} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
       // Comprehensive sections

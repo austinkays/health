@@ -4,6 +4,7 @@ import Card from '../ui/Card';
 import { C } from '../../constants/colors';
 import { fetchDiscoverArticles } from '../../services/discover';
 import { buildNewsFeed, getSavedNews } from '../../services/newsCache';
+import { DEMO_NEWS } from '../../constants/demoData';
 
 const SOURCE_FILTERS = [
   { id: 'all', label: 'All' },
@@ -26,19 +27,21 @@ const SOURCE_COLORS = {
 
 const NEWS_SAVE_KEY = 'salve:saved-news';
 
-export default function News({ data }) {
-  const [rssArticles, setRssArticles] = useState([]);
+export default function News({ data, demoMode = false }) {
+  const [rssArticles, setRssArticles] = useState(demoMode ? DEMO_NEWS : []);
   const [filter, setFilter] = useState('all');
   const [savedUrls, setSavedUrls] = useState(() => new Set(getSavedNews().map(s => s.sourceUrl)));
 
-  // Fetch RSS articles when conditions are available
+  // Fetch RSS articles when conditions are available. Skip the network call
+  // in demo mode and use pre-baked DEMO_NEWS so the page isn't empty.
   const conditionCount = (data.conditions || []).length;
   useEffect(() => {
+    if (demoMode) { setRssArticles(DEMO_NEWS); return; }
     const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
     fetchDiscoverArticles(conditions).then(articles => {
       if (articles?.length) setRssArticles(articles);
     });
-  }, [conditionCount]);
+  }, [conditionCount, demoMode]);
 
   const feed = useMemo(() => buildNewsFeed({
     rssArticles,

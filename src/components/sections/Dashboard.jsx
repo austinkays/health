@@ -445,8 +445,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   /* Vitals snapshot, one featured vital (with 14-day chart) + compact supporting chips */
   const vitalsSnapshot = useMemo(() => {
     const today = Date.now();
-    const recentCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
-    const sparkCutoff = new Date(today - 7 * 86400000).toISOString().slice(0, 10);
+    const recentCutoff = localISODate(new Date(today - 7 * 86400000));
+    const sparkCutoff = localISODate(new Date(today - 7 * 86400000));
     const vitals = data.vitals || [];
     if (!vitals.length) return null;
     const recent = vitals.filter(v => v.date >= recentCutoff);
@@ -509,7 +509,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const activitySnapshot = useMemo(() => {
     const activities = data.activities || [];
     if (!activities.length) return null;
-    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
     const recent = activities.filter(a => a.date >= cutoff);
     if (!recent.length) return null;
     const totalMinutes = recent.reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
@@ -517,7 +517,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     const dayBars = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localISODate(d);
       const dayMins = activities.filter(a => a.date === dateStr).reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
       dayBars.push({ date: dateStr, mins: dayMins, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
     }
@@ -534,7 +534,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localISODate(d);
       const entry = journal.find(j => j.date === dateStr && j.mood);
       days.push({
         date: dateStr,
@@ -561,7 +561,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localISODate(d);
       const recs = sleepVitals.filter(v => v.date === dateStr);
       const val = recs.length ? recs.reduce((s, v) => s + Number(v.value), 0) / recs.length : null;
       days.push({ dateStr, label: d.toLocaleDateString('en', { weekday: 'short' }).slice(0, 2), value: val !== null ? Math.round(val * 10) / 10 : null });
@@ -577,7 +577,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const hrTrend = useMemo(() => {
     const hrVitals = (data.vitals || []).filter(v => v.type === 'hr');
     if (hrVitals.length < 4) return null;
-    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
     const recent = hrVitals.filter(v => v.date >= cutoff);
     if (recent.length < 4) return null;
     const byDate = new Map();
@@ -604,7 +604,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const spo2Trend = useMemo(() => {
     const spo2Vitals = (data.vitals || []).filter(v => v.type === 'spo2');
     if (spo2Vitals.length < 4) return null;
-    const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
     const recent = spo2Vitals.filter(v => v.date >= cutoff);
     if (recent.length < 4) return null;
     const byDate = new Map();
@@ -1110,7 +1110,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               className="bg-salve-card border border-salve-border rounded-xl p-fluid-sm flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
             >
               <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-              <span className="text-ui-sm text-salve-textMid font-montserrat text-center leading-tight">{h.label}</span>
+              <span className="text-ui-sm text-salve-textMid font-montserrat text-center leading-tight whitespace-nowrap">{h.label}</span>
             </button>
           ))}
         </div>

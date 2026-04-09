@@ -911,28 +911,34 @@ export default function FormHelper({ data, onNav }) {
     printWindow.print();
   };
 
+  // Hero intro card is shown regardless of consent state so users landing
+  // on Scribe always know what the page is — no blank "Meet Sage" confusion.
+  const scribeIntro = !results && (
+    <Card className="!border-salve-lav/20 !bg-salve-lav/[0.04]">
+      <div className="flex gap-3 items-start">
+        <div className="w-9 h-9 rounded-full bg-salve-sage/15 flex items-center justify-center shrink-0 mt-0.5">
+          <Leaf size={18} className="text-salve-sage" />
+        </div>
+        <div className="space-y-1.5 min-w-0">
+          <p className="text-ui-lg text-salve-text font-montserrat font-semibold m-0 leading-snug">
+            Tired of filling out the same medical forms?
+          </p>
+          <p className="text-ui-base text-salve-textMid font-montserrat m-0 leading-relaxed">
+            Select all the form text, copy it, and paste below, or snap a screenshot. Sage will match the questions to your health records and draft your answers.
+          </p>
+        </div>
+      </div>
+    </Card>
+  );
+
   return (
-    <AIConsentGate>
-      <div className="space-y-4">
-        {/* Input area */}
-        {!results && (
-          <>
-            {/* Instructional hero card */}
-            <Card className="!border-salve-lav/20 !bg-salve-lav/[0.04]">
-              <div className="flex gap-3 items-start">
-                <div className="w-9 h-9 rounded-full bg-salve-sage/15 flex items-center justify-center shrink-0 mt-0.5">
-                  <Leaf size={18} className="text-salve-sage" />
-                </div>
-                <div className="space-y-1.5 min-w-0">
-                  <p className="text-sm text-salve-text font-montserrat font-semibold m-0 leading-snug">
-                    Tired of filling out the same medical forms?
-                  </p>
-                  <p className="text-xs text-salve-textMid font-montserrat m-0 leading-relaxed">
-                    Select all the form text, copy it, and paste below, or snap a screenshot. Sage will match the questions to your health records and draft your answers.
-                  </p>
-                </div>
-              </div>
-            </Card>
+    <div className="space-y-4">
+      {scribeIntro}
+      <AIConsentGate>
+        <div className="space-y-4">
+          {/* Input area */}
+          {!results && (
+            <>
 
             {/* Appointment picker */}
             <AppointmentPicker
@@ -1202,7 +1208,8 @@ export default function FormHelper({ data, onNav }) {
             </Card>
           </>
         )}
-      </div>
-    </AIConsentGate>
+        </div>
+      </AIConsentGate>
+    </div>
   );
 }

@@ -26,6 +26,67 @@ function daysFromNow(n) {
   return toLocalISODate(d);
 }
 
+// Pre-baked news articles for demo mode. The real Discover endpoint requires
+// auth, so demo users would otherwise see an empty News page. These match
+// Jordan's profile (ADHD, IBS, allergies, vitamin D, sleep).
+export const DEMO_NEWS = [
+  {
+    id: 'demo-news-1',
+    title: 'ADHD and Sleep: Why Insomnia Is So Common — And What Helps',
+    blurb: 'Up to 75% of adults with ADHD report sleep difficulties. New research from the NIH explores how delayed circadian rhythms interact with stimulant medication timing, and outlines three evidence-based bedtime routines that have shown measurable improvement in clinical trials.',
+    url: 'https://newsinhealth.nih.gov/2024/03/sleep-adhd',
+    source: 'NIH News in Health',
+    sourceShort: 'NIH',
+    date: daysAgo(3),
+    type: 'rss',
+    matchedConditions: ['ADHD'],
+  },
+  {
+    id: 'demo-news-2',
+    title: 'The Gut-Brain Axis: How IBS Symptoms Track With Stress and Mood',
+    blurb: 'A growing body of research confirms what many patients already know — IBS flares often follow periods of high stress. This article reviews the gut-brain signaling pathways involved and discusses why integrative approaches combining low-FODMAP diet, stress management, and targeted probiotics outperform single-treatment strategies.',
+    url: 'https://newsinhealth.nih.gov/2024/02/gut-brain-axis-ibs',
+    source: 'NIH News in Health',
+    sourceShort: 'NIH',
+    date: daysAgo(8),
+    type: 'rss',
+    matchedConditions: ['IBS'],
+  },
+  {
+    id: 'demo-news-3',
+    title: 'Vitamin D Deficiency Linked to Mood and Energy in Adults',
+    blurb: 'New findings suggest vitamin D plays a larger role in mood regulation than previously thought. Adults with serum levels below 30 ng/mL reported significantly more fatigue and low mood in a 12-week observational study. Supplementation showed measurable improvement in those who corrected to the 40-60 ng/mL range.',
+    url: 'https://newsinhealth.nih.gov/2024/01/vitamin-d-mood',
+    source: 'NIH News in Health',
+    sourceShort: 'NIH',
+    date: daysAgo(12),
+    type: 'rss',
+    matchedConditions: ['Vitamin D'],
+  },
+  {
+    id: 'demo-news-4',
+    title: 'Seasonal Allergies: Why This Year Is Worse, and What Actually Works',
+    blurb: 'Pollen seasons are arriving earlier and lasting longer due to climate trends. Allergists explain the difference between first-line antihistamines and newer steroid nasal sprays, when to escalate to immunotherapy, and why combining oral and nasal medications often works better than either alone.',
+    url: 'https://newsinhealth.nih.gov/2024/04/seasonal-allergies',
+    source: 'NIH News in Health',
+    sourceShort: 'NIH',
+    date: daysAgo(18),
+    type: 'rss',
+    matchedConditions: ['Allergies'],
+  },
+  {
+    id: 'demo-news-5',
+    title: 'FDA Updates Stimulant Prescribing Guidance for Adult ADHD',
+    blurb: 'The FDA has issued updated prescribing guidance for adult ADHD stimulants, addressing recent shortages and clarifying recommended monitoring intervals for cardiovascular health. The new guidance also discusses long-acting vs short-acting formulation choices for adults with sleep-onset issues.',
+    url: 'https://www.fda.gov/drugs/drug-safety-and-availability/adult-adhd-stimulants-2024',
+    source: 'FDA Drug Safety',
+    sourceShort: 'FDA',
+    date: daysAgo(22),
+    type: 'rss',
+    matchedConditions: ['ADHD'],
+  },
+];
+
 // Deterministic fake UUID so React keys stay stable across renders
 let _demoIdCounter = 0;
 function did() {
