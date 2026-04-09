@@ -31,13 +31,14 @@ export default function News({ data }) {
   const [filter, setFilter] = useState('all');
   const [savedUrls, setSavedUrls] = useState(() => new Set(getSavedNews().map(s => s.sourceUrl)));
 
-  // Fetch RSS articles on mount
+  // Fetch RSS articles when conditions are available
+  const conditionCount = (data.conditions || []).length;
   useEffect(() => {
     const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
     fetchDiscoverArticles(conditions).then(articles => {
       if (articles?.length) setRssArticles(articles);
     });
-  }, []);
+  }, [conditionCount]);
 
   const feed = useMemo(() => buildNewsFeed({
     rssArticles,

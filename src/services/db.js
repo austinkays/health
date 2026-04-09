@@ -306,6 +306,7 @@ export const db = {
       'insurance_claims', 'drug_prices', 'todos', 'cycles', 'activities', 'genetic_results',
       'feedback',
       'medication_reminders',
+      'insight_ratings',
     ];
 
     const errors = [];

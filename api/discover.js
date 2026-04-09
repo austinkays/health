@@ -148,6 +148,16 @@ function checkRateLimit(userId) {
 }
 
 export default async function handler(req, res) {
+  // CORS
+  const origin = req.headers.origin;
+  const allowed = process.env.ALLOWED_ORIGIN || 'https://salve.today';
+  if (origin === allowed || origin === 'http://localhost:5173') {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  if (req.method === 'OPTIONS') return res.status(204).end();
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

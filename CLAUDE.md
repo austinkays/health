@@ -53,6 +53,7 @@ health/
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
 │   ├── oura.js                   # Vercel serverless: Oura Ring V2 API proxy (OAuth2 token exchange/refresh, temperature/sleep/readiness data, config)
 │   ├── provider.js               # Vercel serverless: NPPES NPI registry proxy (search, lookup)
+│   ├── discover.js               # Vercel serverless: RSS feed proxy (NIH News in Health + FDA Drug Safety), condition-matched, 24hr server cache
 │   └── delete-account.js         # Vercel serverless: account deletion endpoint (auth-gated, cascading delete)
 ├── public/
 │   ├── manifest.json             # PWA manifest
@@ -82,7 +83,8 @@ health/
 │       ├── 018_api_usage.sql                  # API usage tracking table + check_rate_limit() SQL function
 │       ├── 019_user_tier.sql                  # Add tier column (free/premium) to profiles
 │       ├── 020_trial_expires_at.sql           # Add trial_expires_at to profiles for premium trial tracking
-│       └── 021_feedback.sql                   # In-app user feedback table with RLS
+│       ├── 021_feedback.sql                   # In-app user feedback table with RLS
+│       └── 026_insight_ratings.sql            # Thumbs up/down ratings on AI insights, patterns, news with RLS + unique constraint
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
@@ -116,10 +118,14 @@ health/
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation; validateToolInput() gates add/update with per-entity validation (vitals range checks, field length limits)
 │   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, **hourly bucketing for HR/SpO2/resp** (up to 24 records/day with `time: 'HH:00'` field) vs. daily for steps/sleep/weight/glucose/BP; workout + FHIR lab parsing, deduplicateAgainst(); DEDUP_KEYS includes time field
 │   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
-│   │   └── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness/spo2/stress/workouts via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), syncAllOuraData() bulk sync (temperature→cycles BBT, sleep/HR/SpO2/readiness/stress→vitals, workouts→activities), manual entry override protection, per-data-type dedup
+│   │   ├── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness/spo2/stress/workouts via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), syncAllOuraData() bulk sync (temperature→cycles BBT, sleep/HR/SpO2/readiness/stress→vitals, workouts→activities), manual entry override protection, per-data-type dedup
+│   │   ├── ratings.js            # Insight ratings service: rateInsight (upsert), removeRating, loadRatings for thumbs up/down on AI content
+│   │   ├── newsCache.js          # Unified news article cache: merges RSS + Sage AI news + saved bookmarks; cacheSageNewsFromResult() parses markdown; buildNewsFeed() with relevance scoring
+│   │   └── discover.js           # Client service for dynamic Discover RSS articles with 14-day localStorage cache
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
+│   │   ├── useInsightRatings.js  # Thumbs up/down hook: loads all ratings on mount, optimistic local state + background Supabase upsert, toggle-to-unrate
 │   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies --salve-* color vars + --ambiance-* RGB + --salve-gradient-1/2/3 per-theme gradient stops to :root), useTheme() hook (themeId, setTheme, saveTheme, C, themes), getActiveC() standalone getter for non-React contexts
 │   │   └── useWellnessMessage.js # Cycling wellness/mindfulness messages for AI loading states (60 messages, 10s interval, random no-repeat, fade animation)
 │   ├── components/
@@ -143,11 +149,12 @@ health/
 │   │   │   ├── DropZone.jsx      # Drag-and-drop file target for desktop: dashed border, hover/active states, click-to-browse fallback. Hidden on mobile (md:block) unless alwaysVisible. Used by Settings import, AppleHealthImport, CycleTracker Flo import
 │   │   │   ├── OfflineBanner.jsx  # Persistent sticky banner when navigator.onLine is false; shows pending sync count from cache.js; auto-hides on reconnect
 │   │   │   ├── SkeletonCard.jsx   # Shimmer loading skeleton cards (SkeletonCard + SkeletonList); replaces LoadingSpinner as Suspense fallback for code-split sections
+│   │   │   ├── ThumbsRating.jsx  # Compact thumbs up/down rating component for AI content; optimistic toggle with filled/outline states; used on patterns, insights, news stories
 │   │   │   └── SagePopup.jsx     # Bottom-sheet modal chat with Sage. Triggered by Leaf button in Header (mobile) or Ask Sage button in SideNav (desktop). Multi-turn chat via sendChat, consent-gated, auto-scroll, Enter-to-send. "Full chat" shortcut navigates to AI tab. Wider on desktop (md:max-w-[600px]), rounded corners on desktop. On desktop uses `md:pl-[260px]` on the outer wrapper so the dialog centers in the content area rather than the full viewport (accounting for 260px sidebar).
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 27 sections. Desktop: back/search/sage buttons hidden at md+ (sidebar provides these), responsive font sizes
 │   │   │   ├── BottomNav.jsx     # Semantic <nav>, aria-current on active tab, scroll-reveal "made with love" tagline (Home page only, requires scroll), nav item hover glow. Hidden on desktop (md:hidden) — SideNav takes over
-│   │   │   ├── SideNav.jsx       # Desktop sidebar navigation (hidden md:flex, 260px fixed left). App branding + user name at top, Search button (full-width, standalone), 7 nav items (Home/Meds/Vitals/Sage/Scribe/Journal/Settings) with active left-border accent + background tint + dimmed number key hint (1–7) on inactive items for discoverability. Replaces BottomNav at md+ breakpoint
+│   │   │   ├── SideNav.jsx       # Desktop sidebar navigation (hidden md:flex, 260px fixed left). App branding + user name at top, Search button (full-width, standalone), 8 nav items (Home/Meds/Vitals/Sage/News/Scribe/Journal/Settings) with active left-border accent + background tint + dimmed number key hint (1–8) on inactive items for discoverability. Replaces BottomNav at md+ breakpoint
 │   │   │   └── SplitView.jsx     # Desktop list/detail layout primitive + useIsDesktop() hook. Mobile: passes through list content (sections handle inline expand). Desktop (md+): side-by-side with scrollable list on left (360-420px, min-h-[300px]) and sticky detail pane on right. `detailKey` prop triggers `splitview-detail-enter` fade+slide animation (0.14s) when selection changes. Empty state shows themed icon + message instead of plain text. Used by Medications, Conditions, Labs, Providers
 │   │   └── sections/             # One file per app section (28 total)
 │   │       ├── Dashboard.jsx     # Home: contextual greeting + tagline, "Today at a glance" chips row (next appt, refills due this week, overdue todos), live search centerpiece (animated gradient border, rotating placeholders, inline results), Quick Navigation Hub (6 hub tiles: Records/Care Team/Tracking/Safety/Plans/Devices), Recent Vitals card + Activity snapshot side-by-side, Health Trends section (sleep bar chart + HR band chart + SpO2 chart), Getting Started tips (dismissible, data-aware, snooze/permanent per tip), unified timeline, Pinned shortcuts (user-starred). Desktop-only "made with love" tagline at bottom of page — scroll-reveal (fades in when scrolled past 80px AND near bottom, `hidden md:block`). Getting Started tips use `dismissBehavior` ('auto'/'snooze'/'permanent') stored as `[{id, permanent?, snoozedUntil?}]` in localStorage `salve:dismissed-tips` with migration from old string-array format; data-aware (add-meds/add-providers auto-hide when data exists); feedback tip removed as card → persistent footer button inside the tips section
@@ -177,7 +184,8 @@ health/
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
 │   │       ├── Todos.jsx          # Health to-do list: filter tabs (Active/All/Done/Overdue), priority badges (urgent=rose, high=amber, medium=lav, low=sage), due date countdown, complete toggle with strikethrough, recurring indicator, expandable cards, add/edit form, deep-link + highlight support
 │   │       ├── HealthSummary.jsx  # Full health profile summary view + Print Summary button (desktop only, triggers window.print())
-│   │       ├── FormHelper.jsx      # "Scribe" — AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading. Navigation: SideNav item on desktop (key 5), dedicated card on Dashboard mobile (hidden md:hidden on desktop)
+│   │       ├── News.jsx            # Personalized health news feed: multi-source articles (RSS from NIH/FDA + cached Sage news + saved bookmarks), filter pills (All/Saved/Sage/RSS), condition-matched relevance scoring, bookmark toggle, source badges with accent colors, empty state guidance. Code-split, accessible via SideNav (key 5) + Quick Access tile + Dashboard Discover "See all" link
+│   │       ├── FormHelper.jsx      # "Scribe" — AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading. Navigation: SideNav item on desktop (key 6), dedicated card on Dashboard mobile (hidden md:hidden on desktop)
 │   │       ├── Feedback.jsx        # In-app feedback form: type selector pills (feedback/bug/suggestion), message textarea, submit with confirmation, previously submitted list with expand/delete
 │   │       ├── Legal.jsx          # Privacy Policy, Terms of Service, HIPAA Notice (tabbed interface)
 │   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt, Support section (Report a Bug → GitHub issues, Send Feedback → in-app Feedback section)
@@ -218,6 +226,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `activities` | date, type, duration_minutes, distance, calories, heart_rate_avg, source, notes | Workout/exercise tracking from Apple Health import or manual entry. |
 | `genetic_results` | source, gene, variant, phenotype, affected_drugs (JSONB), category, notes | Pharmacogenomic test results (CYP450 metabolizer status, HLA variants). Drug-gene badges on medication cards. |
 | `feedback` | type (feedback/bug/suggestion), message | In-app user feedback submissions. Not included in data exports. |
+| `insight_ratings` | surface, content_key, rating (-1/1), metadata (JSONB) | Thumbs up/down on AI-generated content (patterns, insights, news stories). Unique constraint per user+surface+key. Not included in data exports. |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -515,9 +524,9 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - **Tablet** (768px – 1023px, `md:`): SideNav replaces BottomNav (260px fixed left sidebar). Content column widens to 820px. SplitView list/detail for Medications, Conditions, Labs, Providers. Drag-and-drop file import zones appear.
 - **Desktop** (≥ 1024px, `lg:`): Content column widens to 1060px. Dashboard tile grids expand to 5 columns. All md: features apply.
 - **Responsive strategy:** All desktop behavior is additive via Tailwind `md:`/`lg:` prefixes + `useIsDesktop()` hook. Mobile layout is completely untouched — no breakpoint changes affect < 768px.
-- **SideNav** (desktop): Fixed left, 260px wide, full viewport height. App branding + user name at top, Search button (standalone, full-width with ⌘K hint), 7 nav items (Home/Meds/Vitals/Sage/Scribe/Journal/Settings) with left-border accent on active + dimmed number key hint (1–7) on inactive items. BottomNav hidden at md+ (`md:hidden`).
+- **SideNav** (desktop): Fixed left, 260px wide, full viewport height. App branding + user name at top, Search button (standalone, full-width with ⌘K hint), 8 nav items (Home/Meds/Vitals/Sage/News/Scribe/Journal/Settings) with left-border accent on active + dimmed number key hint (1–8) on inactive items. BottomNav hidden at md+ (`md:hidden`).
 - **SplitView** (desktop): List on left (360-420px scrollable, min-h-[300px]), detail pane on right (sticky). `detailKey` prop triggers fade+slide entry animation on selection change. Themed empty state with icon. Used by Medications, Conditions, Labs, Providers. Selected card shows lavender ring. Arrow keys (↑↓) navigate between items in Medications and Labs when no text input is focused.
-- **Keyboard shortcuts:** `Cmd/Ctrl+K` → open search, `Escape` → close Sage popup, `1–7` → jump to Home/Medications/Vitals/Sage/Scribe/Journal/Settings (blocked when a text input is focused). Number hints shown in SideNav. Implemented via global keydown listener in App.jsx.
+- **Keyboard shortcuts:** `Cmd/Ctrl+K` → open search, `Escape` → close Sage popup, `1–8` → jump to Home/Medications/Vitals/Sage/News/Scribe/Journal/Settings (blocked when a text input is focused). Number hints shown in SideNav. Implemented via global keydown listener in App.jsx.
 - **Drag-and-drop import** (desktop): DropZone component in Settings (backup .json), AppleHealthImport (.xml/.zip), CycleTracker (Flo .json). Dashed border target with hover/active states. Hidden on mobile, existing file picker buttons remain.
 - **Print support:** Print button on HealthSummary (desktop only). Print CSS hides nav/sidebar/decorative elements, forces expand-sections open, white background, page breaks.
 - Bottom navigation with 6 tabs: Home, Meds, Vitals, Insight (AI), Journal, Settings
@@ -763,6 +772,27 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 - [ ] Feedback: delete requires ConfirmBar confirmation before removing
 - [ ] Settings: "Send Feedback" button navigates to Feedback section (not mailto)
 - [ ] Dashboard: Getting Started feedback tip navigates to Feedback section (not mailto)
+
+### News & Ratings Tests
+- [ ] News: section reachable via SideNav (key 5), Quick Access tile, and Dashboard Discover "See all" link
+- [ ] News: RSS articles load from NIH/FDA feeds (condition-matched if user has conditions)
+- [ ] News: filter pills work (All, Saved, Sage, RSS)
+- [ ] News: bookmark toggle saves/unsaves articles to localStorage
+- [ ] News: Sage filter shows empty state with guidance when no cached Sage news
+- [ ] News: after running Health News in Sage, articles appear in News section under Sage filter
+- [ ] News: relevance badge appears on condition-matched articles
+- [ ] News: articles sorted by saved status → relevance → date
+- [ ] News: 14-day client cache prevents repeated API calls
+- [ ] Ratings: thumbs up/down appear on Dashboard pattern cards
+- [ ] Ratings: thumbs up/down appear on Sage daily insight
+- [ ] Ratings: thumbs up/down appear per-story on Health News results
+- [ ] Ratings: thumbs up/down appear on AIPanel result headers (insight, connections, resources, costs)
+- [ ] Ratings: tapping thumb fills it (green for up, rose for down)
+- [ ] Ratings: tapping same thumb again toggles off (un-rates)
+- [ ] Ratings: tapping opposite thumb switches vote
+- [ ] Ratings: ratings persist across page reloads (stored in Supabase insight_ratings table)
+- [ ] What's New: modal shows on first visit after deploy with v1.1.0-beta.2 changelog
+- [ ] Dashboard: "Your personalized news feed" Getting Started tip appears and links to News
 
 ### Scribe Tests
 - [ ] Scribe: section reachable via Quick Access tile (Scribe with PenLine icon)

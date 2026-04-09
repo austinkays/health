@@ -22,9 +22,11 @@ export async function rateInsight(surface, contentKey, rating, metadata = null) 
 
 /** Remove a rating (un-vote). */
 export async function removeRating(surface, contentKey) {
+  const { data: { user } } = await supabase.auth.getUser();
   const { error } = await supabase
     .from(TABLE)
     .delete()
+    .eq('user_id', user.id)
     .eq('surface', surface)
     .eq('content_key', contentKey);
   if (error) throw error;

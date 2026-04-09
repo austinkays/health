@@ -37,7 +37,7 @@ export function cacheSageNewsFromResult(result) {
     body = body.replace(/\n---\s*$/, '').replace(/^\s*\.\s*$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
 
     return {
-      id: `sage-${btoa(sourceUrl || headline).slice(0, 20)}`,
+      id: `sage-${btoa(unescape(encodeURIComponent(sourceUrl || headline))).slice(0, 20)}`,
       title: headline,
       blurb: body.slice(0, 300),
       url: sourceUrl,
@@ -91,7 +91,7 @@ export function getSavedNews() {
 export function buildNewsFeed({ rssArticles = [], conditions = [], medications = [] }) {
   const sageArticles = getSageCachedNews();
   const savedArticles = getSavedNews().map(s => ({
-    id: `saved-${btoa(s.sourceUrl || s.headline || '').slice(0, 16)}`,
+    id: `saved-${btoa(unescape(encodeURIComponent(s.sourceUrl || s.headline || ''))).slice(0, 16)}`,
     title: s.headline,
     blurb: s.body?.slice(0, 300) || '',
     url: s.sourceUrl,
