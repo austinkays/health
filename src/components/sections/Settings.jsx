@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -1613,7 +1613,37 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </Card>
       )}
 
-      {/* ══════════════ 8. Support ══════════════ */}
+      {/* ══════════════ 8. Install App ══════════════ */}
+      <SectionTitle>Install App</SectionTitle>
+      <Card>
+        <div className="space-y-3">
+          <div className="flex items-start gap-2.5">
+            <Smartphone size={14} className="text-salve-lav mt-0.5 flex-shrink-0" />
+            <div>
+              <div className="text-sm font-medium text-salve-text font-montserrat mb-1">Add Salve to your home screen</div>
+              <p className="text-[12px] text-salve-textFaint font-montserrat leading-relaxed m-0">
+                Salve works as a full app when installed — faster launch, offline access, and no browser bar.
+              </p>
+            </div>
+          </div>
+          <div className="border-t border-salve-border/50 pt-3 space-y-2.5">
+            <div className="flex items-start gap-2">
+              <Apple size={12} className="text-salve-textMid mt-0.5 flex-shrink-0" />
+              <p className="text-[12px] text-salve-textMid font-montserrat leading-relaxed m-0">
+                <strong>iPhone/iPad:</strong> Tap the share button <span className="inline-block px-1 py-0.5 bg-salve-card2 rounded text-[10px]">&#x2191;</span> in Safari, then <strong>Add to Home Screen</strong>
+              </p>
+            </div>
+            <div className="flex items-start gap-2">
+              <Smartphone size={12} className="text-salve-textMid mt-0.5 flex-shrink-0" />
+              <p className="text-[12px] text-salve-textMid font-montserrat leading-relaxed m-0">
+                <strong>Android:</strong> Tap the menu <span className="inline-block px-1 py-0.5 bg-salve-card2 rounded text-[10px]">&#8942;</span> in Chrome, then <strong>Add to Home Screen</strong> or <strong>Install App</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* ══════════════ 9. Support ══════════════ */}
       <SectionTitle>Support</SectionTitle>
       <Card>
         <div className="space-y-3">
@@ -1635,7 +1665,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
           <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
             <Info size={14} />
-            Salve v1.0
+            Salve v1.1.0
           </div>
         </div>
       </Card>

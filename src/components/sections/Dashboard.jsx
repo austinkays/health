@@ -172,6 +172,17 @@ const STARTER_TIPS = [
     dismissBehavior: 'snooze',
     snoozeDays: 14,
   },
+  {
+    id: 'install-app',
+    icon: Compass,
+    color: 'sage',
+    title: 'Install Salve on your phone',
+    body: 'Add to your home screen for faster access, offline support, and a full-screen app experience. Instructions in Settings.',
+    action: 'settings',
+    actionLabel: 'See how',
+    dismissBehavior: 'snooze',
+    snoozeDays: 14,
+  },
   // feedback is not a card — it renders as a persistent footer line in the section
 ];
 
