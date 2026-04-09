@@ -29,6 +29,12 @@
     },
     "api/cron-reminders.js": {
       "maxDuration": 30
+    },
+    "api/terra-widget.js": {
+      "maxDuration": 15
+    },
+    "api/terra-webhook.js": {
+      "maxDuration": 30
     }
   },
   "crons": [

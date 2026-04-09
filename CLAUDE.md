@@ -348,6 +348,15 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 - **Token storage:** localStorage (`salve:oura`) with access_token, refresh_token, expires_at, connected_at. Auto-refresh when within 5 minutes of expiry
 - **BBT baseline:** User-configurable in Settings, stored in `localStorage` under `salve:oura-baseline` (default 97.7°F)
 
+**`api/terra-widget.js` + `api/terra-webhook.js`** — Terra unified wearable aggregator:
+- **Provider coverage:** Fitbit, Garmin, Withings, Dexcom CGM, Oura, Whoop, Polar, Google Fit, Samsung Health, Peloton, FreeStyle Libre, Omron, Eight Sleep, COROS, Suunto, Strava, Concept2, Wahoo, iFit, Zwift, Peloton, and more (~50 providers via one integration)
+- **`/api/terra-widget`:** Auth-gated, generates a Terra Widget session URL via `POST https://api.tryterra.co/v2/auth/generateWidgetSession` with `reference_id = our user_id`. Returns the widget URL; client does a full redirect.
+- **`/api/terra-webhook`:** HMAC-SHA256 signature-verified (`terra-signature: t=<ts>,v1=<sig>` over `<ts>.<rawBody>`, 5-min replay window). Handles event types: `auth` / `user_reauth` (upserts terra_connections row), `deauth` / `access_revoked` (marks disconnected), `body` (weight/BP/glucose/temp → vitals), `daily` (steps/resting HR/active energy → vitals), `sleep` (duration → vitals), `activity` (workout → activities). Unknown events are 200'd silently to prevent retry storms.
+- **Connection storage:** `terra_connections` table — one row per (user, provider). `terra_user_id` is the unique join key for webhook → user_id lookup. Includes status (`connected`/`disconnected`/`error`), `last_webhook_at`, `last_sync_at`. RLS-scoped so users only see their own.
+- **Client service:** `src/services/terra.js` — `startTerraConnect(providers?)` redirects to widget URL, `listTerraConnections()` reads via Supabase client, `disconnectTerraConnection(id)`, `providerLabel(p)` for friendly display names, `TERRA_ENABLED` build-time flag from `VITE_TERRA_ENABLED` env var.
+- **Settings UI:** "Connect a device" card under Connected Sources, gated on `TERRA_ENABLED`. Shows currently-connected providers with status dot + last sync date + per-provider Disconnect button. New `+ Connect another device` button at the bottom.
+- **Data ingestion:** weights converted kg → lbs, temperatures C → F, distances m → mi. CGM glucose stored as `mg/dL`. All ingested rows tagged `source: 'terra'` so they show alongside Oura/Apple Health/Manual entries with the existing source filter pills.
+
 **`src/utils/maps.js`** — Google Maps URL helper:
 - `mapsUrl(address)` returns `https://www.google.com/maps/search/?api=1&query=<encoded>` — no API key needed
 - Used in Providers (address + clinic), Appointments (location), Medications (pharmacy — skipped for non-physical values like OTC, N/A, none, self)
@@ -829,6 +838,14 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | `LEMON_STORE_ID` | Vercel env vars only | Lemon Squeezy store ID (numeric, from LS dashboard URL) |
 | `LEMON_PREMIUM_VARIANT_ID` | Vercel env vars only | Lemon Squeezy variant ID for the Premium subscription plan |
 | `LEMON_WEBHOOK_SECRET` | Vercel env vars only | Lemon Squeezy webhook signing secret (from LS dashboard → Webhooks) |
+| `VITE_BILLING_ENABLED` | Vercel env vars | Set to `'true'` once Lemon Squeezy is fully configured. While unset/false, every upgrade CTA is hidden so beta users aren't routed to a broken checkout. |
+| `VITE_BETA_INVITE_REQUIRED` | Vercel env vars | Set to `'true'` to show the invite-code field on the Auth screen. Codes are validated via the `check_beta_invite` Supabase RPC. Used during the closed beta to cap signups. |
+| `TERRA_DEV_ID` | Vercel env vars only | Terra developer ID (from tryterra.co dashboard). Required for the Connect-a-device flow. |
+| `TERRA_API_KEY` | Vercel env vars only | Terra API key (server-side only). Pairs with TERRA_DEV_ID. |
+| `TERRA_SIGNING_SECRET` | Vercel env vars only | HMAC-SHA256 secret used to verify webhooks from Terra. Set in Terra dashboard → Webhooks. |
+| `TERRA_AUTH_SUCCESS_URL` | Vercel env vars only | URL Terra redirects to after a successful provider auth, e.g. `https://salveapp.com/?terra=success`. |
+| `TERRA_AUTH_FAILURE_URL` | Vercel env vars only | URL Terra redirects to on auth failure, e.g. `https://salveapp.com/?terra=failure`. |
+| `VITE_TERRA_ENABLED` | Vercel env vars | Set to `'true'` to surface the "Connect a device" card in Settings. Hides the UI when unset so users don't see a non-functional button before Terra is configured. |
 
 ## Reference Docs
 

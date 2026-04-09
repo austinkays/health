@@ -18,6 +18,7 @@ import { db } from '../../services/db';
 import { signOut, deleteAccount } from '../../services/auth';
 import { supabase } from '../../services/supabase';
 import { startCheckout, openCustomerPortal, BILLING_ENABLED } from '../../services/billing';
+import { startTerraConnect, listTerraConnections, disconnectTerraConnection, providerLabel, TERRA_ENABLED } from '../../services/terra';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
@@ -297,6 +298,33 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [ouraSuccess, setOuraSuccess] = useState(null);
   const [ouraSyncing, setOuraSyncing] = useState(false);
   const [ouraBaseline, setOuraBaseline] = useState(() => localStorage.getItem('salve:oura-baseline') || '97.7');
+
+  // Terra state — list of currently-connected providers via Terra aggregator
+  const [terraConnections, setTerraConnections] = useState([]);
+  const [terraLoading, setTerraLoading] = useState(false);
+  const [terraError, setTerraError] = useState(null);
+  useEffect(() => {
+    if (!TERRA_ENABLED || demoMode) return;
+    listTerraConnections().then(setTerraConnections).catch(() => { /* ignore on first load */ });
+  }, [demoMode]);
+  const handleTerraConnect = async () => {
+    setTerraError(null);
+    setTerraLoading(true);
+    try {
+      await startTerraConnect(); // full redirect — never returns on success
+    } catch (err) {
+      setTerraError(err.message || 'Could not start device connection');
+      setTerraLoading(false);
+    }
+  };
+  const handleTerraDisconnect = async (id) => {
+    try {
+      await disconnectTerraConnection(id);
+      setTerraConnections(prev => prev.filter(c => c.id !== id));
+    } catch (err) {
+      setTerraError(err.message || 'Could not disconnect');
+    }
+  };
 
   // Handle OAuth callback (code stashed by supabase.js before Supabase init)
   useEffect(() => {
@@ -1088,6 +1116,73 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           )}
         </Card>
+
+        {/* ── Terra (Fitbit, Garmin, Withings, Dexcom, etc.) ── */}
+        {TERRA_ENABLED && (
+          <Card>
+            <button onClick={() => toggleSource('terra')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-sage/15">
+                  <Heart size={14} className="text-salve-sage" />
+                </div>
+                <div className="text-left">
+                  <span className="text-ui-lg text-salve-text font-medium block">Connect a device</span>
+                  <span className="text-ui-xs text-salve-textFaint">Fitbit, Garmin, Withings, Dexcom CGM, Whoop, Polar, and more</span>
+                </div>
+              </div>
+              {expandedSource === 'terra' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+            </button>
+            {expandedSource === 'terra' && (
+              <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-3">
+                {terraConnections.length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-ui-xs text-salve-textFaint font-montserrat uppercase tracking-wider">Connected</div>
+                    {terraConnections.map(conn => (
+                      <div key={conn.id} className="flex items-center justify-between bg-salve-card2 border border-salve-border rounded-lg px-3 py-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`w-1.5 h-1.5 rounded-full ${conn.status === 'connected' ? 'bg-salve-sage' : 'bg-salve-textFaint'} flex-shrink-0`} />
+                          <div className="min-w-0">
+                            <div className="text-ui-base text-salve-text font-medium truncate">{providerLabel(conn.provider)}</div>
+                            <div className="text-ui-xs text-salve-textFaint">
+                              {conn.last_sync_at
+                                ? `Last sync: ${new Date(conn.last_sync_at).toLocaleDateString()}`
+                                : conn.status === 'connected' ? 'Waiting for first sync…' : 'Disconnected'}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleTerraDisconnect(conn.id)}
+                          aria-label={`Disconnect ${providerLabel(conn.provider)}`}
+                          className="text-ui-xs text-salve-rose bg-transparent border-none cursor-pointer hover:underline font-montserrat flex-shrink-0 ml-2"
+                        >
+                          Disconnect
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <p className="text-ui-sm text-salve-textMid font-montserrat leading-relaxed">
+                  Connect a wearable, CGM, scale, or BP cuff. Salve uses Terra to handle the OAuth and pulls fresh data automatically as your device records it. Steps, sleep, weight, glucose, blood pressure, and workouts all flow into your Vitals and Activities sections.
+                </p>
+                {terraError && (
+                  <p className="text-ui-sm text-salve-rose font-montserrat">{terraError}</p>
+                )}
+                <button
+                  onClick={handleTerraConnect}
+                  disabled={terraLoading || demoMode}
+                  className="w-full py-2.5 rounded-lg text-ui-base font-medium font-montserrat bg-salve-sage/15 border border-salve-sage/30 text-salve-sage hover:bg-salve-sage/25 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {terraLoading ? 'Opening picker…' : terraConnections.length > 0 ? '+ Connect another device' : 'Connect a device →'}
+                </button>
+                {demoMode && (
+                  <p className="text-ui-xs text-salve-textFaint italic font-montserrat text-center">
+                    Demo mode — sign up to connect your own devices.
+                  </p>
+                )}
+              </div>
+            )}
+          </Card>
+        )}
 
         {/* ── Flo ── */}
         <Card>
