@@ -71,102 +71,82 @@ function CopyButton({ text, label, copiedLabel = 'Copied!', ariaLabel }) {
 }
 
 /* ── ThemeTile ───────────────────────────────────────────────────────────────
-   A single theme preview tile. Shows 4 brand-color swatches + theme name +
-   light/dark indicator. Supports hover-to-preview callbacks.
+   A theme card uses the theme's own bg as its surface, an orb showing the
+   accent gradient, the name, and a light/dark indicator. Premium themes
+   show a soft "Premium" pill in the top-right. Active gets a lav ring.
 ──────────────────────────────────────────────────────────────────────────── */
 function ThemeTile({ theme, isActive, isLocked, onSelect }) {
   const c = theme.colors;
+  const grad = theme.gradient && theme.gradient.length === 3
+    ? `linear-gradient(135deg, ${c[theme.gradient[0]]}, ${c[theme.gradient[1]]}, ${c[theme.gradient[2]]})`
+    : `linear-gradient(135deg, ${c.lav}, ${c.rose}, ${c.lavDim})`;
   return (
     <button
-      onClick={() => !isLocked && onSelect(theme.id)}
+      onClick={() => onSelect(theme.id)}
       aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ', premium' : ''}`}
       aria-pressed={isActive}
       style={{ backgroundColor: c.bg, borderColor: isActive ? undefined : c.border }}
-      className={`relative p-2 rounded-xl border transition-all font-montserrat text-center ${
-        isActive
-          ? 'border-salve-lav/50 ring-2 ring-salve-lav/50'
-          : isLocked
-            ? 'opacity-50 cursor-not-allowed'
-            : 'hover:brightness-110 cursor-pointer'
+      className={`relative px-2 py-3 rounded-xl border transition-all font-montserrat text-center cursor-pointer hover:brightness-105 ${
+        isActive ? 'ring-2 ring-salve-lav border-transparent' : ''
       }`}
     >
       {isLocked && (
-        <div className="absolute top-1 right-1.5 text-[9px]" style={{ color: c.lav }} aria-hidden="true">🔒</div>
+        <span className="absolute top-1.5 right-1.5 bg-salve-lav/15 text-salve-lav rounded-full px-1.5 py-0.5 text-[8.5px] font-medium leading-none">
+          Premium
+        </span>
       )}
-      {/* Palette bar, accent colours as segmented strip */}
-      <div className="flex gap-px mb-1.5 rounded-md overflow-hidden h-1.5">
-        {['lav', 'sage', 'amber', 'rose'].map(key => (
-          <span key={key} className="flex-1 h-full" style={{ backgroundColor: c[key] }} />
-        ))}
-      </div>
-      <span className="text-[11px] font-medium block leading-tight" style={{ color: c.text }}>{theme.label}</span>
-      {theme.type === 'light'
-        ? <span className="text-[8px] block mt-0.5" style={{ color: c.amber }}>☀ Light</span>
-        : <span className="text-[8px] block mt-0.5" style={{ color: c.textFaint }}>◑ Dark</span>
-      }
+      <span
+        aria-hidden="true"
+        className="block w-[38px] h-[38px] rounded-full mx-auto mb-2 shadow-sm"
+        style={{ background: grad, boxShadow: `0 1px 2px ${c.border2}, 0 4px 12px ${c.border}` }}
+      />
+      <span className="text-ui-base font-medium block leading-tight" style={{ color: c.text }}>
+        {theme.label}
+      </span>
+      <span className="text-ui-xs block mt-0.5" style={{ color: c.textFaint }}>
+        {theme.type === 'light' ? '☀ Light' : '◑ Dark'}
+      </span>
     </button>
   );
 }
 
 /* ── ThemeSelector ───────────────────────────────────────────────────────────
-   Full redesigned theme picker:
-   • 3-column grid (less scrolling than 2-col)
-   • Hover-to-preview (reverts when mouse leaves before clicking)
-   • Save/Revert bar anchored at the TOP of the section so it's always visible
-   • Experimental themes in a collapsible panel (no jarring <details> shift)
+   Core themes in a 3-col grid (always — no md:6 jump). Premium themes inside
+   a <details> accordion. Free users can preview live; selection isn't saved
+   for premium themes. Footer line + upgrade link shown to non-premium.
 ──────────────────────────────────────────────────────────────────────────── */
-function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, userTier }) {
-  const [showExperimental, setShowExperimental] = useState(false);
-
+function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, userTier, onUpgrade }) {
   const core = Object.values(allThemes).filter(t => !t.experimental)
     .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
-  const experimentalLight = Object.values(allThemes).filter(t => t.experimental && t.type === 'light');
-  const experimentalDark  = Object.values(allThemes).filter(t => t.experimental && t.type === 'dark');
-  const experimental = [...experimentalLight, ...experimentalDark];
-  const canSaveExperimental = userTier === 'premium' || userTier === 'admin';
+  const experimental = Object.values(allThemes).filter(t => t.experimental);
+  const canSavePremium = userTier === 'premium' || userTier === 'admin';
 
-  const previewed = allThemes[themeId];
-  const isPremiumOnly = previewed?.experimental && userTier === 'free';
-
-  // Auto-save on click: premium/admin save immediately; free saves core immediately but
-  // only previews experimental (will revert on unmount).
+  // Auto-save on click. Free users previewing premium themes get the live
+  // theme applied to the DOM but the selection isn't persisted.
   const handleSelect = (id) => {
     const isExperimental = !!allThemes[id]?.experimental;
-    if (isExperimental && userTier === 'free') {
+    if (isExperimental && !canSavePremium) {
       setTheme(id); // preview only, auto-reverts on unmount
     } else {
       saveTheme(id); // persist immediately
     }
   };
 
-  // When a free user leaves Settings while previewing an experimental theme, revert.
+  // When a free user leaves Settings while previewing a premium theme, revert.
   const cleanupRef = useRef(null);
-  cleanupRef.current = { isPremiumOnly, revertTheme };
+  const isPreviewingPremium = !canSavePremium && allThemes[themeId]?.experimental;
+  cleanupRef.current = { isPreviewingPremium, revertTheme };
   useEffect(() => {
-    let mounted = true;
     return () => {
-      mounted = false;
-      const { isPremiumOnly, revertTheme } = cleanupRef.current;
-      // revertTheme only updates CSS vars and localStorage, no React state updates
-      if (isPremiumOnly) revertTheme();
+      const { isPreviewingPremium, revertTheme } = cleanupRef.current;
+      if (isPreviewingPremium) revertTheme();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isPreviewing = !canSaveExperimental && allThemes[themeId]?.experimental;
-
   return (
     <div>
-      {/* Hint bar when free user is previewing an experimental theme */}
-      {isPreviewing && (
-        <div className="mb-3 flex items-center justify-between px-3 py-2 rounded-xl border border-salve-amber/25 bg-salve-amber/5">
-          <span className="text-[11px] text-salve-textMid font-montserrat">
-            Previewing <strong className="text-salve-amber">{allThemes[themeId]?.label}</strong>, resets when you leave
-          </span>
-          <span className="text-[9px] text-salve-textFaint font-montserrat">Premium to keep</span>
-        </div>
-      )}
-      {/* ── Core themes, 3-col grid (6 themes = 2 perfect rows, no orphans) ── */}
-      <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+      {/* Core themes — always 3-col */}
+      <div className="grid grid-cols-3 gap-2.5">
         {core.map(t => (
           <ThemeTile
             key={t.id}
@@ -178,66 +158,39 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
         ))}
       </div>
 
-      {/* ── Experimental / Premium themes, collapsible panel ── */}
+      {/* Premium themes accordion */}
       {experimental.length > 0 && (
-        <div className="mt-3">
+        <details className="mt-4 group">
+          <summary className="flex items-center gap-1.5 text-ui-base text-salve-lav font-montserrat cursor-pointer select-none list-none px-1 py-1.5 hover:text-salve-text transition-colors">
+            <Sparkles size={12} className="text-salve-lav" aria-hidden="true" />
+            <span>Premium themes</span>
+            <ChevronDown size={14} className="text-salve-lav ml-auto group-open:rotate-180 transition-transform" aria-hidden="true" />
+          </summary>
+          <div className="grid grid-cols-3 gap-2.5 mt-2.5">
+            {experimental.map(t => (
+              <ThemeTile
+                key={t.id}
+                theme={t}
+                isActive={themeId === t.id}
+                isLocked={!canSavePremium}
+                onSelect={handleSelect}
+              />
+            ))}
+          </div>
+        </details>
+      )}
+
+      {/* Footer for non-premium users — wraps naturally, no em dashes */}
+      {!canSavePremium && (
+        <p className="mt-3 text-ui-sm text-salve-textFaint font-montserrat leading-relaxed px-1">
+          Preview only. Themes reset on reload.{' '}
           <button
-            onClick={() => setShowExperimental(v => !v)}
-            aria-expanded={showExperimental}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-xl border border-salve-border bg-salve-card2 hover:border-salve-border2 transition-colors cursor-pointer font-montserrat focus:outline-none focus-visible:ring-2 focus-visible:ring-salve-lav/50"
+            onClick={onUpgrade}
+            className="text-salve-lav hover:text-salve-text underline-offset-2 hover:underline bg-transparent border-none p-0 cursor-pointer font-montserrat text-ui-sm"
           >
-            <span className="flex items-center gap-1.5 text-[11px] text-salve-textMid">
-              <Sparkles size={11} className="text-salve-lav" aria-hidden="true" />
-              Experimental themes
-              <span className="px-1.5 py-0.5 rounded-full bg-salve-lav/10 text-salve-lav text-[9px]">Premium</span>
-            </span>
-            {showExperimental
-              ? <ChevronUp size={14} className="text-salve-textFaint" aria-hidden="true" />
-              : <ChevronDown size={14} className="text-salve-textFaint" aria-hidden="true" />
-            }
+            Upgrade to save.
           </button>
-          {showExperimental && (
-            <div className="mt-2 space-y-2">
-              {experimentalLight.length > 0 && (
-                <>
-                  <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">☀ Light</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {experimentalLight.map(t => (
-                      <ThemeTile
-                        key={t.id}
-                        theme={t}
-                        isActive={themeId === t.id}
-                        isLocked={false}
-                        onSelect={handleSelect}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-              {experimentalDark.length > 0 && (
-                <>
-                  <p className="text-[9px] uppercase tracking-widest text-salve-textFaint font-montserrat px-0.5">◑ Dark</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {experimentalDark.map(t => (
-                      <ThemeTile
-                        key={t.id}
-                        theme={t}
-                        isActive={themeId === t.id}
-                        isLocked={false}
-                        onSelect={handleSelect}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-              {isPremiumOnly && (
-                <p className="text-[10px] text-salve-textFaint font-montserrat px-0.5 pt-1">
-                  ✦ Preview only · Upgrade to Premium to keep this theme
-                </p>
-              )}
-            </div>
-          )}
-        </div>
+        </p>
       )}
     </div>
   );
@@ -620,6 +573,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           saveTheme={saveTheme}
           revertTheme={revertTheme}
           userTier={userTier}
+          onUpgrade={handleUpgrade}
         />
       </Card>
 
