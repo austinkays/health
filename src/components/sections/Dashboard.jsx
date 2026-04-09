@@ -1120,21 +1120,21 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </section>
       )}
 
-      {/* ── Chat with Sage (popup shortcut) ──────────────────────── */}
+      {/* ── Chat with Sage (mobile only, desktop uses sidebar "Ask Sage" button) ── */}
       {onSage && (
-        <section className="dash-stagger dash-stagger-3 mb-5 md:mb-4">
+        <section className="dash-stagger dash-stagger-3 mb-5 md:hidden">
           <button
             onClick={onSage}
-            className="w-full flex items-center gap-3 px-4 py-3 md:py-2.5 md:w-auto md:inline-flex md:px-4 bg-salve-card border border-salve-border rounded-xl cursor-pointer hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all group text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-border rounded-xl cursor-pointer hover:border-salve-sage/50 hover:bg-salve-sage/5 transition-all group text-left"
           >
-            <div className="w-8 h-8 md:w-6 md:h-6 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.sage}18` }}>
-              <Leaf size={15} color={C.sage} strokeWidth={1.5} className="md:!w-3.5 md:!h-3.5" />
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.sage}18` }}>
+              <Leaf size={15} color={C.sage} strokeWidth={1.5} />
             </div>
-            <div className="flex-1 min-w-0 md:flex-none">
-              <div className="text-[13px] md:text-[12px] font-medium text-salve-text">Chat with Sage</div>
-              <div className="text-[11px] text-salve-textFaint truncate md:hidden">Ask about your health, medications, or records</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-medium text-salve-text">Chat with Sage</div>
+              <div className="text-[11px] text-salve-textFaint truncate">Ask about your health, medications, or records</div>
             </div>
-            <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-sage transition-colors flex-shrink-0 md:!w-3 md:!h-3" />
+            <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-sage transition-colors flex-shrink-0" />
           </button>
         </section>
       )}
