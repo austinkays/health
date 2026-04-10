@@ -55,7 +55,9 @@ export async function fetchDiscoverArticles(conditions = []) {
 
     if (!res.ok) return [];
     const { articles } = await res.json();
-    writeCache(articles || []);
+    // Only cache non-empty results — an empty fetch (feed down, no matches)
+    // shouldn't block fresh attempts for the full 14-day TTL.
+    if (articles?.length) writeCache(articles);
     return articles || [];
   } catch {
     return [];

@@ -29,7 +29,7 @@ import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
 import { fetchDiscoverArticles } from '../../services/discover';
-import { fetchDailyQuote } from '../../services/quote';
+import { getDailyQuote } from '../../constants/quotes';
 import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
 import { computeCorrelations } from '../../utils/correlations';
@@ -830,12 +830,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   /* ── Discover (matched resources + dynamic RSS articles) ─────────── */
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
   const [dynamicArticles, setDynamicArticles] = useState([]);
-  const [dailyQuote, setDailyQuote] = useState(null);
-
-  // Fetch daily quote (24hr cache)
-  useEffect(() => {
-    fetchDailyQuote().then(setDailyQuote);
-  }, []);
+  const dailyQuote = useMemo(() => getDailyQuote(), []);
 
   // Fetch dynamic articles from trusted RSS feeds (14-day client cache)
   useEffect(() => {
@@ -959,11 +954,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <span className="font-playfair text-display-md font-medium text-salve-textMid">{greeting.text}</span>
             </div>
             <p className="text-ui-lg text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
-            {dailyQuote && (
-              <p className="text-ui-sm text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">
-                "{dailyQuote.q}"{dailyQuote.a && dailyQuote.a !== 'Unknown' && <span className="not-italic"> , {dailyQuote.a}</span>}
-              </p>
-            )}
+            <p className="text-ui-sm text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">
+              "{dailyQuote.q}" <span className="not-italic">, {dailyQuote.a}</span>
+            </p>
           </div>
         </div>
       </section>
