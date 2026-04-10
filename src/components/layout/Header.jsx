@@ -26,14 +26,31 @@ const AFFIRMATIONS = [
   'Progress, not perfection.',
   'One breath at a time.',
   "You're the expert on you.",
+  'Rest is productive, too.',
+  'Listen gently, respond kindly.',
+  'Every data point is a clue.',
+  'You know your body best.',
+  'Slow is smooth, smooth is steady.',
+  'Today, whatever you can is plenty.',
+  'Curious, not critical.',
+  "You've carried more than anyone sees.",
+  'Patterns take time to appear.',
+  'Softness is a strategy.',
+  'Pacing is power.',
+  'Notice without judgment.',
+  'The quiet days count, too.',
+  'Tend to yourself like a garden.',
+  'Your baseline is allowed to move.',
+  'Healing is not a straight line.',
+  'Presence over performance.',
 ];
 
 function CyclingTagline() {
-  const [idx, setIdx] = useState(0);
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * AFFIRMATIONS.length));
   useEffect(() => {
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     if (reduce) return;
-    const id = setInterval(() => setIdx(i => (i + 1) % AFFIRMATIONS.length), 5500);
+    const id = setInterval(() => setIdx(i => (i + 1) % AFFIRMATIONS.length), 120000);
     return () => clearInterval(id);
   }, []);
   return (
