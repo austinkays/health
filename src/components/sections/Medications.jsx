@@ -358,9 +358,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         <Field label="Prescriber" value={form.prescriber} onChange={v => sf('prescriber', v)} placeholder="Dr. Name" />
         <Field label="Pharmacy" value={form.pharmacy} onChange={v => sf('pharmacy', v)}
           options={[
-            { value: '', label: 'Select pharmacy...' },
             ...((data.pharmacies || []).map(p => ({ value: p.name, label: p.name + (p.is_preferred ? ' ★' : '') }))),
-            { value: '__custom', label: ',  Type custom , ' },
+            { value: '__custom', label: '+ Type a custom name' },
           ]}
         />
         {form.pharmacy === '__custom' && (

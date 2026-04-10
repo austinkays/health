@@ -35,12 +35,11 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
 
   /* ── Provider options from saved providers ── */
   const providerOptions = useMemo(() => [
-    { value: '', label: 'Select provider...' },
     ...(data.providers || []).map(p => ({
       value: p.name,
-      label: `${p.name}${p.specialty ? `, ${p.specialty}` : ''}`,
+      label: `${p.name}${p.specialty ? ` · ${p.specialty}` : ''}`,
     })),
-    { value: '__custom', label: ',  Type custom , ' },
+    { value: '__custom', label: '+ Type a custom name' },
   ], [data.providers]);
 
   /* ── Location autofill options from provider addresses ── */
@@ -52,9 +51,8 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
     });
     if (locs.size === 0) return null;
     return [
-      { value: '', label: 'Select location...' },
       ...[...locs].map(l => ({ value: l, label: l })),
-      { value: '__custom', label: ',  Type custom , ' },
+      { value: '__custom', label: '+ Type a custom location' },
     ];
   }, [data.providers]);
 

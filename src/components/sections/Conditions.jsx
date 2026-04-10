@@ -58,12 +58,11 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
 
   /* ── Provider picker options ── */
   const providerOptions = useMemo(() => [
-    { value: '', label: 'Select provider...' },
     ...(data.providers || []).map(p => ({
       value: p.name,
-      label: `${p.name}${p.specialty ? `, ${p.specialty}` : ''}`,
+      label: `${p.name}${p.specialty ? ` · ${p.specialty}` : ''}`,
     })),
-    { value: '__custom', label: ',  Type custom , ' },
+    { value: '__custom', label: '+ Type a custom name' },
   ], [data.providers]);
 
   /* ── Resources matched against user data ── */
