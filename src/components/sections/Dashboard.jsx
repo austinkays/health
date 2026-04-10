@@ -521,7 +521,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       const dayMins = activities.filter(a => a.date === dateStr).reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
       dayBars.push({ date: dateStr, mins: dayMins, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
     }
-    const lastActivity = [...activities].sort((a, b) => b.date.localeCompare(a.date))[0];
+    const lastActivity = [...activities].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
     return { count: recent.length, totalMinutes, totalCalories, dayBars, lastActivity };
   }, [data.activities]);
 

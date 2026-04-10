@@ -65,7 +65,7 @@ function crud(table, { orderBy = 'created_at', ascending = true } = {}) {
       const doAdd = (async () => {
         // Dedup check: query Supabase for an existing row with matching key columns
         if (dedupCols) {
-          let query = supabase.from(table).select('id').eq('user_id', uid);
+          let query = supabase.from(table).select('*').eq('user_id', uid);
           for (const col of dedupCols) {
             if (item[col] != null) query = query.eq(col, item[col]);
             else query = query.is(col, null);

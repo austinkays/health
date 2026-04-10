@@ -101,6 +101,13 @@ export default function useHealthData(session, demoMode = false) {
     const saved = await db[table].add(item);
     setData(prev => {
       const key = tableToKey(table);
+      // db.add's dedup path returns an existing row when a match is found
+      // (e.g. Oura re-sync, Apple Health re-import). Don't append a duplicate
+      // with the same id — that produces duplicate React keys and inflates
+      // the list over time.
+      if (saved?.id && prev[key].some(x => x.id === saved.id)) {
+        return prev;
+      }
       return { ...prev, [key]: [...prev[key], saved] };
     });
     return saved;
