@@ -74,6 +74,11 @@ export default function useHealthData(session, demoMode = false) {
           if (!isPremiumActive(fresh.settings) && getAIProvider() === 'anthropic') {
             setAIProvider('gemini');
           }
+          // One-time cleanup: strip phantom severity from journal entries that
+          // never had symptoms. EMPTY_JOURNAL used to default severity to '5'
+          // and there's no severity picker in the form, so entries saved
+          // without symptoms got a '5/10' badge the user never chose.
+          setTimeout(() => cleanupPhantomJournalSeverity(fresh, setData), 200);
         }
       } catch (err) {
         console.error('Failed to load data:', err);
@@ -152,6 +157,32 @@ export default function useHealthData(session, demoMode = false) {
   }, []);
 
   return { data, loading, update, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData };
+}
+
+const SEVERITY_CLEANUP_KEY = 'salve:journal-severity-cleanup-v1';
+
+async function cleanupPhantomJournalSeverity(fresh, setData) {
+  if (typeof localStorage === 'undefined') return;
+  if (localStorage.getItem(SEVERITY_CLEANUP_KEY) === 'done') return;
+  const phantoms = (fresh.journal || []).filter(
+    e => e.severity && !(e.symptoms && e.symptoms.length > 0)
+  );
+  if (phantoms.length === 0) {
+    localStorage.setItem(SEVERITY_CLEANUP_KEY, 'done');
+    return;
+  }
+  try {
+    await Promise.all(phantoms.map(e => db.journal.update(e.id, { severity: '' })));
+    setData(prev => ({
+      ...prev,
+      journal: prev.journal.map(e =>
+        phantoms.some(p => p.id === e.id) ? { ...e, severity: '' } : e
+      ),
+    }));
+    localStorage.setItem(SEVERITY_CLEANUP_KEY, 'done');
+  } catch (err) {
+    console.warn('Journal severity cleanup failed, will retry next load:', err);
+  }
 }
 
 function tableToKey(table) {
