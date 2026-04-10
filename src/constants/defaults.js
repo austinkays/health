@@ -48,7 +48,7 @@ export const EMPTY_APPOINTMENT = {
 
 export const EMPTY_JOURNAL = {
   date: todayISO(),
-  title: '', content: '', severity: '5', tags: '', mood: '',
+  title: '', content: '', severity: '', tags: '', mood: '',
   symptoms: [], linked_conditions: [], linked_meds: [], gratitude: '',
   triggers: '', interventions: '', adherence: {},
 };

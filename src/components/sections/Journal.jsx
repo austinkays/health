@@ -1005,8 +1005,8 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                 <div className="flex gap-1 flex-wrap mt-1 mb-0.5">
                   {symptoms.slice(0, 4).map((s, i) => {
                     const sv = Number(s.severity);
-                    const sc = sv >= 7 ? 'text-salve-rose bg-salve-rose/10' : sv >= 4 ? 'text-salve-amber bg-salve-amber/10' : 'text-salve-sage bg-salve-sage/10';
-                    return <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full font-montserrat ${sc}`}>{s.name} {s.severity}/10</span>;
+                    const sc = sv >= 4 ? 'text-salve-rose bg-salve-rose/10' : sv >= 3 ? 'text-salve-amber bg-salve-amber/10' : 'text-salve-sage bg-salve-sage/10';
+                    return <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full font-montserrat ${sc}`}>{s.name} {s.severity}/5</span>;
                   })}
                   {symptoms.length > 4 && <span className="text-[10px] text-salve-textFaint font-montserrat">+{symptoms.length - 4}</span>}
                 </div>
@@ -1072,14 +1072,14 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                       <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Symptoms</span>
                       {symptoms.map((s, i) => {
                         const sv = Number(s.severity);
-                        const sc = sv >= 7 ? C.rose : sv >= 4 ? C.amber : C.sage;
+                        const sc = sv >= 4 ? C.rose : sv >= 3 ? C.amber : C.sage;
                         return (
                           <div key={i} className="flex items-center gap-2">
                             <span className="text-xs font-montserrat text-salve-text">{s.name}</span>
                             <div className="flex-1 h-1 rounded-full bg-salve-card2 overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${sv * 10}%`, backgroundColor: sc }} />
+                              <div className="h-full rounded-full" style={{ width: `${sv * 20}%`, backgroundColor: sc }} />
                             </div>
-                            <span className="text-[10px] font-montserrat" style={{ color: sc }}>{s.severity}/10</span>
+                            <span className="text-[10px] font-montserrat" style={{ color: sc }}>{s.severity}/5</span>
                           </div>
                         );
                       })}
