@@ -27,6 +27,9 @@
     "api/cron-reminders.js": {
       "maxDuration": 30
     },
+    "api/discover.js": {
+      "maxDuration": 30
+    },
     "api/terra.js": {
       "maxDuration": 30
     },

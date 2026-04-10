@@ -41,7 +41,10 @@ export async function fetchDiscoverArticles(conditions = []) {
 
   try {
     const token = await getAuthToken();
-    if (!token) return [];
+    if (!token) {
+      console.warn('[Discover] No auth token available, skipping fetch');
+      return [];
+    }
 
     const params = new URLSearchParams();
     if (conditions.length > 0) {
@@ -53,13 +56,19 @@ export async function fetchDiscoverArticles(conditions = []) {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.warn(`[Discover] API returned ${res.status}:`, text.slice(0, 200));
+      return [];
+    }
     const { articles } = await res.json();
     // Only cache non-empty results — an empty fetch (feed down, no matches)
     // shouldn't block fresh attempts for the full 14-day TTL.
     if (articles?.length) writeCache(articles);
+    else console.warn('[Discover] API returned empty articles array');
     return articles || [];
-  } catch {
+  } catch (err) {
+    console.warn('[Discover] Fetch failed:', err.message);
     return [];
   }
 }

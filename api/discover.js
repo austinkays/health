@@ -184,10 +184,18 @@ export default async function handler(req, res) {
       }
     }
 
-    res.setHeader('Cache-Control', 'private, max-age=86400'); // 24hr browser cache
-    return res.status(200).json({ articles: matched.slice(0, 20) });
+    const payload = matched.slice(0, 20);
+    // Only set long browser cache when we actually have articles — otherwise
+    // a single failed fetch would get cached for 24h and the News page would
+    // stay empty even after the upstream feed recovered.
+    if (payload.length > 0) {
+      res.setHeader('Cache-Control', 'private, max-age=86400');
+    } else {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+    return res.status(200).json({ articles: payload, feedCount: articles.length });
   } catch (err) {
     console.error('[Discover] Error:', err);
-    return res.status(500).json({ error: 'Failed to fetch articles' });
+    return res.status(500).json({ error: 'Failed to fetch articles', message: err.message });
   }
 }
