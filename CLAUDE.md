@@ -1018,6 +1018,34 @@ npm run preview      # Preview production build locally
 vercel --prod        # Deploy to production
 ```
 
+## Periodic Maintenance Prompts
+
+Reusable prompts to paste into a fresh Claude Code / Codex session every few weeks to keep the codebase healthy. All of these are safe to run in **Plan mode first** so you can review before any edits land. Source: distilled from [r/vibecoding maintenance tips](https://www.reddit.com/r/vibecoding/) plus what's actually paid off on Salve.
+
+### Modularization audit
+> Do a full repo run and tell me which files, in your opinion, require modularization right now and why. Look for files that have accumulated too many responsibilities (e.g., sections that both fetch data, render UI, and mutate state; util files that span multiple domains). Don't change anything — just report with file paths, line counts, and a one-sentence reason per file.
+
+Run quarterly. When a simple change starts breaking unrelated things, that's the signal a file outgrew itself. `Dashboard.jsx`, `AIPanel.jsx`, and `useHealthData.js` are the usual suspects to watch.
+
+### File-formatting / minified-blob audit
+> Do a full repo search for files that contain huge single-line runtime strings, minified blobs, or any code that isn't properly formatted. Report file paths and line lengths.
+
+Catches accidentally-committed minified HTML/JSON/SVG fragments that tank AI edits (the AI makes mistakes on files it can't parse cleanly). Worth running after any import/export feature work.
+
+### Whitehat security audit
+> Run a full security audit of Salve like a whitehat pentester. Cover several rounds in Plan mode. Focus areas: auth token handling, RLS bypass opportunities, input validation at the api/* serverless boundary, XSS in AI-rendered markdown, client-side secrets leakage, rate-limit bypass, OAuth2 callback handling for wearables, encrypted cache key derivation, import/export decryption edge cases.
+
+Run before every public launch / Reddit share / major feature drop. Especially important because Salve handles PHI. See also [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKLIST.md) for the pre-launch checklist.
+
+### Memory / context hygiene
+Salve already uses **`CLAUDE.md` as its single source of AI context, structure, and memory** — project metadata, system map, repo structure, working memory (Known Bugs section), and changelog-style updates all live here. Don't build a parallel `docs/ai/*.yaml` system; it causes drift. Instead:
+- After any meaningful change, **update the relevant section of `CLAUDE.md`** in the same session.
+- The "Known Bugs & Audit Findings" and "Performance Deep Audit" sections are the working memory — mark items fixed as you go.
+- If `CLAUDE.md` starts approaching unmanageable size, split by concern (e.g., move `docs/ARCHITECTURE.md`, `docs/TESTING.md`) and have `CLAUDE.md` link to them.
+
+### Tool recommendation: jcodemunch
+Keyword-based codebase indexer for Claude Code that reportedly drops token usage significantly by letting the model jump straight to relevant files instead of scanning. Worth trying if context usage becomes a bottleneck. (Via u/Upset-Reflection-382 on r/vibecoding.)
+
 ## Pre-Launch Action Items (NOT CODE — USER TO DO)
 
 **Critical path before sharing publicly (e.g., on Reddit).** These are outside-the-codebase tasks the user must complete — dashboard configuration, account signups, manual testing. Any assistant session reading this file should proactively remind the user about unchecked items.
