@@ -1,17 +1,17 @@
 // src/services/billing.js
-// Client-side Lemon Squeezy billing helpers.
-// Requires api/lemon-checkout.js to be deployed.
+// Client-side Stripe billing helpers.
+// Requires api/stripe-checkout.js to be deployed.
 
 import { getAuthToken } from './token.js';
 
 /**
- * Build-time flag for whether Lemon Squeezy is fully configured.
+ * Build-time flag for whether Stripe is fully configured.
  * Set VITE_BILLING_ENABLED=true in Vercel env vars once:
- *   - LS account is set up
- *   - Store + product + variant are created
- *   - LEMON_API_KEY / LEMON_STORE_ID / LEMON_PREMIUM_VARIANT_ID /
- *     LEMON_WEBHOOK_SECRET env vars are populated
- *   - The webhook URL (/api/lemon-webhook) is configured in LS dashboard
+ *   - Stripe account is set up
+ *   - Product + price are created
+ *   - STRIPE_SECRET_KEY / STRIPE_PREMIUM_PRICE_ID / STRIPE_WEBHOOK_SECRET
+ *     env vars are populated in Vercel
+ *   - The webhook URL (/api/stripe-webhook) is configured in the Stripe dashboard
  *
  * While false, every upgrade CTA in the app is hidden so beta users
  * aren't sent to a broken checkout flow.
@@ -19,7 +19,7 @@ import { getAuthToken } from './token.js';
 export const BILLING_ENABLED = import.meta.env.VITE_BILLING_ENABLED === 'true';
 
 /**
- * Redirects the current user to a Lemon Squeezy hosted checkout.
+ * Redirects the current user to a Stripe hosted checkout.
  * Requires the user to be signed in (token fetched via getAuthToken).
  * Throws if the checkout URL cannot be obtained.
  */
@@ -27,7 +27,7 @@ export async function startCheckout() {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
 
-  const res = await fetch('/api/lemon-checkout', {
+  const res = await fetch('/api/stripe-checkout?action=checkout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -43,18 +43,35 @@ export async function startCheckout() {
   const { url } = await res.json();
   if (!url) throw new Error('No checkout URL returned');
 
-  // Full redirect, Lemon Squeezy handles the checkout in their hosted page
+  // Full redirect — Stripe handles the checkout on their hosted page
   window.location.href = url;
 }
 
 /**
- * Opens the Lemon Squeezy customer portal where subscribers can update their
- * payment method, view invoices, or cancel their subscription.
+ * Redirects the current user to their Stripe Billing Portal where they can
+ * update their payment method, view invoices, or cancel their subscription.
  *
- * The portal URL comes from the subscription object. Since we don't store it
- * client-side, we open the generic Lemon Squeezy customer portal page and the
- * user signs in with their purchase email.
+ * Stripe requires a server-side session to generate a one-time portal URL
+ * (unlike Lemon Squeezy which had a static generic portal link).
+ * Requires the user to have completed at least one checkout (stripe_customer_id
+ * must be stored on their profile).
  */
-export function openCustomerPortal() {
-  window.open('https://app.lemonsqueezy.com/billing', '_blank', 'noopener,noreferrer');
+export async function openCustomerPortal() {
+  const token = await getAuthToken();
+  if (!token) throw new Error('Not signed in');
+
+  const res = await fetch('/api/stripe-checkout?action=portal', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.error || `Could not open billing portal (${res.status})`);
+  }
+
+  const { url } = await res.json();
+  if (!url) throw new Error('No portal URL returned');
+
+  window.location.href = url;
 }

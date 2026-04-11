@@ -48,8 +48,8 @@ health/
 │   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier); server-side prompt construction via _prompts.js (raw system only for admin tier)
 │   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier); server-side prompt construction via _prompts.js
-│   ├── lemon-checkout.js         # Vercel serverless: creates Lemon Squeezy hosted checkout session (auth-gated, returns {url})
-│   ├── lemon-webhook.js          # Vercel serverless: Lemon Squeezy subscription lifecycle webhook (HMAC-SHA256 verified; sets profiles.tier)
+│   ├── stripe-checkout.js        # Vercel serverless: Stripe checkout + billing portal (auth-gated; ?action=checkout creates Checkout Session, ?action=portal creates Billing Portal Session; returns {url})
+│   ├── stripe-webhook.js         # Vercel serverless: Stripe subscription lifecycle webhook (HMAC-SHA256 verified via Stripe-Signature header; handles checkout.session.completed, customer.subscription.updated/deleted; sets profiles.tier + stripe_customer_id)
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
 │   ├── wearable.js               # Vercel serverless: unified OAuth2 router for ALL wearables (Oura, Dexcom, Withings, Fitbit, Whoop) via ?provider=X&action=token|refresh|data|config. Consolidates 5 integrations into 1 function to stay under the Hobby tier 12-function ceiling. Each provider has its own handler block inline; shared CORS/auth/rate-limit/fetch-with-timeout boilerplate at the top. Per-user rate buckets keyed by (userId, provider).
 │   ├── terra.js                  # Vercel serverless: Terra aggregator — consolidates widget session generation and webhook ingestion into one function. ?route=widget (auth-gated POST → Terra API to generate widget URL). ?route=webhook (HMAC-SHA256 signature-verified over `<ts>.<rawBody>`; 5-min replay window; handles auth/user_reauth/deauth/body/daily/sleep/activity events; maps Terra shapes into vitals/activities tables tagged source: 'terra'). Webhook URL in Terra dashboard must include the ?route=webhook query string.
@@ -121,7 +121,7 @@ health/
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
-│   │   ├── billing.js            # Lemon Squeezy client helpers: startCheckout() → POST /api/lemon-checkout → redirect to hosted checkout; openCustomerPortal() → LS billing portal
+│   │   ├── billing.js            # Stripe client helpers: startCheckout() → POST /api/stripe-checkout?action=checkout → redirect to Stripe Checkout; openCustomerPortal() → POST /api/stripe-checkout?action=portal → redirect to Stripe Billing Portal
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation; validateToolInput() gates add/update with per-entity validation (vitals range checks, field length limits)
 │   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, **hourly bucketing for HR/SpO2/resp** (up to 24 records/day with `time: 'HH:00'` field) vs. daily for steps/sleep/weight/glucose/BP; workout + FHIR lab parsing, deduplicateAgainst(); DEDUP_KEYS includes time field
 │   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
@@ -472,8 +472,8 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
     "api/wearable.js": { "maxDuration": 30 },
     "api/terra.js": { "maxDuration": 30 },
     "api/cron-reminders.js": { "maxDuration": 30 },
-    "api/lemon-checkout.js": { "maxDuration": 15 },
-    "api/lemon-webhook.js": { "maxDuration": 15 },
+    "api/stripe-checkout.js": { "maxDuration": 15 },
+    "api/stripe-webhook.js": { "maxDuration": 15 },
     "api/push-send.js": { "maxDuration": 15 },
     "api/delete-account.js": { "maxDuration": 15 }
   },
@@ -968,10 +968,9 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 | `VITE_SENTRY_DSN` | `.env.local` + Vercel env vars (optional) | Sentry project DSN for production error reporting. If unset, Sentry is silently disabled. |
 | `VITE_SENTRY_DSN_DEV` | `.env.local` (optional) | Optional override to enable Sentry in development mode for testing the scrub pipeline |
 | `VITE_SENTRY_RELEASE` | Vercel env vars (optional) | Release identifier (e.g. git SHA) to correlate errors to commits |
-| `LEMON_API_KEY` | Vercel env vars only | Lemon Squeezy API key (from LS dashboard → Settings → API) |
-| `LEMON_STORE_ID` | Vercel env vars only | Lemon Squeezy store ID (numeric, from LS dashboard URL) |
-| `LEMON_PREMIUM_VARIANT_ID` | Vercel env vars only | Lemon Squeezy variant ID for the Premium subscription plan |
-| `LEMON_WEBHOOK_SECRET` | Vercel env vars only | Lemon Squeezy webhook signing secret (from LS dashboard → Webhooks) |
+| `STRIPE_SECRET_KEY` | Vercel env vars only | Stripe secret API key (from Stripe dashboard → Developers → API keys) |
+| `STRIPE_PREMIUM_PRICE_ID` | Vercel env vars only | Stripe Price ID for the Premium subscription plan (price_…, from Stripe dashboard → Products) |
+| `STRIPE_WEBHOOK_SECRET` | Vercel env vars only | Stripe webhook signing secret (whsec_…, from Stripe dashboard → Webhooks → signing secret) |
 | `VITE_BILLING_ENABLED` | Vercel env vars | Set to `'true'` once Lemon Squeezy is fully configured. While unset/false, every upgrade CTA is hidden so beta users aren't routed to a broken checkout. |
 | `VITE_BETA_INVITE_REQUIRED` | Vercel env vars | Set to `'true'` to show the invite-code field on the Auth screen. Codes are validated via the `check_beta_invite` Supabase RPC. Used during the closed beta to cap signups. |
 | `TERRA_DEV_ID` | Vercel env vars only | Terra developer ID (from tryterra.co dashboard). Required for the Connect-a-device flow. |
@@ -1032,7 +1031,7 @@ Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKL
 - [ ] **Fresh-user walkthrough** — sign up with a clean email, tap through every section, verify all empty states render without crashes. Test on iPhone Safari + Android Chrome. Test PWA install flow (Add to Home Screen).
 - [ ] **Offline mode verification** — enable airplane mode, confirm cached data loads and pending writes queue correctly.
 - [ ] **Support workflow documented** — decide response-time commitment + who owns the `salveapp@proton.me` inbox. Document PHI breach response plan (assess scope → revoke tokens → notify within 72h → patch → post-mortem).
-- [x] **Lemon Squeezy payments** — Code complete: `api/lemon-checkout.js` (creates hosted checkout), `api/lemon-webhook.js` (HMAC-verified subscription lifecycle → flips profiles.tier), `src/services/billing.js` (startCheckout/openCustomerPortal). Settings.jsx shows "Upgrade to Premium →" button for free/trial-expired users, "Manage subscription →" for active premium. App.jsx handles `?checkout=success` redirect with toast. **User still needs to**: create LS account, set up store + product + variant, add 4 env vars (LEMON_API_KEY, LEMON_STORE_ID, LEMON_PREMIUM_VARIANT_ID, LEMON_WEBHOOK_SECRET), configure webhook URL (`/api/lemon-webhook`) in LS dashboard.
+- [ ] **Stripe payments** — Code complete: `api/stripe-checkout.js` (?action=checkout creates Checkout Session, ?action=portal creates Billing Portal Session), `api/stripe-webhook.js` (HMAC-SHA256 verified via Stripe-Signature; handles checkout.session.completed + subscription.updated/deleted → flips profiles.tier + stores stripe_customer_id), `src/services/billing.js` (startCheckout/openCustomerPortal). Settings.jsx shows "Upgrade to Premium →" button for free/trial-expired users, "Manage subscription →" for active premium. App.jsx handles `?checkout=success` redirect with toast. **User still needs to**: create Stripe account, create product + price, add 3 env vars (STRIPE_SECRET_KEY, STRIPE_PREMIUM_PRICE_ID, STRIPE_WEBHOOK_SECRET), configure webhook URL (`/api/stripe-webhook`) in Stripe dashboard selecting events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. Run migration `031_stripe_ids.sql` in Supabase SQL editor.
 - [ ] **⏰ Fitbit API deprecation — September 2026.** Legacy Fitbit Web API (what the Fitbit section of `api/wearable.js` uses) sunsets Sept 2026. Must either rebuild against Google Health API ([developers.google.com/health](https://developers.google.com/health)) or delete the Fitbit section before that date. Current code works fine for the beta period. Recommended launch date for rebuilt integration: end of May 2026 per Google's guidance. Setting up Google Health API requires a Google Cloud project + OAuth consent screen (not just a dev.fitbit.com app). Existing user tokens cannot be migrated across the switch.
 
 **Support email:** `salveapp@proton.me` (set in `src/components/sections/Legal.jsx`)
