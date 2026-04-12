@@ -8,7 +8,7 @@
   html {
     font-family: 'Montserrat', sans-serif;
     font-weight: 400;
-    font-size: 13px;
+    font-size: 15px;
   }
 
   @media (min-width: 768px) {
@@ -1368,9 +1368,9 @@ html.theme-crystal .border-salve-border {
 /* ─── Fluid UI typography scale ─── */
 /* Each class scales smoothly via clamp() instead of jumping at the md:
    breakpoint. Replaces text-[Xpx] md:text-[Ypx] patterns with one utility. */
-.text-ui-xs   { font-size: clamp(0.5625rem, 0.48rem + 0.4vw, 0.6875rem);  line-height: 1.35; } /* 9 → 11 */
-.text-ui-sm   { font-size: clamp(0.625rem, 0.55rem + 0.28vw, 0.75rem);    line-height: 1.4;  } /* 10 → 12 */
-.text-ui-base { font-size: clamp(0.6875rem, 0.6rem + 0.4vw, 0.8125rem);   line-height: 1.45; } /* 11 → 13 */
+.text-ui-xs   { font-size: clamp(0.6875rem, 0.6rem + 0.4vw, 0.8125rem);   line-height: 1.35; } /* 11 → 13 */
+.text-ui-sm   { font-size: clamp(0.75rem, 0.68rem + 0.28vw, 0.875rem);    line-height: 1.4;  } /* 12 → 14 */
+.text-ui-base { font-size: clamp(0.8125rem, 0.72rem + 0.4vw, 0.9375rem);  line-height: 1.45; } /* 13 → 15 */
 .text-ui-md   { font-size: clamp(0.75rem, 0.66rem + 0.35vw, 0.875rem);    line-height: 1.5;  } /* 12 → 14 */
 .text-ui-lg   { font-size: clamp(0.8125rem, 0.7rem + 0.55vw, 0.9375rem);  line-height: 1.55; } /* 13 → 15 */
 .text-ui-xl   { font-size: clamp(0.875rem, 0.76rem + 0.5vw, 1rem);        line-height: 1.55; } /* 14 → 16 */
