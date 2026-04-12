@@ -29,7 +29,7 @@ function Section({ icon: Icon, title, count, color, defaultOpen = false, onNav, 
         <span className="font-playfair text-[15px] font-semibold text-salve-text flex-1">{title}</span>
         {count > 0 && (
           <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+            className="text-[13px] font-semibold px-2 py-0.5 rounded-full"
             style={{ color, background: color + '20' }}
           >
             {count}
@@ -37,7 +37,7 @@ function Section({ icon: Icon, title, count, color, defaultOpen = false, onNav, 
         )}
         {navId && (
           <button
-            className="text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer px-1 py-0.5 rounded"
+            className="text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer px-1 py-0.5 rounded"
             onClick={(e) => { e.stopPropagation(); onNav(navId); }}
             aria-label={`Go to ${title}`}
           >
@@ -77,7 +77,7 @@ function Row({ children, onClick }) {
 function MiniBadge({ label, color }) {
   return (
     <span
-      className="text-[10px] font-semibold px-1.5 py-px rounded-full whitespace-nowrap"
+      className="text-[12px] font-semibold px-1.5 py-px rounded-full whitespace-nowrap"
       style={{ color, background: color + '18' }}
     >
       {label}
@@ -218,18 +218,18 @@ export default function HealthSummary({ data, onNav }) {
             )}
             <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
               {s.insurance_plan && (
-                <span className="text-salve-textMid text-[11px]">
+                <span className="text-salve-textMid text-[13px]">
                   <span className="text-salve-textFaint">Insurance:</span> {s.insurance_plan}
                 </span>
               )}
               {s.insurance_id && (
-                <span className="text-salve-textMid text-[11px]">
+                <span className="text-salve-textMid text-[13px]">
                   <span className="text-salve-textFaint">ID:</span> {s.insurance_id}
                 </span>
               )}
             </div>
             {s.health_background && (
-              <p className="text-salve-textFaint text-[11px] mt-2 mb-0 line-clamp-2">{s.health_background}</p>
+              <p className="text-salve-textFaint text-[13px] mt-2 mb-0 line-clamp-2">{s.health_background}</p>
             )}
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function HealthSummary({ data, onNav }) {
           allergies.map(a => (
             <Row key={a.id} onClick={() => onNav('allergies')}>
               <span className="text-salve-text text-sm flex-1 truncate">{a.substance}</span>
-              {a.reaction && <span className="text-salve-textFaint text-[11px] truncate max-w-[100px]">{a.reaction}</span>}
+              {a.reaction && <span className="text-salve-textFaint text-[13px] truncate max-w-[100px]">{a.reaction}</span>}
               {a.severity && SEVERITY[a.severity] && (
                 <MiniBadge label={SEVERITY[a.severity].label} color={SEVERITY[a.severity].c} />
               )}
@@ -288,7 +288,7 @@ export default function HealthSummary({ data, onNav }) {
                 <span className="text-salve-text text-sm truncate block">
                   {m.display_name || m.name}
                 </span>
-                <span className="text-salve-textFaint text-[11px] truncate block">
+                <span className="text-salve-textFaint text-[13px] truncate block">
                   {[m.dose, m.frequency].filter(Boolean).join(' · ')}
                   {m.pharmacy && ` · ${m.pharmacy}`}
                 </span>
@@ -297,7 +297,7 @@ export default function HealthSummary({ data, onNav }) {
                 <MiniBadge label={m.fda_data.drug_class} color={C.sage} />
               )}
               {m.refill_date && (
-                <span className="text-salve-textFaint text-[10px] whitespace-nowrap">
+                <span className="text-salve-textFaint text-[12px] whitespace-nowrap">
                   {daysUntil(m.refill_date)}
                 </span>
               )}
@@ -305,7 +305,7 @@ export default function HealthSummary({ data, onNav }) {
           ))
         )}
         {inactiveMeds.length > 0 && (
-          <p className="text-salve-textFaint text-[11px] mt-2 mb-0">
+          <p className="text-salve-textFaint text-[13px] mt-2 mb-0">
             + {inactiveMeds.length} inactive medication{inactiveMeds.length !== 1 ? 's' : ''}
           </p>
         )}
@@ -323,14 +323,14 @@ export default function HealthSummary({ data, onNav }) {
             {activeConditions.map(c => (
               <Row key={c.id} onClick={() => onNav('conditions')}>
                 <span className="text-salve-text text-sm flex-1 truncate">{c.name}</span>
-                {c.provider && <span className="text-salve-textFaint text-[10px] truncate max-w-[80px]">{c.provider}</span>}
+                {c.provider && <span className="text-salve-textFaint text-[12px] truncate max-w-[80px]">{c.provider}</span>}
                 {STATUS[c.status] && (
                   <MiniBadge label={STATUS[c.status].label} color={STATUS[c.status].c} />
                 )}
               </Row>
             ))}
             {resolvedConditions.length > 0 && (
-              <p className="text-salve-textFaint text-[11px] mt-2 mb-0">
+              <p className="text-salve-textFaint text-[13px] mt-2 mb-0">
                 + {resolvedConditions.length} resolved condition{resolvedConditions.length !== 1 ? 's' : ''}
               </p>
             )}
@@ -349,7 +349,7 @@ export default function HealthSummary({ data, onNav }) {
               <div className="flex-1 min-w-0">
                 <span className="text-salve-text text-sm truncate block">{p.name}</span>
                 {(p.specialty || p.clinic) && (
-                  <span className="text-salve-textFaint text-[11px] truncate block">
+                  <span className="text-salve-textFaint text-[13px] truncate block">
                     {[p.specialty, p.clinic].filter(Boolean).join(' · ')}
                   </span>
                 )}
@@ -406,9 +406,9 @@ export default function HealthSummary({ data, onNav }) {
             const info = VITAL_LABEL[v.type] || { label: v.type };
             return (
               <Row key={v.type} onClick={() => onNav('vitals')}>
-                <span className="text-salve-textMid text-[11px] w-20 shrink-0">{info.label}</span>
+                <span className="text-salve-textMid text-[13px] w-20 shrink-0">{info.label}</span>
                 <span className="text-salve-text text-sm font-medium flex-1">{vitalDisplay(v)}</span>
-                <span className="text-salve-textFaint text-[10px] whitespace-nowrap">{fmtDate(v.date)}</span>
+                <span className="text-salve-textFaint text-[12px] whitespace-nowrap">{fmtDate(v.date)}</span>
               </Row>
             );
           })}
@@ -427,13 +427,13 @@ export default function HealthSummary({ data, onNav }) {
                 <span className="text-salve-text text-sm truncate block">
                   {a.provider || a.reason || 'Appointment'}
                 </span>
-                <span className="text-salve-textFaint text-[11px] truncate block">
+                <span className="text-salve-textFaint text-[13px] truncate block">
                   {[a.reason && a.provider ? a.reason : null, a.location].filter(Boolean).join(' · ')}
                 </span>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-salve-textMid text-[11px] block">{fmtDate(a.date)}</span>
-                {a.time && <span className="text-salve-textFaint text-[10px] block">{a.time}</span>}
+                <span className="text-salve-textMid text-[13px] block">{fmtDate(a.date)}</span>
+                {a.time && <span className="text-salve-textFaint text-[12px] block">{a.time}</span>}
               </div>
             </Row>
           ))}
@@ -451,7 +451,7 @@ export default function HealthSummary({ data, onNav }) {
             return (
               <Row key={l.id} onClick={() => onNav('labs')}>
                 <span className="text-salve-text text-sm flex-1 truncate">{l.test_name}</span>
-                <span className="text-salve-textMid text-[11px] whitespace-nowrap">
+                <span className="text-salve-textMid text-[13px] whitespace-nowrap">
                   {l.result}{l.unit ? ` ${l.unit}` : ''}
                 </span>
                 {flag && <MiniBadge label={flag.label} color={flag.c} />}
@@ -470,8 +470,8 @@ export default function HealthSummary({ data, onNav }) {
           {immunizations.map(i => (
             <Row key={i.id} onClick={() => onNav('immunizations')}>
               <span className="text-salve-text text-sm flex-1 truncate">{i.vaccine || i.name}</span>
-              {i.provider && <span className="text-salve-textFaint text-[10px] truncate max-w-[80px]">{i.provider}</span>}
-              <span className="text-salve-textFaint text-[10px] whitespace-nowrap">{fmtDate(i.date)}</span>
+              {i.provider && <span className="text-salve-textFaint text-[12px] truncate max-w-[80px]">{i.provider}</span>}
+              <span className="text-salve-textFaint text-[12px] whitespace-nowrap">{fmtDate(i.date)}</span>
             </Row>
           ))}
         </Section>
@@ -487,10 +487,10 @@ export default function HealthSummary({ data, onNav }) {
             <div className="py-2 border-b border-salve-border/40 last:border-b-0">
               <p className="text-salve-text text-sm m-0">{s.insurance_plan}</p>
               <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-                {s.insurance_id && <span className="text-salve-textFaint text-[11px]">ID: {s.insurance_id}</span>}
-                {s.insurance_group && <span className="text-salve-textFaint text-[11px]">Group: {s.insurance_group}</span>}
+                {s.insurance_id && <span className="text-salve-textFaint text-[13px]">ID: {s.insurance_id}</span>}
+                {s.insurance_group && <span className="text-salve-textFaint text-[13px]">Group: {s.insurance_group}</span>}
                 {s.insurance_phone && (
-                  <a href={`tel:${s.insurance_phone}`} className="text-salve-lavDim text-[11px]">
+                  <a href={`tel:${s.insurance_phone}`} className="text-salve-lavDim text-[13px]">
                     {s.insurance_phone}
                   </a>
                 )}
@@ -500,7 +500,7 @@ export default function HealthSummary({ data, onNav }) {
           {insurance.map(ins => (
             <Row key={ins.id} onClick={() => onNav('insurance')}>
               <span className="text-salve-text text-sm flex-1 truncate">{ins.plan_name || ins.name || 'Plan'}</span>
-              {ins.policy_id && <span className="text-salve-textFaint text-[10px]">ID: {ins.policy_id}</span>}
+              {ins.policy_id && <span className="text-salve-textFaint text-[12px]">ID: {ins.policy_id}</span>}
             </Row>
           ))}
         </Section>
@@ -519,7 +519,7 @@ export default function HealthSummary({ data, onNav }) {
             return (
               <Row key={g.id} onClick={() => onNav('care_gaps')}>
                 <span className="text-salve-text text-sm flex-1 truncate">{g.category || g.name}</span>
-                {g.status && <span className="text-salve-textFaint text-[10px] truncate">{g.status}</span>}
+                {g.status && <span className="text-salve-textFaint text-[12px] truncate">{g.status}</span>}
                 <MiniBadge label={urgency.label} color={urgency.c} />
               </Row>
             );
@@ -538,7 +538,7 @@ export default function HealthSummary({ data, onNav }) {
             return (
               <Row key={a.id} onClick={() => onNav('appeals')}>
                 <span className="text-salve-text text-sm flex-1 truncate">{a.type || a.name || 'Appeal'}</span>
-                {a.date && <span className="text-salve-textFaint text-[10px] whitespace-nowrap">{fmtDate(a.date)}</span>}
+                {a.date && <span className="text-salve-textFaint text-[12px] whitespace-nowrap">{fmtDate(a.date)}</span>}
                 <MiniBadge label={st.label} color={st.c} />
               </Row>
             );
@@ -556,9 +556,9 @@ export default function HealthSummary({ data, onNav }) {
             <Row key={sp.id} onClick={() => onNav('surgical')}>
               <div className="flex-1 min-w-0">
                 <span className="text-salve-text text-sm truncate block">{sp.procedure || sp.name}</span>
-                {sp.surgeon && <span className="text-salve-textFaint text-[11px] truncate block">{sp.surgeon}</span>}
+                {sp.surgeon && <span className="text-salve-textFaint text-[13px] truncate block">{sp.surgeon}</span>}
               </div>
-              {sp.date && <span className="text-salve-textFaint text-[10px] whitespace-nowrap">{fmtDate(sp.date)}</span>}
+              {sp.date && <span className="text-salve-textFaint text-[12px] whitespace-nowrap">{fmtDate(sp.date)}</span>}
             </Row>
           ))}
         </Section>
@@ -574,7 +574,7 @@ export default function HealthSummary({ data, onNav }) {
             <Row key={p.id} onClick={() => onNav('procedures')}>
               <span className="text-salve-text text-sm flex-1 truncate">{p.name}</span>
               {p.outcome && <MiniBadge label={p.outcome} color={p.outcome === 'successful' ? C.sage : C.textMid} />}
-              {p.date && <span className="text-salve-textFaint text-[10px] whitespace-nowrap">{fmtDate(p.date)}</span>}
+              {p.date && <span className="text-salve-textFaint text-[12px] whitespace-nowrap">{fmtDate(p.date)}</span>}
             </Row>
           ))}
         </Section>
@@ -582,7 +582,7 @@ export default function HealthSummary({ data, onNav }) {
 
       </div>
       {/* ── Footer ─────────────────────────────── */}
-      <p className="text-center text-salve-textFaint text-[11px] mt-4 mb-2">
+      <p className="text-center text-salve-textFaint text-[13px] mt-4 mb-2">
         Tap any row to view details · Tap "View All" to manage
       </p>
     </div>

@@ -24,7 +24,7 @@ export default function ConfirmBar({ pending, onConfirm, onCancel, itemId }) {
       >
         <div className="bg-salve-card border border-salve-rose/40 rounded-xl px-4 py-3 flex items-center justify-between gap-3 shadow-lg"
           style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.35)' }}>
-          <span className="text-[13px] text-salve-rose flex-1 font-medium">
+          <span className="text-[15px] text-salve-rose flex-1 font-medium">
             Delete {pending.label ? `"${pending.label}"` : 'this item'}?
           </span>
           <div className="flex gap-2">

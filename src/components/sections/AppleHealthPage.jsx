@@ -38,13 +38,13 @@ function StatCard({ icon: Icon, label, value, unit, sub, color }) {
     <div className="bg-salve-card2 border border-salve-border rounded-xl p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <Icon size={12} style={{ color }} />
-        <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
+        <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-[22px] font-playfair font-semibold" style={{ color }}>{value ?? ', '}</span>
-        {unit && <span className="text-[11px] text-salve-textFaint">{unit}</span>}
+        {unit && <span className="text-[13px] text-salve-textFaint">{unit}</span>}
       </div>
-      {sub && <span className="text-[10px] text-salve-textFaint leading-snug">{sub}</span>}
+      {sub && <span className="text-[12px] text-salve-textFaint leading-snug">{sub}</span>}
     </div>
   );
 }
@@ -52,11 +52,11 @@ function StatCard({ icon: Icon, label, value, unit, sub, color }) {
 function MiniBar({ label, pct, color }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-salve-textFaint w-16 text-right font-montserrat">{label}</span>
+      <span className="text-[12px] text-salve-textFaint w-16 text-right font-montserrat">{label}</span>
       <div className="flex-1 h-2 bg-salve-border rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, pct)}%`, background: color }} />
       </div>
-      <span className="text-[10px] text-salve-textMid w-10 font-montserrat">{Math.round(pct)}%</span>
+      <span className="text-[12px] text-salve-textMid w-10 font-montserrat">{Math.round(pct)}%</span>
     </div>
   );
 }
@@ -145,13 +145,13 @@ export default function AppleHealthPage({ data, onNav }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <Apple size={11} className="text-salve-lav" />
-          <span className="text-[10px] text-salve-textFaint font-montserrat">
+          <span className="text-[12px] text-salve-textFaint font-montserrat">
             {totalRecords.toLocaleString()} records imported
           </span>
         </div>
         <button
           onClick={() => onNav('settings')}
-          className="text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline"
+          className="text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline"
         >
           Import more →
         </button>
@@ -163,7 +163,7 @@ export default function AppleHealthPage({ data, onNav }) {
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
-            className={`px-3 py-1 rounded-full text-[10px] font-montserrat whitespace-nowrap border transition-colors cursor-pointer ${
+            className={`px-3 py-1 rounded-full text-[12px] font-montserrat whitespace-nowrap border transition-colors cursor-pointer ${
               filter === f.id
                 ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav'
                 : 'bg-salve-card2 border-salve-border text-salve-textFaint hover:text-salve-textMid'
@@ -222,10 +222,10 @@ export default function AppleHealthPage({ data, onNav }) {
                   <div key={type} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Icon size={12} className="text-salve-textFaint" />
-                      <span className="text-[11px] text-salve-textMid font-montserrat">{VITAL_LABELS[type] || type}</span>
+                      <span className="text-[13px] text-salve-textMid font-montserrat">{VITAL_LABELS[type] || type}</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-salve-text font-medium font-montserrat">
+                      <span className="text-[13px] text-salve-text font-medium font-montserrat">
                         {type === 'bp' ? `${v.value}/${v.value2}` : v.value}
                       </span>
                       <span className="text-[9px] text-salve-textFaint">{VITAL_UNITS[type]}</span>
@@ -249,18 +249,18 @@ export default function AppleHealthPage({ data, onNav }) {
                 <div className="flex items-center gap-2">
                   <Icon size={12} className="text-salve-textFaint" />
                   <div>
-                    <span className="text-[11px] text-salve-text font-montserrat">{VITAL_LABELS[v.type] || v.type}</span>
+                    <span className="text-[13px] text-salve-text font-montserrat">{VITAL_LABELS[v.type] || v.type}</span>
                     <span className="text-[9px] text-salve-textFaint ml-1.5">{fmtDate(v.date)}</span>
                   </div>
                 </div>
-                <span className="text-[11px] text-salve-text font-medium font-montserrat">
+                <span className="text-[13px] text-salve-text font-medium font-montserrat">
                   {v.type === 'bp' ? `${v.value}/${v.value2}` : v.value} {VITAL_UNITS[v.type]}
                 </span>
               </div>
             );
           })}
           {ahVitals.length > 50 && (
-            <p className="text-[10px] text-salve-textFaint text-center py-2 italic font-montserrat">
+            <p className="text-[12px] text-salve-textFaint text-center py-2 italic font-montserrat">
               Showing latest 50 of {ahVitals.length} records
             </p>
           )}
@@ -273,19 +273,19 @@ export default function AppleHealthPage({ data, onNav }) {
           {[...ahActivities].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 50).map((a, i) => (
             <div key={i} className="px-3 py-2 bg-salve-card2 border border-salve-border rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-salve-text font-medium font-montserrat">{a.type || 'Workout'}</span>
+                <span className="text-[13px] text-salve-text font-medium font-montserrat">{a.type || 'Workout'}</span>
                 <span className="text-[9px] text-salve-textFaint">{fmtDate(a.date)}</span>
               </div>
               <div className="flex gap-3 mt-0.5">
-                {a.duration_minutes && <span className="text-[10px] text-salve-textMid">{a.duration_minutes} min</span>}
-                {a.calories && <span className="text-[10px] text-salve-textMid">{a.calories} cal</span>}
-                {a.distance && <span className="text-[10px] text-salve-textMid">{a.distance} km</span>}
-                {a.heart_rate_avg && <span className="text-[10px] text-salve-textMid">{a.heart_rate_avg} bpm</span>}
+                {a.duration_minutes && <span className="text-[12px] text-salve-textMid">{a.duration_minutes} min</span>}
+                {a.calories && <span className="text-[12px] text-salve-textMid">{a.calories} cal</span>}
+                {a.distance && <span className="text-[12px] text-salve-textMid">{a.distance} km</span>}
+                {a.heart_rate_avg && <span className="text-[12px] text-salve-textMid">{a.heart_rate_avg} bpm</span>}
               </div>
             </div>
           ))}
           {ahActivities.length > 50 && (
-            <p className="text-[10px] text-salve-textFaint text-center py-2 italic font-montserrat">
+            <p className="text-[12px] text-salve-textFaint text-center py-2 italic font-montserrat">
               Showing latest 50 of {ahActivities.length} records
             </p>
           )}
@@ -298,7 +298,7 @@ export default function AppleHealthPage({ data, onNav }) {
           {[...ahLabs].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 50).map((l, i) => (
             <div key={i} className="px-3 py-2 bg-salve-card2 border border-salve-border rounded-lg">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-salve-text font-medium font-montserrat">{l.test_name || 'Lab'}</span>
+                <span className="text-[13px] text-salve-text font-medium font-montserrat">{l.test_name || 'Lab'}</span>
                 <div className="flex items-center gap-1.5">
                   {l.flag && l.flag !== 'normal' && (
                     <Badge label={l.flag} color={l.flag === 'high' || l.flag === 'abnormal' ? C.rose : C.amber} bg={(l.flag === 'high' || l.flag === 'abnormal' ? C.rose : C.amber) + '20'} />
@@ -307,8 +307,8 @@ export default function AppleHealthPage({ data, onNav }) {
                 </div>
               </div>
               <div className="flex gap-2 mt-0.5">
-                <span className="text-[10px] text-salve-textMid">{l.result} {l.unit}</span>
-                {l.range && <span className="text-[10px] text-salve-textFaint">Ref: {l.range}</span>}
+                <span className="text-[12px] text-salve-textMid">{l.result} {l.unit}</span>
+                {l.range && <span className="text-[12px] text-salve-textFaint">Ref: {l.range}</span>}
               </div>
             </div>
           ))}
@@ -318,7 +318,7 @@ export default function AppleHealthPage({ data, onNav }) {
       <div className="text-center py-2">
         <button
           onClick={() => onNav('settings')}
-          className="text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors"
+          className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors"
         >
           Import settings →
         </button>

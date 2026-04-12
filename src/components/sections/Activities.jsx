@@ -232,8 +232,8 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
             <Card className="!p-4 md:!p-5">
               <div className="flex items-center gap-1.5 mb-2">
                 <Footprints size={13} className="text-salve-sage" />
-                <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Daily Steps</span>
-                <span className="text-[10px] text-salve-textFaint font-montserrat ml-auto">7-day avg: {stepsTrend.avg.toLocaleString()}</span>
+                <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">Daily Steps</span>
+                <span className="text-[12px] text-salve-textFaint font-montserrat ml-auto">7-day avg: {stepsTrend.avg.toLocaleString()}</span>
               </div>
               <div className="flex items-end gap-1.5 h-20">
                 {stepsTrend.days.map((d, i) => {
@@ -263,12 +263,12 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
               <Card className="!p-3.5">
                 <div className="flex items-center gap-1.5 mb-1">
                   <Flame size={12} className="text-salve-rose" />
-                  <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Calories</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">Calories</span>
                 </div>
                 <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
                   {calTrend.days.reduce((s, d) => s + d.cal, 0).toLocaleString()}
                 </div>
-                <span className="text-[10px] text-salve-textFaint font-montserrat">burned this week</span>
+                <span className="text-[12px] text-salve-textFaint font-montserrat">burned this week</span>
                 <div className="flex items-end gap-0.5 h-8 mt-2">
                   {calTrend.days.map((d, i) => {
                     const max = Math.max(...calTrend.days.map(x => x.cal), 1);
@@ -290,12 +290,12 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                 <Card className="!p-3.5">
                   <div className="flex items-center gap-1.5 mb-1">
                     <MapPin size={12} className="text-salve-lav" />
-                    <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Distance</span>
+                    <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">Distance</span>
                   </div>
                   <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
                     {weekDist.toFixed(1)}
                   </div>
-                  <span className="text-[10px] text-salve-textFaint font-montserrat">km this week</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat">km this week</span>
                 </Card>
               );
             })()}
@@ -317,12 +317,12 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                 <Card className="!p-3.5">
                   <div className="flex items-center gap-1.5 mb-1">
                     <Heart size={12} className="text-salve-lav" />
-                    <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">Avg HR</span>
+                    <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">Avg HR</span>
                   </div>
                   <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
                     {avgHR}
                   </div>
-                  <span className="text-[10px] text-salve-textFaint font-montserrat">bpm during workouts</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat">bpm during workouts</span>
                 </Card>
               );
             })()}
@@ -351,7 +351,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
       {sources.length > 1 && (
         <div className="flex gap-1.5 flex-wrap mb-3">
           <button onClick={() => setSourceFilter('all')}
-            className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+            className={`py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
               sourceFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >All sources</button>
@@ -359,7 +359,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
             const Icon = SOURCE_ICON[s];
             return (
               <button key={s} onClick={() => setSourceFilter(s)}
-                className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
+                className={`py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
                   sourceFilter === s ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
                 }`}
               >
@@ -449,7 +449,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                       )}
                     </div>
 
-                    {a.source && <div className="text-[10px] text-salve-textFaint mb-1">Source: {a.source}</div>}
+                    {a.source && <div className="text-[12px] text-salve-textFaint mb-1">Source: {a.source}</div>}
                     {a.notes && <div className="text-xs text-salve-textFaint leading-relaxed mb-1">{a.notes}</div>}
 
                     <div className="flex gap-2.5 mt-2.5">

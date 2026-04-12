@@ -11,7 +11,7 @@ export default function Field({ label, value, onChange, onBlur, type = 'text', p
 
   return (
     <div className="mb-4">
-      <label htmlFor={inputId} className="block text-[11px] font-semibold text-salve-textMid mb-1.5 uppercase tracking-widest">
+      <label htmlFor={inputId} className="block text-[13px] font-semibold text-salve-textMid mb-1.5 uppercase tracking-widest">
         {label} {required && <span className="text-salve-rose">*</span>}
       </label>
       {options ? (
@@ -61,11 +61,11 @@ export default function Field({ label, value, onChange, onBlur, type = 'text', p
       )}
       {(error || hint || showCount) && (
         <div className="mt-1.5 flex items-center justify-between gap-2">
-          <span id={error ? errorId : undefined} role={error ? 'alert' : undefined} className={`text-[11px] font-montserrat ${error ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
+          <span id={error ? errorId : undefined} role={error ? 'alert' : undefined} className={`text-[13px] font-montserrat ${error ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
             {error || hint || ''}
           </span>
           {showCount && (
-            <span className={`text-[11px] font-montserrat tabular-nums ${len > maxLength * 0.9 ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
+            <span className={`text-[13px] font-montserrat tabular-nums ${len > maxLength * 0.9 ? 'text-salve-rose' : 'text-salve-textFaint'}`}>
               {len}/{maxLength}
             </span>
           )}

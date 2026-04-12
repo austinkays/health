@@ -218,7 +218,7 @@ export default function AIProfilePreview({ data }) {
         <div className="flex justify-center">
           <button
             onClick={() => setOpen(true)}
-            className="group relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-medium font-montserrat cursor-pointer transition-all duration-200 bg-transparent border border-salve-sage/40 text-salve-sage hover:border-salve-sage hover:shadow-[0_0_12px_rgba(143,191,160,0.15)]"
+            className="group relative inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium font-montserrat cursor-pointer transition-all duration-200 bg-transparent border border-salve-sage/40 text-salve-sage hover:border-salve-sage hover:shadow-[0_0_12px_rgba(143,191,160,0.15)]"
           >
             <Eye size={12} strokeWidth={2} />
             <span>What Sage Sees</span>
@@ -239,18 +239,18 @@ export default function AIProfilePreview({ data }) {
               <div className="w-5 h-5 rounded-full bg-salve-sage/15 flex items-center justify-center">
                 <Leaf size={11} className="text-salve-sage" />
               </div>
-              <span className="text-[13px] font-semibold text-salve-text font-montserrat">What Sage Sees</span>
-              <span className="text-[10px] text-salve-textFaint font-montserrat rounded-full bg-salve-card2 px-1.5 py-0.5">{dataPoints}</span>
+              <span className="text-[15px] font-semibold text-salve-text font-montserrat">What Sage Sees</span>
+              <span className="text-[12px] text-salve-textFaint font-montserrat rounded-full bg-salve-card2 px-1.5 py-0.5">{dataPoints}</span>
             </div>
             <ChevronDown size={14} className="text-salve-textFaint rotate-180" />
           </button>
 
           {/* Content */}
           <div className="px-4 pt-3 pb-4">
-            <p className="text-[10px] text-salve-textFaint italic mb-1 leading-relaxed">
+            <p className="text-[12px] text-salve-textFaint italic mb-1 leading-relaxed">
               Health data Sage uses to personalize your insights.
             </p>
-            <p className="text-[10px] text-salve-lav/70 mb-3 leading-relaxed flex items-center gap-1">
+            <p className="text-[12px] text-salve-lav/70 mb-3 leading-relaxed flex items-center gap-1">
               <MessageSquare size={9} className="flex-shrink-0" />
               <span>Tell <strong className="text-salve-lav">Sage</strong> to update anything, e.g. "add Lexapro 10mg"</span>
             </p>
@@ -258,7 +258,7 @@ export default function AIProfilePreview({ data }) {
             {sections.length === 0 ? (
               <div className="text-center py-4">
                 <Leaf size={20} className="text-salve-sage/30 mx-auto mb-1.5" />
-                <p className="text-[11px] text-salve-textFaint">No health data yet.</p>
+                <p className="text-[13px] text-salve-textFaint">No health data yet.</p>
               </div>
             ) : (
               sections.map((sec, i) => (
@@ -288,8 +288,8 @@ function Section({ section, defaultOpen }) {
           <div className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: color + '20' }}>
             <Icon size={11} style={{ color }} />
           </div>
-          <span className="text-[12px] font-semibold text-salve-text font-montserrat">{label}</span>
-          <span className="text-[10px] font-montserrat rounded-full bg-salve-card2 px-1.5 py-0.5 text-salve-textFaint min-w-[18px] text-center">{items.length}</span>
+          <span className="text-[14px] font-semibold text-salve-text font-montserrat">{label}</span>
+          <span className="text-[12px] font-montserrat rounded-full bg-salve-card2 px-1.5 py-0.5 text-salve-textFaint min-w-[18px] text-center">{items.length}</span>
         </div>
         <ChevronDown size={13} className={`text-salve-textFaint transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
@@ -299,7 +299,7 @@ function Section({ section, defaultOpen }) {
           {items.map((item, j) => (
             <div key={j} className="flex items-baseline gap-2 py-[3px]">
               <div className="w-1 h-1 rounded-full flex-shrink-0 mt-[6px]" style={{ backgroundColor: color }} />
-              <span className="text-[12px] text-salve-textMid leading-snug">{item.text}</span>
+              <span className="text-[14px] text-salve-textMid leading-snug">{item.text}</span>
               {item.badge && (
                 <span
                   className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full flex-shrink-0 capitalize whitespace-nowrap"
@@ -309,11 +309,11 @@ function Section({ section, defaultOpen }) {
                 </span>
               )}
               {item.detail && (
-                <span className="text-[10px] text-salve-textFaint flex-shrink-0 whitespace-nowrap">{item.detail}</span>
+                <span className="text-[12px] text-salve-textFaint flex-shrink-0 whitespace-nowrap">{item.detail}</span>
               )}
             </div>
           ))}
-          {extra && <div className="text-[10px] text-salve-textFaint italic pt-0.5">{extra}</div>}
+          {extra && <div className="text-[12px] text-salve-textFaint italic pt-0.5">{extra}</div>}
         </div>
       </div></div>
     </div>

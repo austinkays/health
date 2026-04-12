@@ -182,10 +182,10 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
 
             {form.affected_drugs?.length > 0 && (
               <div>
-                <div className="text-[10px] text-salve-textFaint font-montserrat tracking-wide uppercase mb-1.5">Affected Medications ({form.affected_drugs.length})</div>
+                <div className="text-[12px] text-salve-textFaint font-montserrat tracking-wide uppercase mb-1.5">Affected Medications ({form.affected_drugs.length})</div>
                 <div className="flex flex-wrap gap-1">
                   {form.affected_drugs.map(d => (
-                    <span key={d} className="text-[10px] text-salve-lav bg-salve-lav/10 border border-salve-lav/20 rounded-full px-2 py-0.5 capitalize">{d}</span>
+                    <span key={d} className="text-[12px] text-salve-lav bg-salve-lav/10 border border-salve-lav/20 rounded-full px-2 py-0.5 capitalize">{d}</span>
                   ))}
                 </div>
               </div>
@@ -226,14 +226,14 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
 
       {showPaste && (
         <div className="mb-3 rounded-xl border border-salve-lav/20 bg-salve-card p-3">
-          <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
-            Paste a JSON array of results. Format: <code className="text-salve-lav bg-salve-lav/10 px-1 rounded text-[10px]">[{`{"gene":"CYP2D6","phenotype":"poor metabolizer","variant":"*4/*4","source":"genomind"}`}]</code>
+          <p className="text-[13px] text-salve-textFaint mb-2 leading-relaxed">
+            Paste a JSON array of results. Format: <code className="text-salve-lav bg-salve-lav/10 px-1 rounded text-[12px]">[{`{"gene":"CYP2D6","phenotype":"poor metabolizer","variant":"*4/*4","source":"genomind"}`}]</code>
           </p>
           <textarea
             value={pasteText}
             onChange={e => setPasteText(e.target.value)}
             placeholder='Paste JSON here...'
-            className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2 text-[12px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint resize-y min-h-[60px]"
+            className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2 text-[14px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint resize-y min-h-[60px]"
             rows={3}
           />
           <div className="flex gap-2 mt-2">
@@ -245,10 +245,10 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
         </div>
       )}
 
-      <p className="text-[11px] text-salve-textFaint italic mb-3 leading-relaxed">
+      <p className="text-[13px] text-salve-textFaint italic mb-3 leading-relaxed">
         Enter results from pharmacogenomic tests (Genomind, GeneSight, 23andMe, etc.). Sage uses this data to flag drug-gene interactions on your medications.
       </p>
-      <p className="text-[10px] text-salve-textFaint italic mb-3">
+      <p className="text-[12px] text-salve-textFaint italic mb-3">
         Genetic information requires professional interpretation. Always discuss results with your healthcare provider or genetic counselor.
       </p>
 
@@ -306,12 +306,12 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
 
                     {drugs.length > 0 && (
                       <div className="mb-2">
-                        <div className="text-[10px] text-salve-textFaint font-montserrat tracking-wide uppercase mb-1">Affected Medications</div>
+                        <div className="text-[12px] text-salve-textFaint font-montserrat tracking-wide uppercase mb-1">Affected Medications</div>
                         <div className="flex flex-wrap gap-1">
                           {drugs.map(d => {
                             const isCurrentMed = medMatches.some(m => (m.display_name || m.name || '').toLowerCase().includes(d));
                             return (
-                              <span key={d} className={`text-[10px] rounded-full px-2 py-0.5 capitalize ${
+                              <span key={d} className={`text-[12px] rounded-full px-2 py-0.5 capitalize ${
                                 isCurrentMed
                                   ? 'text-salve-amber bg-salve-amber/15 border border-salve-amber/25 font-semibold'
                                   : 'text-salve-textFaint bg-salve-card2 border border-salve-border'
@@ -322,7 +322,7 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
                           })}
                         </div>
                         {medMatches.length > 0 && (
-                          <div className="text-[10px] text-salve-amber mt-1 italic">
+                          <div className="text-[12px] text-salve-amber mt-1 italic">
                             Highlighted drugs match your current medications
                           </div>
                         )}
@@ -338,20 +338,20 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
                             className="flex items-center gap-1.5 bg-salve-sage/10 border border-salve-sage/20 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-sage/20 transition-colors"
                           >
                             <Leaf size={12} className="text-salve-sage" />
-                            <span className="text-[11px] text-salve-sage font-montserrat font-medium">What does this mean for me?</span>
+                            <span className="text-[13px] text-salve-sage font-montserrat font-medium">What does this mean for me?</span>
                           </button>
                         )}
                         {explainLoading === g.id && (
                           <div className="flex items-center gap-2 py-2">
                             <Loader2 size={13} className="animate-spin text-salve-sage" />
-                            <span className="text-[11px] text-salve-textFaint italic font-montserrat">Sage is analyzing your result...</span>
+                            <span className="text-[13px] text-salve-textFaint italic font-montserrat">Sage is analyzing your result...</span>
                           </div>
                         )}
                         {explanations[g.id] && (
                           <div className="rounded-lg bg-salve-sage/5 border border-salve-sage/15 p-3 mt-1">
                             <div className="flex items-center gap-1.5 mb-1.5">
                               <Leaf size={11} className="text-salve-sage" />
-                              <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">SAGE</span>
+                              <span className="text-[12px] font-semibold text-salve-sage font-montserrat tracking-wide">SAGE</span>
                             </div>
                             <AIMarkdown compact>{explanations[g.id]}</AIMarkdown>
                           </div>

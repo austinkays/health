@@ -1050,7 +1050,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           </div>
                         )}
                         {r.matchContext && (
-                          <div className="text-[10px] text-salve-textFaint/70 truncate italic">
+                          <div className="text-[12px] text-salve-textFaint/70 truncate italic">
                             {r.matchContext.label}: {highlightMatch(r.matchContext.value, debouncedSearch)}
                           </div>
                         )}
@@ -1084,7 +1084,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             {/* No results message */}
             {debouncedSearch.length >= 2 && searchResults.length === 0 && (
               <div className="border-t border-salve-border/40 px-4 py-3 text-center">
-                <span className="text-[12px] text-salve-textFaint font-light">No matches for &ldquo;{debouncedSearch}&rdquo;</span>
+                <span className="text-[14px] text-salve-textFaint font-light">No matches for &ldquo;{debouncedSearch}&rdquo;</span>
               </div>
             )}
           </div>
@@ -1127,8 +1127,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <Leaf size={15} color={C.sage} strokeWidth={1.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-medium text-salve-text">Chat with Sage</div>
-              <div className="text-[11px] text-salve-textFaint truncate">Ask about your health, medications, or records</div>
+              <div className="text-[15px] font-medium text-salve-text">Chat with Sage</div>
+              <div className="text-[13px] text-salve-textFaint truncate">Ask about your health, medications, or records</div>
             </div>
             <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-sage transition-colors flex-shrink-0" />
           </button>
@@ -1145,8 +1145,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             <PenLine size={15} color={C.lav} strokeWidth={1.5} />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-medium text-salve-text">Form Scribe</div>
-            <div className="text-[11px] text-salve-textFaint truncate">Sage fills out forms from your records</div>
+            <div className="text-[15px] font-medium text-salve-text">Form Scribe</div>
+            <div className="text-[13px] text-salve-textFaint truncate">Sage fills out forms from your records</div>
           </div>
           <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-lav transition-colors flex-shrink-0" />
         </button>
@@ -1201,11 +1201,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                   <div className="flex items-center gap-2">
                     <Sparkles size={13} className="text-salve-lav" />
-                    <span className="text-[11px] text-salve-textFaint font-montserrat tracking-wide uppercase">Patterns</span>
+                    <span className="text-[13px] text-salve-textFaint font-montserrat tracking-wide uppercase">Patterns</span>
                   </div>
                   <button
                     onClick={() => onNav('insights')}
-                    className="text-[11px] text-salve-lav/70 hover:text-salve-lav font-montserrat transition-colors bg-transparent border-0 cursor-pointer"
+                    className="text-[13px] text-salve-lav/70 hover:text-salve-lav font-montserrat transition-colors bg-transparent border-0 cursor-pointer"
                   >
                     See all &rarr;
                   </button>
@@ -1238,7 +1238,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           <p className="text-[11.5px] text-salve-textMid font-montserrat leading-relaxed m-0">{ins.template}</p>
                           <div className="flex items-center justify-between mt-1.5">
                             {ins.confidence === 'medium' ? (
-                              <span className="text-[10px] text-salve-textFaint font-montserrat">Moderate confidence</span>
+                              <span className="text-[12px] text-salve-textFaint font-montserrat">Moderate confidence</span>
                             ) : <span />}
                             {insightRatings && <ThumbsRating surface="pattern" contentKey={ins.id} getRating={insightRatings.getRating} rate={insightRatings.rate} metadata={{ category: ins.category, title: ins.title }} size={11} />}
                           </div>
@@ -1262,7 +1262,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-ui-md font-medium text-salve-text font-montserrat">Daily Insight</div>
-                      <div className="text-[11px] md:text-xs text-salve-textFaint font-montserrat">Personalized health insight from Sage</div>
+                      <div className="text-[13px] md:text-xs text-salve-textFaint font-montserrat">Personalized health insight from Sage</div>
                     </div>
                     <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
                   </div>
@@ -1285,8 +1285,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     <div className="absolute inset-2 rounded-full border border-salve-sage/10 breathe-ring" style={{ animationDelay: '0.4s' }} />
                     <Leaf size={18} className="breathe-icon text-salve-sageDim" />
                   </div>
-                  <p className="text-[10px] text-salve-textFaint/50 font-montserrat tracking-widest uppercase mb-3 text-center">Breathe with me</p>
-                  <div key={wellness.key} className="wellness-msg text-[12px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
+                  <p className="text-[12px] text-salve-textFaint/50 font-montserrat tracking-widest uppercase mb-3 text-center">Breathe with me</p>
+                  <div key={wellness.key} className="wellness-msg text-[14px] text-salve-lavDim/80 font-montserrat italic text-center" role="status" aria-live="polite">{wellness.message}</div>
                 </Card>
               ) : insight && (
                 <Card className="!bg-salve-sage/5 !border-salve-sage/15 insight-glow">
@@ -1341,7 +1341,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   </div>
                   <button
                     onClick={() => onNav('news')}
-                    className="text-[11px] text-salve-lav/70 hover:text-salve-lav font-montserrat transition-colors bg-transparent border-0 cursor-pointer"
+                    className="text-[13px] text-salve-lav/70 hover:text-salve-lav font-montserrat transition-colors bg-transparent border-0 cursor-pointer"
                   >
                     See all &rarr;
                   </button>
@@ -1361,7 +1361,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          {src === 'EveryCure' && <span className="text-[10px]" aria-hidden="true">🔬</span>}
+                          {src === 'EveryCure' && <span className="text-[12px]" aria-hidden="true">🔬</span>}
                           <span
                             className="text-ui-xs font-montserrat tracking-wider uppercase"
                             style={{ color: accentColor }}
@@ -1420,8 +1420,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                         onClick={() => onNav('cycles')}
                         className="flex-1 text-left min-w-0 bg-transparent border-0 cursor-pointer p-0"
                       >
-                        <div className="text-[13px] md:text-sm text-salve-text font-medium truncate">{label}</div>
-                        <div className="text-[11px] md:text-xs text-salve-textFaint">{sub}</div>
+                        <div className="text-[15px] md:text-sm text-salve-text font-medium truncate">{label}</div>
+                        <div className="text-[13px] md:text-xs text-salve-textFaint">{sub}</div>
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); onNav('cycles', { quickLog: true }); }}
@@ -1441,8 +1441,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   >
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
                     <div className="flex-1 text-left min-w-0">
-                      <div className="text-[13px] md:text-sm text-salve-text font-medium truncate">{label}</div>
-                      <div className="text-[11px] md:text-xs text-salve-textFaint">{sub}</div>
+                      <div className="text-[15px] md:text-sm text-salve-text font-medium truncate">{label}</div>
+                      <div className="text-[13px] md:text-xs text-salve-textFaint">{sub}</div>
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="text-ui-md font-semibold" style={{ color: dotColor }}>{daysUntil(item._sortDate)}</div>
@@ -1506,7 +1506,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                             </defs>
                             <Tooltip
                               content={({ active, payload }) => active && payload?.[0] ? (
-                                <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[11px] font-montserrat text-salve-text shadow-sm">
+                                <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[13px] font-montserrat text-salve-text shadow-sm">
                                   {payload[0].value}{fUnit}
                                 </div>
                               ) : null}
@@ -1519,8 +1519,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       );
                     })()}
                     {captionText && (
-                      <div className="flex items-center gap-1.5 text-[11px] md:text-xs font-montserrat mt-1" style={{ color: fSignalColor }}>
-                        <span className="text-[12px]" aria-hidden="true">{fArrow}</span>
+                      <div className="flex items-center gap-1.5 text-[13px] md:text-xs font-montserrat mt-1" style={{ color: fSignalColor }}>
+                        <span className="text-[14px]" aria-hidden="true">{fArrow}</span>
                         <span>{captionText}</span>
                       </div>
                     )}
@@ -1543,7 +1543,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                                 <span className="text-[14px] font-medium text-salve-text font-montserrat leading-none">{cDisplay}</span>
                                 <span className="text-[9px] text-salve-textFaint font-montserrat">{cUnit}</span>
                                 {c.delta !== null && (
-                                  <span className="text-[11px] font-montserrat" style={{ color: cSignalColor }} aria-hidden="true">{cArrow}</span>
+                                  <span className="text-[13px] font-montserrat" style={{ color: cSignalColor }} aria-hidden="true">{cArrow}</span>
                                 )}
                               </div>
                             </div>
@@ -1585,8 +1585,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </div>
                 <div className="flex items-baseline gap-2 mb-3">
                   <span className="text-[22px] leading-none">{moodSnapshot.latest.emoji}</span>
-                  <span className="text-[13px] text-salve-textMid font-montserrat">{moodSnapshot.latest.mood.split(' ').slice(1).join(' ')}</span>
-                  <span className="text-[11px] text-salve-textFaint font-montserrat ml-auto">{moodSnapshot.avgLabel} avg</span>
+                  <span className="text-[15px] text-salve-textMid font-montserrat">{moodSnapshot.latest.mood.split(' ').slice(1).join(' ')}</span>
+                  <span className="text-[13px] text-salve-textFaint font-montserrat ml-auto">{moodSnapshot.avgLabel} avg</span>
                 </div>
                 <div className="flex items-end gap-1 h-10 mb-1">
                   {moodSnapshot.days.map((d, i) => {
@@ -1611,7 +1611,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </div>
                 {moodSnapshot.count >= 3 && (
                   <div className="mt-2 pt-2 border-t border-salve-border">
-                    <span className="text-[11px] text-salve-textFaint font-montserrat">{moodSnapshot.count} entries this week</span>
+                    <span className="text-[13px] text-salve-textFaint font-montserrat">{moodSnapshot.count} entries this week</span>
                   </div>
                 )}
               </Card>
@@ -1630,11 +1630,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </div>
                 <div className="flex items-baseline gap-2 mb-3">
                   <span className="text-display-hero font-medium text-salve-text font-montserrat">{activitySnapshot.count}</span>
-                  <span className="text-[13px] text-salve-textMid font-montserrat">session{activitySnapshot.count !== 1 ? 's' : ''}</span>
+                  <span className="text-[15px] text-salve-textMid font-montserrat">session{activitySnapshot.count !== 1 ? 's' : ''}</span>
                   {activitySnapshot.totalMinutes > 0 && (
                     <>
-                      <span className="text-salve-textFaint/40 text-[13px]">·</span>
-                      <span className="text-[13px] text-salve-textMid font-montserrat">
+                      <span className="text-salve-textFaint/40 text-[15px]">·</span>
+                      <span className="text-[15px] text-salve-textMid font-montserrat">
                         {activitySnapshot.totalMinutes >= 60
                           ? `${Math.floor(activitySnapshot.totalMinutes / 60)}h ${activitySnapshot.totalMinutes % 60}m`
                           : `${activitySnapshot.totalMinutes}m`}
@@ -1667,7 +1667,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 {activitySnapshot.totalCalories > 0 && (
                   <div className="mt-2 pt-2 border-t border-salve-border flex items-center gap-1.5">
                     <Zap size={11} className="text-salve-amber" />
-                    <span className="text-[11px] text-salve-textFaint font-montserrat">{Math.round(activitySnapshot.totalCalories).toLocaleString()} cal active</span>
+                    <span className="text-[13px] text-salve-textFaint font-montserrat">{Math.round(activitySnapshot.totalCalories).toLocaleString()} cal active</span>
                   </div>
                 )}
               </Card>
@@ -1724,7 +1724,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-[22px] font-medium text-salve-text font-montserrat leading-none">{sleepTrend.avg}</span>
-                    <span className="text-[11px] text-salve-textFaint font-montserrat">hrs avg</span>
+                    <span className="text-[13px] text-salve-textFaint font-montserrat">hrs avg</span>
                   </div>
                 </div>
                 <div className="relative flex items-end gap-[3px] h-12 mt-2">
@@ -1760,7 +1760,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
                   <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
                   {sleepTrend.last && (
-                    <div className="ml-auto text-[10px] font-montserrat" style={{ color: sleepTrend.last.value >= 7 ? C.sage : sleepTrend.last.value >= 5 ? C.amber : C.rose }}>
+                    <div className="ml-auto text-[12px] font-montserrat" style={{ color: sleepTrend.last.value >= 7 ? C.sage : sleepTrend.last.value >= 5 ? C.amber : C.rose }}>
                       Last night: {sleepTrend.last.value}h
                     </div>
                   )}
@@ -1782,8 +1782,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </div>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
-                  <span className="text-[11px] text-salve-textFaint font-montserrat">bpm avg</span>
-                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: hrTrend.avg >= 60 && hrTrend.avg <= 100 ? C.sage : C.amber }}>
+                  <span className="text-[13px] text-salve-textFaint font-montserrat">bpm avg</span>
+                  <span className="text-[12px] font-montserrat ml-auto" style={{ color: hrTrend.avg >= 60 && hrTrend.avg <= 100 ? C.sage : C.amber }}>
                     {hrTrend.avg >= 60 && hrTrend.avg <= 100 ? 'Normal' : 'Attention'}
                   </span>
                 </div>
@@ -1841,8 +1841,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </div>
                 <div className="flex items-baseline gap-1 mb-1">
                   <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
-                  <span className="text-[11px] text-salve-textFaint font-montserrat">% avg</span>
-                  <span className="text-[10px] font-montserrat ml-auto" style={{ color: spo2Trend.lowNights === 0 ? C.sage : C.amber }}>
+                  <span className="text-[13px] text-salve-textFaint font-montserrat">% avg</span>
+                  <span className="text-[12px] font-montserrat ml-auto" style={{ color: spo2Trend.lowNights === 0 ? C.sage : C.amber }}>
                     {spo2Trend.lowNights === 0 ? 'Normal' : `${spo2Trend.lowNights} low`}
                   </span>
                 </div>
@@ -1906,11 +1906,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     return (
                       <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
                         <div className="min-w-0 flex-1">
-                          <div className="text-[11px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || ', '}</div>
-                          <div className="text-[10px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
+                          <div className="text-[13px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || ', '}</div>
+                          <div className="text-[12px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
                         </div>
                         <div className="flex-shrink-0 text-right">
-                          {lab.result && <div className="text-[12px] font-semibold font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
+                          {lab.result && <div className="text-[14px] font-semibold font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
                           <div className="text-[9px] font-montserrat" style={{ color: flagColor }}>{flagLabel}</div>
                         </div>
                       </div>
@@ -1936,7 +1936,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             </div>
             <button
               onClick={dismissAllTips}
-              className="text-[10px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
+              className="text-[12px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
               aria-label="Dismiss all tips"
             >
               Hide all
@@ -1965,7 +1965,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   >
                     <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
                   </div>
-                  <div className="text-[12px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
+                  <div className="text-[14px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
                   <p className="text-ui-base text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
                   {tip.href ? (
                     <a
@@ -1996,7 +1996,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             className="w-full flex items-center justify-center gap-1.5 mt-3 pt-2.5 border-t border-salve-border/40 bg-transparent border-x-0 border-b-0 cursor-pointer font-montserrat group"
           >
             <Mail size={11} className="text-salve-textFaint/50 group-hover:text-salve-amber transition-colors" />
-            <span className="text-[11px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
+            <span className="text-[13px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
           </button>
         </Reveal>
       )}
@@ -2019,7 +2019,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       )}
 
       {/* Desktop "made with love" tagline, mirrors mobile BottomNav behaviour */}
-      <p className={`hidden md:block text-center text-salve-textFaint text-[10px] tracking-wider py-6 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+      <p className={`hidden md:block text-center text-salve-textFaint text-[12px] tracking-wider py-6 font-montserrat transition-all duration-500 ease-out ${showTagline ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         made with love for my best friend &amp; soulmate
       </p>
 

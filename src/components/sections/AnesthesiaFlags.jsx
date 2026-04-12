@@ -54,9 +54,9 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem,
         style={{ background: 'rgba(232,138,154,0.08)', borderColor: C.rose }}>
         <div className="flex items-center gap-2 mb-1">
           <AlertOctagon size={16} style={{ color: C.rose }} />
-          <span className="text-[13px] font-bold tracking-wide" style={{ color: C.rose }}>ANESTHESIA & SURGICAL FLAGS</span>
+          <span className="text-[15px] font-bold tracking-wide" style={{ color: C.rose }}>ANESTHESIA & SURGICAL FLAGS</span>
         </div>
-        <p className="text-[12px] leading-relaxed" style={{ color: C.rose }}>
+        <p className="text-[14px] leading-relaxed" style={{ color: C.rose }}>
           These flags must be communicated to any surgical, procedural, or anesthesia team before any procedure.
         </p>
       </div>
@@ -79,14 +79,14 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem,
                 </div>
                 {flag.implication && (
                   <div className="mb-1.5">
-                    <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-0.5">Implication</div>
-                    <div className="text-[13px] text-salve-textMid leading-relaxed">{flag.implication}</div>
+                    <div className="text-[12px] font-semibold text-salve-textFaint uppercase tracking-widest mb-0.5">Implication</div>
+                    <div className="text-[15px] text-salve-textMid leading-relaxed">{flag.implication}</div>
                   </div>
                 )}
                 {flag.action_required && (
                   <div>
-                    <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-0.5">Action Required</div>
-                    <div className="text-[13px] text-salve-text leading-relaxed font-medium">{flag.action_required}</div>
+                    <div className="text-[12px] font-semibold text-salve-textFaint uppercase tracking-widest mb-0.5">Action Required</div>
+                    <div className="text-[15px] text-salve-text leading-relaxed font-medium">{flag.action_required}</div>
                   </div>
                 )}
               </div>
@@ -101,7 +101,7 @@ export default function AnesthesiaFlags({ data, addItem, updateItem, removeItem,
       )}
 
       {flags.length > 0 && (
-        <p className="text-center text-[11px] text-salve-textFaint italic mt-2">
+        <p className="text-center text-[13px] text-salve-textFaint italic mt-2">
           ✧ Always verify with your care team before any procedure ✧
         </p>
       )}

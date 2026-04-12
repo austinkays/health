@@ -65,7 +65,7 @@ function SaveInsightButton({ type, label, text, savedInsights }) {
   const alreadySaved = isSaved(type, text);
   if (alreadySaved) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] text-salve-sage font-montserrat font-medium px-2.5 py-1 rounded-full bg-salve-sage/10">
+      <span className="inline-flex items-center gap-1 text-[13px] text-salve-sage font-montserrat font-medium px-2.5 py-1 rounded-full bg-salve-sage/10">
         <Bookmark size={11} className="fill-salve-sage" /> Saved
       </span>
     );
@@ -73,7 +73,7 @@ function SaveInsightButton({ type, label, text, savedInsights }) {
   return (
     <button
       onClick={() => save(type, label, text)}
-      className="inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1 transition-all duration-200 border-none cursor-pointer font-montserrat bg-salve-card2 text-salve-textFaint hover:text-salve-text hover:bg-salve-border"
+      className="inline-flex items-center gap-1 text-[13px] font-medium rounded-full px-2.5 py-1 transition-all duration-200 border-none cursor-pointer font-montserrat bg-salve-card2 text-salve-textFaint hover:text-salve-text hover:bg-salve-border"
       aria-label="Save this insight"
     >
       <Bookmark size={11} /> Save
@@ -116,7 +116,7 @@ function CopyButton({ text, className = '' }) {
   return (
     <button
       onClick={handleCopy}
-      className={`inline-flex items-center gap-1 text-[11px] font-medium rounded-full px-2.5 py-1 transition-all duration-200 border-none cursor-pointer font-montserrat ${
+      className={`inline-flex items-center gap-1 text-[13px] font-medium rounded-full px-2.5 py-1 transition-all duration-200 border-none cursor-pointer font-montserrat ${
         copied
           ? 'bg-salve-sage/20 text-salve-sage'
           : 'bg-salve-card2 text-salve-textFaint hover:text-salve-text hover:bg-salve-border'
@@ -135,7 +135,7 @@ function ResultHeader({ icon: Icon, label, color, text, featureType, savedInsigh
         <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: color + '20' }}>
           <Icon size={15} color={color} strokeWidth={1.8} />
         </div>
-        <span className="text-[13px] font-semibold text-salve-text font-montserrat tracking-wide">{label}</span>
+        <span className="text-[15px] font-semibold text-salve-text font-montserrat tracking-wide">{label}</span>
       </div>
       <div className="flex items-center gap-1.5">
         {insightRatings && <ThumbsRating surface={featureType} contentKey={featureType} getRating={insightRatings.getRating} rate={insightRatings.rate} size={12} />}
@@ -150,7 +150,7 @@ function Disclaimer() {
   return (
     <div className="flex items-center justify-center gap-1.5 mt-4 pt-3 border-t border-salve-border/30">
       <Info size={10} className="text-salve-textFaint shrink-0" />
-      <p className="text-[10px] text-salve-textFaint italic m-0 font-montserrat">
+      <p className="text-[12px] text-salve-textFaint italic m-0 font-montserrat">
         Sage's suggestions are not medical advice. Always consult your healthcare providers.
       </p>
     </div>
@@ -166,7 +166,7 @@ function SavedInsightsSection({ savedInsights }) {
     <div className="mt-4">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between text-[12px] text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer py-2"
+        className="w-full flex items-center justify-between text-[14px] text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer py-2"
       >
         <span className="flex items-center gap-1.5">
           <Bookmark size={13} className="text-salve-lav" />
@@ -182,7 +182,7 @@ function SavedInsightsSection({ savedInsights }) {
             return (
               <div key={i} className="rounded-xl border bg-salve-card p-3.5" style={{ borderColor: (featureColors[s.type] || C.lav) + '25' }}>
                 <div className="flex items-start gap-2 mb-1.5">
-                  <span className="text-[10px] font-montserrat font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: featureColors[s.type] || C.lav, background: (featureColors[s.type] || C.lav) + '15' }}>{s.label}</span>
+                  <span className="text-[12px] font-montserrat font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full" style={{ color: featureColors[s.type] || C.lav, background: (featureColors[s.type] || C.lav) + '15' }}>{s.label}</span>
                   <span className="flex-1" />
                   <button onClick={() => setConfirmIdx(i)} className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5" aria-label="Remove saved insight">
                     <Bookmark size={13} className="text-salve-lav fill-salve-lav" strokeWidth={1.5} />
@@ -190,15 +190,15 @@ function SavedInsightsSection({ savedInsights }) {
                 </div>
                 {confirmIdx === i && (
                   <div className="flex items-center gap-2 mb-1.5 px-1 py-1.5 rounded-lg bg-salve-lav/10 border border-salve-lav/20">
-                    <span className="flex-1 text-[11px] text-salve-lav font-montserrat">Remove saved insight?</span>
-                    <button onClick={() => { savedInsights.remove(i); setConfirmIdx(null); }} className="text-[11px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
-                    <button onClick={() => setConfirmIdx(null)} className="text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
+                    <span className="flex-1 text-[13px] text-salve-lav font-montserrat">Remove saved insight?</span>
+                    <button onClick={() => { savedInsights.remove(i); setConfirmIdx(null); }} className="text-[13px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
+                    <button onClick={() => setConfirmIdx(null)} className="text-[13px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
                   </div>
                 )}
                 {isExpanded ? (
                   <AIMarkdown compact>{s.text}</AIMarkdown>
                 ) : (
-                  <div className="text-[12px] text-salve-textMid leading-relaxed font-montserrat line-clamp-3">
+                  <div className="text-[14px] text-salve-textMid leading-relaxed font-montserrat line-clamp-3">
                     {s.text.replace(/^#+\s*/gm, '').replace(/\*\*/g, '').replace(/\*/g, '').replace(/^- /gm, '').replace(/^\d+\.\s/gm, '').slice(0, 250)}
                   </div>
                 )}
@@ -207,7 +207,7 @@ function SavedInsightsSection({ savedInsights }) {
                   {isLong && (
                     <button
                       onClick={() => setExpandedIdx(isExpanded ? null : i)}
-                      className="text-[10px] text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+                      className="text-[12px] text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline"
                     >
                       {isExpanded ? 'Show less' : 'Read more'}
                     </button>
@@ -229,7 +229,7 @@ function SourcesBadges({ sources }) {
     <div className="mt-4 pt-3 border-t border-salve-border/30">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-1.5 text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-textMid transition-colors"
+        className="flex items-center gap-1.5 text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-textMid transition-colors"
       >
         <ExternalLink size={9} />
         <span>{sources.length} source{sources.length !== 1 ? 's' : ''} referenced</span>
@@ -243,7 +243,7 @@ function SourcesBadges({ sources }) {
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[10px] text-salve-textFaint hover:text-salve-lav transition-colors font-montserrat truncate no-underline hover:underline"
+              className="text-[12px] text-salve-textFaint hover:text-salve-lav transition-colors font-montserrat truncate no-underline hover:underline"
             >
               {s.title}
             </a>
@@ -316,7 +316,7 @@ function ConnectionsResult({ result, savedInsights, insightRatings }) {
               {section.title && (
                 <div className="flex items-center gap-2 mb-2">
                   <Link size={13} className="text-salve-sage shrink-0" strokeWidth={1.8} />
-                  <span className="text-[13px] font-semibold text-salve-text font-montserrat">{section.title}</span>
+                  <span className="text-[15px] font-semibold text-salve-text font-montserrat">{section.title}</span>
                 </div>
               )}
               <AIMarkdown reveal>{section.content.trim()}</AIMarkdown>
@@ -443,23 +443,23 @@ function NewsResult({ result, onSaveChange, savedInsights, insightRatings }) {
               )}
               {confirmUnsave === story.headline && (
                 <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-amber/10 border border-salve-amber/20">
-                  <span className="flex-1 text-[11px] text-salve-amber font-montserrat">Remove saved story?</span>
-                  <button onClick={() => doUnsave(story.headline)} className="text-[11px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
-                  <button onClick={() => setConfirmUnsave(null)} className="text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
+                  <span className="flex-1 text-[13px] text-salve-amber font-montserrat">Remove saved story?</span>
+                  <button onClick={() => doUnsave(story.headline)} className="text-[13px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
+                  <button onClick={() => setConfirmUnsave(null)} className="text-[13px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
                 </div>
               )}
-              <div className="text-[13px] text-salve-textMid leading-relaxed font-montserrat">
+              <div className="text-[15px] text-salve-textMid leading-relaxed font-montserrat">
                 <AIMarkdown reveal>{story.body}</AIMarkdown>
               </div>
               {story.sourceName && (
                 <div className="mt-2.5 pt-2 border-t border-salve-border/30">
                   {story.sourceUrl ? (
-                    <a href={story.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[11px] text-salve-amber hover:text-salve-text transition-colors font-montserrat font-medium no-underline hover:underline">
+                    <a href={story.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-salve-amber hover:text-salve-text transition-colors font-montserrat font-medium no-underline hover:underline">
                       <ExternalLink size={10} />
                       {story.sourceName}, Read full article
                     </a>
                   ) : (
-                    <span className="text-[11px] text-salve-textFaint italic font-montserrat">Source: {story.sourceName}</span>
+                    <span className="text-[13px] text-salve-textFaint italic font-montserrat">Source: {story.sourceName}</span>
                   )}
                 </div>
               )}
@@ -490,7 +490,7 @@ function AccordionSection({ title, content, defaultOpen = false, index }) {
       >
         <div className="flex items-center gap-2.5">
           <HelpCircle size={15} className="text-salve-rose flex-shrink-0" strokeWidth={1.5} />
-          <span className="text-[13px] font-semibold text-salve-text font-montserrat">{title}</span>
+          <span className="text-[15px] font-semibold text-salve-text font-montserrat">{title}</span>
         </div>
         <ChevronDown
           size={16}
@@ -601,7 +601,7 @@ function CostResult({ result, savedInsights, insightRatings }) {
             <div className="border-l-[3px] border-salve-sage/40 p-4 pl-5">
               <div className="flex items-center gap-2 mb-2">
                 <BadgeDollarSign size={13} className="text-salve-sage shrink-0" strokeWidth={1.8} />
-                <span className="text-[13px] font-semibold text-salve-text font-montserrat">{section.title}</span>
+                <span className="text-[15px] font-semibold text-salve-text font-montserrat">{section.title}</span>
               </div>
               <AIMarkdown reveal>{section.content.trim()}</AIMarkdown>
             </div>
@@ -622,9 +622,9 @@ function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inp
       <div className="rounded-xl border border-salve-amber/20 bg-salve-amber/5 p-4 mb-4">
         <div className="flex items-center gap-2 mb-1.5">
           <Stethoscope size={15} className="text-salve-amber" />
-          <span className="text-[12px] font-semibold font-montserrat text-salve-amber">Group Consultation</span>
+          <span className="text-[14px] font-semibold font-montserrat text-salve-amber">Group Consultation</span>
         </div>
-        <p className="text-[11px] text-salve-textFaint leading-relaxed font-montserrat">
+        <p className="text-[13px] text-salve-textFaint leading-relaxed font-montserrat">
           A group chat with Claude and Gemini. Claude responds first, then Gemini reacts, they can agree, disagree, or build on each other's ideas.
         </p>
       </div>
@@ -632,13 +632,13 @@ function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inp
       <div className="flex flex-col gap-3 mb-4 max-h-[60vh] overflow-y-auto no-scrollbar">
         {messages.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-[12px] text-salve-textFaint font-montserrat italic">Ask a health question to start the conversation.</p>
+            <p className="text-[14px] text-salve-textFaint font-montserrat italic">Ask a health question to start the conversation.</p>
           </div>
         )}
         {messages.map((msg, i) => {
           if (msg.role === 'user') return (
             <div key={i} className="self-end max-w-[80%] bg-salve-lav/10 border border-salve-lav/20 rounded-xl px-4 py-2.5">
-              <p className="text-[13px] text-salve-text font-montserrat m-0">{msg.content}</p>
+              <p className="text-[15px] text-salve-text font-montserrat m-0">{msg.content}</p>
             </div>
           );
           const isClaude = msg.role === 'claude';
@@ -652,7 +652,7 @@ function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inp
                   <div className={`w-4 h-4 rounded-full bg-salve-${color}/15 flex items-center justify-center`}>
                     <Icon size={9} className={`text-salve-${color}`} />
                   </div>
-                  <span className={`text-[10px] font-semibold font-montserrat text-salve-${color} tracking-wide uppercase`}>{name}</span>
+                  <span className={`text-[12px] font-semibold font-montserrat text-salve-${color} tracking-wide uppercase`}>{name}</span>
                 </div>
                 <AIMarkdown>{msg.content}</AIMarkdown>
               </div>
@@ -664,7 +664,7 @@ function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inp
             <div className={`border-l-[3px] border-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/40 p-3.5 pl-4`}>
               <div className="flex items-center gap-1.5">
                 <Loader2 size={11} className={`text-salve-${loadingWho === 'claude' ? 'lav' : 'sage'} animate-spin`} />
-                <span className={`text-[11px] font-montserrat text-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/80`}>{loadingWho === 'claude' ? 'Claude' : 'Gemini'} is thinking...</span>
+                <span className={`text-[13px] font-montserrat text-salve-${loadingWho === 'claude' ? 'lav' : 'sage'}/80`}>{loadingWho === 'claude' ? 'Claude' : 'Gemini'} is thinking...</span>
               </div>
             </div>
           </div>
@@ -677,7 +677,7 @@ function HouseChatRoom({ messages, loadingWho, input, onInputChange, onSend, inp
       <div className="flex gap-2 mt-3">
         <input
           ref={inputRef}
-          className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[13px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
+          className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[15px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
           value={input}
           onChange={e => onInputChange(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && onSend()}
@@ -701,12 +701,12 @@ function FeatureLoading({ ready, onReveal }) {
         <div className="absolute -inset-2 rounded-full border border-salve-lav/15 breathe-ring" style={{ animationDelay: '1.5s' }} />
         <Leaf size={30} className="breathe-icon text-salve-sage" />
       </div>
-      <p className="text-[11px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
-      <div key={key} className="wellness-msg text-[13px] text-salve-textMid font-montserrat italic mb-5" role="status" aria-live="polite">{message}</div>
+      <p className="text-[13px] text-salve-textFaint/60 font-montserrat tracking-widest uppercase mb-4">Breathe with me</p>
+      <div key={key} className="wellness-msg text-[15px] text-salve-textMid font-montserrat italic mb-5" role="status" aria-live="polite">{message}</div>
       <div className="relative h-10 flex items-center justify-center">
         <div className={`flex items-center justify-center gap-2 text-salve-textFaint/40 transition-opacity duration-1000 ${ready ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <Loader2 size={12} className="animate-spin" />
-          <span className="text-[10px] font-montserrat tracking-wider uppercase">Sage is thinking</span>
+          <span className="text-[12px] font-montserrat tracking-wider uppercase">Sage is thinking</span>
         </div>
         {ready && (
           <button
@@ -731,7 +731,7 @@ function ChatThinking() {
         <Leaf size={11} className="text-salve-sage" />
       </div>
       <div className="flex flex-col gap-0.5">
-        <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
+        <span className="text-[12px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
         <span key={key} className="wellness-msg italic" role="status" aria-live="polite">{message}</span>
       </div>
     </div>
@@ -761,15 +761,15 @@ function ToolExecutionCard({ execution, onConfirm }) {
 
   if (status === 'pending' && onConfirm) {
     return (
-      <div className="rounded-lg border border-salve-rose/30 bg-salve-rose/5 p-2.5 text-[12px] font-montserrat" role="alertdialog">
+      <div className="rounded-lg border border-salve-rose/30 bg-salve-rose/5 p-2.5 text-[14px] font-montserrat" role="alertdialog">
         <div className="flex items-center gap-1.5 mb-1.5">
           <AlertTriangle size={13} className="text-salve-rose" />
           <span className="font-semibold text-salve-rose">{label}</span>
           {summary && <span className="text-salve-textFaint">,  {summary}</span>}
         </div>
         <div className="flex gap-2">
-          <button onClick={() => onConfirm(true)} className="text-[11px] font-semibold text-salve-text bg-salve-rose/20 hover:bg-salve-rose/30 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Confirm</button>
-          <button onClick={() => onConfirm(false)} className="text-[11px] text-salve-textFaint hover:text-salve-text bg-salve-card2 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Cancel</button>
+          <button onClick={() => onConfirm(true)} className="text-[13px] font-semibold text-salve-text bg-salve-rose/20 hover:bg-salve-rose/30 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Confirm</button>
+          <button onClick={() => onConfirm(false)} className="text-[13px] text-salve-textFaint hover:text-salve-text bg-salve-card2 rounded-md px-2.5 py-1 border-none cursor-pointer font-montserrat transition-colors">Cancel</button>
         </div>
       </div>
     );
@@ -783,7 +783,7 @@ function ToolExecutionCard({ execution, onConfirm }) {
   }[status] || { border: 'border-salve-border', bg: 'bg-salve-card2', icon: null };
 
   return (
-    <div className={`rounded-lg border ${colors.border} ${colors.bg} px-2.5 py-1.5 text-[11px] font-montserrat flex items-center gap-1.5`}>
+    <div className={`rounded-lg border ${colors.border} ${colors.bg} px-2.5 py-1.5 text-[13px] font-montserrat flex items-center gap-1.5`}>
       {colors.icon}
       <span className="text-salve-textMid">{label}</span>
       {summary && <span className="text-salve-textFaint">,  {summary}</span>}
@@ -809,7 +809,7 @@ const ChatMessageList = memo(function ChatMessageList({ messages, toolExecutions
       {messages.map((m, i) => (
         <article key={i} className={`max-w-[85%] md:max-w-[70%] rounded-xl ${
           m.role === 'user'
-            ? 'self-end bg-salve-lav/20 text-salve-text ml-auto px-3.5 py-2.5 text-[13px] leading-relaxed'
+            ? 'self-end bg-salve-lav/20 text-salve-text ml-auto px-3.5 py-2.5 text-[15px] leading-relaxed'
             : 'self-start bg-salve-card border border-salve-border text-salve-textMid px-3.5 pt-2.5 pb-1.5'
         }`}>
           {m.role === 'assistant' ? (
@@ -818,7 +818,7 @@ const ChatMessageList = memo(function ChatMessageList({ messages, toolExecutions
                 <div className="w-4 h-4 rounded-full bg-salve-sage/15 flex items-center justify-center flex-shrink-0">
                   <Leaf size={9} className="text-salve-sage" />
                 </div>
-                <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
+                <span className="text-[12px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
                 <span className="text-[9px] text-salve-textFaint font-montserrat ml-auto">{fmtMsgTime(m.ts)}{fmtMsgTime(m.ts) && ' · '}via {getAIProvider() === 'anthropic' ? 'Claude' : 'Gemini'}</span>
               </div>
               <AIMarkdown compact>{stripDisclaimer(m.content)}</AIMarkdown>
@@ -830,7 +830,7 @@ const ChatMessageList = memo(function ChatMessageList({ messages, toolExecutions
                 </div>
               )}
               <div className="flex justify-end mt-1.5 -mr-1">
-                <CopyButton text={stripDisclaimer(m.content)} className="!text-[10px] !px-2 !py-0.5" />
+                <CopyButton text={stripDisclaimer(m.content)} className="!text-[12px] !px-2 !py-0.5" />
               </div>
             </>
           ) : (
@@ -1237,7 +1237,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       </SectionTitle>
       {chatMessages.length > 0 && (
         <div className="flex justify-end mb-2">
-          <button onClick={startNewChat} className="inline-flex items-center gap-1 text-[11px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat border-none cursor-pointer">
+          <button onClick={startNewChat} className="inline-flex items-center gap-1 text-[13px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat border-none cursor-pointer">
             <Plus size={11} /> New Chat
           </button>
         </div>
@@ -1245,7 +1245,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       <ChatMessageList messages={chatMessages} toolExecutions={toolExecutions} loading={loading} confirmPending={confirmPending} chatEndRef={chatEndRef} />
       {usage.remaining <= 3 && (
         <div className="text-center mb-2">
-          <span className="text-[10px] font-montserrat text-salve-rose">
+          <span className="text-[12px] font-montserrat text-salve-rose">
             {usage.remaining === 0 ? 'Daily limit reached, resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
           </span>
         </div>
@@ -1253,7 +1253,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       <div className="flex gap-2">
         <input
           ref={chatInputRef}
-          className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[13px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
+          className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[15px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
           value={chatInput}
           onChange={e => setChatInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
@@ -1329,7 +1329,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           <Leaf size={20} className="text-salve-sage" />
         </div>
         <p className="text-[15px] font-playfair font-semibold text-salve-text mb-0.5">Hey, I'm Sage</p>
-        <p className="text-[13px] text-salve-textFaint italic">Your health companion, powered by your data.</p>
+        <p className="text-[15px] text-salve-textFaint italic">Your health companion, powered by your data.</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 mb-4">
@@ -1364,8 +1364,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
                   </span>
                 )}
               </div>
-              <div className="text-[13px] font-semibold text-salve-text mt-2.5 font-montserrat">{f.label}</div>
-              <div className="text-[11px] text-salve-textFaint mt-0.5 leading-relaxed">{f.desc}</div>
+              <div className="text-[15px] font-semibold text-salve-text mt-2.5 font-montserrat">{f.label}</div>
+              <div className="text-[13px] text-salve-textFaint mt-0.5 leading-relaxed">{f.desc}</div>
             </button>
           );
         })}
@@ -1379,7 +1379,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         <div className="mt-4">
           <button
             onClick={() => setShowSaved(!showSaved)}
-            className="w-full flex items-center justify-between text-[12px] text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer py-2"
+            className="w-full flex items-center justify-between text-[14px] text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer py-2"
           >
             <span className="flex items-center gap-1.5">
               <Bookmark size={13} className="text-salve-amber" />
@@ -1392,21 +1392,21 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
               {savedNews.map((s, i) => (
                 <div key={i} className="rounded-xl border border-salve-amber/15 bg-salve-card p-3.5">
                   <div className="flex items-start gap-2 mb-1.5">
-                    <span className="flex-1 text-[13px] font-semibold text-salve-text font-playfair leading-snug">{s.headline}</span>
+                    <span className="flex-1 text-[15px] font-semibold text-salve-text font-playfair leading-snug">{s.headline}</span>
                     <button onClick={() => setConfirmRemoveHeadline(s.headline)} className="flex-shrink-0 bg-transparent border-none cursor-pointer p-0.5" aria-label="Remove saved story">
                       <Bookmark size={13} className="text-salve-amber fill-salve-amber" strokeWidth={1.5} />
                     </button>
                   </div>
                   {confirmRemoveHeadline === s.headline && (
                     <div className="flex items-center gap-2 mb-1.5 px-1 py-1.5 rounded-lg bg-salve-amber/10 border border-salve-amber/20">
-                      <span className="flex-1 text-[11px] text-salve-amber font-montserrat">Remove saved story?</span>
-                      <button onClick={() => removeSavedNews(s.headline)} className="text-[11px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
-                      <button onClick={() => setConfirmRemoveHeadline(null)} className="text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
+                      <span className="flex-1 text-[13px] text-salve-amber font-montserrat">Remove saved story?</span>
+                      <button onClick={() => removeSavedNews(s.headline)} className="text-[13px] text-salve-rose font-semibold bg-transparent border-none cursor-pointer font-montserrat">Remove</button>
+                      <button onClick={() => setConfirmRemoveHeadline(null)} className="text-[13px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Cancel</button>
                     </div>
                   )}
-                  <div className="text-[12px] text-salve-textMid leading-relaxed line-clamp-3 font-montserrat">{s.body}</div>
+                  <div className="text-[14px] text-salve-textMid leading-relaxed line-clamp-3 font-montserrat">{s.body}</div>
                   {s.sourceUrl && (
-                    <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-salve-amber mt-1.5 font-montserrat hover:underline no-underline">
+                    <a href={s.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[12px] text-salve-amber mt-1.5 font-montserrat hover:underline no-underline">
                       <ExternalLink size={9} /> {s.sourceName || 'Read article'}
                     </a>
                   )}
@@ -1426,12 +1426,12 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         <AIProfilePreview data={data} />
         <button
           onClick={() => setMode('ask')}
-          className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+          className="text-[12px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
         >
           Update your data via Sage →
         </button>
       </div>
-      <p className="text-[10px] text-salve-textFaint italic text-center mt-3">Sage's suggestions are not medical advice. Always consult your healthcare providers.</p>
+      <p className="text-[12px] text-salve-textFaint italic text-center mt-3">Sage's suggestions are not medical advice. Always consult your healthcare providers.</p>
     </div>
     </AIConsentGate>
   );

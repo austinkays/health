@@ -151,22 +151,22 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
 
                   {procs.length > 0 && (
                     <div className="mt-2">
-                      <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Planned Procedures</div>
-                      {procs.map((p, i) => <div key={i} className="text-[12px] text-salve-textMid">· {p}</div>)}
+                      <div className="text-[12px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Planned Procedures</div>
+                      {procs.map((p, i) => <div key={i} className="text-[14px] text-salve-textMid">· {p}</div>)}
                     </div>
                   )}
 
                   {constraints.length > 0 && (
                     <div className="mt-2">
-                      <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: C.rose }}>Constraints</div>
-                      {constraints.map((c, i) => <div key={i} className="text-[12px]" style={{ color: C.rose }}>⚠ {c}</div>)}
+                      <div className="text-[12px] font-semibold uppercase tracking-widest mb-1" style={{ color: C.rose }}>Constraints</div>
+                      {constraints.map((c, i) => <div key={i} className="text-[14px]" style={{ color: C.rose }}>⚠ {c}</div>)}
                     </div>
                   )}
 
                   {outstanding.length > 0 && (
                     <div className="mt-2">
-                      <div className="text-[10px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Outstanding Items</div>
-                      {outstanding.map((o, i) => <div key={i} className="text-[12px] text-salve-amber">□ {o}</div>)}
+                      <div className="text-[12px] font-semibold text-salve-textFaint uppercase tracking-widest mb-1">Outstanding Items</div>
+                      {outstanding.map((o, i) => <div key={i} className="text-[14px] text-salve-amber">□ {o}</div>)}
                     </div>
                   )}
 

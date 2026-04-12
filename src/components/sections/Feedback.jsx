@@ -124,7 +124,7 @@ export default function Feedback({ data, addItem, removeItem }) {
       {/* Previously submitted feedback */}
       {items.length > 0 && (
         <div>
-          <p className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase px-1 mb-2">
+          <p className="text-[12px] text-salve-textFaint font-montserrat tracking-widest uppercase px-1 mb-2">
             Your submissions
           </p>
           <div className="space-y-2">
@@ -166,7 +166,7 @@ export default function Feedback({ data, addItem, removeItem }) {
                           <span className="w-1.5 h-1.5 rounded-full bg-salve-sage shrink-0" title="Response received" />
                         )}
                         {dateStr && (
-                          <span className="text-[10px] text-salve-textFaint font-montserrat">{dateStr}</span>
+                          <span className="text-[12px] text-salve-textFaint font-montserrat">{dateStr}</span>
                         )}
                       </div>
                       <p className={`text-xs text-salve-textMid font-montserrat m-0 ${isExpanded ? '' : 'line-clamp-2'}`}>
@@ -183,14 +183,14 @@ export default function Feedback({ data, addItem, removeItem }) {
                     <div className="mt-2.5 mx-0.5 px-3 py-2.5 rounded-lg bg-salve-sage/8 border border-salve-sage/15">
                       <div className="flex items-center gap-1.5 mb-1">
                         <Leaf size={10} className="text-salve-sage" />
-                        <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Salve Team</span>
+                        <span className="text-[12px] font-semibold text-salve-sage font-montserrat tracking-wide">Salve Team</span>
                         {item.responded_at && (
                           <span className="text-[9px] text-salve-textFaint font-montserrat ml-auto">
                             {new Date(item.responded_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                           </span>
                         )}
                       </div>
-                      <p className="text-[12px] text-salve-textMid font-montserrat m-0 leading-relaxed">
+                      <p className="text-[14px] text-salve-textMid font-montserrat m-0 leading-relaxed">
                         {item.response}
                       </p>
                     </div>
@@ -206,7 +206,7 @@ export default function Feedback({ data, addItem, removeItem }) {
                       ) : (
                         <button
                           onClick={() => del.confirmDelete(item.id)}
-                          className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-rose bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                          className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-rose bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                           aria-label="Delete feedback"
                         >
                           <Trash2 size={10} />

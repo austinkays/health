@@ -40,11 +40,11 @@ function InfoCard({ info }) {
     >
       <div className="flex items-center gap-1.5">
         <Brain size={10} className="text-salve-lav" />
-        <span className="text-[10px] text-salve-lav font-montserrat font-medium">{info.title}</span>
+        <span className="text-[12px] text-salve-lav font-montserrat font-medium">{info.title}</span>
         <ChevronDown size={10} className={`text-salve-lav transition-transform ${open ? 'rotate-180' : ''}`} />
       </div>
       {open && (
-        <p className="text-[10px] text-salve-textMid font-montserrat leading-relaxed mt-1.5 ml-4">{info.body}</p>
+        <p className="text-[12px] text-salve-textMid font-montserrat leading-relaxed mt-1.5 ml-4">{info.body}</p>
       )}
     </button>
   );
@@ -64,14 +64,14 @@ function StatCard({ icon: Icon, label, value, unit, sub, color, trend }) {
     <div className="bg-salve-card2 border border-salve-border rounded-xl p-3 flex flex-col gap-1">
       <div className="flex items-center gap-1.5">
         <Icon size={12} style={{ color }} />
-        <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
+        <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">{label}</span>
         {trend}
       </div>
       <div className="flex items-baseline gap-1">
         <span className="text-[22px] font-playfair font-semibold" style={{ color }}>{value ?? ', '}</span>
-        {unit && <span className="text-[11px] text-salve-textFaint">{unit}</span>}
+        {unit && <span className="text-[13px] text-salve-textFaint">{unit}</span>}
       </div>
-      {sub && <span className="text-[10px] text-salve-textFaint leading-snug">{sub}</span>}
+      {sub && <span className="text-[12px] text-salve-textFaint leading-snug">{sub}</span>}
     </div>
   );
 }
@@ -79,11 +79,11 @@ function StatCard({ icon: Icon, label, value, unit, sub, color, trend }) {
 function SleepBar({ label, pct, color }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-salve-textFaint w-12 text-right font-montserrat">{label}</span>
+      <span className="text-[12px] text-salve-textFaint w-12 text-right font-montserrat">{label}</span>
       <div className="flex-1 h-2 bg-salve-border rounded-full overflow-hidden">
         <div className="h-full rounded-full transition-all" style={{ width: `${Math.min(100, pct)}%`, background: color }} />
       </div>
-      <span className="text-[10px] text-salve-textMid w-8 font-montserrat">{Math.round(pct)}%</span>
+      <span className="text-[12px] text-salve-textMid w-8 font-montserrat">{Math.round(pct)}%</span>
     </div>
   );
 }
@@ -248,7 +248,7 @@ export default function OuraRing({ data, addItem, onNav }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5">
           <OuraIcon size={11} className="text-salve-sage" />
-          <span className="text-[10px] text-salve-textFaint font-montserrat">
+          <span className="text-[12px] text-salve-textFaint font-montserrat">
             {lastSync ? `Synced ${lastSync.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : 'Auto-syncing every 5 min'}
           </span>
           <span className="w-1.5 h-1.5 rounded-full bg-salve-sage text-salve-sage pulse-dot" />
@@ -256,7 +256,7 @@ export default function OuraRing({ data, addItem, onNav }) {
         <button
           onClick={handleSync}
           disabled={syncing}
-          className="flex items-center gap-1 text-[10px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline disabled:opacity-50"
+          className="flex items-center gap-1 text-[12px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline disabled:opacity-50"
         >
           <RefreshCw size={10} className={syncing ? 'animate-spin' : ''} />
           {syncing ? 'Syncing...' : 'Sync now'}
@@ -293,7 +293,7 @@ export default function OuraRing({ data, addItem, onNav }) {
       {tempDev == null && liveData?.temperature?.length === 0 && (
         <div className="flex items-start gap-2 px-3 py-2 mb-3 bg-salve-card2 border border-salve-border rounded-lg">
           <AlertCircle size={12} className="text-salve-amber mt-0.5 shrink-0" />
-          <span className="text-[10px] text-salve-textMid font-montserrat leading-relaxed">
+          <span className="text-[12px] text-salve-textMid font-montserrat leading-relaxed">
             Temperature data isn't available. This requires a Gen3 Oura Ring and may take a few days of consistent wear to calibrate your baseline.
           </span>
         </div>
@@ -302,7 +302,7 @@ export default function OuraRing({ data, addItem, onNav }) {
       {/* BBT Baseline config */}
       <Card className="mb-3 !p-3.5">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider">BBT Baseline</span>
+          <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">BBT Baseline</span>
         </div>
         <div className="flex items-center gap-3">
           <input
@@ -315,8 +315,8 @@ export default function OuraRing({ data, addItem, onNav }) {
             }}
             className="w-20 bg-salve-card2 border border-salve-border rounded-lg px-2 py-1.5 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav text-center"
           />
-          <span className="text-[11px] text-salve-textFaint font-montserrat">°F</span>
-          <p className="flex-1 text-[10px] text-salve-textFaint font-montserrat leading-relaxed">
+          <span className="text-[13px] text-salve-textFaint font-montserrat">°F</span>
+          <p className="flex-1 text-[12px] text-salve-textFaint font-montserrat leading-relaxed">
             Oura measures deviation from your baseline. Average waking BBT is ~97.7°F. Adjust if yours differs.
           </p>
         </div>
@@ -336,7 +336,7 @@ export default function OuraRing({ data, addItem, onNav }) {
         <Card className="mb-3">
           <div className="flex items-center justify-between mb-2.5">
             <span className="text-xs font-medium text-salve-textFaint font-montserrat uppercase tracking-wider">Last Night's Sleep</span>
-            <span className="text-[10px] text-salve-textFaint">{latest.sleep.day}</span>
+            <span className="text-[12px] text-salve-textFaint">{latest.sleep.day}</span>
           </div>
           <div className="space-y-2">
             {latest.sleep.deep_sleep_duration != null && (
@@ -354,10 +354,10 @@ export default function OuraRing({ data, addItem, onNav }) {
           </div>
           <div className="flex gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
             {efficiency != null && (
-              <span className="text-[10px] text-salve-textMid font-montserrat">Efficiency: <strong className="text-salve-text">{efficiency}%</strong></span>
+              <span className="text-[12px] text-salve-textMid font-montserrat">Efficiency: <strong className="text-salve-text">{efficiency}%</strong></span>
             )}
             {latest.sleep.latency != null && (
-              <span className="text-[10px] text-salve-textMid font-montserrat">Fell asleep in: <strong className="text-salve-text">{Math.round(latest.sleep.latency / 60)}min</strong></span>
+              <span className="text-[12px] text-salve-textMid font-montserrat">Fell asleep in: <strong className="text-salve-text">{Math.round(latest.sleep.latency / 60)}min</strong></span>
             )}
           </div>
         </Card>
@@ -373,8 +373,8 @@ export default function OuraRing({ data, addItem, onNav }) {
           <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
             {Object.entries(latest.readiness.contributors).map(([key, val]) => (
               <div key={key} className="flex items-center justify-between">
-                <span className="text-[10px] text-salve-textMid font-montserrat capitalize">{key.replace(/_/g, ' ')}</span>
-                <span className={`text-[10px] font-medium ${val >= 70 ? 'text-salve-sage' : val >= 50 ? 'text-salve-amber' : 'text-salve-rose'}`}>{val ?? ', '}</span>
+                <span className="text-[12px] text-salve-textMid font-montserrat capitalize">{key.replace(/_/g, ' ')}</span>
+                <span className={`text-[12px] font-medium ${val >= 70 ? 'text-salve-sage' : val >= 50 ? 'text-salve-amber' : 'text-salve-rose'}`}>{val ?? ', '}</span>
               </div>
             ))}
           </div>
@@ -412,7 +412,7 @@ export default function OuraRing({ data, addItem, onNav }) {
             })}
           </div>
           {latest.avgSleepHrs && (
-            <div className="text-[10px] text-salve-textFaint text-center mt-1.5">
+            <div className="text-[12px] text-salve-textFaint text-center mt-1.5">
               7-day avg: <strong className="text-salve-text">{latest.avgSleepHrs.toFixed(1)} hrs</strong>
             </div>
           )}
@@ -453,7 +453,7 @@ export default function OuraRing({ data, addItem, onNav }) {
       <div className="text-center py-2">
         <button
           onClick={() => onNav('settings')}
-          className="text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors"
+          className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors"
         >
           Oura Ring settings →
         </button>

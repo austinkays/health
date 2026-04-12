@@ -109,7 +109,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
         {c.linked_meds && <div className="text-xs text-salve-sage mt-0.5">Meds: {c.linked_meds}</div>}
         {relatedMeds.length > 0 && (
           <div className="mt-1.5 pt-1.5 border-t border-salve-border/30">
-            <div className="text-[11px] font-semibold text-salve-sage mb-1 flex items-center gap-1">
+            <div className="text-[13px] font-semibold text-salve-sage mb-1 flex items-center gap-1">
               <Pill size={11} /> Active Medications ({relatedMeds.length})
             </div>
             {relatedMeds.map(m => (
@@ -129,7 +129,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
           if (everycure.length === 0 && understood.length === 0) return null;
           return (
             <details className="mt-2.5 pt-2 border-t border-salve-border/30 group/res">
-              <summary className="text-[11px] font-semibold text-salve-lav cursor-pointer list-none flex items-center gap-1 select-none">
+              <summary className="text-[13px] font-semibold text-salve-lav cursor-pointer list-none flex items-center gap-1 select-none">
                 <BookOpen size={11} /> Resources &amp; research ({everycure.length + understood.length})
                 <ChevronDown size={11} className="ml-auto transition-transform group-open/res:rotate-180 text-salve-textFaint" />
               </summary>
@@ -143,11 +143,11 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                           <span className="text-xs font-semibold text-salve-text">{r.title}</span>
                           <Badge label="Research" color={C.sage} bg="rgba(143,191,160,0.15)" />
                         </div>
-                        <p className="text-[11px] text-salve-textMid leading-relaxed mt-0.5 mb-1.5">{r.blurb}</p>
+                        <p className="text-[13px] text-salve-textMid leading-relaxed mt-0.5 mb-1.5">{r.blurb}</p>
                         <ExternalLinkBadge url={r.url} label="EveryCure Portfolio" />
                       </div>
                     </div>
-                    <p className="text-[10px] text-salve-rose/80 mt-1.5 leading-snug italic">
+                    <p className="text-[12px] text-salve-rose/80 mt-1.5 leading-snug italic">
                       ⚠ Research-stage, not standard care. Always discuss with your healthcare provider before making treatment decisions.
                     </p>
                   </div>
@@ -157,12 +157,12 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                     <BookOpen size={11} className="text-salve-lav flex-shrink-0 mt-0.5" />
                     <div className="min-w-0">
                       <ExternalLinkBadge url={r.url} label={r.title} />
-                      <p className="text-[10px] text-salve-textFaint leading-snug mt-0.5">{r.blurb}</p>
+                      <p className="text-[12px] text-salve-textFaint leading-snug mt-0.5">{r.blurb}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="text-[10px] text-salve-textFaint/70 mt-2 leading-snug">
+              <p className="text-[12px] text-salve-textFaint/70 mt-2 leading-snug">
                 External resources are not medical advice. Always consult your healthcare providers.
               </p>
             </details>
@@ -174,14 +174,14 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
           if (!linked.length) return null;
           return (
             <div className="mt-2">
-              <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Recent Journal Entries</span>
+              <span className="text-[12px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Recent Journal Entries</span>
               <div className="mt-1 space-y-1">
                 {linked.map(e => (
                   <button key={e.id} onClick={() => onNav?.('journal', { highlightId: e.id })} className="w-full text-left bg-salve-lav/6 border border-salve-lav/12 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-salve-lav/12 transition-colors">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs text-salve-text font-montserrat">{e.title || e.date}</span>
                       {e.mood && <span className="text-xs">{String(e.mood).split(' ')[0]}</span>}
-                      {e.severity && <span className="text-[10px] text-salve-textFaint">{e.severity}/10</span>}
+                      {e.severity && <span className="text-[12px] text-salve-textFaint">{e.severity}/10</span>}
                     </div>
                   </button>
                 ))}
@@ -286,7 +286,7 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                     </div>
                   )}
                   {!isExpanded && relatedMeds.length > 0 && (
-                    <span className="inline-flex items-center gap-1 mt-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
+                    <span className="inline-flex items-center gap-1 mt-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[12px] text-salve-sage font-medium">
                       <Pill size={10} /> {relatedMeds.length} med{relatedMeds.length !== 1 ? 's' : ''}
                     </span>
                   )}

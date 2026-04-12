@@ -267,10 +267,10 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
                           </span>
                         )}
                         {t.category && t.category !== 'custom' && (
-                          <span className="text-[10px] text-salve-textFaint bg-salve-card2 rounded-full px-2 py-0.5">{catLabel}</span>
+                          <span className="text-[12px] text-salve-textFaint bg-salve-card2 rounded-full px-2 py-0.5">{catLabel}</span>
                         )}
                         {t.recurring && t.recurring !== 'none' && (
-                          <span className="text-[10px] text-salve-textFaint flex items-center gap-0.5">
+                          <span className="text-[12px] text-salve-textFaint flex items-center gap-0.5">
                             <RefreshCw size={9} /> {t.recurring}
                           </span>
                         )}
@@ -299,7 +299,7 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
                     )}
                     {t.notes && <div className="text-xs text-salve-textFaint mt-1 leading-relaxed">{t.notes}</div>}
                     {t.completed && t.completed_at && (
-                      <div className="text-[10px] text-salve-sage mt-1">Completed {fmtDate(t.completed_at)}</div>
+                      <div className="text-[12px] text-salve-sage mt-1">Completed {fmtDate(t.completed_at)}</div>
                     )}
 
                     <div className="flex gap-2.5 mt-2.5">

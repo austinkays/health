@@ -148,7 +148,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
       ) : (
         <>
           {up.length > 0 && (
-            <div className="text-[11px] font-semibold text-salve-sage uppercase tracking-widest mb-2">
+            <div className="text-[13px] font-semibold text-salve-sage uppercase tracking-widest mb-2">
               <Motif type="leaf" size={12} color={C.sage} style={{ marginRight: 4 }} /> Upcoming
             </div>
           )}
@@ -160,7 +160,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
                   <div className="text-xs text-salve-textMid mt-0.5">{a.provider ? <a href={providerLookupUrl(a.provider, data.providers)} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">{a.provider}</a> : ''}{a.location ? <>{a.provider ? ' · ' : ''}<a href={mapsUrl(a.location)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline inline-flex items-center gap-0.5"><MapPin size={10} strokeWidth={1.5} />{a.location}</a></> : ''}</div>
                   {/* ── Provider phone quick-link ── */}
                   {a.provider && providerInfo[a.provider.trim().toLowerCase()]?.phone && /\d{3,}/.test(providerInfo[a.provider.trim().toLowerCase()].phone) && (
-                    <div className="text-[11px] text-salve-textFaint mt-0.5 flex items-center gap-1">
+                    <div className="text-[13px] text-salve-textFaint mt-0.5 flex items-center gap-1">
                       <Phone size={10} strokeWidth={1.4} />
                       <a href={`tel:${providerInfo[a.provider.trim().toLowerCase()].phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">
                         {providerInfo[a.provider.trim().toLowerCase()].phone}
@@ -168,7 +168,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
                     </div>
                   )}
                   {a.video_call_url && (
-                    <div className="text-[11px] text-salve-textFaint mt-0.5 flex items-center gap-1">
+                    <div className="text-[13px] text-salve-textFaint mt-0.5 flex items-center gap-1">
                       <Video size={10} strokeWidth={1.4} />
                       <a href={a.video_call_url.startsWith('http') ? a.video_call_url : `https://${a.video_call_url}`} target="_blank" rel="noopener noreferrer" className="text-salve-lav hover:underline">Join Video Call</a>
                     </div>
@@ -176,9 +176,9 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
                   {a.questions && <div className="text-xs text-salve-sage mt-1.5 p-1.5 bg-salve-sage/10 rounded-lg">✧ {a.questions.slice(0, 80)}{a.questions.length > 80 ? '...' : ''}</div>}
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
-                  <div className="text-[13px] font-semibold text-salve-sage">{daysUntil(a.date)}</div>
-                  <div className="text-[11px] text-salve-textFaint">{fmtDate(a.date)}</div>
-                  {a.time && <div className="text-[11px] text-salve-textFaint">{a.time}</div>}
+                  <div className="text-[15px] font-semibold text-salve-sage">{daysUntil(a.date)}</div>
+                  <div className="text-[13px] text-salve-textFaint">{fmtDate(a.date)}</div>
+                  {a.time && <div className="text-[13px] text-salve-textFaint">{a.time}</div>}
                 </div>
               </div>
               <div className="flex gap-2.5 mt-2">
@@ -200,7 +200,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
               {prepResult[a.id] && (
                 <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
                   <div className="flex items-center justify-between mb-1">
-                    <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Visit Prep</div>
+                    <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Visit Prep</div>
                     <button onClick={() => setPrepResult(p => { const n = {...p}; delete n[a.id]; return n; })} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss visit prep">×</button>
                   </div>
                   <AIMarkdown compact>{prepResult[a.id]}</AIMarkdown>
@@ -209,7 +209,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
               <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('appointments', id))} onCancel={del.cancel} itemId={a.id} />
           </Card>
           ))}</div>
-          {past.length > 0 && <><Divider /><div className="text-[11px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}
+          {past.length > 0 && <><Divider /><div className="text-[13px] font-semibold text-salve-textFaint uppercase tracking-widest mb-2">Past</div></>}
           <div className="md:grid md:grid-cols-2 md:gap-4">{past.slice(0, 10).map(a => (
             <Card key={a.id} id={`record-${a.id}`} className={`opacity-75${highlightId === a.id ? ' highlight-ring' : ''}`}>
               <div className="flex justify-between">

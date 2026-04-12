@@ -31,11 +31,11 @@ function MiniBarChart({ values, color }) {
         const pct = Math.max((val / max) * 100, 6);
         return (
           <div key={i} className="flex flex-col items-center flex-1 min-w-0">
-            <span className="text-[11px] font-medium font-montserrat mb-1" style={{ color }}>
+            <span className="text-[13px] font-medium font-montserrat mb-1" style={{ color }}>
               {typeof val === 'number' ? (val % 1 ? val.toFixed(1) : val) : val}
             </span>
             <div className="w-full rounded-md transition-all" style={{ height: `${pct}%`, backgroundColor: color, opacity: 0.2 }} />
-            <span className="text-[10px] text-salve-textFaint font-montserrat mt-1.5 truncate max-w-full text-center leading-tight">
+            <span className="text-[12px] text-salve-textFaint font-montserrat mt-1.5 truncate max-w-full text-center leading-tight">
               {v.category || v.label || ''}
             </span>
           </div>
@@ -60,11 +60,11 @@ function TrendArrow({ insight }) {
     <div className="flex items-center gap-2 mt-1.5">
       <Icon size={14} className={colorClass} />
       {totalChange != null && (
-        <span className={`text-[11px] font-medium font-montserrat ${colorClass}`}>
+        <span className={`text-[13px] font-medium font-montserrat ${colorClass}`}>
           {totalChange > 0 ? '+' : ''}{typeof totalChange === 'number' ? totalChange.toFixed(1) : totalChange}
         </span>
       )}
-      <span className="text-[10px] text-salve-textFaint font-montserrat">over 2 weeks</span>
+      <span className="text-[12px] text-salve-textFaint font-montserrat">over 2 weeks</span>
     </div>
   );
 }
@@ -81,7 +81,7 @@ function InsightCard({ insight }) {
     <div className={`border-l-2 ${meta.border} pl-3.5 py-2.5`}>
       <div className="flex items-center gap-2 mb-1">
         <Icon size={13} style={{ color: meta.color }} className="flex-shrink-0" />
-        <span className="text-[12px] font-semibold text-salve-text font-montserrat capitalize">{insight.title}</span>
+        <span className="text-[14px] font-semibold text-salve-text font-montserrat capitalize">{insight.title}</span>
       </div>
       <p className="text-[12.5px] text-salve-textMid font-montserrat leading-relaxed m-0">
         {insight.template}
@@ -89,7 +89,7 @@ function InsightCard({ insight }) {
       {isTrend && <TrendArrow insight={insight} />}
       {showChart && !isTrend && <MiniBarChart values={insight.data.values} color={meta.color} />}
       {insight.n && (
-        <span className="inline-block mt-2 text-[10px] text-salve-textFaint/60 font-montserrat">
+        <span className="inline-block mt-2 text-[12px] text-salve-textFaint/60 font-montserrat">
           Based on {insight.n} days of data
         </span>
       )}
@@ -170,7 +170,7 @@ function UnlockSection({ data, unlockedCategories }) {
     <div className="mt-4">
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 h-px bg-salve-border/40" />
-        <span className="text-[10px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">Unlock more insights</span>
+        <span className="text-[12px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">Unlock more insights</span>
         <div className="flex-1 h-px bg-salve-border/40" />
       </div>
       <div className="space-y-2">
@@ -186,10 +186,10 @@ function UnlockSection({ data, unlockedCategories }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[12px] font-medium font-montserrat text-salve-text">{hint.title}</span>
+                    <span className="text-[14px] font-medium font-montserrat text-salve-text">{hint.title}</span>
                     {pct < 100 && <Lock size={10} className="text-salve-textFaint/40" />}
                   </div>
-                  <p className="text-[11px] text-salve-textFaint font-montserrat leading-relaxed m-0 mb-2">
+                  <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed m-0 mb-2">
                     {hint.description}
                   </p>
                   {/* Progress bar */}
@@ -197,9 +197,9 @@ function UnlockSection({ data, unlockedCategories }) {
                     <div className="flex-1 h-1.5 rounded-full bg-salve-card overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: hint.color, opacity: 0.5 }} />
                     </div>
-                    <span className="text-[10px] text-salve-textFaint font-montserrat tabular-nums">{req.have}/{req.need}</span>
+                    <span className="text-[12px] text-salve-textFaint font-montserrat tabular-nums">{req.have}/{req.need}</span>
                   </div>
-                  <p className="text-[10px] font-montserrat mt-1 m-0" style={{ color: hint.color }}>
+                  <p className="text-[12px] font-montserrat mt-1 m-0" style={{ color: hint.color }}>
                     {req.what}
                   </p>
                 </div>
@@ -246,7 +246,7 @@ export default function Insights({ data, onNav }) {
         <div className="text-center mb-6 px-4">
           <Sparkles size={28} className="text-salve-lav mx-auto mb-3" />
           <h3 className="text-base font-montserrat font-medium text-salve-text mb-1">Insights are brewing</h3>
-          <p className="text-[12px] text-salve-textFaint font-montserrat leading-relaxed max-w-sm mx-auto">
+          <p className="text-[14px] text-salve-textFaint font-montserrat leading-relaxed max-w-sm mx-auto">
             Salve finds patterns in your health data automatically. The more you log, the smarter it gets. Here's what to track to unlock your first insights:
           </p>
         </div>
@@ -266,7 +266,7 @@ export default function Insights({ data, onNav }) {
             <button
               key={p}
               onClick={() => setFilter(p)}
-              className={`text-[11px] px-3 py-1.5 rounded-full border font-montserrat transition-colors cursor-pointer ${
+              className={`text-[13px] px-3 py-1.5 rounded-full border font-montserrat transition-colors cursor-pointer ${
                 filter === p
                   ? 'bg-salve-lav/15 border-salve-lav/30 text-salve-lav'
                   : count === 0
@@ -283,7 +283,7 @@ export default function Insights({ data, onNav }) {
 
       {/* Summary line */}
       {filter === 'All' && totalNonTrend > 0 && (
-        <p className="text-[11px] text-salve-textFaint font-montserrat mb-3 px-0.5">
+        <p className="text-[13px] text-salve-textFaint font-montserrat mb-3 px-0.5">
           Salve found {totalNonTrend} pattern{totalNonTrend !== 1 ? 's' : ''} and {trends.length} trend{trends.length !== 1 ? 's' : ''} in your data.
         </p>
       )}
@@ -293,7 +293,7 @@ export default function Insights({ data, onNav }) {
         <Card className="!p-0 overflow-hidden mb-3">
           <div className="px-4 pt-3.5 pb-2 flex items-center gap-2">
             <Sparkles size={13} className="text-salve-lav" />
-            <span className="text-[11px] text-salve-textFaint font-montserrat tracking-wide uppercase">Patterns</span>
+            <span className="text-[13px] text-salve-textFaint font-montserrat tracking-wide uppercase">Patterns</span>
           </div>
           {nonTrends.map((ins, i) => (
             <div key={ins.id}>
@@ -311,7 +311,7 @@ export default function Insights({ data, onNav }) {
         <Card className="!p-0 overflow-hidden mb-3">
           <div className="px-4 pt-3.5 pb-2 flex items-center gap-2">
             <TrendingUp size={13} className="text-salve-lav" />
-            <span className="text-[11px] text-salve-textFaint font-montserrat tracking-wide uppercase">Trends</span>
+            <span className="text-[13px] text-salve-textFaint font-montserrat tracking-wide uppercase">Trends</span>
           </div>
           {trends.map((ins, i) => (
             <div key={ins.id}>
@@ -325,7 +325,7 @@ export default function Insights({ data, onNav }) {
       )}
 
       {filtered.length === 0 && (
-        <p className="text-center text-[12px] text-salve-textFaint py-8 font-montserrat">
+        <p className="text-center text-[14px] text-salve-textFaint py-8 font-montserrat">
           No insights in this category yet.
         </p>
       )}

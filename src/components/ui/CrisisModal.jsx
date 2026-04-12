@@ -104,7 +104,7 @@ export default function CrisisModal({ type, onClose }) {
           <h2 className="font-playfair text-xl font-semibold text-salve-text tracking-tight">
             {resource.title}
           </h2>
-          <p className="text-[13px] text-salve-textMid font-montserrat mt-1.5 leading-relaxed">
+          <p className="text-[15px] text-salve-textMid font-montserrat mt-1.5 leading-relaxed">
             {resource.subtitle}
           </p>
         </div>
@@ -116,13 +116,13 @@ export default function CrisisModal({ type, onClose }) {
               <p className="text-[14px] font-semibold text-salve-text font-montserrat mb-1">
                 {item.label}
               </p>
-              <p className="text-[12px] text-salve-textFaint font-montserrat mb-3">
+              <p className="text-[14px] text-salve-textFaint font-montserrat mb-3">
                 {item.desc}
               </p>
               <div className="flex flex-wrap gap-2">
                 <a
                   href={item.action}
-                  className="inline-flex items-center gap-1.5 bg-salve-rose text-white text-[13px] font-semibold font-montserrat rounded-lg px-4 py-2 no-underline hover:bg-salve-roseDim transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-salve-rose text-white text-[15px] font-semibold font-montserrat rounded-lg px-4 py-2 no-underline hover:bg-salve-roseDim transition-colors"
                 >
                   <Phone size={14} />
                   {item.actionLabel}
@@ -130,7 +130,7 @@ export default function CrisisModal({ type, onClose }) {
                 {item.secondary && (
                   <a
                     href={item.secondary}
-                    className="inline-flex items-center gap-1.5 bg-salve-rose/15 text-salve-rose text-[13px] font-semibold font-montserrat rounded-lg px-4 py-2 no-underline hover:bg-salve-rose/25 transition-colors"
+                    className="inline-flex items-center gap-1.5 bg-salve-rose/15 text-salve-rose text-[15px] font-semibold font-montserrat rounded-lg px-4 py-2 no-underline hover:bg-salve-rose/25 transition-colors"
                   >
                     <MessageSquare size={14} />
                     {item.secondaryLabel}
@@ -143,14 +143,14 @@ export default function CrisisModal({ type, onClose }) {
 
         {/* Reassurance + close */}
         <div className="text-center">
-          <p className="text-[12px] text-salve-textFaint font-montserrat mb-4 leading-relaxed">
+          <p className="text-[14px] text-salve-textFaint font-montserrat mb-4 leading-relaxed">
             Your journal entry will still be saved. This message appears because
             we care about your safety.
           </p>
           <button
             ref={closeRef}
             onClick={handleClose}
-            className="inline-flex items-center gap-1.5 bg-salve-card border border-salve-border text-salve-textMid hover:text-salve-text text-[13px] font-montserrat rounded-xl px-5 py-2.5 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 bg-salve-card border border-salve-border text-salve-textMid hover:text-salve-text text-[15px] font-montserrat rounded-xl px-5 py-2.5 transition-colors cursor-pointer"
           >
             <X size={14} />
             I&apos;m okay, close this

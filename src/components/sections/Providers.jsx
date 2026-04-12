@@ -147,14 +147,14 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
         {!p.address && p.clinic && (
           <div className="text-xs text-salve-textFaint mt-0.5 flex items-center gap-1">
             <MapPin size={11} strokeWidth={1.4} />
-            <a href={mapsUrl(p.clinic)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline text-[11px]">View on Maps</a>
+            <a href={mapsUrl(p.clinic)} target="_blank" rel="noopener noreferrer" className="text-salve-sage hover:underline text-[13px]">View on Maps</a>
           </div>
         )}
         {p.phone && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><Phone size={12} strokeWidth={1.4} /> <a href={`tel:${p.phone.replace(/[^\d+]/g, '')}`} className="text-salve-sage hover:underline">{p.phone}</a></div>}
         {p.fax && <div className="text-xs text-salve-textFaint mt-0.5">Fax: {p.fax}</div>}
         {p.portal_url && <div className="text-xs text-salve-textMid mt-1 flex items-center gap-1"><ExternalLink size={12} strokeWidth={1.4} aria-hidden="true" /> <a href={p.portal_url.startsWith('http') ? p.portal_url : `https://${p.portal_url}`} target="_blank" rel="noopener noreferrer" aria-label={`Patient portal for ${p.name} (opens in new tab)`} className="text-salve-lav hover:underline truncate">Patient Portal</a></div>}
         {p.npi && (
-          <div className="text-[10px] text-salve-textFaint mt-1 flex items-center gap-1">
+          <div className="text-[12px] text-salve-textFaint mt-1 flex items-center gap-1">
             <ExternalLink size={10} strokeWidth={1.4} aria-hidden="true" />
             <span>NPI:</span>
             <a
@@ -173,7 +173,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
         {/* ── Prescribed medications ── */}
         {prescribedMeds.length > 0 && (
           <div className="mt-2.5 pt-2 border-t border-salve-border/30">
-            <div className="text-[11px] font-semibold text-salve-sage mb-1 flex items-center gap-1"><Pill size={11} /> Prescribed Medications ({prescribedMeds.length})</div>
+            <div className="text-[13px] font-semibold text-salve-sage mb-1 flex items-center gap-1"><Pill size={11} /> Prescribed Medications ({prescribedMeds.length})</div>
             {prescribedMeds.map(m => (
               <div key={m.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-salve-sage flex-shrink-0" />
@@ -186,12 +186,12 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
         {/* ── Treated conditions ── */}
         {treatedConditions.length > 0 && (
           <div className="mt-2 pt-2 border-t border-salve-border/30">
-            <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Stethoscope size={11} /> Conditions ({treatedConditions.length})</div>
+            <div className="text-[13px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Stethoscope size={11} /> Conditions ({treatedConditions.length})</div>
             {treatedConditions.map(c => (
               <div key={c.id} className="text-xs text-salve-textMid py-0.5 flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-salve-lav flex-shrink-0" />
                 <span className="font-medium text-salve-text">{c.name}</span>
-                <span className="text-[10px] text-salve-textFaint capitalize">{c.status}</span>
+                <span className="text-[12px] text-salve-textFaint capitalize">{c.status}</span>
               </div>
             ))}
           </div>
@@ -213,7 +213,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
           <button
             onClick={handleNameSearch}
             disabled={npiLoading || !form.name?.trim() || form.name.trim().length < 3}
-            className="absolute right-3 top-7 bg-transparent border border-salve-sage/40 rounded-lg px-2 py-1 cursor-pointer text-salve-sage text-[10px] font-montserrat flex items-center gap-1 hover:bg-salve-sage/10 disabled:opacity-40 disabled:cursor-default transition-colors"
+            className="absolute right-3 top-7 bg-transparent border border-salve-sage/40 rounded-lg px-2 py-1 cursor-pointer text-salve-sage text-[12px] font-montserrat flex items-center gap-1 hover:bg-salve-sage/10 disabled:opacity-40 disabled:cursor-default transition-colors"
           >
             {npiLoading ? <Loader size={10} className="animate-spin" /> : <Search size={10} />}
             NPI Lookup
@@ -229,16 +229,16 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
                   role="option"
                   className="w-full text-left px-3 py-2.5 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat border-b border-salve-border/30 last:border-b-0 transition-colors"
                 >
-                  <div className="font-medium text-[13px]">{r.name}</div>
-                  {r.specialty && <div className="text-[11px] text-salve-lav">{r.specialty}</div>}
-                  {r.address && <div className="text-[11px] text-salve-textFaint truncate">{r.address}</div>}
-                  <div className="text-[10px] text-salve-textFaint mt-0.5">NPI: {r.npi}{r.phone ? ` · ${r.phone}` : ''}</div>
+                  <div className="font-medium text-[15px]">{r.name}</div>
+                  {r.specialty && <div className="text-[13px] text-salve-lav">{r.specialty}</div>}
+                  {r.address && <div className="text-[13px] text-salve-textFaint truncate">{r.address}</div>}
+                  <div className="text-[12px] text-salve-textFaint mt-0.5">NPI: {r.npi}{r.phone ? ` · ${r.phone}` : ''}</div>
                 </button>
               ))}
               {!npiLoading && npiResults.length === 0 && showNpi && <div className="px-3 py-2 text-xs text-salve-textFaint">No results found</div>}
             </div>
           )}
-          {form.npi && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3">NPI: {form.npi} · Verified in CMS registry</div>}
+          {form.npi && <div className="text-[12px] text-salve-textFaint -mt-3 mb-3">NPI: {form.npi} · Verified in CMS registry</div>}
         </div>
         <Field label="Specialty" value={form.specialty} onChange={v => sf('specialty', v)} placeholder="e.g. Rheumatology" />
         <Field label="Clinic / Office" value={form.clinic} onChange={v => sf('clinic', v)} placeholder="Clinic name" />
@@ -282,17 +282,17 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
                   {p.name}
                   {p.is_favorite && <Star size={12} className="text-salve-amber fill-salve-amber flex-shrink-0" />}
                 </div>
-                {p.specialty && <div className="text-[13px] text-salve-lav font-medium">{p.specialty}</div>}
+                {p.specialty && <div className="text-[15px] text-salve-lav font-medium">{p.specialty}</div>}
                 {p.clinic && !isExpanded && <div className="text-xs text-salve-textMid mt-0.5 truncate">{p.clinic}</div>}
                 {!isExpanded && (prescribedMeds.length > 0 || treatedConditions.length > 0) && (
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     {prescribedMeds.length > 0 && (
-                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
+                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[12px] text-salve-sage font-medium">
                         <Pill size={10} /> {prescribedMeds.length} med{prescribedMeds.length !== 1 ? 's' : ''}
                       </span>
                     )}
                     {treatedConditions.length > 0 && (
-                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-lav/10 border border-salve-lav/20 text-[10px] text-salve-lav font-medium">
+                      <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-lav/10 border border-salve-lav/20 text-[12px] text-salve-lav font-medium">
                         <Stethoscope size={10} /> {treatedConditions.length} condition{treatedConditions.length !== 1 ? 's' : ''}
                       </span>
                     )}

@@ -171,17 +171,17 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
             <div className="text-center py-6">
               <Leaf size={28} className="text-salve-sage mx-auto mb-3 opacity-60" />
               <p className="font-playfair text-base text-salve-text mb-1">Hey, I'm Sage.</p>
-              <p className="text-[13px] text-salve-textMid">Ask me anything about your health.</p>
+              <p className="text-[15px] text-salve-textMid">Ask me anything about your health.</p>
             </div>
           ) : (
             messages.map((m, i) => (
               <div key={i} className={m.role === 'user' ? 'flex justify-end' : ''}>
                 {m.role === 'user' ? (
-                  <div className="inline-block max-w-[80%] bg-salve-lav/15 border border-salve-lav/20 rounded-2xl px-3.5 py-2 text-[13px] text-salve-text font-montserrat">
+                  <div className="inline-block max-w-[80%] bg-salve-lav/15 border border-salve-lav/20 rounded-2xl px-3.5 py-2 text-[15px] text-salve-text font-montserrat">
                     {m.content}
                   </div>
                 ) : (
-                  <div className="text-[13px] text-salve-text font-montserrat leading-relaxed">
+                  <div className="text-[15px] text-salve-text font-montserrat leading-relaxed">
                     <AIMarkdown>{m.content}</AIMarkdown>
                   </div>
                 )}
@@ -189,13 +189,13 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
             ))
           )}
           {loading && (
-            <div className="text-[12px] text-salve-textFaint font-montserrat italic flex items-center gap-1.5">
+            <div className="text-[14px] text-salve-textFaint font-montserrat italic flex items-center gap-1.5">
               <span className="w-1 h-1 rounded-full bg-salve-sage text-salve-sage pulse-dot" />
               Sage is thinking…
             </div>
           )}
           {error && (
-            <div className="text-[12px] text-salve-rose font-montserrat">{error}</div>
+            <div className="text-[14px] text-salve-rose font-montserrat">{error}</div>
           )}
         </div>
 
@@ -204,7 +204,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
           <div className="border-t border-salve-border">
             {usage.remaining <= 3 && (
               <div className="px-3 pt-2 text-center">
-                <span className="text-[10px] font-montserrat text-salve-rose">
+                <span className="text-[12px] font-montserrat text-salve-rose">
                   {usage.remaining === 0 ? 'Daily limit reached, resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
                 </span>
               </div>
@@ -218,7 +218,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
                 placeholder="Ask Sage…"
                 aria-label="Ask Sage"
                 disabled={false}
-                className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-[13px] text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
+                className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-[15px] text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
               />
               <button
                 onClick={send}

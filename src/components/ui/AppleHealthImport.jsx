@@ -182,7 +182,7 @@ export default function AppleHealthImport({ data, reloadData }) {
           <div className="w-full bg-salve-card2 rounded-full h-1.5 mb-1">
             <div className="bg-salve-sage h-1.5 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-[10px] text-salve-textFaint">{progress}%</p>
+          <p className="text-[12px] text-salve-textFaint">{progress}%</p>
         </div>
       </Card>
     );
@@ -220,12 +220,12 @@ export default function AppleHealthImport({ data, reloadData }) {
             </div>
           )}
           {preview.tooOld > 0 && (
-            <div className="text-[10px] text-salve-textFaint italic">
+            <div className="text-[12px] text-salve-textFaint italic">
               {preview.tooOld.toLocaleString()} older records skipped (6+ months ago)
             </div>
           )}
           {totalSkipped > 0 && (
-            <div className="text-[10px] text-salve-textFaint italic">
+            <div className="text-[12px] text-salve-textFaint italic">
               {totalSkipped} duplicate{totalSkipped !== 1 ? 's' : ''} will be skipped
             </div>
           )}
@@ -297,18 +297,18 @@ export default function AppleHealthImport({ data, reloadData }) {
   if (stage === 'paste') {
     return (
       <Card>
-        <p className="text-[13px] text-salve-text font-medium leading-relaxed mb-2">Paste from iOS Shortcut</p>
-        <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
+        <p className="text-[15px] text-salve-text font-medium leading-relaxed mb-2">Paste from iOS Shortcut</p>
+        <p className="text-[13px] text-salve-textFaint mb-2 leading-relaxed">
           Run the <strong className="text-salve-textMid">Salve Health Sync</strong> shortcut on your iPhone, pick a date range, then paste the JSON it copies to your clipboard.
         </p>
-        <p className="text-[11px] text-salve-textFaint mb-2 leading-relaxed">
+        <p className="text-[13px] text-salve-textFaint mb-2 leading-relaxed">
           Don't have the shortcut yet? See the build instructions in <code className="text-salve-textMid">docs/APPLE_HEALTH_SHORTCUT.md</code> (iCloud install link coming soon).
         </p>
         <textarea
           value={pasteText}
           onChange={e => setPasteText(e.target.value)}
           placeholder="Paste JSON data here..."
-          className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2 text-[12px] text-salve-text font-montserrat outline-none focus:border-salve-sage placeholder:text-salve-textFaint resize-y min-h-[80px]"
+          className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3 py-2 text-[14px] text-salve-text font-montserrat outline-none focus:border-salve-sage placeholder:text-salve-textFaint resize-y min-h-[80px]"
           rows={4}
         />
         <div className="flex gap-2 mt-2">
@@ -324,10 +324,10 @@ export default function AppleHealthImport({ data, reloadData }) {
   // Idle state, file picker + paste button
   return (
     <Card>
-      <p className="text-[13px] text-salve-text font-medium leading-relaxed mb-3">
+      <p className="text-[15px] text-salve-text font-medium leading-relaxed mb-3">
         Import vitals, workouts, and lab results from Apple Health.
       </p>
-      <ol className="text-[12px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal pl-5 mb-4">
+      <ol className="text-[14px] text-salve-textMid space-y-1.5 leading-relaxed list-decimal pl-5 mb-4">
         <li>Open the <strong className="text-salve-text">Health</strong> app on your iPhone</li>
         <li>Tap your <strong className="text-salve-text">profile picture</strong> (top right)</li>
         <li>Tap <strong className="text-salve-text">Export All Health&nbsp;Data</strong></li>

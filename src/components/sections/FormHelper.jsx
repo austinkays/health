@@ -136,7 +136,7 @@ function CopyButton({ text, label = 'Copy' }) {
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0 shrink-0"
+      className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0 shrink-0"
       aria-label={`Copy ${label}`}
     >
       {copied ? <Check size={10} className="text-salve-sage" /> : <Copy size={10} />}
@@ -193,7 +193,7 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
       >
-        <span className="text-[10px] text-salve-textFaint font-montserrat font-semibold mt-0.5 shrink-0">
+        <span className="text-[12px] text-salve-textFaint font-montserrat font-semibold mt-0.5 shrink-0">
           {index + 1}.
         </span>
         <div className="flex-1 min-w-0">
@@ -212,7 +212,7 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
             <div className="space-y-2">
               <div className="flex items-start gap-2">
                 <AlertTriangle size={13} className="text-salve-amber shrink-0 mt-0.5" />
-                <p className="text-[12px] text-salve-textMid font-montserrat m-0 leading-relaxed italic">
+                <p className="text-[14px] text-salve-textMid font-montserrat m-0 leading-relaxed italic">
                   {displayAnswer.replace(/⚠\s*/g, '').replace(/\*/g, '')}
                 </p>
               </div>
@@ -221,7 +221,7 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
                   onClick={() => onNav(navHint.navId)}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-salve-lav/8 hover:bg-salve-lav/15 border border-salve-lav/20 cursor-pointer transition-colors w-full text-left"
                 >
-                  <span className="text-[11px] text-salve-lav font-montserrat font-medium">
+                  <span className="text-[13px] text-salve-lav font-montserrat font-medium">
                     Add in {navHint.label}
                   </span>
                   <ChevronRight size={12} className="text-salve-lav ml-auto" />
@@ -230,7 +230,7 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
               <div className="flex justify-end">
                 <button
                   onClick={startEdit}
-                  className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                  className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                   aria-label="Edit answer"
                 >
                   <Pencil size={10} />
@@ -244,19 +244,19 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
                 value={editText}
                 onChange={e => setEditText(e.target.value)}
                 rows={3}
-                className="w-full py-2 px-3 rounded-lg border border-salve-lav/40 text-[13px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
+                className="w-full py-2 px-3 rounded-lg border border-salve-lav/40 text-[15px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
                 autoFocus
               />
               <div className="flex items-center gap-2 justify-end">
                 <button
                   onClick={() => setEditing(false)}
-                  className="text-[10px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                  className="text-[12px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={saveEdit}
-                  className="flex items-center gap-1 text-[10px] text-salve-lav hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat font-medium transition-colors p-0"
+                  className="flex items-center gap-1 text-[12px] text-salve-lav hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat font-medium transition-colors p-0"
                 >
                   <Check size={10} />
                   Done
@@ -265,7 +265,7 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
             </div>
           ) : (
             <div className="bg-salve-card2 rounded-lg px-3 py-2.5">
-              <p className="text-[13px] text-salve-text font-montserrat m-0 leading-relaxed whitespace-pre-wrap">
+              <p className="text-[15px] text-salve-text font-montserrat m-0 leading-relaxed whitespace-pre-wrap">
                 {pair.answer.replace(/^\*{2}|^\*{2}$/g, '')}
               </p>
               {pair.edited && (
@@ -280,7 +280,7 @@ function AnswerCard({ pair, index, onNav, onEdit }) {
             <div className="flex items-center justify-between mt-2">
               <button
                 onClick={startEdit}
-                className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                 aria-label="Edit answer"
               >
                 <Pencil size={10} />
@@ -319,7 +319,7 @@ function GapSummary({ pairs, onNav }) {
         <p className="text-xs text-salve-text font-montserrat font-medium m-0">
           Sage couldn&apos;t answer {gapCount} question{gapCount !== 1 ? 's' : ''}
         </p>
-        <p className="text-[11px] text-salve-textMid font-montserrat m-0 leading-relaxed">
+        <p className="text-[13px] text-salve-textMid font-montserrat m-0 leading-relaxed">
           Add your info to fill these automatically next time:
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -327,7 +327,7 @@ function GapSummary({ pairs, onNav }) {
             <button
               key={navId}
               onClick={() => onNav(navId)}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-montserrat font-medium text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 border border-salve-lav/20 cursor-pointer transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-montserrat font-medium text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 border border-salve-lav/20 cursor-pointer transition-colors"
             >
               {label}
               <ChevronRight size={10} />
@@ -361,7 +361,7 @@ function AppointmentPicker({ appointments, selected, onSelect }) {
         className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left"
       >
         <CalendarDays size={13} className="text-salve-lav shrink-0" />
-        <span className="text-[11px] text-salve-textMid font-montserrat flex-1">
+        <span className="text-[13px] text-salve-textMid font-montserrat flex-1">
           {selected ? `For: ${selected.provider || selected.reason || 'Upcoming appointment'}` : 'Filling forms for an appointment?'}
         </span>
         <ChevronDown size={12} className={`text-salve-textFaint transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -377,10 +377,10 @@ function AppointmentPicker({ appointments, selected, onSelect }) {
                 className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-left border-none cursor-pointer transition-colors ${isSelected ? 'bg-salve-lav/15' : 'bg-transparent hover:bg-salve-card2'}`}
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-salve-text font-montserrat font-medium m-0 truncate">
+                  <p className="text-[13px] text-salve-text font-montserrat font-medium m-0 truncate">
                     {appt.provider || appt.reason || 'Appointment'}
                   </p>
-                  <p className="text-[10px] text-salve-textFaint font-montserrat m-0">
+                  <p className="text-[12px] text-salve-textFaint font-montserrat m-0">
                     {new Date(appt.date + 'T12:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     {appt.time ? ` at ${appt.time}` : ''}
                     {appt.reason && appt.provider ? ` · ${appt.reason}` : ''}
@@ -465,19 +465,19 @@ function TemplatePicker({ onSelect }) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
-        <p className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase m-0">Quick start templates</p>
+        <p className="text-[12px] text-salve-textFaint font-montserrat tracking-widest uppercase m-0">Quick start templates</p>
         <div className="flex items-center gap-2">
           {hiddenIds.length > 0 && editing && (
             <button
               onClick={restoreAll}
-              className="text-[10px] text-salve-sage hover:text-salve-sage/80 bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+              className="text-[12px] text-salve-sage hover:text-salve-sage/80 bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
             >
               Restore all
             </button>
           )}
           <button
             onClick={() => { setEditing(!editing); setCreating(false); }}
-            className="text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+            className="text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
           >
             {editing ? 'Done' : 'Edit'}
           </button>
@@ -490,7 +490,7 @@ function TemplatePicker({ onSelect }) {
               onClick={() => !editing && onSelect(t)}
               className={`w-full flex flex-col items-start gap-1 p-2.5 rounded-lg border border-salve-border/60 bg-transparent hover:bg-salve-card2 hover:border-salve-lav/30 cursor-pointer transition-colors text-left ${editing ? 'opacity-80' : ''}`}
             >
-              <span className="text-[11px] text-salve-text font-montserrat font-medium leading-tight">{t.name}</span>
+              <span className="text-[13px] text-salve-text font-montserrat font-medium leading-tight">{t.name}</span>
               <span className="text-[9px] text-salve-textFaint font-montserrat">{t.description}</span>
               {t.custom && <span className="text-[8px] text-salve-lav/70 font-montserrat">Custom</span>}
             </button>
@@ -512,7 +512,7 @@ function TemplatePicker({ onSelect }) {
             className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border-2 border-dashed border-salve-border/60 bg-transparent hover:bg-salve-card2 hover:border-salve-lav/40 cursor-pointer transition-colors text-center min-h-[60px]"
           >
             <Plus size={14} className="text-salve-textFaint" />
-            <span className="text-[10px] text-salve-textFaint font-montserrat">New template</span>
+            <span className="text-[12px] text-salve-textFaint font-montserrat">New template</span>
           </button>
         )}
       </div>
@@ -521,39 +521,39 @@ function TemplatePicker({ onSelect }) {
       {creating && (
         <Card className="!border-salve-lav/20">
           <div className="space-y-2.5">
-            <p className="text-[11px] text-salve-text font-montserrat font-medium m-0">Create a template</p>
+            <p className="text-[13px] text-salve-text font-montserrat font-medium m-0">Create a template</p>
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
               placeholder="Template name"
               maxLength={60}
-              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[12px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
+              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[14px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
             />
             <input
               value={newDesc}
               onChange={e => setNewDesc(e.target.value)}
               placeholder="Short description (optional)"
               maxLength={100}
-              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[12px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
+              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[14px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
             />
             <textarea
               value={newQuestions}
               onChange={e => setNewQuestions(e.target.value)}
               placeholder="Paste or type your form questions here..."
               rows={5}
-              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[12px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
+              className="w-full py-2 px-3 rounded-lg border border-salve-border text-[14px] font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors resize-y leading-relaxed"
             />
             <div className="flex items-center gap-2 justify-end">
               <button
                 onClick={() => { setCreating(false); setNewName(''); setNewDesc(''); setNewQuestions(''); }}
-                className="text-[11px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat transition-colors px-2 py-1"
+                className="text-[13px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat transition-colors px-2 py-1"
               >
                 Cancel
               </button>
               <button
                 onClick={saveNewTemplate}
                 disabled={!newName.trim() || !newQuestions.trim()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-montserrat font-medium text-white bg-salve-sage border-none cursor-pointer transition-all hover:bg-salve-sage/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-montserrat font-medium text-white bg-salve-sage border-none cursor-pointer transition-all hover:bg-salve-sage/90 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <Check size={11} />
                 Save template
@@ -566,7 +566,7 @@ function TemplatePicker({ onSelect }) {
       {allTemplates.length > 4 && !editing && (
         <button
           onClick={() => setShowAll(!showAll)}
-          className="flex items-center gap-1 px-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors"
+          className="flex items-center gap-1 px-1 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors"
         >
           {showAll ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
           {showAll ? 'Show less' : `${allTemplates.length - 4} more templates`}
@@ -591,7 +591,7 @@ function RecentForms({ onRestore, onClear }) {
         className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left"
       >
         <Clock size={13} className="text-salve-textFaint shrink-0" />
-        <span className="text-[11px] text-salve-textMid font-montserrat flex-1">
+        <span className="text-[13px] text-salve-textMid font-montserrat flex-1">
           Recent forms ({history.length})
         </span>
         <ChevronDown size={12} className={`text-salve-textFaint transition-transform ${expanded ? 'rotate-180' : ''}`} />
@@ -606,10 +606,10 @@ function RecentForms({ onRestore, onClear }) {
                 className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg bg-transparent hover:bg-salve-card2 border-none cursor-pointer text-left transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-salve-text font-montserrat font-medium m-0 truncate">
+                  <p className="text-[13px] text-salve-text font-montserrat font-medium m-0 truncate">
                     {entry.label || `${entry.questionCount} question${entry.questionCount !== 1 ? 's' : ''}`}
                   </p>
-                  <p className="text-[10px] text-salve-textFaint font-montserrat m-0">
+                  <p className="text-[12px] text-salve-textFaint font-montserrat m-0">
                     {new Date(entry.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                     {entry.inputType === 'image' ? ' · Screenshot' : entry.inputType === 'both' ? ' · Text + Screenshot' : ' · Text'}
                   </p>
@@ -621,7 +621,7 @@ function RecentForms({ onRestore, onClear }) {
           <div className="border-t border-salve-border/40 px-3 py-2">
             <button
               onClick={() => { clearFormHistory(); setHistory([]); onClear?.(); }}
-              className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-rose bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+              className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-rose bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
             >
               <Trash2 size={10} />
               Clear history
@@ -978,7 +978,7 @@ export default function FormHelper({ data, onNav }) {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <FileSearch size={13} className="text-salve-lav" />
-                      <span className="text-[10px] text-salve-textFaint font-montserrat tracking-wide uppercase">
+                      <span className="text-[12px] text-salve-textFaint font-montserrat tracking-wide uppercase">
                         {imageFiles.length} page{imageFiles.length !== 1 ? 's' : ''} attached
                       </span>
                     </div>
@@ -1008,7 +1008,7 @@ export default function FormHelper({ data, onNav }) {
                 {imageFiles.length < MAX_IMAGES && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 mt-2 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                    className="flex items-center gap-1.5 mt-2 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                   >
                     <Plus size={10} />
                     Add another page
@@ -1043,7 +1043,7 @@ export default function FormHelper({ data, onNav }) {
                 <span className={`text-sm font-medium font-montserrat transition-colors ${dragOver ? 'text-salve-lav' : 'text-salve-textMid'}`}>
                   {dragOver ? 'Drop your form here' : 'Drop a screenshot or PDF, or tap to upload'}
                 </span>
-                <span className="text-[11px] text-salve-textFaint font-montserrat">
+                <span className="text-[13px] text-salve-textFaint font-montserrat">
                   PNG, JPG, PDF, up to {MAX_IMAGES} pages, 5 MB each
                 </span>
               </div>
@@ -1051,13 +1051,13 @@ export default function FormHelper({ data, onNav }) {
 
             {/* PDF progress */}
             {pdfProgress && (
-              <p className="text-[11px] text-salve-sage font-montserrat text-center m-0">{pdfProgress}</p>
+              <p className="text-[13px] text-salve-sage font-montserrat text-center m-0">{pdfProgress}</p>
             )}
 
             {/* Divider */}
             <div className="flex items-center gap-3 px-2">
               <div className="flex-1 h-px bg-salve-border/60" />
-              <span className="text-[10px] text-salve-textFaint font-montserrat tracking-wider uppercase">or paste text</span>
+              <span className="text-[12px] text-salve-textFaint font-montserrat tracking-wider uppercase">or paste text</span>
               <div className="flex-1 h-px bg-salve-border/60" />
             </div>
 
@@ -1066,7 +1066,7 @@ export default function FormHelper({ data, onNav }) {
               <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                   <FileText size={13} className="text-salve-textFaint" />
-                  <span className="text-[11px] text-salve-textFaint font-montserrat font-medium tracking-wide uppercase">Form text</span>
+                  <span className="text-[13px] text-salve-textFaint font-montserrat font-medium tracking-wide uppercase">Form text</span>
                 </div>
                 <textarea
                   value={questions}
@@ -1090,7 +1090,7 @@ export default function FormHelper({ data, onNav }) {
                 />
                 <div className="flex items-center justify-between">
                   {questionCount > 0 ? (
-                    <span className="text-[10px] text-salve-sage font-montserrat font-medium">
+                    <span className="text-[12px] text-salve-sage font-montserrat font-medium">
                       ~{questionCount} question{questionCount !== 1 ? 's' : ''} detected
                     </span>
                   ) : (
@@ -1098,7 +1098,7 @@ export default function FormHelper({ data, onNav }) {
                   )}
                   <button
                     onClick={handlePaste}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] text-salve-textFaint hover:text-salve-sage hover:bg-salve-sage/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] text-salve-textFaint hover:text-salve-sage hover:bg-salve-sage/5 bg-transparent border border-salve-border cursor-pointer font-montserrat transition-colors"
                     aria-label="Paste from clipboard"
                   >
                     <ClipboardPaste size={12} />
@@ -1164,7 +1164,7 @@ export default function FormHelper({ data, onNav }) {
             <GapSummary pairs={results.pairs} onNav={onNav} />
 
             <div className="flex items-center justify-between px-1">
-              <p className="text-[10px] text-salve-textFaint font-montserrat tracking-widest uppercase m-0">
+              <p className="text-[12px] text-salve-textFaint font-montserrat tracking-widest uppercase m-0">
                 {results.pairs.length} answer{results.pairs.length !== 1 ? 's' : ''} ready
               </p>
               <div className="flex items-center gap-3">
@@ -1178,7 +1178,7 @@ export default function FormHelper({ data, onNav }) {
                 />
                 <button
                   onClick={handlePrint}
-                  className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                  className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                   aria-label="Print answers"
                 >
                   <Printer size={10} />
@@ -1186,7 +1186,7 @@ export default function FormHelper({ data, onNav }) {
                 </button>
                 <button
                   onClick={handleStartOver}
-                  className="flex items-center gap-1 text-[10px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                  className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
                   aria-label="Start over with a new form"
                 >
                   <RotateCcw size={10} />
@@ -1202,7 +1202,7 @@ export default function FormHelper({ data, onNav }) {
             </div>
 
             <Card className="!border-salve-border/50">
-              <p className="text-[10px] text-salve-textFaint font-montserrat italic text-center m-0 leading-relaxed">
+              <p className="text-[12px] text-salve-textFaint font-montserrat italic text-center m-0 leading-relaxed">
                 Always review before submitting, Sage fills in what it can from your records. Answers marked with ⚠ are personal questions only you can answer.
               </p>
             </Card>

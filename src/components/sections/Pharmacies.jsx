@@ -178,12 +178,12 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
                 {!isExpanded && p.address && <div className="text-xs text-salve-textMid mt-0.5 truncate">{p.address}</div>}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
                   {meds.length > 0 && (
-                    <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[10px] text-salve-sage font-medium">
+                    <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[12px] text-salve-sage font-medium">
                       <Pill size={10} /> {meds.length} med{meds.length !== 1 ? 's' : ''}
                     </span>
                   )}
                   {refills.length > 0 && (
-                    <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-amber/10 border border-salve-amber/20 text-[10px] text-salve-amber font-medium">
+                    <span className="inline-flex items-center gap-1 py-0.5 px-2 rounded-full bg-salve-amber/10 border border-salve-amber/20 text-[12px] text-salve-amber font-medium">
                       <Clock size={10} /> {refills.length} refill{refills.length !== 1 ? 's' : ''} upcoming
                     </span>
                   )}
@@ -230,7 +230,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
                 {/* ── Medications at this pharmacy ── */}
                 {meds.length > 0 && (
                   <div className={`${p._saved ? 'mt-2.5 pt-2 border-t border-salve-border/30' : ''}`}>
-                    <div className="text-[11px] font-semibold text-salve-sage mb-1.5 flex items-center gap-1">
+                    <div className="text-[13px] font-semibold text-salve-sage mb-1.5 flex items-center gap-1">
                       <Pill size={11} /> Medications ({meds.length})
                     </div>
                     {meds.map(m => (
@@ -240,7 +240,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
                           {m.dose && <span className="text-salve-textFaint ml-1">{m.dose}</span>}
                         </div>
                         {m.refill_date && (
-                          <span className="text-[10px] text-salve-amber font-medium flex-shrink-0 ml-2">
+                          <span className="text-[12px] text-salve-amber font-medium flex-shrink-0 ml-2">
                             Refill {fmtRefill(m.refill_date)}
                           </span>
                         )}

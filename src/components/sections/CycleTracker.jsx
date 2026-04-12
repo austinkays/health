@@ -266,7 +266,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
                 optionLabels={[{ value: '', label: 'Select...' }, ...CERVICAL_MUCUS_LEVELS]}
               />
               {form.value && (
-                <div className="text-[11px] font-montserrat px-1 -mt-1 mb-2" style={{
+                <div className="text-[13px] font-montserrat px-1 -mt-1 mb-2" style={{
                   color: form.value === 'eggwhite' ? C.amber : form.value === 'creamy' ? C.lav : form.value === 'sticky' ? C.textMid : C.sage
                 }}>
                   {form.value === 'dry' && '→ Infertile, dense mucus blocks sperm'}
@@ -283,7 +283,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
               <Field label="Temperature (°F)" value={form.value} onChange={v => sf('value', v)}
                 type="number" placeholder="e.g. 97.45"
               />
-              <p className="text-[10px] text-salve-textFaint font-montserrat italic -mt-1 mb-2 px-1">
+              <p className="text-[12px] text-salve-textFaint font-montserrat italic -mt-1 mb-2 px-1">
                 Same time each morning, before getting up.
               </p>
             </>
@@ -373,7 +373,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
               finally { setOuraSyncing(false); }
             }}
             disabled={ouraSyncing}
-            className="bg-salve-card2 border border-salve-border rounded-lg px-3 py-1.5 text-[11px] text-salve-sage font-montserrat
+            className="bg-salve-card2 border border-salve-border rounded-lg px-3 py-1.5 text-[13px] text-salve-sage font-montserrat
               flex items-center gap-1.5 hover:border-salve-sage/40 transition-colors cursor-pointer disabled:opacity-50"
           >
             {ouraSyncing ? <Loader size={11} className="animate-spin" /> : <OuraIcon size={11} />}
@@ -409,17 +409,17 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
           <div className="grid grid-cols-3 gap-3 text-center">
             <div>
               <div className="text-2xl font-playfair font-semibold" style={{ color: C.rose }}>{dayOfCycle > 0 ? dayOfCycle : ', '}</div>
-              <div className="text-[10px] text-salve-textFaint font-montserrat uppercase">Day</div>
+              <div className="text-[12px] text-salve-textFaint font-montserrat uppercase">Day</div>
             </div>
             <div>
               <div className="text-2xl font-playfair font-semibold" style={{ color: C.lav }}>{stats.avgLength}</div>
-              <div className="text-[10px] text-salve-textFaint font-montserrat uppercase">Avg length</div>
+              <div className="text-[12px] text-salve-textFaint font-montserrat uppercase">Avg length</div>
             </div>
             <div>
               <div className="text-2xl font-playfair font-semibold" style={{ color: C.amber }}>
                 {nextPeriod ? Math.max(0, Math.ceil((new Date(nextPeriod + 'T00:00:00') - new Date().setHours(0,0,0,0)) / 86400000)) : ', '}
               </div>
-              <div className="text-[10px] text-salve-textFaint font-montserrat uppercase">Days until</div>
+              <div className="text-[12px] text-salve-textFaint font-montserrat uppercase">Days until</div>
             </div>
           </div>
         </Card>
@@ -462,7 +462,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
                 ))}
               </div>
             </div>
-            <p className="text-[10px] text-salve-textMid font-montserrat mt-1">{stStatus.details}</p>
+            <p className="text-[12px] text-salve-textMid font-montserrat mt-1">{stStatus.details}</p>
           </Card>
         );
       })()}
@@ -471,7 +471,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
       {bbtData.length >= 3 && (
         <Card className="mb-3 !p-3 md:max-w-[420px]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">BBT</span>
+            <span className="text-[12px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">BBT</span>
             {bbtShift.confirmed
               ? <span className="text-[9px] font-montserrat text-salve-sage">✓ Shift on {new Date(bbtShift.shiftDay + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' })}</span>
               : <span className="text-[9px] font-montserrat text-salve-textFaint">{bbtData.length} readings</span>
@@ -522,7 +522,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
             {(calMonth.year !== new Date().getFullYear() || calMonth.month !== new Date().getMonth()) && (
               <button
                 onClick={() => { const n = new Date(); setCalMonth({ year: n.getFullYear(), month: n.getMonth() }); }}
-                className="text-[10px] text-salve-lav font-montserrat px-2 py-0.5 rounded-full border border-salve-lav/30 bg-salve-lav/10 hover:bg-salve-lav/20 cursor-pointer transition-colors"
+                className="text-[12px] text-salve-lav font-montserrat px-2 py-0.5 rounded-full border border-salve-lav/30 bg-salve-lav/10 hover:bg-salve-lav/20 cursor-pointer transition-colors"
                 aria-label="Go to today"
               >
                 Today
@@ -542,7 +542,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
             { key: 'fertilityPct', label: 'Fertility %',   color: C.sage,  swatch: <span className="w-2.5 h-2.5 rounded-sm shrink-0 flex items-center justify-center text-[6px] font-bold" style={{ backgroundColor: `${C.sage}30`, color: C.sage }}>%</span> },
           ].map(t => (
             <button key={t.key} onClick={() => toggleOverlay(t.key)}
-              className={`flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[11px] font-medium font-montserrat cursor-pointer transition-all border ${
+              className={`flex items-center gap-1.5 py-1 px-2.5 rounded-full text-[13px] font-medium font-montserrat cursor-pointer transition-all border ${
                 overlays[t.key]
                   ? 'border-salve-border2 bg-salve-card2 text-salve-text'
                   : 'border-transparent bg-transparent text-salve-textFaint line-through opacity-50'
@@ -559,7 +559,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
         {/* Day headers */}
         <div className="grid grid-cols-7 gap-0.5 mb-1">
           {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(d => (
-            <div key={d} className="text-center text-[10px] font-montserrat text-salve-textFaint font-medium">{d}</div>
+            <div key={d} className="text-center text-[12px] font-montserrat text-salve-textFaint font-medium">{d}</div>
           ))}
         </div>
 

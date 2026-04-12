@@ -13,7 +13,7 @@ export default function ExternalLinkBadge({ url, label }) {
       {label && <span>{label}</span>}
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded bg-salve-card2 border border-salve-border px-2 py-1 text-[10px] text-salve-textMid opacity-0 group-hover:opacity-100 transition-opacity"
+        className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 whitespace-nowrap rounded bg-salve-card2 border border-salve-border px-2 py-1 text-[12px] text-salve-textMid opacity-0 group-hover:opacity-100 transition-opacity"
       >
         You&rsquo;re leaving Salve
       </span>

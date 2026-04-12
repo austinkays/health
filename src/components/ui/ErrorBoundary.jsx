@@ -26,7 +26,7 @@ export default class ErrorBoundary extends Component {
           <Card className="text-center !py-8">
             <AlertTriangle size={28} className="mx-auto mb-3 text-salve-amber" />
             <h3 className="font-playfair text-base text-salve-text mb-2">Something went wrong</h3>
-            <p className="text-[13px] text-salve-textMid mb-4">This section encountered an error.</p>
+            <p className="text-[15px] text-salve-textMid mb-4">This section encountered an error.</p>
             <Button
               variant="secondary"
               onClick={() => {

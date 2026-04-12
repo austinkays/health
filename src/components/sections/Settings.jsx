@@ -840,7 +840,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-salve-text font-medium font-montserrat">{s.name || 'No name set'}</p>
-            <p className="text-[11px] text-salve-textFaint font-montserrat">{demoMode ? 'Demo mode' : (userEmail || 'Loading...')}</p>
+            <p className="text-[13px] text-salve-textFaint font-montserrat">{demoMode ? 'Demo mode' : (userEmail || 'Loading...')}</p>
           </div>
           <button
             onClick={async () => {
@@ -876,7 +876,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-sm font-montserrat font-medium text-salve-text">Push Notifications</p>
-              <p className="text-[11px] text-salve-textFaint font-montserrat mt-0.5">
+              <p className="text-[13px] text-salve-textFaint font-montserrat mt-0.5">
                 {pushPermission === 'denied'
                   ? 'Blocked by your browser, check browser settings to allow'
                   : pushPermission === 'unsupported'
@@ -916,7 +916,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           {pushEnabled && !demoMode && (
             <button
               onClick={async () => { try { await sendTestPush(); } catch {} }}
-              className="text-[11px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
+              className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
             >
               Send test notification
             </button>
@@ -930,7 +930,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <Sparkles size={14} className="text-salve-sage" aria-hidden="true" />
           <span className="text-sm text-salve-text font-medium font-montserrat">Your health assistant</span>
         </div>
-        <p className="text-[11px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
+        <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
           Sage helps with health insights, fills out forms, finds relevant news, and can add or update your records through chat.
         </p>
 
@@ -938,7 +938,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Shield size={14} className="text-salve-sage" />
-              <span className="text-[11px] text-salve-textMid font-montserrat">Data sharing enabled</span>
+              <span className="text-[13px] text-salve-textMid font-montserrat">Data sharing enabled</span>
             </div>
             <button
               onClick={() => {
@@ -953,7 +953,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </button>
           </div>
         ) : (
-          <p className="text-[11px] text-salve-textFaint font-montserrat italic">
+          <p className="text-[13px] text-salve-textFaint font-montserrat italic">
             AI data sharing will be requested when you first use Sage.
           </p>
         )}
@@ -963,7 +963,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <AIProfilePreview data={data} />
         <button
           onClick={() => onNav('ai')}
-          className="text-[10px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+          className="text-[12px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
         >
           Chat with Sage →
         </button>
@@ -978,19 +978,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <span className="text-sm text-salve-text font-medium font-montserrat">
               {userTier === 'admin' ? 'Admin Tier' : userTier === 'premium' ? (isOnTrial ? 'Free Trial' : 'Premium') : 'Free Plan'}
             </span>
-            <span className={`text-[10px] ml-2 px-1.5 py-0.5 rounded-full font-medium ${userTier === 'admin' ? 'bg-salve-amber/15 text-salve-amber' : userTier === 'premium' ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-card2 text-salve-textFaint'}`}>
+            <span className={`text-[12px] ml-2 px-1.5 py-0.5 rounded-full font-medium ${userTier === 'admin' ? 'bg-salve-amber/15 text-salve-amber' : userTier === 'premium' ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-card2 text-salve-textFaint'}`}>
               {userTier === 'admin' ? 'Active' : userTier === 'premium' ? (isOnTrial ? `${trialDays} day${trialDays === 1 ? '' : 's'} left` : 'Active') : 'Current'}
             </span>
           </div>
         </div>
         {userTier === 'admin' && (
-          <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
+          <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
             All features unlocked. House Consultation uses both Claude and Gemini simultaneously for dual-AI differential analysis.
           </p>
         )}
         {isOnTrial && (
           <div className="mt-2 space-y-2">
-            <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+            <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
               You're on a free Premium trial with full access to every feature. No payment needed.
             </p>
             {BILLING_ENABLED && (
@@ -998,36 +998,36 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <button
                   onClick={handleUpgrade}
                   disabled={checkoutLoading}
-                  className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav/15 border border-salve-lav/30 text-salve-lav hover:bg-salve-lav/25 transition-colors disabled:opacity-60 cursor-pointer"
+                  className="w-full py-2 rounded-xl text-[14px] font-medium font-montserrat bg-salve-lav/15 border border-salve-lav/30 text-salve-lav hover:bg-salve-lav/25 transition-colors disabled:opacity-60 cursor-pointer"
                 >
                   {checkoutLoading ? 'Opening checkout…' : 'Upgrade to keep access after trial →'}
                 </button>
-                {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+                {checkoutError && <p className="text-[13px] text-salve-rose font-montserrat">{checkoutError}</p>}
               </>
             )}
           </div>
         )}
         {trialExpired && (
           <div className="space-y-2 mt-2">
-            <p className="text-[11px] text-salve-rose font-montserrat leading-relaxed">
+            <p className="text-[13px] text-salve-rose font-montserrat leading-relaxed">
               Your trial ended. You're now on the free plan.
             </p>
             {BILLING_ENABLED ? (
               <>
-                <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+                <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
                   Upgrading keeps advanced insights, experimental themes, and unlimited access.
                 </p>
                 <button
                   onClick={handleUpgrade}
                   disabled={checkoutLoading}
-                  className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+                  className="w-full py-2 rounded-xl text-[14px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
                 >
                   {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
                 </button>
-                {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+                {checkoutError && <p className="text-[13px] text-salve-rose font-montserrat">{checkoutError}</p>}
               </>
             ) : (
-              <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed">
+              <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
                 Premium upgrades aren't open yet. We'll let you know when they are.
               </p>
             )}
@@ -1035,7 +1035,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         )}
         {userTier === 'free' && !trialExpired && (
           <div className="mt-2 space-y-3">
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-montserrat">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[13px] font-montserrat">
               <div className="text-salve-textFaint font-medium col-span-2 border-b border-salve-border/50 pb-1 mb-0.5">Free vs Premium</div>
               <span className="text-salve-textMid">Sage AI assistant</span>
               <span className="text-salve-sage text-right">✓ Included</span>
@@ -1055,14 +1055,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <button
                   onClick={handleUpgrade}
                   disabled={checkoutLoading}
-                  className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+                  className="w-full py-2 rounded-xl text-[14px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
                 >
                   {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
                 </button>
-                {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
+                {checkoutError && <p className="text-[13px] text-salve-rose font-montserrat">{checkoutError}</p>}
               </>
             ) : (
-              <p className="text-[11px] text-salve-textFaint font-montserrat italic leading-relaxed">
+              <p className="text-[13px] text-salve-textFaint font-montserrat italic leading-relaxed">
                 Premium upgrades aren't open yet. We'll let you know when they are.
               </p>
             )}
@@ -1071,7 +1071,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         {userTier === 'premium' && !isOnTrial && BILLING_ENABLED && (
           <button
             onClick={openCustomerPortal}
-            className="mt-2 text-[11px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0"
+            className="mt-2 text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0"
           >
             Manage subscription →
           </button>
@@ -1079,29 +1079,29 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         {/* Dev-mode tier override, lets you preview the free/expired state without waiting */}
         {import.meta.env.DEV && (
           <div className="mt-3 pt-3 border-t border-salve-border">
-            <p className="text-[10px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1.5">Dev: tier override</p>
+            <p className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-1.5">Dev: tier override</p>
             <div className="flex gap-1.5 flex-wrap">
               <button
                 onClick={() => applyOverride('')}
-                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === '' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
+                className={`text-[12px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === '' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
               >
                 Actual ({s?.tier === 'premium' && isOnTrial ? 'trial' : s?.tier || 'free'})
               </button>
               <button
                 onClick={() => applyOverride('free')}
-                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'free' ? 'border-salve-rose/50 bg-salve-rose/10 text-salve-rose' : 'border-salve-border text-salve-textFaint'}`}
+                className={`text-[12px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'free' ? 'border-salve-rose/50 bg-salve-rose/10 text-salve-rose' : 'border-salve-border text-salve-textFaint'}`}
               >
                 Force free
               </button>
               <button
                 onClick={() => applyOverride('premium')}
-                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'premium' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
+                className={`text-[12px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'premium' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border text-salve-textFaint'}`}
               >
                 Force premium
               </button>
               <button
                 onClick={() => applyOverride('admin')}
-                className={`text-[10px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'admin' ? 'border-salve-amber/50 bg-salve-amber/10 text-salve-amber' : 'border-salve-border text-salve-textFaint'}`}
+                className={`text-[12px] px-2 py-1 rounded-full border font-montserrat ${tierOverride === 'admin' ? 'border-salve-amber/50 bg-salve-amber/10 text-salve-amber' : 'border-salve-border text-salve-textFaint'}`}
               >
                 Force admin
               </button>
@@ -1119,9 +1119,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
       </Card>
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 mb-1">
-        <button onClick={() => onNav('aboutme')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
-        <button onClick={() => onNav('pharmacies')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
-        <button onClick={() => onNav('insurance')} className="text-[11px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
+        <button onClick={() => onNav('aboutme')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
+        <button onClick={() => onNav('pharmacies')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
+        <button onClick={() => onNav('insurance')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
       </div>
 
       {/* ══════════════ 6. Connected Sources ══════════════ */}
@@ -1136,8 +1136,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <Sparkles size={16} className="text-salve-lav" />
               </div>
               <div className="text-left">
-                <span className="text-[13px] text-salve-text font-medium block">Claude Health Sync</span>
-                <span className="text-[10px] text-salve-textFaint">Pull records from MCP providers</span>
+                <span className="text-[15px] text-salve-text font-medium block">Claude Health Sync</span>
+                <span className="text-[12px] text-salve-textFaint">Pull records from MCP providers</span>
               </div>
             </div>
             {expandedSource === 'claude' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
@@ -1147,14 +1147,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               {/* ── Recommended: Claude Project (one-time setup) ── */}
               <div className="bg-salve-lav/5 border border-salve-lav/20 rounded-xl p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Highly recommended · saves tokens</span>
+                  <span className="text-[12px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Highly recommended · saves tokens</span>
                 </div>
-                <h4 className="text-[13px] text-salve-text font-medium font-montserrat mb-1">Create a Claude Project</h4>
-                <p className="text-[11px] text-salve-textFaint leading-relaxed mb-3">
+                <h4 className="text-[15px] text-salve-text font-medium font-montserrat mb-1">Create a Claude Project</h4>
+                <p className="text-[13px] text-salve-textFaint leading-relaxed mb-3">
                   The sync file is large and uses significant tokens every time you attach it. A project stores it once, so future syncs are just "sync my records" with no re-uploading.
                 </p>
 
-                <ol className="text-[11px] text-salve-textMid space-y-2.5 leading-relaxed list-decimal pl-5 mb-3">
+                <ol className="text-[13px] text-salve-textMid space-y-2.5 leading-relaxed list-decimal pl-5 mb-3">
                   <li>
                     On Claude.ai, click <strong className="text-salve-text">Projects</strong> → <strong className="text-salve-text">New project</strong>. Name it "Salve Health Sync".
                   </li>
@@ -1165,7 +1165,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                     </div>
                   </li>
                   <li>
-                    In the project's <strong className="text-salve-text">Files</strong> section (also called Project knowledge), upload <code className="text-salve-textMid text-[10px]">salve-sync.jsx</code>.
+                    In the project's <strong className="text-salve-text">Files</strong> section (also called Project knowledge), upload <code className="text-salve-textMid text-[12px]">salve-sync.jsx</code>.
                     <div className="mt-2">
                       <a
                         href="/salve-sync.jsx"
@@ -1189,40 +1189,40 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                   </li>
                 </ol>
 
-                <p className="text-[10px] text-salve-textFaint italic leading-relaxed">
+                <p className="text-[12px] text-salve-textFaint italic leading-relaxed">
                   After setup, future syncs only need step 4 + step 5.
                 </p>
               </div>
 
               {/* ── MCP connectors ── */}
               <div className="bg-salve-card2 border border-salve-border rounded-xl p-3">
-                <h4 className="text-[11px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">MCP connectors</h4>
-                <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2">
+                <h4 className="text-[13px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">MCP connectors</h4>
+                <p className="text-[12px] text-salve-textFaint leading-relaxed mb-2">
                   The sync artifact pulls records through MCP connectors like <strong className="text-salve-textMid">Healthex</strong> (patient portals) and <strong className="text-salve-textMid">Function Health</strong> (lab panels). Claude will detect which connectors you have and walk you through setting up any that are missing.
                 </p>
-                <p className="text-[10px] text-salve-textFaint italic leading-relaxed">
+                <p className="text-[12px] text-salve-textFaint italic leading-relaxed">
                   Just start the artifact and follow the prompts. No manual URL configuration needed.
                 </p>
               </div>
 
               {/* ── Fallback: one-off chat ── */}
               <details className="group">
-                <summary className="cursor-pointer text-[11px] text-salve-textMid font-montserrat hover:text-salve-text flex items-center gap-1.5">
+                <summary className="cursor-pointer text-[13px] text-salve-textMid font-montserrat hover:text-salve-text flex items-center gap-1.5">
                   <ChevronDown size={12} className="transition-transform group-open:rotate-180" />
                   One-off sync (uses more tokens each time)
                 </summary>
                 <div className="mt-3 pl-4 space-y-4 border-l-2 border-salve-border/40">
-                  <p className="text-[11px] text-salve-textFaint leading-relaxed">
+                  <p className="text-[13px] text-salve-textFaint leading-relaxed">
                     Open a new chat on Claude.ai and follow these steps in order.
                   </p>
 
                   {/* Step 1, Prep prompt */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">1</span>
-                      <span className="text-[12px] text-salve-text font-medium font-montserrat">Send the prep prompt</span>
+                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[12px] font-semibold flex items-center justify-center font-montserrat">1</span>
+                      <span className="text-[14px] text-salve-text font-medium font-montserrat">Send the prep prompt</span>
                     </div>
-                    <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
+                    <p className="text-[12px] text-salve-textFaint leading-relaxed mb-2 pl-7">
                       Primes Claude so it knows what to do when the file arrives.
                     </p>
                     <div className="pl-7">
@@ -1233,10 +1233,10 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                   {/* Step 2, Attach file */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">2</span>
-                      <span className="text-[12px] text-salve-text font-medium font-montserrat">Attach the file</span>
+                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[12px] font-semibold flex items-center justify-center font-montserrat">2</span>
+                      <span className="text-[14px] text-salve-text font-medium font-montserrat">Attach the file</span>
                     </div>
-                    <p className="text-[10px] text-salve-textFaint leading-relaxed mb-2 pl-7">
+                    <p className="text-[12px] text-salve-textFaint leading-relaxed mb-2 pl-7">
                       Download it, then attach it as your next message in Claude. You don't need to type anything, Claude already has its instructions from step 1.
                     </p>
                     <div className="pl-7">
@@ -1257,10 +1257,10 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                   {/* Step 3, Import */}
                   <div>
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[10px] font-semibold flex items-center justify-center font-montserrat">3</span>
-                      <span className="text-[12px] text-salve-text font-medium font-montserrat">Import the JSON back here</span>
+                      <span className="w-5 h-5 rounded-full bg-salve-lav/20 text-salve-lav text-[12px] font-semibold flex items-center justify-center font-montserrat">3</span>
+                      <span className="text-[14px] text-salve-text font-medium font-montserrat">Import the JSON back here</span>
                     </div>
-                    <p className="text-[10px] text-salve-textFaint leading-relaxed pl-7">
+                    <p className="text-[12px] text-salve-textFaint leading-relaxed pl-7">
                       Pull records in the artifact, download the JSON, and import via Data Management → Import above.
                     </p>
                   </div>
@@ -1278,8 +1278,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <OuraIcon size={16} className={ouraConnected ? 'text-salve-sage' : 'text-salve-textFaint'} />
               </div>
               <div className="text-left">
-                <span className="text-[13px] text-salve-text font-medium block">Oura Ring</span>
-                <span className="text-[10px] text-salve-textFaint">
+                <span className="text-[15px] text-salve-text font-medium block">Oura Ring</span>
+                <span className="text-[12px] text-salve-textFaint">
                   {ouraConnected
                     ? `Connected${sourceCounts.oura > 0 ? ` · ${sourceCounts.oura} records` : ''}`
                     : 'Sleep, readiness, temperature, workouts'}
@@ -1298,7 +1298,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               {ouraConnected ? (
                 <>
                   <div className="flex justify-end mb-2">
-                    <button onClick={() => onNav('oura')} className="text-[10px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Oura data →</button>
+                    <button onClick={() => onNav('oura')} className="text-[12px] text-salve-sage font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Oura data →</button>
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -1321,7 +1321,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </>
               ) : (
                 <>
-                  <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
+                  <p className="text-[15px] text-salve-textMid leading-relaxed mb-3">
                     Connect your Oura Ring to import sleep, readiness, heart rate, temperature, and workout data.
                   </p>
                   <button
@@ -1613,8 +1613,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <Apple size={16} className={hasAppleHealth ? 'text-salve-lav' : 'text-salve-textFaint'} />
               </div>
               <div className="text-left">
-                <span className="text-[13px] text-salve-text font-medium block">Apple Health</span>
-                <span className="text-[10px] text-salve-textFaint">
+                <span className="text-[15px] text-salve-text font-medium block">Apple Health</span>
+                <span className="text-[12px] text-salve-textFaint">
                   {hasAppleHealth ? `${sourceCounts.apple_health} records imported` : 'Vitals, workouts, labs from iPhone'}
                 </span>
               </div>
@@ -1628,7 +1628,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <div className="mt-3 pt-3 border-t border-salve-border/50">
               {hasAppleHealth && (
                 <div className="flex justify-end mb-2">
-                  <button onClick={() => onNav('apple_health')} className="text-[10px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Apple Health data →</button>
+                  <button onClick={() => onNav('apple_health')} className="text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Apple Health data →</button>
                 </div>
               )}
               <AppleHealthImport data={data} reloadData={reloadData} />
@@ -1711,15 +1711,15 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <Heart size={16} className="text-salve-rose" />
               </div>
               <div className="text-left">
-                <span className="text-[13px] text-salve-text font-medium block">Flo</span>
-                <span className="text-[10px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
+                <span className="text-[15px] text-salve-text font-medium block">Flo</span>
+                <span className="text-[12px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
               </div>
             </div>
             {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
           </button>
           {expandedSource === 'flo' && (
             <div className="mt-3 pt-3 border-t border-salve-border/50">
-              <p className="text-[11px] text-salve-textMid font-montserrat leading-relaxed mb-2">
+              <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mb-2">
                 Import your cycle history from Flo. Go to Flo → Profile → Settings → Request My Data, then upload the JSON file in the Cycle Tracker section.
               </p>
               <button
@@ -1756,10 +1756,10 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             onClick={() => setDataExpanded(true)}
             className="w-full text-left bg-transparent border-none cursor-pointer p-0 font-montserrat"
           >
-            <p className="text-[13px] text-salve-textMid leading-relaxed">
+            <p className="text-[15px] text-salve-textMid leading-relaxed">
               Backup, restore, import, and erase your data.
             </p>
-            <p className="text-[11px] text-salve-textFaint mt-1 flex items-center gap-1">
+            <p className="text-[13px] text-salve-textFaint mt-1 flex items-center gap-1">
               Tap to expand <ChevronDown size={12} />
             </p>
           </button>
@@ -1770,7 +1770,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <Card>
           {/* ── Download Backup ── */}
           <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Download Backup</span>
-          <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+          <p className="text-[15px] text-salve-textMid mb-3 leading-relaxed">
             Save all your health data as a JSON file. Use this to restore later or transfer to another device.
           </p>
           <button
@@ -1783,7 +1783,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
 
           <div className="mt-3.5 pt-3.5 border-t border-salve-border/50">
-            <p className="text-[13px] text-salve-textMid mb-2.5 leading-relaxed">
+            <p className="text-[15px] text-salve-textMid mb-2.5 leading-relaxed">
               Or download an encrypted backup protected with a passphrase.
             </p>
             <input
@@ -1808,7 +1808,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           {/* ── Import Data ── */}
           <div className="mt-5 pt-5 border-t border-salve-border">
             <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Import Data</span>
-            <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+            <p className="text-[15px] text-salve-textMid mb-3 leading-relaxed">
               Upload a backup file or a health sync file.
             </p>
 
@@ -1840,7 +1840,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             {importValidation && importValidation.encrypted && (
               <div className="mt-4 p-4 rounded-xl bg-salve-card2 border border-salve-border">
                 <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-2 block">Encrypted Backup</span>
-                <p className="text-[13px] text-salve-textMid mb-3">Enter the passphrase to decrypt this backup file.</p>
+                <p className="text-[15px] text-salve-textMid mb-3">Enter the passphrase to decrypt this backup file.</p>
                 <input
                   type="password"
                   value={importPassphrase}
@@ -1937,7 +1937,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
           {/* ── Remove Duplicates ── */}
           <div className="mt-4">
-            <p className="text-[11px] text-salve-textFaint mb-2 font-montserrat">
+            <p className="text-[13px] text-salve-textFaint mb-2 font-montserrat">
               Duplicate entries can appear when wearable data syncs multiple times.
             </p>
             <button
@@ -1956,7 +1956,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               {dedupStatus === 'running' ? 'Scanning...' : 'Remove Duplicates'}
             </button>
             {dedupStatus && dedupStatus !== 'running' && (
-              <p className="text-[11px] text-salve-textMid mt-1.5 font-montserrat">
+              <p className="text-[13px] text-salve-textMid mt-1.5 font-montserrat">
                 {dedupStatus.results.length > 0
                   ? dedupStatus.results.map(r => `${r.removed} duplicate${r.removed > 1 ? 's' : ''} removed from ${r.table}`).join('. ') + '.'
                   : 'No duplicates found.'}
@@ -1969,12 +1969,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <>
           <div className="mt-5 pt-5 border-t border-salve-border">
             <span className="text-xs font-semibold uppercase tracking-wider text-salve-textFaint mb-3 block">Danger Zone</span>
-            <p className="text-[13px] text-salve-textMid mb-3 leading-relaxed">
+            <p className="text-[15px] text-salve-textMid mb-3 leading-relaxed">
               All data is synced to your account and available across devices.
             </p>
             {showEraseConfirm ? (
               <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
-                <p className="text-[13px] text-salve-rose font-medium mb-2.5">
+                <p className="text-[15px] text-salve-rose font-medium mb-2.5">
                   Permanently erase ALL health data? This cannot be undone.
                 </p>
                 <div className="flex gap-2">
@@ -1995,7 +1995,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
           {/* ── Delete Account (permanent, removes auth.users row + cascades) ── */}
           <div className="mt-4 pt-4 border-t border-salve-border">
-            <h4 className="text-[13px] font-medium text-salve-text mb-1 font-montserrat">Delete Account</h4>
+            <h4 className="text-[15px] font-medium text-salve-text mb-1 font-montserrat">Delete Account</h4>
             <p className="text-xs text-salve-textFaint mb-3 leading-relaxed">
               Permanently deletes your account and all associated data. You will be signed out. This cannot be undone.
             </p>
@@ -2006,7 +2006,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             )}
             {deleteStage === 'confirm' && (
               <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
-                <p className="text-[13px] text-salve-rose font-medium mb-2">
+                <p className="text-[15px] text-salve-rose font-medium mb-2">
                   Type <span className="font-mono">DELETE</span> to confirm permanent deletion.
                 </p>
                 <input
@@ -2048,11 +2048,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
             {deleteStage === 'deleting' && (
-              <p className="text-[13px] text-salve-textMid italic">Deleting your account…</p>
+              <p className="text-[15px] text-salve-textMid italic">Deleting your account…</p>
             )}
             {deleteStage === 'error' && (
               <div className="bg-salve-rose/10 border border-salve-rose/30 rounded-xl p-3.5">
-                <p className="text-[13px] text-salve-rose mb-2">{deleteError}</p>
+                <p className="text-[15px] text-salve-rose mb-2">{deleteError}</p>
                 <Button
                   variant="ghost"
                   onClick={() => { setDeleteStage('idle'); setDeleteInput(''); setDeleteError(null); }}
@@ -2076,7 +2076,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <Smartphone size={14} className="text-salve-lav mt-0.5 flex-shrink-0" />
             <div>
               <div className="text-sm font-medium text-salve-text font-montserrat mb-1">Add Salve to your home screen</div>
-              <p className="text-[12px] text-salve-textFaint font-montserrat leading-relaxed m-0">
+              <p className="text-[14px] text-salve-textFaint font-montserrat leading-relaxed m-0">
                 Salve works as a full app when installed, faster launch, offline access, and no browser bar.
               </p>
             </div>
@@ -2084,14 +2084,14 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <div className="border-t border-salve-border/50 pt-3 space-y-2.5">
             <div className="flex items-start gap-2">
               <Apple size={12} className="text-salve-textMid mt-0.5 flex-shrink-0" />
-              <p className="text-[12px] text-salve-textMid font-montserrat leading-relaxed m-0">
-                <strong>iPhone/iPad:</strong> Tap the share button <span className="inline-block px-1 py-0.5 bg-salve-card2 rounded text-[10px]">&#x2191;</span> in Safari, then <strong>Add to Home Screen</strong>
+              <p className="text-[14px] text-salve-textMid font-montserrat leading-relaxed m-0">
+                <strong>iPhone/iPad:</strong> Tap the share button <span className="inline-block px-1 py-0.5 bg-salve-card2 rounded text-[12px]">&#x2191;</span> in Safari, then <strong>Add to Home Screen</strong>
               </p>
             </div>
             <div className="flex items-start gap-2">
               <Smartphone size={12} className="text-salve-textMid mt-0.5 flex-shrink-0" />
-              <p className="text-[12px] text-salve-textMid font-montserrat leading-relaxed m-0">
-                <strong>Android:</strong> Tap the menu <span className="inline-block px-1 py-0.5 bg-salve-card2 rounded text-[10px]">&#8942;</span> in Chrome, then <strong>Add to Home Screen</strong> or <strong>Install App</strong>
+              <p className="text-[14px] text-salve-textMid font-montserrat leading-relaxed m-0">
+                <strong>Android:</strong> Tap the menu <span className="inline-block px-1 py-0.5 bg-salve-card2 rounded text-[12px]">&#8942;</span> in Chrome, then <strong>Add to Home Screen</strong> or <strong>Install App</strong>
               </p>
             </div>
           </div>
@@ -2140,7 +2140,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <div className="text-center mt-6 mb-2">
         <button
           onClick={() => onNav('legal')}
-          className="text-[12px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors underline underline-offset-2"
+          className="text-[14px] text-salve-textFaint hover:text-salve-lav bg-transparent border-none cursor-pointer font-montserrat transition-colors underline underline-offset-2"
         >
           Privacy, Terms & HIPAA Notice
         </button>
@@ -2152,7 +2152,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           <Motif type="moon" size={14} />
           <Motif type="sparkle" size={10} color="#6e6a80" />
         </div>
-        <p className="text-[11px] text-salve-textFaint italic leading-relaxed">
+        <p className="text-[13px] text-salve-textFaint italic leading-relaxed">
           Personal health reference tool<br />Always consult your healthcare providers
         </p>
       </div>

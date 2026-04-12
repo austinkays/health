@@ -91,14 +91,14 @@ export default function News({ data, demoMode = false }) {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] md:text-xs font-montserrat whitespace-nowrap border transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] md:text-xs font-montserrat whitespace-nowrap border transition-colors cursor-pointer ${
                 isActive
                   ? 'bg-salve-lav/15 border-salve-lav/30 text-salve-lav'
                   : 'bg-salve-card border-salve-border text-salve-textMid hover:border-salve-lav/20'
               }`}
             >
               {f.label}
-              {count > 0 && <span className="text-[10px] opacity-60">{count}</span>}
+              {count > 0 && <span className="text-[12px] opacity-60">{count}</span>}
             </button>
           );
         })}
@@ -170,7 +170,7 @@ export default function News({ data, demoMode = false }) {
                       href={article.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[13px] md:text-sm text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1 leading-snug"
+                      className="text-[15px] md:text-sm text-salve-text font-medium hover:text-salve-lav transition-colors inline-flex items-center gap-1 leading-snug"
                     >
                       {article.title}
                       <ExternalLink size={10} className="text-salve-textFaint/40 flex-shrink-0" />
@@ -205,7 +205,7 @@ export default function News({ data, demoMode = false }) {
 
       {/* Footer hint */}
       {filtered.length > 0 && (
-        <p className="text-center text-[10px] text-salve-textFaint/50 font-montserrat mt-4">
+        <p className="text-center text-[12px] text-salve-textFaint/50 font-montserrat mt-4">
           Articles from trusted sources, matched to your health profile
         </p>
       )}

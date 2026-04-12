@@ -37,18 +37,18 @@ export default function AIConsentGate({ children }) {
           <h3 className="font-playfair text-base font-semibold text-salve-text m-0">Meet Sage</h3>
         </div>
 
-        <p className="text-[13px] text-salve-textMid leading-relaxed mb-3">
+        <p className="text-[15px] text-salve-textMid leading-relaxed mb-3">
           Sage is your health companion. To generate personalized insights, Sage sends parts of your health profile to a third-party AI provider&thinsp;&mdash;&thinsp;<strong className="text-salve-text">Google Gemini</strong> on the free plan or <strong className="text-salve-text">Anthropic Claude</strong> on Premium. This may include:
         </p>
 
-        <ul className="text-[13px] text-salve-textMid leading-relaxed mb-3 list-disc pl-4 space-y-1">
+        <ul className="text-[15px] text-salve-textMid leading-relaxed mb-3 list-disc pl-4 space-y-1">
           <li>Your name and location</li>
           <li>Medications, conditions, and allergies</li>
           <li>Recent vitals and journal entries</li>
           <li>Insurance plan name</li>
         </ul>
 
-        <p className="text-[13px] text-salve-textMid leading-relaxed mb-4">
+        <p className="text-[15px] text-salve-textMid leading-relaxed mb-4">
           Your data is sent over an encrypted connection and is not used to train AI models. You can revoke this consent at any time in Settings.
         </p>
 
@@ -58,7 +58,7 @@ export default function AIConsentGate({ children }) {
           </Button>
         </div>
 
-        <p className="text-[10px] text-salve-textFaint italic text-center mt-3 leading-relaxed">
+        <p className="text-[12px] text-salve-textFaint italic text-center mt-3 leading-relaxed">
           Sage's suggestions are not medical advice. Always consult your healthcare providers.
         </p>
       </Card>

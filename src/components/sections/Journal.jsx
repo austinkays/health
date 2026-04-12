@@ -51,7 +51,7 @@ function VoiceInputBlock({ onTranscript }) {
           {isListening ? 'Stop · tap to save' : 'Voice entry'}
         </button>
         {isListening && (
-          <span className="text-[10px] text-salve-rose font-montserrat animate-pulse">● Recording</span>
+          <span className="text-[12px] text-salve-rose font-montserrat animate-pulse">● Recording</span>
         )}
       </div>
       {isListening && transcript && (
@@ -60,7 +60,7 @@ function VoiceInputBlock({ onTranscript }) {
         </div>
       )}
       {error && (
-        <p className="text-[11px] text-salve-rose font-montserrat mt-1" role="alert">{error}</p>
+        <p className="text-[13px] text-salve-rose font-montserrat mt-1" role="alert">{error}</p>
       )}
     </div>
   );
@@ -363,7 +363,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             {data.cycles?.length > 0 && form.date && (() => {
               const cp = getCyclePhaseForDate(form.date, data.cycles);
               return cp ? (
-                <span className="text-[10px] font-montserrat" style={{ color: cp.color }}>
+                <span className="text-[12px] font-montserrat" style={{ color: cp.color }}>
                   Day {cp.dayOfCycle} · {cp.phase}
                 </span>
               ) : null;
@@ -406,7 +406,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           {/* Hydration + Activity, quick body check alongside mood */}
           <div className="flex items-center gap-4 mt-2.5 pl-0.5">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-salve-textFaint font-montserrat">Hydration</span>
+              <span className="text-[12px] text-salve-textFaint font-montserrat">Hydration</span>
               <div className="flex gap-0.5">
                 {[{v:'1',l:'😵'},{v:'2',l:'🙂'},{v:'3',l:'💧'},{v:'4',l:'🌊'}].map(h => (
                   <button key={h.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, hydration: p.hydration === h.v ? '' : h.v }))}
@@ -419,7 +419,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               </div>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-salve-textFaint font-montserrat">Activity</span>
+              <span className="text-[12px] text-salve-textFaint font-montserrat">Activity</span>
               <div className="flex gap-0.5">
                 {[{v:'1',l:'🛋'},{v:'2',l:'🚶'},{v:'3',l:'🏃'},{v:'4',l:'🔥'}].map(a => (
                   <button key={a.v} type="button" onClick={() => setQuickCheck(p => ({ ...p, activity: p.activity === a.v ? '' : a.v }))}
@@ -443,7 +443,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         >
           <div className="flex items-center gap-1.5 mb-1">
             <Sparkles size={11} className="text-salve-lav/60" />
-            <span className="text-[10px] font-montserrat font-medium text-salve-lav/60 uppercase tracking-wider">Not sure what to write?</span>
+            <span className="text-[12px] font-montserrat font-medium text-salve-lav/60 uppercase tracking-wider">Not sure what to write?</span>
             <RefreshCw size={10} className="text-salve-textFaint/30 group-hover:text-salve-lav ml-auto shrink-0 transition-colors" />
           </div>
           <p className="text-xs text-salve-textFaint italic font-montserrat leading-relaxed pl-4">
@@ -466,47 +466,47 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           placeholder="What's on your mind today..."
         />
         {extracting && (
-          <div className="-mt-1 mb-3 flex items-center gap-1.5 text-salve-lav/70 text-[11px] font-montserrat">
+          <div className="-mt-1 mb-3 flex items-center gap-1.5 text-salve-lav/70 text-[13px] font-montserrat">
             <Loader size={12} className="animate-spin" /> Reading your entry...
           </div>
         )}
         {extraction && (
           <div className="mb-3 px-2.5 py-2 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-semibold text-salve-lav font-montserrat flex items-center gap-1"><Sparkles size={11} /> Sage noticed</span>
+              <span className="text-[13px] font-semibold text-salve-lav font-montserrat flex items-center gap-1"><Sparkles size={11} /> Sage noticed</span>
               <button type="button" onClick={() => setExtraction(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss extraction">×</button>
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {extraction.mood && (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-card border border-salve-border text-salve-text font-montserrat">
+                <span className="inline-flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-full bg-salve-card border border-salve-border text-salve-text font-montserrat">
                   {extraction.mood}
                   <button type="button" onClick={() => removeExtractionField('mood')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove mood"><X size={10} /></button>
                 </span>
               )}
               {(extraction.symptoms || []).map((s, i) => (
-                <span key={i} className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-amber/10 border border-salve-amber/25 text-salve-amber font-montserrat">
+                <span key={i} className="inline-flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-full bg-salve-amber/10 border border-salve-amber/25 text-salve-amber font-montserrat">
                   {typeof s === 'string' ? s : s.name}{s.severity ? ` ${s.severity}/5` : ''}
                   <button type="button" onClick={() => setExtraction(prev => ({ ...prev, symptoms: prev.symptoms.filter((_, j) => j !== i) }))} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label={`Remove ${typeof s === 'string' ? s : s.name}`}><X size={10} /></button>
                 </span>
               ))}
               {extraction.triggers && (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-rose/10 border border-salve-rose/25 text-salve-rose font-montserrat">
+                <span className="inline-flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-full bg-salve-rose/10 border border-salve-rose/25 text-salve-rose font-montserrat">
                   ⚡ {extraction.triggers.length > 40 ? extraction.triggers.slice(0, 40) + '…' : extraction.triggers}
                   <button type="button" onClick={() => removeExtractionField('triggers')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove triggers"><X size={10} /></button>
                 </span>
               )}
               {extraction.interventions && (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-salve-sage/10 border border-salve-sage/25 text-salve-sage font-montserrat">
+                <span className="inline-flex items-center gap-1 text-[13px] px-2 py-0.5 rounded-full bg-salve-sage/10 border border-salve-sage/25 text-salve-sage font-montserrat">
                   ✦ {extraction.interventions.length > 40 ? extraction.interventions.slice(0, 40) + '…' : extraction.interventions}
                   <button type="button" onClick={() => removeExtractionField('interventions')} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-rose p-0 leading-none" aria-label="Remove interventions"><X size={10} /></button>
                 </span>
               )}
             </div>
             <div className="flex gap-2">
-              <button type="button" onClick={applyExtraction} className="text-[11px] px-3 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors">
+              <button type="button" onClick={applyExtraction} className="text-[13px] px-3 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors">
                 <Check size={10} className="inline mr-1 -mt-px" />Apply
               </button>
-              <button type="button" onClick={() => setExtraction(null)} className="text-[11px] px-3 py-1 rounded-full bg-salve-card border border-salve-border text-salve-textFaint font-montserrat cursor-pointer hover:text-salve-text transition-colors">
+              <button type="button" onClick={() => setExtraction(null)} className="text-[13px] px-3 py-1 rounded-full bg-salve-card border border-salve-border text-salve-textFaint font-montserrat cursor-pointer hover:text-salve-text transition-colors">
                 Dismiss
               </button>
             </div>
@@ -520,7 +520,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
         <div className="mt-1 mb-4">
           <div className="flex items-center gap-2 mb-2.5">
             <div className="flex-1 h-px bg-salve-border/50" />
-            <span className="text-[10px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">More about today</span>
+            <span className="text-[12px] font-montserrat font-medium text-salve-textFaint uppercase tracking-wider">More about today</span>
             <div className="flex-1 h-px bg-salve-border/50" />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -533,7 +533,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   key={t.key}
                   type="button"
                   onClick={() => toggleSection(t.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[11px] font-montserrat font-medium transition-all cursor-pointer relative ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[13px] font-montserrat font-medium transition-all cursor-pointer relative ${
                     open
                       ? 'bg-salve-lav/20 border-salve-lav/50 text-salve-lav ring-1 ring-salve-lav/20'
                       : suggested
@@ -564,7 +564,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                 <Activity size={13} className="text-salve-lav" /> Symptoms
               </label>
               {(form.symptoms || []).length < 10 && (
-                <button onClick={() => addSymptom()} className="bg-transparent border-none cursor-pointer text-salve-lav text-[11px] font-montserrat p-0 flex items-center gap-0.5 hover:underline">
+                <button onClick={() => addSymptom()} className="bg-transparent border-none cursor-pointer text-salve-lav text-[13px] font-montserrat p-0 flex items-center gap-0.5 hover:underline">
                   <Plus size={12} /> Add symptom
                 </button>
               )}
@@ -573,7 +573,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             {/* Quick-add: frequent symptoms from past entries */}
             {frequentSymptoms.length > 0 && (form.symptoms || []).length < 10 && (
               <div className="mb-2.5">
-                <span className="text-[10px] text-salve-textFaint/60 font-montserrat block mb-1">Quick add</span>
+                <span className="text-[12px] text-salve-textFaint/60 font-montserrat block mb-1">Quick add</span>
                 <div className="flex flex-wrap gap-1">
                   {frequentSymptoms
                     .filter(name => !(form.symptoms || []).some(s => s.name.toLowerCase() === name.toLowerCase()))
@@ -583,7 +583,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         key={name}
                         type="button"
                         onClick={() => addSymptom(name)}
-                        className="text-[10px] px-2 py-0.5 rounded-full border border-dashed border-salve-lav/30 text-salve-textFaint font-montserrat cursor-pointer hover:bg-salve-lav/10 hover:text-salve-lav hover:border-salve-lav/50 transition-colors"
+                        className="text-[12px] px-2 py-0.5 rounded-full border border-dashed border-salve-lav/30 text-salve-textFaint font-montserrat cursor-pointer hover:bg-salve-lav/10 hover:text-salve-lav hover:border-salve-lav/50 transition-colors"
                       >+ {name}</button>
                     ))}
                 </div>
@@ -615,7 +615,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                       const active = sym.severity === lev.v;
                       return (
                         <button key={lev.v} onClick={() => updateSymptom(idx, 'severity', lev.v)} type="button"
-                          className={`flex-1 py-1 rounded-lg border text-[10px] font-montserrat font-medium transition-colors cursor-pointer ${
+                          className={`flex-1 py-1 rounded-lg border text-[12px] font-montserrat font-medium transition-colors cursor-pointer ${
                             active
                               ? lev.active
                               : `bg-salve-card border-salve-border text-salve-textFaint ${lev.hover}`
@@ -629,7 +629,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               );
             })}
             {(form.symptoms || []).length === 0 && (
-              <p className="text-[11px] text-salve-textFaint/60 font-montserrat italic pl-0.5">
+              <p className="text-[13px] text-salve-textFaint/60 font-montserrat italic pl-0.5">
                 {frequentSymptoms.length > 0 ? 'Tap a symptom above or add a new one' : 'Track what you\'re experiencing and how bad it is'}
               </p>
             )}
@@ -647,7 +647,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               {/* Hours + Quality side by side */}
               <div className="flex items-end gap-4">
                 <div>
-                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Hours</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat block mb-1">Hours</span>
                   <input
                     type="number"
                     min="0"
@@ -660,12 +660,12 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   />
                 </div>
                 <div className="flex-1">
-                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Quality</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat block mb-1">Quality</span>
                   <div className="flex gap-1">
                     {[{v:'1',l:'Awful',e:'😫'},{v:'2',l:'Poor',e:'😴'},{v:'3',l:'OK',e:'😐'},{v:'4',l:'Good',e:'😊'},{v:'5',l:'Great',e:'✨'}].map(q => (
                       <button key={q.v} type="button"
                         onClick={() => setQuickCheck(p => ({ ...p, sleepQuality: p.sleepQuality === q.v ? '' : q.v }))}
-                        className={`flex-1 flex flex-col items-center gap-0.5 py-1 rounded-lg border text-[10px] font-montserrat transition-colors cursor-pointer ${
+                        className={`flex-1 flex flex-col items-center gap-0.5 py-1 rounded-lg border text-[12px] font-montserrat transition-colors cursor-pointer ${
                           quickCheck.sleepQuality === q.v
                             ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav'
                             : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
@@ -682,12 +682,12 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               {/* Wake-ups + Trouble */}
               <div className="flex items-end gap-4">
                 <div>
-                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Woke up</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat block mb-1">Woke up</span>
                   <div className="flex gap-0.5">
                     {['0','1','2','3','4+'].map(w => (
                       <button key={w} type="button"
                         onClick={() => setQuickCheck(p => ({ ...p, wakeUps: p.wakeUps === w ? '' : w }))}
-                        className={`w-9 h-7 rounded text-[11px] border font-montserrat font-medium transition-colors cursor-pointer ${
+                        className={`w-9 h-7 rounded text-[13px] border font-montserrat font-medium transition-colors cursor-pointer ${
                           quickCheck.wakeUps === w
                             ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav'
                             : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/20'
@@ -695,11 +695,11 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         aria-label={`Woke up ${w} times`}
                       >{w}</button>
                     ))}
-                    <span className="text-[10px] text-salve-textFaint font-montserrat self-center ml-1">times</span>
+                    <span className="text-[12px] text-salve-textFaint font-montserrat self-center ml-1">times</span>
                   </div>
                 </div>
                 <div className="flex-1">
-                  <span className="text-[10px] text-salve-textFaint font-montserrat block mb-1">Trouble with</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat block mb-1">Trouble with</span>
                   <div className="flex flex-wrap gap-1">
                     {['falling asleep', 'staying asleep', 'waking early', 'nightmares', 'pain'].map(t => (
                       <button key={t} type="button"
@@ -707,7 +707,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                           const arr = p.sleepTrouble || [];
                           return { ...p, sleepTrouble: arr.includes(t) ? arr.filter(x => x !== t) : [...arr, t] };
                         })}
-                        className={`text-[10px] px-2 py-0.5 rounded-full border font-montserrat transition-colors cursor-pointer ${
+                        className={`text-[12px] px-2 py-0.5 rounded-full border font-montserrat transition-colors cursor-pointer ${
                           (quickCheck.sleepTrouble || []).includes(t)
                             ? 'bg-salve-amber/15 border-salve-amber/30 text-salve-amber'
                             : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-amber/20'
@@ -743,7 +743,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                       else { adh[m.id] = true; }
                       sf('adherence', adh);
                     }}
-                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat flex items-center gap-1 ${
+                    className={`text-[13px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat flex items-center gap-1 ${
                       taken ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' :
                       skipped ? 'bg-salve-rose/15 border-salve-rose/30 text-salve-rose line-through' :
                       'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'
@@ -757,7 +757,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                 );
               })}
             </div>
-            <p className="text-[10px] text-salve-textFaint/50 font-montserrat mt-1.5 pl-0.5">Tap: untouched → ✓ taken → ✗ skipped → clear</p>
+            <p className="text-[12px] text-salve-textFaint/50 font-montserrat mt-1.5 pl-0.5">Tap: untouched → ✓ taken → ✗ skipped → clear</p>
           </div>
         )}
 
@@ -803,7 +803,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             <div className="space-y-2.5">
               {activeConditions.length > 0 && (
                 <div>
-                  <span className="text-[11px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Conditions</span>
+                  <span className="text-[13px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Conditions</span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {activeConditions.map(c => {
                       const linked = (form.linked_conditions || []).includes(c.id);
@@ -811,7 +811,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         <button
                           key={c.id}
                           onClick={() => toggleLinkedCondition(c.id)}
-                          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${linked ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-sage/30'}`}
+                          className={`text-[13px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${linked ? 'bg-salve-sage/20 border-salve-sage/40 text-salve-sage' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-sage/30'}`}
                         >{c.name}</button>
                       );
                     })}
@@ -820,7 +820,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               )}
               {activeMeds.length > 0 && (
                 <div>
-                  <span className="text-[11px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Medications</span>
+                  <span className="text-[13px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Medications</span>
                   <div className="flex flex-wrap gap-1.5 mt-1">
                     {activeMeds.map(m => {
                       const linked = (form.linked_meds || []).includes(m.id);
@@ -828,7 +828,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         <button
                           key={m.id}
                           onClick={() => toggleLinkedMed(m.id)}
-                          className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${linked ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+                          className={`text-[13px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${linked ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
                         >{m.display_name || m.name}{m.dose ? ` ${m.dose}` : ''}</button>
                       );
                     })}
@@ -869,7 +869,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           {patternsAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Pattern Insights</div>
+                <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Pattern Insights</div>
                 <button onClick={() => setPatternsAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss pattern insights">×</button>
               </div>
               <AIMarkdown>{patternsAI}</AIMarkdown>
@@ -898,11 +898,11 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                 const pct = Math.round((p.avg / maxMood) * 100);
                 return (
                   <div key={p.phase} className="flex items-center gap-2.5">
-                    <span className="text-[11px] font-medium font-montserrat w-20 text-right" style={{ color: p.color }}>{p.phase}</span>
+                    <span className="text-[13px] font-medium font-montserrat w-20 text-right" style={{ color: p.color }}>{p.phase}</span>
                     <div className="flex-1 h-2 rounded-full bg-salve-card2 overflow-hidden">
                       <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: p.color + '66' }} />
                     </div>
-                    <span className="text-[11px] font-montserrat text-salve-textMid w-8">{p.avg}</span>
+                    <span className="text-[13px] font-montserrat text-salve-textMid w-8">{p.avg}</span>
                   </div>
                 );
               })}
@@ -925,17 +925,17 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             <div className="flex gap-1.5 items-center flex-wrap">
               <button
                 onClick={() => { setTagFilter(null); setSymptomFilter(null); }}
-                className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter && !symptomFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+                className={`text-[13px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${!tagFilter && !symptomFilter ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
               >All</button>
               {hasActiveFilter && (
-                <span className="text-[11px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/40 text-salve-lav font-montserrat">
+                <span className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/40 text-salve-lav font-montserrat">
                   {symptomFilter || tagFilter}
-                  <button onClick={() => { setTagFilter(null); setSymptomFilter(null); }} className="ml-1 bg-transparent border-none cursor-pointer text-salve-lav p-0 text-[11px]">×</button>
+                  <button onClick={() => { setTagFilter(null); setSymptomFilter(null); }} className="ml-1 bg-transparent border-none cursor-pointer text-salve-lav p-0 text-[13px]">×</button>
                 </span>
               )}
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className="text-[11px] px-2.5 py-1 rounded-full border border-salve-border bg-salve-card text-salve-textFaint hover:border-salve-lav/30 cursor-pointer font-montserrat transition-colors"
+                className="text-[13px] px-2.5 py-1 rounded-full border border-salve-border bg-salve-card text-salve-textFaint hover:border-salve-lav/30 cursor-pointer font-montserrat transition-colors"
               >{filterOpen ? 'Hide filters' : `Filter (${allSymptoms.length + allTags.length})`}</button>
             </div>
             {filterOpen && (
@@ -944,14 +944,14 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   <button
                     key={`s:${sym}`}
                     onClick={() => { setSymptomFilter(symptomFilter === sym ? null : sym); setTagFilter(null); }}
-                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${symptomFilter === sym ? 'bg-salve-rose/15 border-salve-rose/40 text-salve-rose' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30'}`}
+                    className={`text-[13px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${symptomFilter === sym ? 'bg-salve-rose/15 border-salve-rose/40 text-salve-rose' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30'}`}
                   >⚬ {sym}</button>
                 ))}
                 {allTags.map(tag => (
                   <button
                     key={`t:${tag}`}
                     onClick={() => { setTagFilter(tagFilter === tag ? null : tag); setSymptomFilter(null); }}
-                    className={`text-[11px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${tagFilter === tag ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
+                    className={`text-[13px] px-2.5 py-1 rounded-full border transition-colors cursor-pointer font-montserrat ${tagFilter === tag ? 'bg-salve-lav/20 border-salve-lav/40 text-salve-lav' : 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-lav/30'}`}
                   >{tag}</button>
                 ))}
               </div>
@@ -988,7 +988,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
               <div className="flex justify-between items-start mb-0.5">
                 <div className="flex-1 min-w-0">
                   <span className="font-playfair text-sm font-medium text-salve-text">{e.title || fmtDate(e.date)}</span>
-                  {e.title && <span className="text-[11px] text-salve-textFaint ml-2">{fmtDate(e.date)}</span>}
+                  {e.title && <span className="text-[13px] text-salve-textFaint ml-2">{fmtDate(e.date)}</span>}
                   {cyclePhase && (
                     <Badge label={`${cyclePhase.phase} day ${cyclePhase.dayOfCycle}`} color={cyclePhase.color} bg={`${cyclePhase.color}22`} />
                   )}
@@ -1006,48 +1006,48 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   {symptoms.slice(0, 4).map((s, i) => {
                     const sv = Number(s.severity);
                     const sc = sv >= 4 ? 'text-salve-rose bg-salve-rose/10' : sv >= 3 ? 'text-salve-amber bg-salve-amber/10' : 'text-salve-sage bg-salve-sage/10';
-                    return <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded-full font-montserrat ${sc}`}>{s.name} {s.severity}/5</span>;
+                    return <span key={i} className={`text-[12px] px-1.5 py-0.5 rounded-full font-montserrat ${sc}`}>{s.name} {s.severity}/5</span>;
                   })}
-                  {symptoms.length > 4 && <span className="text-[10px] text-salve-textFaint font-montserrat">+{symptoms.length - 4}</span>}
+                  {symptoms.length > 4 && <span className="text-[12px] text-salve-textFaint font-montserrat">+{symptoms.length - 4}</span>}
                 </div>
               )}
 
               {/* Gratitude sparkle badge (collapsed) */}
               {e.gratitude && !isExpanded && (
-                <div className="text-[10px] text-salve-amber font-montserrat mt-0.5 truncate">✨ {e.gratitude}</div>
+                <div className="text-[12px] text-salve-amber font-montserrat mt-0.5 truncate">✨ {e.gratitude}</div>
               )}
 
               {/* Adherence pill (collapsed) */}
               {!isExpanded && e.adherence && Object.keys(e.adherence).length > 0 && (() => {
                 const total = Object.keys(e.adherence).length;
                 const taken = Object.values(e.adherence).filter(Boolean).length;
-                return <span className="text-[10px] px-1.5 py-0.5 rounded-full font-montserrat bg-salve-lav/10 text-salve-lav inline-block mt-0.5">💊 {taken}/{total} meds</span>;
+                return <span className="text-[12px] px-1.5 py-0.5 rounded-full font-montserrat bg-salve-lav/10 text-salve-lav inline-block mt-0.5">💊 {taken}/{total} meds</span>;
               })()}
 
               {!isExpanded && e.content && !symptoms.length && !e.gratitude && (
-                <div className="text-[13px] text-salve-textMid leading-relaxed line-clamp-2">{e.content}</div>
+                <div className="text-[15px] text-salve-textMid leading-relaxed line-clamp-2">{e.content}</div>
               )}
               {!isExpanded && e.content && (symptoms.length > 0 || e.gratitude) && (
-                <div className="text-[12px] text-salve-textFaint leading-relaxed line-clamp-1 mt-0.5">{e.content}</div>
+                <div className="text-[14px] text-salve-textFaint leading-relaxed line-clamp-1 mt-0.5">{e.content}</div>
               )}
 
               <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
                 <div className="mt-1.5 pt-1.5 border-t border-salve-lav/15" onClick={ev => ev.stopPropagation()}>
-                  <div className="text-[13px] text-salve-textMid leading-relaxed">{e.content}</div>
+                  <div className="text-[15px] text-salve-textMid leading-relaxed">{e.content}</div>
 
                   {/* Triggers */}
                   {e.triggers && (
                     <div className="mt-2 bg-salve-amber/8 border border-salve-amber/15 rounded-lg px-2.5 py-1.5">
-                      <span className="text-[10px] font-medium font-montserrat text-salve-amber uppercase tracking-wider block mb-0.5">Triggers</span>
-                      <span className="text-[12px] text-salve-textMid font-montserrat">{e.triggers}</span>
+                      <span className="text-[12px] font-medium font-montserrat text-salve-amber uppercase tracking-wider block mb-0.5">Triggers</span>
+                      <span className="text-[14px] text-salve-textMid font-montserrat">{e.triggers}</span>
                     </div>
                   )}
 
                   {/* Interventions */}
                   {e.interventions && (
                     <div className="mt-2 bg-salve-sage/8 border border-salve-sage/15 rounded-lg px-2.5 py-1.5">
-                      <span className="text-[10px] font-medium font-montserrat text-salve-sage uppercase tracking-wider block mb-0.5">What helped</span>
-                      <span className="text-[12px] text-salve-textMid font-montserrat">{e.interventions}</span>
+                      <span className="text-[12px] font-medium font-montserrat text-salve-sage uppercase tracking-wider block mb-0.5">What helped</span>
+                      <span className="text-[14px] text-salve-textMid font-montserrat">{e.interventions}</span>
                     </div>
                   )}
 
@@ -1058,7 +1058,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         const med = (data.meds || []).find(m => m.id === medId);
                         if (!med) return null;
                         return (
-                          <span key={medId} className={`text-[10px] px-2 py-0.5 rounded-full font-montserrat flex items-center gap-0.5 ${taken ? 'bg-salve-sage/12 text-salve-sage' : 'bg-salve-rose/12 text-salve-rose line-through'}`}>
+                          <span key={medId} className={`text-[12px] px-2 py-0.5 rounded-full font-montserrat flex items-center gap-0.5 ${taken ? 'bg-salve-sage/12 text-salve-sage' : 'bg-salve-rose/12 text-salve-rose line-through'}`}>
                             {taken ? '✓' : '✗'} {med.display_name || med.name}
                           </span>
                         );
@@ -1069,7 +1069,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   {/* Expanded symptoms list */}
                   {symptoms.length > 0 && (
                     <div className="mt-2 space-y-1">
-                      <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Symptoms</span>
+                      <span className="text-[12px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Symptoms</span>
                       {symptoms.map((s, i) => {
                         const sv = Number(s.severity);
                         const sc = sv >= 4 ? C.rose : sv >= 3 ? C.amber : C.sage;
@@ -1079,7 +1079,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                             <div className="flex-1 h-1 rounded-full bg-salve-card2 overflow-hidden">
                               <div className="h-full rounded-full" style={{ width: `${sv * 20}%`, backgroundColor: sc }} />
                             </div>
-                            <span className="text-[10px] font-montserrat" style={{ color: sc }}>{s.severity}/5</span>
+                            <span className="text-[12px] font-montserrat" style={{ color: sc }}>{s.severity}/5</span>
                           </div>
                         );
                       })}
@@ -1089,7 +1089,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   {/* Gratitude (expanded) */}
                   {e.gratitude && (
                     <div className="mt-2 bg-salve-amber/8 border border-salve-amber/15 rounded-lg px-2.5 py-1.5">
-                      <span className="text-[11px] text-salve-amber font-montserrat">✨ {e.gratitude}</span>
+                      <span className="text-[13px] text-salve-amber font-montserrat">✨ {e.gratitude}</span>
                     </div>
                   )}
 
@@ -1100,7 +1100,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         const cond = (data.conditions || []).find(c => c.id === id);
                         if (!cond) return null;
                         return (
-                          <button key={id} onClick={() => onNav?.('conditions', { highlightId: id })} className="text-[10px] px-2 py-0.5 rounded-full bg-salve-sage/12 border border-salve-sage/25 text-salve-sage font-montserrat cursor-pointer hover:bg-salve-sage/20 transition-colors">
+                          <button key={id} onClick={() => onNav?.('conditions', { highlightId: id })} className="text-[12px] px-2 py-0.5 rounded-full bg-salve-sage/12 border border-salve-sage/25 text-salve-sage font-montserrat cursor-pointer hover:bg-salve-sage/20 transition-colors">
                             {cond.name}
                           </button>
                         );
@@ -1109,7 +1109,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                         const med = (data.meds || []).find(m => m.id === id);
                         if (!med) return null;
                         return (
-                          <button key={id} onClick={() => onNav?.('medications', { highlightId: id })} className="text-[10px] px-2 py-0.5 rounded-full bg-salve-lav/12 border border-salve-lav/25 text-salve-lav font-montserrat cursor-pointer hover:bg-salve-lav/20 transition-colors">
+                          <button key={id} onClick={() => onNav?.('medications', { highlightId: id })} className="text-[12px] px-2 py-0.5 rounded-full bg-salve-lav/12 border border-salve-lav/25 text-salve-lav font-montserrat cursor-pointer hover:bg-salve-lav/20 transition-colors">
                             {med.display_name || med.name}
                           </button>
                         );
@@ -1120,7 +1120,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                   {e.tags && (
                     <div className="mt-2 flex gap-1 flex-wrap">
                       {String(e.tags).split(',').map((t, i) => (
-                        <span key={i} className="bg-salve-card2 text-salve-textMid text-[11px] px-2.5 py-0.5 rounded-full border border-salve-border">{t.trim()}</span>
+                        <span key={i} className="bg-salve-card2 text-salve-textMid text-[13px] px-2.5 py-0.5 rounded-full border border-salve-border">{t.trim()}</span>
                       ))}
                     </div>
                   )}

@@ -102,7 +102,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
       </div>
 
       {urgentCount > 0 && (
-        <div className="mb-3 px-3 py-2.5 rounded-lg border text-[12px] font-medium"
+        <div className="mb-3 px-3 py-2.5 rounded-lg border text-[14px] font-medium"
           style={{ background: 'rgba(232,138,154,0.1)', borderColor: C.rose, color: C.rose }}>
           ⚠ {urgentCount} item{urgentCount > 1 ? 's' : ''} marked urgent
         </div>
@@ -121,7 +121,7 @@ export default function CareGaps({ data, addItem, updateItem, removeItem, highli
           {aiSuggestions && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Suggestions</div>
+                <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Suggestions</div>
                 <button onClick={() => setAiSuggestions(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss Sage suggestions">×</button>
               </div>
               <AIMarkdown>{aiSuggestions}</AIMarkdown>

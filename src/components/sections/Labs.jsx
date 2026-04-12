@@ -140,7 +140,7 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
             className="mt-2 flex items-center gap-1 bg-transparent border border-salve-lav/30 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-salve-lav/10 transition-colors"
           >
             <Sparkles size={12} color={C.lav} />
-            <span className="text-[11px] text-salve-lav font-montserrat">
+            <span className="text-[13px] text-salve-lav font-montserrat">
               {interpretLoading === l.id ? 'Analyzing...' : interpretation[l.id] ? (interpretId === l.id ? 'Hide' : 'Show') + ' interpretation' : 'Explain this result'}
             </span>
           </button>
@@ -148,7 +148,7 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
         {interpretId === l.id && interpretation[l.id] && (
           <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
             <div className="flex items-center justify-between mb-1">
-              <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Interpretation</div>
+              <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Sage Interpretation</div>
               <button onClick={() => { setInterpretation(p => { const n = {...p}; delete n[l.id]; return n; }); setInterpretId(null); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss interpretation">×</button>
             </div>
             <AIMarkdown compact>{interpretation[l.id]}</AIMarkdown>
@@ -273,7 +273,7 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
                     {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} />}
                   </div>
                   {l.result && (
-                    <div className="text-[13px] text-salve-textMid">
+                    <div className="text-[15px] text-salve-textMid">
                       {l.result}{l.unit ? ` ${l.unit}` : ''}{!isExpanded && l.date ? <span className="text-salve-textFaint text-xs ml-2">{fmtDate(l.date)}</span> : ''}
                     </div>
                   )}

@@ -50,7 +50,7 @@ export function SageIntroButton({ onClick, compact = false }) {
           <div className={`font-playfair font-semibold text-salve-text ${compact ? 'text-[14px]' : 'text-[16px] md:text-lg'}`}>
             Introduce Yourself to Sage
           </div>
-          <p className={`text-salve-textFaint font-montserrat m-0 ${compact ? 'text-[11px]' : 'text-ui-md'} leading-snug mt-0.5`}>
+          <p className={`text-salve-textFaint font-montserrat m-0 ${compact ? 'text-[13px]' : 'text-ui-md'} leading-snug mt-0.5`}>
             {compact
               ? 'Quick chat to set up your profile'
               : 'A quick, friendly chat to get your profile set up, Sage saves everything for you'
@@ -207,7 +207,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
           </div>
           <div>
             <span className="text-[14px] font-semibold text-salve-text font-montserrat">Getting to know you</span>
-            <span className="text-[10px] text-salve-textFaint font-montserrat block -mt-0.5">with Sage</span>
+            <span className="text-[12px] text-salve-textFaint font-montserrat block -mt-0.5">with Sage</span>
           </div>
         </div>
         <button
@@ -260,7 +260,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
               >
                 <div className={`max-w-[85%] md:max-w-[70%] rounded-xl px-3.5 py-2.5 ${
                   m.role === 'user'
-                    ? 'bg-salve-lav/20 text-salve-text text-[13px] leading-relaxed'
+                    ? 'bg-salve-lav/20 text-salve-text text-[15px] leading-relaxed'
                     : 'bg-salve-card border border-salve-border'
                 }`}>
                   {m.role === 'assistant' ? (
@@ -269,7 +269,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                         <div className="w-4 h-4 rounded-full bg-salve-sage/15 flex items-center justify-center shrink-0">
                           <Leaf size={9} className="text-salve-sage" />
                         </div>
-                        <span className="text-[10px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
+                        <span className="text-[12px] font-semibold text-salve-sage font-montserrat tracking-wide">Sage</span>
                       </div>
                       <AIMarkdown compact>{m.content.replace(/\n---\n\*Sage's suggestions.*?\*/s, '')}</AIMarkdown>
                     </>
@@ -287,7 +287,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                     <div className="w-1.5 h-1.5 rounded-full bg-salve-sage/50 animate-bounce" style={{ animationDelay: '150ms' }} />
                     <div className="w-1.5 h-1.5 rounded-full bg-salve-sage/50 animate-bounce" style={{ animationDelay: '300ms' }} />
                   </div>
-                  <span className="text-[11px] text-salve-textFaint font-montserrat italic">{wellness.message}</span>
+                  <span className="text-[13px] text-salve-textFaint font-montserrat italic">{wellness.message}</span>
                 </div>
               </div>
             )}
@@ -300,14 +300,14 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                 </div>
                 <div>
                   <h3 className="font-playfair text-lg font-semibold text-salve-text m-0">You're all set!</h3>
-                  <p className="text-[12px] text-salve-textFaint font-montserrat mt-1 mb-0">
+                  <p className="text-[14px] text-salve-textFaint font-montserrat mt-1 mb-0">
                     Everything's been saved to your profile.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 max-w-[280px] mx-auto">
                   <button
                     onClick={onClose}
-                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-salve-sage text-white font-montserrat font-semibold text-[13px] border-none cursor-pointer transition-all hover:bg-salve-sage/90 active:scale-[0.97]"
+                    className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-salve-sage text-white font-montserrat font-semibold text-[15px] border-none cursor-pointer transition-all hover:bg-salve-sage/90 active:scale-[0.97]"
                   >
                     <Home size={14} />
                     Go to Dashboard
@@ -315,14 +315,14 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                   <div className="flex gap-2">
                     <button
                       onClick={() => { onClose(); onNav?.('formhelper'); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-lav/10 text-salve-lav font-montserrat font-medium text-[12px] border border-salve-lav/20 cursor-pointer transition-all hover:bg-salve-lav/20"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-lav/10 text-salve-lav font-montserrat font-medium text-[14px] border border-salve-lav/20 cursor-pointer transition-all hover:bg-salve-lav/20"
                     >
                       <PenLine size={12} />
                       Scribe
                     </button>
                     <button
                       onClick={() => { onClose(); onNav?.('ai'); }}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-sage/10 text-salve-sage font-montserrat font-medium text-[12px] border border-salve-sage/20 cursor-pointer transition-all hover:bg-salve-sage/20"
+                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-salve-sage/10 text-salve-sage font-montserrat font-medium text-[14px] border border-salve-sage/20 cursor-pointer transition-all hover:bg-salve-sage/20"
                     >
                       <MessageCircle size={12} />
                       Chat with Sage

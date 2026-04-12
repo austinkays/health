@@ -106,7 +106,7 @@ export default function Search({ data, onNav }) {
               <button
                 key={t.key}
                 onClick={() => setFilter(t.key)}
-                className={`flex-shrink-0 py-1.5 px-3 rounded-full text-[11px] font-medium border transition-colors ${
+                className={`flex-shrink-0 py-1.5 px-3 rounded-full text-[13px] font-medium border transition-colors ${
                   isActive
                     ? 'border-salve-sage bg-salve-sage/15 text-salve-sage'
                     : 'border-salve-border text-salve-textFaint hover:text-salve-textMid'
@@ -139,16 +139,16 @@ export default function Search({ data, onNav }) {
                       <Icon size={15} color={r.config.color} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-[13px] text-salve-text font-medium truncate">
+                      <div className="text-[15px] text-salve-text font-medium truncate">
                         {highlightMatch(r.config.primary(r.item), debouncedQuery)}
                       </div>
                       {r.config.secondary(r.item) && (
-                        <div className="text-[11px] text-salve-textFaint truncate mt-0.5">
+                        <div className="text-[13px] text-salve-textFaint truncate mt-0.5">
                           {highlightMatch(r.config.secondary(r.item), debouncedQuery)}
                         </div>
                       )}
                       {r.matchContext && (
-                        <div className="text-[10px] text-salve-textFaint/70 truncate mt-0.5 italic">
+                        <div className="text-[12px] text-salve-textFaint/70 truncate mt-0.5 italic">
                           {r.matchContext.label}: {highlightMatch(r.matchContext.value, debouncedQuery)}
                         </div>
                       )}

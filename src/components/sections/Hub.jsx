@@ -247,7 +247,7 @@ export default function Hub({ hubId, data, onNav }) {
   return (
     <div className="mt-2">
       {/* Hub description */}
-      <p className="text-[12px] text-salve-textFaint font-montserrat italic mb-3 px-1">
+      <p className="text-[14px] text-salve-textFaint font-montserrat italic mb-3 px-1">
         {hub.description} · <span className="text-salve-textFaint/70">Tap ★ to pin to home</span>
       </p>
 
@@ -271,8 +271,8 @@ export default function Hub({ hubId, data, onNav }) {
                   <Icon size={16} className="text-salve-lav" strokeWidth={1.5} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-salve-text font-montserrat">{section.label}</div>
-                  <div className="text-[11px] text-salve-textFaint font-montserrat truncate">{stat}</div>
+                  <div className="text-[15px] font-medium text-salve-text font-montserrat">{section.label}</div>
+                  <div className="text-[13px] text-salve-textFaint font-montserrat truncate">{stat}</div>
                 </div>
                 <button
                   onClick={(e) => handleToggleStar(id, e)}
@@ -295,7 +295,7 @@ export default function Hub({ hubId, data, onNav }) {
       </div>
 
       {visibleSections.length === 0 && (
-        <p className="text-[12px] text-salve-textFaint font-montserrat italic text-center py-8">
+        <p className="text-[14px] text-salve-textFaint font-montserrat italic text-center py-8">
           Nothing here yet.
         </p>
       )}

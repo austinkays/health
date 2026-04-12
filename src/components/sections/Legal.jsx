@@ -20,7 +20,7 @@ function Privacy() {
   return (
     <Card>
       <h2 className="font-playfair text-[17px] font-semibold text-salve-text m-0 mb-4">Privacy Policy</h2>
-      <p className="text-[11px] text-salve-textFaint mb-4">Last updated: April 2026</p>
+      <p className="text-[13px] text-salve-textFaint mb-4">Last updated: April 2026</p>
 
       <Section title="What We Collect">
         <p>Salve stores the health information you enter: medications, conditions, vitals, appointments, lab results, journal entries, and related records. We also store your email address for authentication.</p>
@@ -69,7 +69,7 @@ function Terms() {
   return (
     <Card>
       <h2 className="font-playfair text-[17px] font-semibold text-salve-text m-0 mb-4">Terms of Service</h2>
-      <p className="text-[11px] text-salve-textFaint mb-4">Last updated: April 2026</p>
+      <p className="text-[13px] text-salve-textFaint mb-4">Last updated: April 2026</p>
 
       <Section title="Not Medical Advice">
         <p>Salve is a personal health organization tool. It is not a substitute for professional medical advice, diagnosis, or treatment. Always consult qualified healthcare providers for medical decisions. AI-generated insights are informational only.</p>
@@ -99,7 +99,7 @@ function HipaaNotice() {
   return (
     <Card>
       <h2 className="font-playfair text-[17px] font-semibold text-salve-text m-0 mb-4">HIPAA Notice</h2>
-      <p className="text-[11px] text-salve-textFaint mb-4">Last updated: April 2026</p>
+      <p className="text-[13px] text-salve-textFaint mb-4">Last updated: April 2026</p>
 
       <Section title="Salve Is Not a Covered Entity">
         <p>Salve is a personal health management tool for individual consumers. It is not a healthcare provider, health plan, or healthcare clearinghouse. As such, Salve is <strong className="text-salve-amber">not a HIPAA-covered entity</strong> and is not subject to HIPAA regulations.</p>
@@ -158,7 +158,7 @@ export default function Legal() {
       {activeTab === 'hipaa' && <HipaaNotice />}
       </div>
 
-      <p className="text-[11px] text-salve-textFaint text-center mt-4 mb-2 italic">
+      <p className="text-[13px] text-salve-textFaint text-center mt-4 mb-2 italic">
         Questions, privacy requests, or bug reports?
         <br />
         Email <a href="mailto:salveapp@proton.me" className="text-salve-lav no-underline hover:underline">salveapp@proton.me</a>

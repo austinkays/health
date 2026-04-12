@@ -91,7 +91,7 @@ export default function Immunizations({ data, addItem, updateItem, removeItem, h
           {scheduleAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Schedule Review</div>
+                <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><Sparkles size={11} /> Schedule Review</div>
                 <button onClick={() => setScheduleAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss schedule review">×</button>
               </div>
               <AIMarkdown>{scheduleAI}</AIMarkdown>

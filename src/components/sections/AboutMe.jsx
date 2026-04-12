@@ -84,9 +84,9 @@ function CategorySection({ category, values, onChange, defaultOpen = false }) {
           <Icon size={14} className="text-salve-lav" />
         </div>
         <div className="flex-1 min-w-0">
-          <span className="text-[13px] font-medium text-salve-text font-montserrat">{category.label}</span>
+          <span className="text-[15px] font-medium text-salve-text font-montserrat">{category.label}</span>
           {filledCount > 0 && (
-            <span className="text-[10px] text-salve-sage font-montserrat ml-2">
+            <span className="text-[12px] text-salve-sage font-montserrat ml-2">
               {filledCount}/{category.fields.length} filled
             </span>
           )}
@@ -131,7 +131,7 @@ export default function AboutMe({ data, updateSettings, onSageIntro }) {
         <p className="text-sm text-salve-textMid font-montserrat mb-1">
           Help Sage fill out forms for you by sharing a bit about yourself. Everything here is optional, add as much or as little as you like.
         </p>
-        <p className="text-[11px] text-salve-textFaint font-montserrat">
+        <p className="text-[13px] text-salve-textFaint font-montserrat">
           {filledTotal} of {totalFields} fields filled · Saves automatically
         </p>
       </div>

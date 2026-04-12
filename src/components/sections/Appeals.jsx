@@ -153,9 +153,9 @@ export default function Appeals({ data, addItem, updateItem, removeItem, highlig
                   {draftResult[a.id] && (
                     <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
                       <div className="flex items-center justify-between mb-1">
-                        <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><FileText size={11} /> Sage Draft</div>
+                        <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><FileText size={11} /> Sage Draft</div>
                         <div className="flex items-center gap-2">
-                          <button onClick={() => { navigator.clipboard.writeText(draftResult[a.id]); setCopiedId(a.id); setTimeout(() => setCopiedId(null), 2000); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav p-0 text-[11px] font-montserrat" aria-label="Copy draft to clipboard">{copiedId === a.id ? '✓ Copied' : 'Copy'}</button>
+                          <button onClick={() => { navigator.clipboard.writeText(draftResult[a.id]); setCopiedId(a.id); setTimeout(() => setCopiedId(null), 2000); }} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-lav p-0 text-[13px] font-montserrat" aria-label="Copy draft to clipboard">{copiedId === a.id ? '✓ Copied' : 'Copy'}</button>
                           <button onClick={() => setDraftResult(p => { const n = {...p}; delete n[a.id]; return n; })} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss draft">×</button>
                         </div>
                       </div>

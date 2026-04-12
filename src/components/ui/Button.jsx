@@ -12,7 +12,7 @@ export default function Button({ children, onClick, variant = 'primary', classNa
       disabled={disabled}
       onClick={onClick}
       style={style}
-      className={`px-5 py-2.5 rounded-full text-[13px] font-medium font-montserrat inline-flex items-center gap-1.5 tracking-wide border ${variants[variant] || variants.primary} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
+      className={`px-5 py-2.5 rounded-full text-[15px] font-medium font-montserrat inline-flex items-center gap-1.5 tracking-wide border ${variants[variant] || variants.primary} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${className}`}
     >
       {children}
     </button>

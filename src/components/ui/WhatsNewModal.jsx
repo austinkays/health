@@ -39,16 +39,16 @@ export default function WhatsNewModal({ onClose }) {
         <div className="text-center mb-5">
           <div className="text-2xl mb-1.5" aria-hidden="true">&#10024;</div>
           <h2 className="font-playfair text-xl font-semibold text-salve-text tracking-tight">What&#8217;s New</h2>
-          <p className="text-salve-textFaint text-[11px] font-montserrat mt-1 tracking-wide">v{CURRENT_VERSION}</p>
+          <p className="text-salve-textFaint text-[13px] font-montserrat mt-1 tracking-wide">v{CURRENT_VERSION}</p>
         </div>
 
         {CHANGELOG.map(entry => (
           <div key={entry.version} className="mb-5">
-            <h3 className="text-[13px] font-semibold text-salve-lav mb-3 tracking-wide">{entry.title}</h3>
+            <h3 className="text-[15px] font-semibold text-salve-lav mb-3 tracking-wide">{entry.title}</h3>
             <ul className="space-y-2">
               {entry.items.map((item, i) => (
-                <li key={i} className="flex gap-2.5 text-[13px] text-salve-textMid leading-snug">
-                  <span className="text-salve-sage/70 shrink-0 text-[11px] mt-px" aria-hidden="true">&#10003;</span>
+                <li key={i} className="flex gap-2.5 text-[15px] text-salve-textMid leading-snug">
+                  <span className="text-salve-sage/70 shrink-0 text-[13px] mt-px" aria-hidden="true">&#10003;</span>
                   <span className="text-pretty">{item}</span>
                 </li>
               ))}
@@ -58,7 +58,7 @@ export default function WhatsNewModal({ onClose }) {
 
         <button
           onClick={handleClose}
-          className="w-full bg-salve-lav text-salve-bg font-semibold rounded-xl py-3 text-[13px] hover:bg-salve-lavDim transition-colors mt-3 tracking-wide"
+          className="w-full bg-salve-lav text-salve-bg font-semibold rounded-xl py-3 text-[15px] hover:bg-salve-lavDim transition-colors mt-3 tracking-wide"
         >
           Got it
         </button>

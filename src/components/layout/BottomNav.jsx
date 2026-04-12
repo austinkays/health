@@ -69,7 +69,7 @@ export default function BottomNav({ tab, onNav }) {
             className={`bg-transparent border-none cursor-pointer flex flex-col items-center gap-0.5 px-2.5 py-1 nav-item-magic ${active ? 'text-salve-sage' : 'text-salve-textFaint'}`}
           >
             <Icon size={20} strokeWidth={active ? 2 : 1.4} />
-            <span className={`text-[11px] tracking-wide ${active ? 'font-semibold' : 'font-normal'}`}>{t.label}</span>
+            <span className={`text-[13px] tracking-wide ${active ? 'font-semibold' : 'font-normal'}`}>{t.label}</span>
             {active && <div className="w-1 h-1 rounded-full bg-salve-sage -mt-0.5 shadow-[0_0_6px_rgba(143,191,160,0.5)]" />}
           </button>
         );

@@ -233,7 +233,7 @@ export default function Vitals({ data, addItem, removeItem }) {
       <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
         <button
           onClick={() => setCt('all')}
-          className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat transition-colors ${
+          className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[13px] font-medium border cursor-pointer font-montserrat transition-colors ${
             ct === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
           }`}
         >
@@ -243,7 +243,7 @@ export default function Vitals({ data, addItem, removeItem }) {
           <button
             key={t.id}
             onClick={() => setCt(t.id)}
-            className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat transition-colors ${
+            className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[13px] font-medium border cursor-pointer font-montserrat transition-colors ${
               ct === t.id ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
@@ -257,7 +257,7 @@ export default function Vitals({ data, addItem, removeItem }) {
         <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
           <button
             onClick={() => setSourceFilter('all')}
-            className={`flex-shrink-0 py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+            className={`flex-shrink-0 py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
               sourceFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >All sources</button>
@@ -265,7 +265,7 @@ export default function Vitals({ data, addItem, removeItem }) {
             const Icon = SOURCE_ICON[s];
             return (
               <button key={s} onClick={() => setSourceFilter(s)}
-                className={`flex-shrink-0 py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
+                className={`flex-shrink-0 py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
                   sourceFilter === s ? `border-salve-sage bg-salve-sage/15 text-salve-sage` : 'border-salve-border bg-transparent text-salve-textFaint'
                 }`}
               >
@@ -284,7 +284,7 @@ export default function Vitals({ data, addItem, removeItem }) {
             <button
               key={r}
               onClick={() => setTimeRange(r)}
-              className={`py-1 px-2.5 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+              className={`py-1 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
                 timeRange === r ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
               }`}
             >
@@ -299,7 +299,7 @@ export default function Vitals({ data, addItem, removeItem }) {
               setCycleOverlay(next);
               localStorage.setItem('salve:vitals-cycle-overlay', String(next));
             }}
-            className={`py-1 px-3 rounded-full text-[10px] font-medium border cursor-pointer font-montserrat transition-colors ${
+            className={`py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
               cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
@@ -318,7 +318,7 @@ export default function Vitals({ data, addItem, removeItem }) {
               </span>
             </div>
             {cdStats && (
-              <div className="flex gap-3 text-[10px] text-salve-textFaint font-montserrat">
+              <div className="flex gap-3 text-[12px] text-salve-textFaint font-montserrat">
                 <span>Avg <span className="text-salve-text font-medium">{cdStats.avg % 1 === 0 ? cdStats.avg : cdStats.avg.toFixed(1)}</span></span>
                 <span>Low <span className="text-salve-text font-medium">{cdStats.min % 1 === 0 ? cdStats.min : cdStats.min.toFixed(1)}</span></span>
                 <span>High <span className="text-salve-text font-medium">{cdStats.max % 1 === 0 ? cdStats.max : cdStats.max.toFixed(1)}</span></span>
@@ -386,7 +386,7 @@ export default function Vitals({ data, addItem, removeItem }) {
             <tbody>{cd.map((d, i) => <tr key={i}><td>{d.date}</td><td>{d.value} {vi?.unit}</td>{ct === 'bp' && <td>{d.value2} {vi?.unit}</td>}</tr>)}</tbody>
           </table>
           {vi && (vi.normalLow || vi.normalHigh) && (
-            <div className="text-[10px] text-salve-textFaint text-center mt-1.5">
+            <div className="text-[12px] text-salve-textFaint text-center mt-1.5">
               Normal range: {vi.normalLow ?? ', '}–{vi.normalHigh ?? ', '} {vi.unit}
               {vi.id === 'bp' && vi.normalLow2 ? ` / ${vi.normalLow2}–${vi.normalHigh2} ${vi.unit}` : ''}
             </div>
@@ -395,7 +395,7 @@ export default function Vitals({ data, addItem, removeItem }) {
       ) : (
         <Card className="text-center !py-6">
           <Motif type="sparkle" size={20} className="block mb-2 mx-auto" />
-          <span className="text-[13px] text-salve-textFaint">{cd.length === 0 ? 'No entries yet' : 'Log one more to see the trend'}</span>
+          <span className="text-[15px] text-salve-textFaint">{cd.length === 0 ? 'No entries yet' : 'Log one more to see the trend'}</span>
         </Card>
       )}
 
@@ -427,7 +427,7 @@ export default function Vitals({ data, addItem, removeItem }) {
           {trendAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
               <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[11px] font-semibold text-salve-lav flex items-center gap-1"><TrendingUp size={11} /> Trend Analysis</div>
+                <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><TrendingUp size={11} /> Trend Analysis</div>
                 <button onClick={() => setTrendAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss trend analysis">×</button>
               </div>
               <AIMarkdown>{trendAI}</AIMarkdown>
@@ -476,8 +476,8 @@ export default function Vitals({ data, addItem, removeItem }) {
               return (
                 <Card key={date} className="!p-3 !mb-0">
                   <div className="flex items-baseline justify-between mb-2">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
-                    <span className="text-[10px] text-salve-textFaint font-montserrat">{fmtDate(date)}</span>
+                    <span className="text-[13px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
+                    <span className="text-[12px] text-salve-textFaint font-montserrat">{fmtDate(date)}</span>
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                     {[...typeMap.entries()].map(([vtype, typeEntries]) => {
@@ -499,8 +499,8 @@ export default function Vitals({ data, addItem, removeItem }) {
                           className="flex items-baseline gap-1 bg-transparent border-none p-0 cursor-pointer group"
                           aria-label={`View ${t?.label} details`}
                         >
-                          <span className="text-[10px] text-salve-textFaint font-montserrat group-hover:text-salve-textMid transition-colors">{t?.label}:</span>
-                          <span className={`text-[13px] font-semibold font-montserrat ${flag ? 'text-salve-amber' : 'text-salve-sage'}`}>
+                          <span className="text-[12px] text-salve-textFaint font-montserrat group-hover:text-salve-textMid transition-colors">{t?.label}:</span>
+                          <span className={`text-[15px] font-semibold font-montserrat ${flag ? 'text-salve-amber' : 'text-salve-sage'}`}>
                             {displayVal}
                           </span>
                           <span className="text-[9px] text-salve-textFaint font-montserrat">{t?.unit}</span>
@@ -539,9 +539,9 @@ export default function Vitals({ data, addItem, removeItem }) {
                   aria-label={`${fmtDateRelative(date)}, ${entries.length} entries`}
                 >
                   <div className="flex items-baseline gap-2 min-w-0">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
+                    <span className="text-[13px] font-semibold uppercase tracking-wider text-salve-textMid font-montserrat">{fmtDateRelative(date)}</span>
                     {!isOpen && (
-                      <span className="text-[10px] text-salve-textFaint font-montserrat truncate">
+                      <span className="text-[12px] text-salve-textFaint font-montserrat truncate">
                         {summaryChips.join(' · ')}{typeSet.size > 4 ? ` +${typeSet.size - 4}` : ''}
                       </span>
                     )}
@@ -553,11 +553,11 @@ export default function Vitals({ data, addItem, removeItem }) {
                       </span>
                     )}
                     {cp && (
-                      <span className="text-[10px] font-montserrat" style={{ color: cp.color }}>
+                      <span className="text-[12px] font-montserrat" style={{ color: cp.color }}>
                         {cp.phase}
                       </span>
                     )}
-                    <span className="text-[10px] text-salve-textFaint font-montserrat hidden md:inline">{fmtDate(date)}</span>
+                    <span className="text-[12px] text-salve-textFaint font-montserrat hidden md:inline">{fmtDate(date)}</span>
                     <ChevronDown size={13} className={`text-salve-textFaint transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
@@ -590,12 +590,12 @@ export default function Vitals({ data, addItem, removeItem }) {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-baseline gap-2 flex-wrap">
                                 {anyFlag && <AlertTriangle size={12} color={C.amber} className="flex-shrink-0" aria-hidden="true" />}
-                                <span className="text-[13px] text-salve-textMid font-montserrat">{t?.label}</span>
+                                <span className="text-[15px] text-salve-textMid font-montserrat">{t?.label}</span>
                                 <span className="text-[14px] font-semibold font-montserrat" style={{ color: C.sage }}>
-                                  {avg}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit} avg</span>
+                                  {avg}<span className="text-[13px] font-normal text-salve-textFaint ml-0.5">{t?.unit} avg</span>
                                 </span>
                               </div>
-                              <div className="flex gap-3 mt-0.5 text-[10px] text-salve-textFaint font-montserrat">
+                              <div className="flex gap-3 mt-0.5 text-[12px] text-salve-textFaint font-montserrat">
                                 <span>↓ {min} at {lowEntry.time}</span>
                                 <span>↑ {max} at {peakEntry.time}</span>
                                 <span>{typeEntries.length} readings</span>
@@ -623,13 +623,13 @@ export default function Vitals({ data, addItem, removeItem }) {
                             <div className="flex items-center gap-2 px-3.5 py-2">
                               <div className="flex-1 min-w-0 flex items-baseline gap-2 flex-wrap">
                                 {flag && <AlertTriangle size={12} color={fs.color} className="flex-shrink-0" aria-hidden="true" />}
-                                <span className="text-[13px] text-salve-textMid font-montserrat">{t?.label}</span>
-                                {v.time && <span className="text-[10px] text-salve-textFaint font-montserrat">{v.time}</span>}
+                                <span className="text-[15px] text-salve-textMid font-montserrat">{t?.label}</span>
+                                {v.time && <span className="text-[12px] text-salve-textFaint font-montserrat">{v.time}</span>}
                                 <span className="text-[14px] font-semibold font-montserrat" style={{ color: flag ? fs.color : C.sage }}>
-                                  {displayVal}<span className="text-[11px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
+                                  {displayVal}<span className="text-[13px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
                                 </span>
-                                {flag && <span className="text-[10px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
-                                {v.notes && <span className="text-[11px] text-salve-textFaint italic">,  {v.notes}</span>}
+                                {flag && <span className="text-[12px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
+                                {v.notes && <span className="text-[13px] text-salve-textFaint italic">,  {v.notes}</span>}
                               </div>
                               {SrcIcon && <SrcIcon size={11} style={{ color: SOURCE_COLOR[src] }} className="flex-shrink-0" aria-hidden="true" />}
                               <button

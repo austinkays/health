@@ -81,7 +81,7 @@ export default function DropZone({ onFile, accept = '*', label, hint, alwaysVisi
         {label || 'Drop file here or click to browse'}
       </span>
       {hint && (
-        <span className="text-[11px] text-salve-textFaint font-montserrat">
+        <span className="text-[13px] text-salve-textFaint font-montserrat">
           {hint}
         </span>
       )}

@@ -347,7 +347,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               ))}
             </div>
           )}
-          {form.rxcui && <div className="text-[10px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier, links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
+          {form.rxcui && <div className="text-[12px] text-salve-textFaint -mt-3 mb-3" title="RxNorm Concept Unique Identifier, links this medication to the NLM drug database for interaction checking and drug info">RxCUI: {form.rxcui} · Linked to NLM drug database</div>}
           {duplicateWarning && <div className="flex items-start gap-1.5 text-xs text-salve-amber -mt-2 mb-2" role="alert"><AlertTriangle size={12} className="flex-shrink-0 mt-0.5" aria-hidden="true" />{duplicateWarning}</div>}
         </div>
         <Field label="Display Name (optional)" value={form.display_name} onChange={v => sf('display_name', v)} placeholder="e.g. my morning pill" />
@@ -427,7 +427,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             </button>
             {crossReactAI && (
               <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/8 border border-salve-lav/20">
-                <div className="text-[11px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> Cross-Reactivity Analysis</div>
+                <div className="text-[13px] font-semibold text-salve-lav mb-1 flex items-center gap-1"><Sparkles size={11} /> Cross-Reactivity Analysis</div>
                 <AIMarkdown compact>{crossReactAI}</AIMarkdown>
               </div>
             )}
@@ -475,7 +475,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         const isGeneric = latest.classification === 'G';
         return (
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[11px] text-salve-sage font-medium">
+            <span className="inline-flex items-center gap-1 text-[13px] text-salve-sage font-medium">
               <DollarSign size={10} /> ${Number(latest.nadac_per_unit).toFixed(4)}/{latest.pricing_unit || 'unit'}
             </span>
             <span className={`inline-flex items-center py-0.5 px-1.5 rounded text-[9px] font-semibold ${isGeneric ? 'bg-salve-sage/10 text-salve-sage border border-salve-sage/20' : 'bg-salve-amber/10 text-salve-amber border border-salve-amber/20'}`}>
@@ -487,7 +487,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       {/* ── Inline FDA summary ── */}
       {m.fda_data && (
         <div className="mt-2 p-2.5 rounded-lg bg-salve-sage/5 border border-salve-sage/15">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
             {m.fda_data.generic_name && m.fda_data.generic_name.toLowerCase() !== m.name.toLowerCase() && (
               <span className="text-salve-textMid"><span className="font-medium">Generic:</span> {m.fda_data.generic_name}</span>
             )}
@@ -507,10 +507,10 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           {/* ── Boxed warning (expandable) ── */}
           {m.fda_data.boxed_warning?.length > 0 && (
             <div className="mt-1.5">
-              <div className="flex items-center gap-1 text-[10px] text-salve-rose font-medium">
+              <div className="flex items-center gap-1 text-[12px] text-salve-rose font-medium">
                 <AlertTriangle size={10} /> FDA Black Box Warning
               </div>
-              <div className={`mt-1 text-[10px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
+              <div className={`mt-1 text-[12px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
               {m.fda_data.boxed_warning[0].length > 500 && (
                 <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:warning`]: !prev[`${m.id}:warning`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors">
                   {fdaExpanded[`${m.id}:warning`] ? 'Show less' : 'Show more'}
@@ -520,7 +520,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           )}
           {/* ── Indications (always visible when available) ── */}
           {m.fda_data.indications?.length > 0 && (
-            <div className="mt-1.5 text-[10px] text-salve-textMid leading-relaxed">
+            <div className="mt-1.5 text-[12px] text-salve-textMid leading-relaxed">
               <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 500 ? 'line-clamp-4' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
               {m.fda_data.indications[0].length > 500 && (
                 <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:indications`]: !prev[`${m.id}:indications`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors block">
@@ -534,14 +534,14 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             <>
               <button
                 onClick={() => setFdaDetailId(fdaDetailId === m.id ? null : m.id)}
-                className="mt-1.5 flex items-center gap-1 text-[10px] text-salve-sage font-medium bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
+                className="mt-1.5 flex items-center gap-1 text-[12px] text-salve-sage font-medium bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
               >
                 <Info size={10} />
                 {fdaDetailId === m.id ? 'Hide details' : 'More drug details'}
                 <ChevronDown size={9} className={`transition-transform ${fdaDetailId === m.id ? 'rotate-180' : ''}`} />
               </button>
               {fdaDetailId === m.id && (
-                <div className="mt-1.5 space-y-2 text-[10px] leading-relaxed">
+                <div className="mt-1.5 space-y-2 text-[12px] leading-relaxed">
                   {[
                     { key: 'adverse_reactions', label: 'Side Effects', color: 'text-salve-amber', data: m.fda_data.adverse_reactions },
                     { key: 'dosage', label: 'Dosage & Administration', color: 'text-salve-text', data: m.fda_data.dosage },
@@ -584,14 +584,14 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         if (!linked.length) return null;
         return (
           <div className="mt-2">
-            <span className="text-[10px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Journal Mentions</span>
+            <span className="text-[12px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Journal Mentions</span>
             <div className="mt-1 space-y-1">
               {linked.map(e => (
                 <button key={e.id} onClick={() => onNav?.('journal', { highlightId: e.id })} className="w-full text-left bg-salve-lav/6 border border-salve-lav/12 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-salve-lav/12 transition-colors">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-salve-text font-montserrat">{e.title || e.date}</span>
                     {e.mood && <span className="text-xs">{String(e.mood).split(' ')[0]}</span>}
-                    {e.severity && <span className="text-[10px] text-salve-textFaint">{e.severity}/10</span>}
+                    {e.severity && <span className="text-[12px] text-salve-textFaint">{e.severity}/10</span>}
                   </div>
                 </button>
               ))}
@@ -607,11 +607,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         return (
           <div className="mt-2.5 pt-2.5 border-t border-salve-border/40">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Reminders</span>
+              <span className="text-[13px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Reminders</span>
               {!isAdding && (
                 <button
                   onClick={() => { setReminderAddId(m.id); setReminderTime('08:00'); }}
-                  className="text-[11px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline flex items-center gap-0.5"
+                  className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline flex items-center gap-0.5"
                 >
                   <Plus size={11} /> Add
                 </button>
@@ -634,11 +634,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                       setReminderAddId(null);
                     }
                   }}
-                  className="text-[11px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
+                  className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
                 >Save</button>
                 <button
                   onClick={() => setReminderAddId(null)}
-                  className="text-[11px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
+                  className="text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
                 >Cancel</button>
               </div>
             )}
@@ -646,24 +646,24 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               <div key={r.id} className="flex items-center justify-between py-1">
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-montserrat text-salve-text">{r.reminder_time?.slice(0, 5)}</span>
-                  <span className={`text-[10px] font-montserrat ${r.enabled ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
+                  <span className={`text-[12px] font-montserrat ${r.enabled ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
                     {r.enabled ? 'Active' : 'Paused'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => updateItem('medication_reminders', r.id, { enabled: !r.enabled })}
-                    className="text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
+                    className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
                   >{r.enabled ? 'Pause' : 'Enable'}</button>
                   <button
                     onClick={() => removeItem('medication_reminders', r.id)}
-                    className="text-[10px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
+                    className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
                   >Remove</button>
                 </div>
               </div>
             ))}
             {medReminders.length === 0 && !isAdding && (
-              <p className="text-[10px] text-salve-textFaint/60 font-montserrat italic">No reminders set</p>
+              <p className="text-[12px] text-salve-textFaint/60 font-montserrat italic">No reminders set</p>
             )}
           </div>
         );
@@ -716,13 +716,13 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           {interactions.map((w, i) => (
             <Card key={i} style={{ borderLeft: `3px solid ${w.severity === 'danger' ? C.rose : w.severity === 'caution' ? C.amber : C.sage}` }} className="!p-3.5">
               <div className="flex justify-between mb-1.5">
-                <span className="text-[13px] font-semibold text-salve-text">{w.medA} + {w.medB}</span>
+                <span className="text-[15px] font-semibold text-salve-text">{w.medA} + {w.medB}</span>
                 <SevBadge severity={w.severity} />
               </div>
               <div className="text-xs text-salve-textMid leading-relaxed">{w.msg}</div>
           </Card>
           ))}
-          <p className="text-[11px] text-salve-textFaint italic text-center my-1">✧ Always verify with your pharmacist ✧</p>
+          <p className="text-[13px] text-salve-textFaint italic text-center my-1">✧ Always verify with your pharmacist ✧</p>
         </>
       )}
 
@@ -748,7 +748,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
       {monthlyCost && (
         <div className="flex items-center gap-2 mb-3 px-0.5">
           <DollarSign size={12} className="text-salve-sage flex-shrink-0" />
-          <span className="text-[11px] text-salve-textMid">
+          <span className="text-[13px] text-salve-textMid">
             Est. <span className="font-medium text-salve-sage">${monthlyCost.total.toFixed(2)}</span>/mo wholesale
             <span className="text-salve-textFaint"> · {monthlyCost.counted} of {monthlyCost.of} meds priced</span>
           </span>
@@ -780,7 +780,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
             <button
               key={c.value}
               onClick={() => setCatFilter(c.value)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-montserrat font-medium border transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-full text-[13px] font-montserrat font-medium border transition-all cursor-pointer ${
                 catFilter === c.value
                   ? 'border-salve-lav/40 bg-salve-lav/10 text-salve-text'
                   : 'border-salve-border bg-transparent text-salve-textFaint hover:border-salve-border2'
@@ -812,7 +812,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               onClick={() => setMaintOpen(o => !o)}
               className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-transparent border-none cursor-pointer font-montserrat"
             >
-              <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+              <div className="flex items-center gap-2 text-[13px] text-salve-textMid">
                 <RefreshCw size={11} className="text-salve-textFaint" />
                 <span>
                   {hasAnyProgress ? 'Working…' :
@@ -834,20 +834,20 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 {/* Enrich row */}
                 {(unenrichedCount > 0 || enrichResult || enrichProgress) && (
                   enrichResult ? (
-                    <div className="text-[11px] text-salve-textMid">
+                    <div className="text-[13px] text-salve-textMid">
                       <span className="font-medium text-salve-sage">✓ Enriched {enrichResult.enriched}/{enrichResult.total}</span>
                       {enrichResult.failed?.length > 0 && <span className="text-salve-textFaint"> · Not in FDA: {enrichResult.failed.join(', ')}</span>}
-                      <button onClick={() => setEnrichResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
+                      <button onClick={() => setEnrichResult(null)} className="ml-2 text-[12px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
                     </div>
                   ) : enrichProgress ? (
-                    <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+                    <div className="flex items-center gap-2 text-[13px] text-salve-textMid">
                       <Loader size={11} className="animate-spin text-salve-sage" />
                       Enriching {enrichProgress.current}/{enrichProgress.total} <span className="text-salve-textFaint truncate">{enrichProgress.name}</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-salve-sage flex items-center gap-1"><Download size={10} /> {unenrichedCount} missing drug info</span>
-                      <button onClick={bulkEnrichMeds} disabled={enriching} className="text-[10px] px-2 py-0.5 rounded-md bg-salve-sage/10 border border-salve-sage/25 text-salve-sage cursor-pointer font-montserrat hover:bg-salve-sage/20 transition-colors">Enrich</button>
+                      <span className="text-[13px] text-salve-sage flex items-center gap-1"><Download size={10} /> {unenrichedCount} missing drug info</span>
+                      <button onClick={bulkEnrichMeds} disabled={enriching} className="text-[12px] px-2 py-0.5 rounded-md bg-salve-sage/10 border border-salve-sage/25 text-salve-sage cursor-pointer font-montserrat hover:bg-salve-sage/20 transition-colors">Enrich</button>
                     </div>
                   )
                 )}
@@ -855,20 +855,20 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 {/* Link row */}
                 {(unlinkedCount > 0 || bulkResult || bulkProgress) && (
                   bulkResult ? (
-                    <div className="text-[11px] text-salve-textMid">
+                    <div className="text-[13px] text-salve-textMid">
                       <span className="font-medium text-salve-sage">✓ Linked {bulkResult.linked}/{bulkResult.total}</span>
                       {bulkResult.failed?.length > 0 && <span className="text-salve-textFaint"> · Failed: {bulkResult.failed.join(', ')}</span>}
-                      <button onClick={() => setBulkResult(null)} className="ml-2 text-[10px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
+                      <button onClick={() => setBulkResult(null)} className="ml-2 text-[12px] text-salve-textFaint underline bg-transparent border-none cursor-pointer font-montserrat p-0">×</button>
                     </div>
                   ) : bulkProgress ? (
-                    <div className="flex items-center gap-2 text-[11px] text-salve-textMid">
+                    <div className="flex items-center gap-2 text-[13px] text-salve-textMid">
                       <Loader size={11} className="animate-spin text-salve-amber" />
                       Linking {bulkProgress.current}/{bulkProgress.total} <span className="text-salve-textFaint truncate">{bulkProgress.name}</span>
                     </div>
                   ) : (
                     <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-salve-amber flex items-center gap-1"><Unlink size={10} /> {unlinkedCount} not linked to NLM</span>
-                      <button onClick={bulkLinkMeds} disabled={bulkLinking} className="text-[10px] px-2 py-0.5 rounded-md bg-salve-amber/10 border border-salve-amber/25 text-salve-amber cursor-pointer font-montserrat hover:bg-salve-amber/20 transition-colors">Link</button>
+                      <span className="text-[13px] text-salve-amber flex items-center gap-1"><Unlink size={10} /> {unlinkedCount} not linked to NLM</span>
+                      <button onClick={bulkLinkMeds} disabled={bulkLinking} className="text-[12px] px-2 py-0.5 rounded-md bg-salve-amber/10 border border-salve-amber/25 text-salve-amber cursor-pointer font-montserrat hover:bg-salve-amber/20 transition-colors">Link</button>
                     </div>
                   )
                 )}
@@ -897,8 +897,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
                   {m.display_name || m.name}
                 </div>
-                {m.display_name && m.display_name !== m.name && <div className="text-[11px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
-                <div className="text-[13px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+                {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
+                <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
                 {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
                 {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
                 {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
@@ -940,7 +940,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 })()}
               </div>
               <div className="flex items-center gap-1 ml-2">
-                {m.refill_date && !isExpanded && <span className="text-[11px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
+                {m.refill_date && !isExpanded && <span className="text-[13px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
                 <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
               </div>
             </div>

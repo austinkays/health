@@ -2,7 +2,7 @@ export default function Badge({ label, color, bg }) {
   return (
     <span
       style={{ background: bg, color }}
-      className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full inline-block tracking-wide badge-glow"
+      className="text-[13px] font-semibold px-2.5 py-0.5 rounded-full inline-block tracking-wide badge-glow"
     >
       {label}
     </span>
