@@ -7,6 +7,7 @@ import Field from '../ui/Field';
 import Button from '../ui/Button';
 import Motif from '../ui/Motif';
 import { exportAll, validateImport, importRestore, importMerge, encryptExport, decryptExport } from '../../services/storage';
+import { trackEvent, EVENTS } from '../../services/analytics';
 import { hasAIConsent, revokeAIConsent } from '../ui/AIConsentGate';
 import { getAIProvider, setAIProvider, isPremiumActive, isAdminActive, trialDaysRemaining } from '../../services/ai';
 // Auto-set AI provider based on tier, no manual model picker needed
@@ -225,14 +226,25 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const trialExpired = s?.tier === 'premium' && trialDays === 0;
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
+  const [selectedPlan, setSelectedPlan] = useState('monthly');
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
       await startCheckout(); // redirects, never returns on success
+      await startCheckout(selectedPlan); // redirects — never returns on success
     } catch (err) {
       setCheckoutError(err.message || 'Could not start checkout. Try again.');
       setCheckoutLoading(false);
+    }
+  };
+  const [portalLoading, setPortalLoading] = useState(false);
+  const handleManageSub = async () => {
+    setPortalLoading(true);
+    try {
+      await openCustomerPortal(); // redirects
+    } catch {
+      setPortalLoading(false);
     }
   };
   const [tierOverride, setTierOverride] = useState(() => {
@@ -749,6 +761,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     try {
       if (importValidation.mode === 'merge') {
         const stats = await importMerge(importValidation.normalized);
+        trackEvent(`${EVENTS.IMPORT_COMPLETED}:sync`);
         const addedTotal = Object.values(stats.added).reduce((s, n) => s + n, 0);
         const skippedTotal = Object.values(stats.skipped).reduce((s, n) => s + n, 0);
 
@@ -766,6 +779,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         await reloadData();
       } else {
         await importRestore(importValidation.normalized);
+        trackEvent(`${EVENTS.IMPORT_COMPLETED}:backup`);
         setImportResult('Full restore complete. Reloading...');
         setTimeout(() => window.location.reload(), 1500);
         return;
@@ -1066,14 +1080,41 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 Premium upgrades aren't open yet. We'll let you know when they are.
               </p>
             )}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedPlan('monthly')}
+                className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-medium font-montserrat border transition-colors cursor-pointer ${selectedPlan === 'monthly' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border bg-salve-card text-salve-textMid'}`}
+              >
+                <div className="font-semibold">$9.99/mo</div>
+                <div className="text-[10px] opacity-70 mt-0.5">Monthly</div>
+              </button>
+              <button
+                onClick={() => setSelectedPlan('annual')}
+                className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-medium font-montserrat border transition-colors cursor-pointer relative ${selectedPlan === 'annual' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border bg-salve-card text-salve-textMid'}`}
+              >
+                <div className="font-semibold">$79.99/yr</div>
+                <div className="text-[10px] opacity-70 mt-0.5">Save 33%</div>
+              </button>
+            </div>
+            <button
+              onClick={handleUpgrade}
+              disabled={checkoutLoading}
+              className="w-full py-2 rounded-xl text-[12px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-60 cursor-pointer border-0"
+            >
+              {checkoutLoading ? 'Opening checkout…' : 'Upgrade to Premium →'}
+            </button>
+            {checkoutError && <p className="text-[11px] text-salve-rose font-montserrat">{checkoutError}</p>}
           </div>
         )}
         {userTier === 'premium' && !isOnTrial && BILLING_ENABLED && (
           <button
             onClick={openCustomerPortal}
             className="mt-2 text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0"
+            onClick={handleManageSub}
+            disabled={portalLoading}
+            className="mt-2 text-[11px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0 disabled:opacity-60"
           >
-            Manage subscription →
+            {portalLoading ? 'Opening…' : 'Manage subscription →'}
           </button>
         )}
         {/* Dev-mode tier override, lets you preview the free/expired state without waiting */}

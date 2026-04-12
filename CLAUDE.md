@@ -92,6 +92,7 @@ health/
 │       ├── 028_beta_invites.sql               # Closed-beta invite gate: beta_invites table + check_beta_invite(code,email) + claim_beta_invite(code) RPCs. Reserve-on-validate with 30-min email lock. Anon-callable via SECURITY DEFINER.
 │       ├── 029_trim_beta_trial_to_30_days.sql # Walks trial back from 90 → 30 days. Idempotent; safe whether 027 was applied or not.
 │       └── 030_terra_connections.sql          # terra_connections table (user_id, terra_user_id UNIQUE, provider, status, last_webhook_at, last_sync_at). RLS-scoped select/delete; webhooks use service role to bypass.
+│       └── 026_usage_events.sql               # PHI-safe self-hosted product analytics: usage_events table (event name + user_id + created_at only, 80-char CHECK), RLS (SELECT/INSERT own rows), set_user_id trigger, idx_usage_events_user_time + idx_usage_events_event_time, purge_old_usage_events() SECURITY DEFINER function for 180-day retention
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
@@ -138,6 +139,7 @@ health/
 │   │   ├── quote.js              # Daily wellness quote service (ZenQuotes API), 24-hour localStorage cache
 │   │   ├── sentry.js             # Sentry error reporting: initSentry() only activates when VITE_SENTRY_DSN is set; disabled in dev unless VITE_SENTRY_DSN_DEV; beforeSend scrubs request bodies, form data, and known health field names to prevent PII leaks
 │   │   └── fx.js                 # Cursor-follow micro-interaction helpers: handleSpotlight(e) sets --mx/--my CSS vars on currentTarget from pointer position, handleMagnet(e, strength) translates target toward cursor, resetMagnet(e) snaps back. All DOM writes, no React re-renders.
+│   │   └── analytics.js          # PHI-safe self-hosted product analytics: writes to Supabase `usage_events` table directly (no third-party vendor). `trackEvent(name)` fire-and-forget, batched (20 events or 10s, whichever first, plus page-hide flush). Double allowlist: `EVENTS` constant for base names, per-event `SUFFIX_ALLOWLIST` for enum discriminators (section IDs, AI feature names, import sources). Unknown/suffixed-wrong events silently dropped (dev-only warning). `enableAnalytics()` / `disableAnalytics()` gated on session + demo mode. `setupAnalyticsFlush()` wires visibilitychange + pagehide listeners. NEVER accepts properties — event name only. Backstopped by migration 026 schema CHECK length ≤80 and RLS.
 │   ├── hooks/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
@@ -261,6 +263,7 @@ PostgreSQL via Supabase with Row Level Security on all tables. Schema in `supaba
 | `genetic_results` | source, gene, variant, phenotype, affected_drugs (JSONB), category, notes | Pharmacogenomic test results (CYP450 metabolizer status, HLA variants). Drug-gene badges on medication cards. |
 | `feedback` | type (feedback/bug/suggestion), message | In-app user feedback submissions. Not included in data exports. |
 | `insight_ratings` | surface, content_key, rating (-1/1), metadata (JSONB) | Thumbs up/down on AI-generated content (patterns, insights, news stories). Unique constraint per user+surface+key. Not included in data exports. |
+| `usage_events` | event (text ≤80 chars), created_at | PHI-safe product analytics. Event name only, NO properties. 180-day retention via `purge_old_usage_events()` SECURITY DEFINER function. Written by `src/services/analytics.js` behind a strict allowlist. Never includes medical data or identifiers. |
 
 All tables have `user_id` FK (except profiles which uses `id`), `created_at`, `updated_at` (auto-trigger), and RLS policies scoped to `auth.uid()`. Realtime enabled for cross-device sync.
 
@@ -509,6 +512,7 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | **Cache at rest** | AES-GCM encrypted localStorage using PBKDF2-derived key from auth token |
 | **Exports at rest** | Optional passphrase-encrypted backups (AES-GCM + PBKDF2) |
 | **AI data sharing** | Requires explicit user consent via `AIConsentGate` before any data sent to Anthropic; revocable in Settings |
+| **Product analytics** | Self-hosted in the user's own Supabase `usage_events` table — no third-party analytics vendor. Client-side double allowlist (base + suffix) in `services/analytics.js` prevents PHI-carrying event names. Schema backstop: `CHECK (length(event) <= 80)` and RLS so users can only ever read their own rows. 180-day retention via `purge_old_usage_events()`. No cookies, ad IDs, or cross-site identifiers. Disabled in demo mode and when signed out. |
 | **AI prompt safety** | System prompts constructed server-side via `api/_prompts.js` — client sends `prompt_key` from allowlist + `profile_text`, NOT raw system prompts. `profile.js` sanitizes all user-provided text (strips `<>{}`, configurable char limits via `san(text, limit)` — default 500, up to 1000 for FDA data). Raw `system` only accepted for admin tier (House Consultation escape hatch) |
 | **OTP brute-force** | `Auth.jsx` tracks failed OTP attempts with escalating cooldown schedule (3 attempts → 30s, 5 → 120s, 7 → 300s). Verify button disabled during cooldown with live countdown. Resets on code resend |
 | **Form validation** | `utils/validate.js` provides per-entity validators with hard range checks (vitals: pain 0-10, bp 20-300, hr 10-350, etc.), field length limits (notes 2000, name 200), required field enforcement. Wired into Vitals, Medications, Labs forms + AI tool executor |

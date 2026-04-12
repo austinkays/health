@@ -1,5 +1,6 @@
 import { getAuthToken } from './token';
 import { HEALTH_TOOLS } from '../constants/tools';
+import { trackEvent, EVENTS } from './analytics';
 
 // ── AI Provider + Model Routing ──
 
@@ -309,6 +310,12 @@ export function getDailyUsage() {
 
 async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWebSearch = false, feature = 'chat', promptOpts = {}) {
   if (_demoMode) return demoResponseFor(feature, messages);
+
+  // Analytics: log which AI feature the user actually invoked. Fire-and-forget,
+  // allowlisted, no properties. The `chat` feature also logs ai_chat_sent for
+  // the chat-specific engagement signal.
+  trackEvent(`${EVENTS.AI_FEATURE_RUN}:${feature}`);
+  if (feature === 'chat') trackEvent(EVENTS.AI_CHAT_SENT);
 
   const token = await getAuthToken();
 
@@ -688,6 +695,9 @@ export async function fillFormQuestions(questionsText, profileText, imageDataArr
   // Scale max tokens based on input size, more images/text = likely more Q&A
   const maxTokens = Math.min(3000 + (images.length > 1 ? images.length * 500 : 0), 6000);
 
+  // Log formHelper separately since it piggybacks on the 'chat' model tier.
+  trackEvent(`${EVENTS.AI_FEATURE_RUN}:formHelper`);
+
   return callAPI(
     [{ role: 'user', content }],
     'formHelper', profileText,
@@ -789,6 +799,11 @@ async function callAPIWithTools(messages, promptKey, profileText, tools, onToolC
     if (data.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
       break;
     }
+
+    // Analytics: Sage actually modified (or searched) user data via tool-use.
+    // One event per tool_use block regardless of eventual success/failure —
+    // we care that the user gave Sage enough trust to invoke a tool.
+    for (let i = 0; i < toolUseBlocks.length; i++) trackEvent(EVENTS.AI_TOOL_USED);
 
     // Execute tool calls via callback
     const toolResults = await onToolCall(toolUseBlocks);

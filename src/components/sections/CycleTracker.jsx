@@ -16,6 +16,7 @@ import { EMPTY_CYCLE, FLOW_LEVELS, CYCLE_SYMPTOMS, CERVICAL_MUCUS_LEVELS, FERTIL
 import { detectFloFormat, parseFloExport } from '../../services/flo';
 import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility, getCycleAlerts, getSymptothermalStatus, detectBBTShift } from '../../utils/cycles';
 import { isOuraConnected, syncAllOuraData } from '../../services/oura';
+import { trackEvent, EVENTS } from '../../services/analytics';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -228,7 +229,10 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
         await silentAdd('cycles', { ...r, notes: r.notes || 'Imported from Flo' });
         added++;
       }
-      if (added > 0) localStorage.setItem('salve:flo-imported', '1');
+      if (added > 0) {
+        localStorage.setItem('salve:flo-imported', '1');
+        trackEvent(`${EVENTS.IMPORT_COMPLETED}:flo`);
+      }
       setImportResult({ success: true, total: records.length, added, skipped: records.length - added });
     } catch {
       setImportResult({ error: 'Could not parse file. Please upload a valid Flo JSON export.' });

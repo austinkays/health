@@ -6,6 +6,7 @@ import DropZone from './DropZone';
 import { C } from '../../constants/colors';
 import { detectAppleHealthFormat, detectAppleHealthJSON, parseAppleHealthExport, deduplicateAgainst, DEDUP_KEYS, parseFhirToLab } from '../../services/healthkit';
 import { db } from '../../services/db';
+import { trackEvent, EVENTS } from '../../services/analytics';
 
 export default function AppleHealthImport({ data, reloadData }) {
   const [stage, setStage] = useState('idle'); // idle, parsing, preview, importing, done, error, paste
@@ -162,6 +163,7 @@ export default function AppleHealthImport({ data, reloadData }) {
         counts.activities = preview.data.activities.length;
       }
       setResult(counts);
+      trackEvent(`${EVENTS.IMPORT_COMPLETED}:apple_health`);
       setStage('done');
       reloadData();
     } catch (err) {

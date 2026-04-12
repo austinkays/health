@@ -3,6 +3,26 @@ import { db } from '../services/db';
 import { cache } from '../services/cache';
 import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 import { buildDemoData } from '../constants/demoData';
+import { trackEvent, EVENTS } from '../services/analytics';
+
+// Map of Supabase table name → analytics event for per-entity "thing added" tracking.
+// Tables NOT in this map don't fire a per-entity event (e.g. allergies, providers —
+// these fire through the generic `first_record_added` signal only).
+const ADD_EVENT_BY_TABLE = {
+  medications: EVENTS.MEDICATION_ADDED,
+  vitals: EVENTS.VITAL_LOGGED,
+  journal_entries: EVENTS.JOURNAL_ENTRY_ADDED,
+  cycles: EVENTS.CYCLE_ENTRY_ADDED,
+  todos: EVENTS.TODO_ADDED,
+};
+
+// Tables that count as "a real record" for the first_record_added funnel signal.
+// Excludes profile-ish/config tables (feedback, drug_prices, etc.)
+const RECORD_TABLES = new Set([
+  'medications', 'conditions', 'allergies', 'providers', 'pharmacies',
+  'vitals', 'appointments', 'journal_entries', 'labs', 'procedures',
+  'immunizations', 'todos', 'cycles', 'activities', 'genetic_results',
+]);
 
 export default function useHealthData(session, demoMode = false) {
   const [data, setData] = useState(() => {
@@ -108,6 +128,18 @@ export default function useHealthData(session, demoMode = false) {
       if (saved?.id && prev[key].some(x => x.id === saved.id)) {
         return prev;
       }
+      // Analytics: fire inside the updater so we can read the BEFORE state and
+      // detect whether this was the user's first-ever real record. Tracking
+      // calls are fire-and-forget and allowlisted — safe to call here.
+      if (RECORD_TABLES.has(table)) {
+        const wasEmpty = [...RECORD_TABLES].every(t => {
+          const k = tableToKey(t);
+          return !prev[k] || prev[k].length === 0;
+        });
+        if (wasEmpty) trackEvent(EVENTS.FIRST_RECORD_ADDED);
+      }
+      const perEntityEvent = ADD_EVENT_BY_TABLE[table];
+      if (perEntityEvent) trackEvent(perEntityEvent);
       return { ...prev, [key]: [...prev[key], saved] };
     });
     return saved;
@@ -133,6 +165,25 @@ export default function useHealthData(session, demoMode = false) {
   const updateSettings = useCallback(async (changes) => {
     // Optimistic local update, instant UI response
     setData(prev => ({ ...prev, settings: { ...prev.settings, ...changes } }));
+    // Optimistic local update — instant UI response
+    setData(prev => {
+      const nextSettings = { ...prev.settings, ...changes };
+      // Analytics: fire profile_completed ONCE when both core fields go from
+      // empty to non-empty. Guarded by a localStorage flag so re-edits don't
+      // re-fire. This is the onboarding funnel signal — "user actually set
+      // themselves up" vs. "user signed in and bounced".
+      try {
+        const wasComplete = Boolean((prev.settings?.name || '').trim()) &&
+                            Boolean((prev.settings?.health_background || '').trim());
+        const isComplete = Boolean((nextSettings.name || '').trim()) &&
+                           Boolean((nextSettings.health_background || '').trim());
+        if (!wasComplete && isComplete && !localStorage.getItem('salve:profile-completed-fired')) {
+          localStorage.setItem('salve:profile-completed-fired', '1');
+          trackEvent(EVENTS.PROFILE_COMPLETED);
+        }
+      } catch { /* ignore */ }
+      return { ...prev, settings: nextSettings };
+    });
     // Fire the network save in the background
     try {
       await db.profile.update(changes);

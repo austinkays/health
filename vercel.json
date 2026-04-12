@@ -15,10 +15,10 @@
     "api/delete-account.js": {
       "maxDuration": 15
     },
-    "api/lemon-checkout.js": {
+    "api/stripe-checkout.js": {
       "maxDuration": 15
     },
-    "api/lemon-webhook.js": {
+    "api/stripe-webhook.js": {
       "maxDuration": 15
     },
     "api/push-send.js": {

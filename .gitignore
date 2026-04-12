@@ -34,3 +34,4 @@ salve_icon.png
 
 # Redundant local subdirectory (app lives at root)
 health/
+.vercel

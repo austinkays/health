@@ -25,6 +25,7 @@ import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
+import { trackEvent, EVENTS, enableAnalytics, disableAnalytics, setupAnalyticsFlush, flush as flushAnalytics } from './services/analytics';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -139,8 +140,15 @@ function AppContent() {
     return () => clearTimeout(timeout);
   }, [authLoading]);
 
-  // Sync demo mode to services/ai.js so AI calls route to canned responses
-  useEffect(() => { setAIDemoMode(demoMode); }, [demoMode]);
+  // Sync demo mode to services/ai.js so AI calls route to canned responses.
+  // Demo mode also disables analytics so canned demo traffic doesn't pollute stats.
+  useEffect(() => {
+    setAIDemoMode(demoMode);
+    if (demoMode) disableAnalytics();
+  }, [demoMode]);
+
+  // Flush analytics queue on page hide so we don't lose the last handful of events
+  useEffect(() => setupAnalyticsFlush(), []);
   const [tab, setTab] = useState(() => {
     // Restore tab after a chunk-retry reload so user doesn't land on Home
     const retryTab = sessionStorage.getItem(RETRY_TAB_KEY);
@@ -221,7 +229,10 @@ function AppContent() {
 
   const onNav = useCallback((t, opts) => {
     setTab(prev => {
-      if (t !== prev) setNavHistory(h => [...h.slice(-19), prev]);
+      if (t !== prev) {
+        setNavHistory(h => [...h.slice(-19), prev]);
+        trackEvent(`${EVENTS.SECTION_OPENED}:${t}`);
+      }
       return t;
     });
     // Stamp on DOM so lazyWithRetry can read it during chunk-fail reload
@@ -295,7 +306,7 @@ function AppContent() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const checkout = params.get('checkout');
-    // Handle Lemon Squeezy checkout redirect
+    // Handle Stripe checkout redirect
     if (checkout) {
       window.history.replaceState({}, '', window.location.pathname);
       if (checkout === 'success') {
@@ -326,6 +337,8 @@ function AppContent() {
         setSageIntroOpen(false);
         clearSentryUser();
         clearTokenCache();
+        flushAnalytics();
+        disableAnalytics();
       } else if (event === 'TOKEN_REFRESHED' && !s) {
         // Transient null during token refresh, do NOT flash auth screen.
         // The next event will have the refreshed session.
@@ -349,6 +362,16 @@ function AppContent() {
               .catch(() => { /* leave it for the next signin to retry */ });
           }
         } catch { /* localStorage unavailable, nothing to claim */ }
+        // Enable analytics for this (real, non-demo) user. Log first-time
+        // sign-in exactly once per browser via a guard key.
+        enableAnalytics();
+        try {
+          const FIRST_KEY = `salve:first-signin:${s.user.id}`;
+          if (!localStorage.getItem(FIRST_KEY)) {
+            localStorage.setItem(FIRST_KEY, '1');
+            trackEvent(EVENTS.SIGNED_IN_FIRST_TIME);
+          }
+        } catch { /* localStorage may be unavailable */ }
       }
       setSession(s);
       setAuthLoading(false);

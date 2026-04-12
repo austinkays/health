@@ -3,10 +3,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 import { initSentry } from './services/sentry.js'
-import { inject } from '@vercel/analytics'
 
 initSentry()
-inject()
 
 // Pause expensive theme background animations while the window is being
 // actively resized — fixes the choppy repaint on experimental themes whose

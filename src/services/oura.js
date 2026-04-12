@@ -3,6 +3,7 @@
 // Temperature deviation from Oura → approximate BBT for cycle tracking.
 
 import { getAuthToken } from './token';
+import { trackEvent, EVENTS } from './analytics';
 
 const STORAGE_KEY = 'salve:oura';
 
@@ -578,6 +579,7 @@ export async function syncAllOuraData(data, addItem, days = 30, baselineF = 97.7
     try { results.readiness = await syncOuraReadinessVitals(data.vitals || [], addItem, days); } catch (e) { results.readiness = { error: e.message }; }
     try { results.workouts = await syncOuraWorkouts(data.activities || [], addItem, days); } catch (e) { results.workouts = { error: e.message }; }
     try { results.dailyActivity = await syncOuraDailyActivity(data.vitals || [], data.activities || [], addItem, days); } catch (e) { results.dailyActivity = { error: e.message }; }
+    trackEvent(EVENTS.OURA_SYNCED);
     return results;
   } finally {
     _syncing = false;

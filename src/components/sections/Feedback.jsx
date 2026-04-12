@@ -7,6 +7,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import { C } from '../../constants/colors';
+import { trackEvent, EVENTS } from '../../services/analytics';
 
 const TYPES = [
   { value: 'feedback', label: 'Feedback', icon: MessageSquare, color: C.lav },
@@ -42,6 +43,7 @@ export default function Feedback({ data, addItem, removeItem }) {
     setSubmitError(null);
     try {
       await addItem('feedback', { type, message: message.trim() });
+      trackEvent(EVENTS.FEEDBACK_SUBMITTED);
       setMessage('');
       setType('feedback');
       setSent(true);
