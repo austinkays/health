@@ -8,11 +8,16 @@ const SITE_URL = import.meta.env.PROD
   ? 'https://salve-three.vercel.app'
   : window.location.origin;
 
-export async function signIn(email) {
+// When shouldCreateUser is false, Supabase will refuse to send an OTP to an
+// email that isn't already in auth.users — used by the beta gate so a
+// would-be attacker can't sign up without a valid invite code just by
+// leaving the invite field blank.
+export async function signIn(email, shouldCreateUser = true) {
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: SITE_URL,
+      shouldCreateUser,
     },
   });
   if (error) throw error;

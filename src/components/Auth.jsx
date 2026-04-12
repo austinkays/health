@@ -67,24 +67,45 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
     setLoading(true);
     setError('');
     try {
-      // Beta gate: validate invite code if one was entered. We only check
-      // when the field has a value — returning users (already in auth.users)
-      // can leave it blank and Supabase signin still works for them.
-      if (BETA_INVITE_REQUIRED && inviteCode.trim()) {
-        const trimmed = inviteCode.trim().toUpperCase();
-        const { data, error: rpcError } = await supabase.rpc('check_beta_invite', {
-          code_in: trimmed,
-          email_in: email.trim().toLowerCase(),
-        });
-        if (rpcError || !data) {
-          setError('Invalid or already-used invite code. Returning users can leave this blank.');
+      // Beta gate: if an invite code is provided, validate it and allow a
+      // fresh signup. If no code is provided, we still let the submit go
+      // through but pass shouldCreateUser=false so Supabase only sends an
+      // OTP to an already-existing account — a new email with no code will
+      // be rejected by Supabase and the user will see a friendly error.
+      let shouldCreateUser = true;
+      if (BETA_INVITE_REQUIRED) {
+        if (inviteCode.trim()) {
+          const trimmed = inviteCode.trim().toUpperCase();
+          const { data, error: rpcError } = await supabase.rpc('check_beta_invite', {
+            code_in: trimmed,
+            email_in: email.trim().toLowerCase(),
+          });
+          if (rpcError || !data) {
+            setError('That invite code is invalid or already in use.');
+            setLoading(false);
+            return;
+          }
+          // Stash the code so App.jsx can claim it after the user signs in.
+          try { localStorage.setItem(PENDING_INVITE_KEY, trimmed); } catch { /* */ }
+        } else {
+          // No code → only allow existing users through.
+          shouldCreateUser = false;
+        }
+      }
+      try {
+        await signIn(email, shouldCreateUser);
+      } catch (err) {
+        // Supabase returns "Signups not allowed for otp" (or similar) when
+        // shouldCreateUser=false and the email isn't registered. Translate
+        // that into a friendly beta-gate message.
+        const msg = (err?.message || '').toLowerCase();
+        if (!shouldCreateUser && (msg.includes('signup') || msg.includes('not allowed') || msg.includes('not found'))) {
+          setError('Salve is in closed beta. New accounts need an invite code.');
           setLoading(false);
           return;
         }
-        // Stash the code so App.jsx can claim it after the user signs in.
-        try { localStorage.setItem(PENDING_INVITE_KEY, trimmed); } catch { /* */ }
+        throw err;
       }
-      await signIn(email);
       setSent(true);
     } catch (err) {
       setError(err.message || 'Failed to send login code');
@@ -330,13 +351,13 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
                     type="text"
                     value={inviteCode}
                     onChange={e => setInviteCode(e.target.value)}
-                    placeholder="SPOONIE-XXXX"
+                    placeholder="SALVE-BETA-XXXX"
                     autoCapitalize="characters"
                     autoComplete="off"
                     className="w-full bg-salve-card2 border border-salve-border rounded-lg px-4 py-3 md:py-3.5 text-salve-text placeholder-salve-textFaint text-sm md:text-base font-mono focus:outline-none focus:border-salve-lav transition-colors mb-2"
                   />
                   <p className="text-salve-textFaint text-xs md:text-sm mb-4 leading-relaxed">
-                    Salve is in closed beta. Returning users can leave this blank.
+                    Salve is in closed beta. Already signed up? Leave this blank.
                   </p>
                 </>
               )}
