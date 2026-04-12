@@ -10,6 +10,7 @@ export default function DemoBanner({ onExit }) {
     <div
       role="status"
       className="sticky top-0 z-40 bg-salve-lav/15 border-b border-salve-lav/30 backdrop-blur-md md:hidden"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
     >
       <div className="max-w-[480px] mx-auto px-4 py-2 flex items-center gap-2 md:max-w-[720px] lg:max-w-[960px]">
         <Sparkles size={13} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
