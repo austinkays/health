@@ -1103,7 +1103,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               className="bg-salve-card border border-salve-border rounded-xl p-fluid-sm flex flex-col items-center gap-1.5 cursor-pointer tile-magic transition-all"
             >
               <h.icon size={20} color={C.lav} strokeWidth={1.5} className="md:!w-6 md:!h-6" />
-              <span className="text-ui-sm text-salve-textMid font-montserrat text-center leading-tight whitespace-nowrap">{h.label}</span>
+              <span className="text-[10px] md:text-ui-sm text-salve-textMid font-montserrat text-center leading-tight">{h.label}</span>
             </button>
           ))}
         </div>
@@ -1990,16 +1990,28 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               );
             })}
           </div>
-          {/* Persistent feedback footer, always present at bottom of onboarding section */}
-          <button
-            onClick={() => onNav('feedback')}
-            className="w-full flex items-center justify-center gap-1.5 mt-3 pt-2.5 border-t border-salve-border/40 bg-transparent border-x-0 border-b-0 cursor-pointer font-montserrat group"
-          >
-            <Mail size={11} className="text-salve-textFaint/50 group-hover:text-salve-amber transition-colors" />
-            <span className="text-[13px] text-salve-textFaint/60 group-hover:text-salve-textMid transition-colors">Share feedback or ideas</span>
-          </button>
         </Reveal>
       )}
+
+      {/* ── Beta feedback card (prominent, always visible during beta) ── */}
+      <Reveal as="section" aria-label="Beta feedback" className="dash-stagger mb-5 md:mb-6">
+        <button
+          onClick={() => onNav('feedback')}
+          className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-amber/40 rounded-xl cursor-pointer hover:border-salve-amber/70 hover:bg-salve-amber/5 transition-all group text-left"
+        >
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.amber}20` }}>
+            <Mail size={16} color={C.amber} strokeWidth={1.75} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[13px] md:text-sm font-semibold text-salve-text font-montserrat">Share feedback</span>
+              <span className="text-[9px] tracking-widest uppercase font-montserrat font-semibold px-1.5 py-0.5 rounded" style={{ color: C.amber, background: `${C.amber}18`, border: `1px solid ${C.amber}40` }}>Beta</span>
+            </div>
+            <span className="text-[11.5px] md:text-xs text-salve-textFaint font-montserrat">Salve is in beta, your ideas and bug reports shape it</span>
+          </div>
+          <ChevronRight size={16} className="text-salve-textFaint group-hover:text-salve-amber transition-colors flex-shrink-0" />
+        </button>
+      </Reveal>
 
       {/* Recovery link for users who dismissed all tips but still have no data —
           gives them a path back to the onboarding wizard. Silent for engaged users. */}
