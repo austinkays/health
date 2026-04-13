@@ -643,7 +643,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     [data.anesthesia_flags]
   );
   const abnormalLabs = useMemo(
-    () => (data.labs || []).filter(l => ['abnormal', 'high', 'low'].includes(l.flag)),
+    () => {
+      // Only count recent abnormal labs (last 90 days) so a one-time import of
+      // years of historical labs doesn't bury the Dashboard in stale alerts.
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+      const cutoffISO = cutoff.toISOString().slice(0, 10);
+      return (data.labs || []).filter(l =>
+        ['abnormal', 'high', 'low'].includes(l.flag) &&
+        (!l.date || l.date >= cutoffISO)
+      );
+    },
     [data.labs]
   );
 
