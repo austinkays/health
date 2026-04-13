@@ -1,0 +1,11 @@
+# Salve — salve.today
+# Allow search engines to index the public-facing pages.
+# Block API endpoints and auth-gated app internals.
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /settings
+Disallow: /apple-health
+
+Sitemap: https://salve.today/sitemap.xml

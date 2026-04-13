@@ -173,9 +173,10 @@ function AppContent() {
       return retryTab;
     }
     // Read initial tab from URL path (e.g. /medications → 'meds')
-    return tabFromPath();
+    return tabFromPath() || 'dash';
   });
   const [highlightId, setHighlightId] = useState(() => highlightFromUrl());
+  const [notFound, setNotFound] = useState(() => tabFromPath() === null);
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
   const [sageOpen, setSageOpen] = useState(false);
@@ -296,7 +297,12 @@ function AppContent() {
     const handlePopState = () => {
       const newTab = tabFromPath();
       const newHighlight = highlightFromUrl();
-      setTab(newTab);
+      if (newTab === null) {
+        setNotFound(true);
+      } else {
+        setNotFound(false);
+        setTab(newTab);
+      }
       setHighlightId(newHighlight);
       setNavOpts(null);
       window.scrollTo(0, 0);
@@ -606,7 +612,18 @@ function AppContent() {
           <main className="px-fluid-page">
             <ErrorBoundary resetKey={tab} onReset={() => { setNavHistory([]); onNav('dash'); }}>
               <Suspense fallback={<SkeletonList count={3} />}>
-                {renderSection()}
+                {notFound ? (
+                  <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+                    <span className="text-display-2xl font-playfair text-salve-text">404</span>
+                    <p className="text-ui-lg text-salve-textMid font-montserrat">This page doesn't exist</p>
+                    <button
+                      onClick={() => { setNotFound(false); onNav('dash'); }}
+                      className="mt-2 px-5 py-2.5 rounded-xl bg-salve-lav/10 border border-salve-lav/30 text-salve-lav text-ui-md font-montserrat font-medium hover:bg-salve-lav/20 transition-colors cta-lift"
+                    >
+                      Go Home
+                    </button>
+                  </div>
+                ) : renderSection()}
               </Suspense>
             </ErrorBoundary>
           </main>

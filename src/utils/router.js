@@ -57,7 +57,7 @@ const PATH_TO_TAB = Object.fromEntries(
 
 /**
  * Read the current URL path and return the matching tab name.
- * Returns 'dash' for unrecognized paths (home page fallback).
+ * Returns 'dash' for the root path, or null for unrecognized paths (404).
  */
 export function tabFromPath(pathname = window.location.pathname) {
   // Exact match first
@@ -67,7 +67,18 @@ export function tabFromPath(pathname = window.location.pathname) {
   const clean = pathname.replace(/\/$/, '') || '/';
   if (PATH_TO_TAB[clean]) return PATH_TO_TAB[clean];
 
-  return 'dash';
+  // Root path always goes home
+  if (clean === '' || clean === '/') return 'dash';
+
+  // Unknown path — signal 404
+  return null;
+}
+
+/**
+ * Check whether a pathname is a known route.
+ */
+export function isKnownRoute(pathname = window.location.pathname) {
+  return tabFromPath(pathname) !== null;
 }
 
 /**
