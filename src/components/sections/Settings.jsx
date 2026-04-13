@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -15,6 +15,19 @@ import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import MyChartImport from '../ui/MyChartImport';
+import ImportWizard from '../ui/ImportWizard';
+import * as clueParser from '../../services/import_clue';
+import * as naturalCyclesParser from '../../services/import_natural_cycles';
+import * as daylioParser from '../../services/import_daylio';
+import * as bearableParser from '../../services/import_bearable';
+import * as libreParser from '../../services/import_libre';
+import * as mysugrParser from '../../services/import_mysugr';
+import * as stravaParser from '../../services/import_strava';
+import * as sleepCycleParser from '../../services/import_sleep_cycle';
+import * as samsungParser from '../../services/import_samsung';
+import * as garminParser from '../../services/import_garmin';
+import * as fitbitTakeoutParser from '../../services/import_fitbit_takeout';
+import * as googleFitParser from '../../services/import_google_fit';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
@@ -856,6 +869,25 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     setImportResult(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
+
+  // Metadata for the "More imports" section. Each entry drives a collapsible
+  // card wired to the shared ImportWizard component. Adding a new parser
+  // means: write the parser service file, drop one entry in here. No other
+  // boilerplate.
+  const MORE_IMPORTS = [
+    { parser: clueParser,          Icon: Moon,        tint: 'rose', subtitle: 'Period, symptoms, and ovulation (CSV)' },
+    { parser: naturalCyclesParser, Icon: Thermometer, tint: 'rose', subtitle: 'BBT and period tracking (CSV)' },
+    { parser: daylioParser,        Icon: Smile,       tint: 'amber', subtitle: 'Mood and micro-journal (CSV)' },
+    { parser: bearableParser,      Icon: Gauge,       tint: 'lav',  subtitle: 'Mood, energy, sleep, and symptoms (CSV)' },
+    { parser: libreParser,         Icon: Droplet,     tint: 'rose', subtitle: 'CGM glucose history from LibreView (CSV)' },
+    { parser: mysugrParser,        Icon: Droplets,    tint: 'rose', subtitle: 'Diabetes logbook (CSV)' },
+    { parser: stravaParser,        Icon: Bike,        tint: 'sage', subtitle: 'Workouts from your Strava archive (CSV or ZIP)' },
+    { parser: sleepCycleParser,    Icon: Bed,         tint: 'lav',  subtitle: 'Sleep sessions and quality (CSV)' },
+    { parser: samsungParser,       Icon: Smartphone,  tint: 'sage', subtitle: 'Steps, HR, sleep, weight, BP, glucose (ZIP)' },
+    { parser: garminParser,        Icon: Compass,     tint: 'sage', subtitle: 'Workouts, wellness, and sleep (ZIP)' },
+    { parser: fitbitTakeoutParser, Icon: Watch,       tint: 'sage', subtitle: 'Offline alternative to the Fitbit OAuth sync (ZIP)' },
+    { parser: googleFitParser,     Icon: Activity,    tint: 'sage', subtitle: 'Steps, HR, and weight from Google Takeout (ZIP)' },
+  ];
 
   // Wrapper that hides a connection card when the user has dismissed it,
   // and renders a small corner X to dismiss it when visible. Stops propagation
@@ -1743,6 +1775,37 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           )}
         </Card>
         </HideableSource>
+
+        {/* ── More app imports (Clue, Daylio, Libre, Samsung, Garmin, etc.) ── */}
+        {MORE_IMPORTS.map(({ parser, Icon, tint, subtitle }) => {
+          const id = parser.META.id;
+          const isOpen = expandedSource === id;
+          const tintBg = tint === 'rose' ? 'bg-salve-rose/15' : tint === 'amber' ? 'bg-salve-amber/15' : tint === 'lav' ? 'bg-salve-lav/15' : 'bg-salve-sage/15';
+          const tintFg = tint === 'rose' ? 'text-salve-rose' : tint === 'amber' ? 'text-salve-amber' : tint === 'lav' ? 'text-salve-lav' : 'text-salve-sage';
+          return (
+            <HideableSource key={id} id={id} label={parser.META.label}>
+              <Card>
+                <button onClick={() => toggleSource(id)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tintBg}`}>
+                      <Icon size={16} className={tintFg} />
+                    </div>
+                    <div className="text-left">
+                      <span className="text-[15px] text-salve-text font-medium block">{parser.META.label}</span>
+                      <span className="text-[12px] text-salve-textFaint">{subtitle}</span>
+                    </div>
+                  </div>
+                  {isOpen ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+                </button>
+                {isOpen && (
+                  <div className="mt-3 pt-3 border-t border-salve-border/50">
+                    <ImportWizard parser={parser} data={data} reloadData={reloadData} />
+                  </div>
+                )}
+              </Card>
+            </HideableSource>
+          );
+        })}
 
         {/* ── Terra (Fitbit, Garmin, Withings, Dexcom, etc.) ── */}
         {TERRA_ENABLED && (
