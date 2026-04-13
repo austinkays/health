@@ -954,8 +954,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               <span className="font-playfair text-display-md font-medium text-salve-textMid">{greeting.text}</span>
             </div>
             <p className="text-ui-lg text-salve-textMid m-0 leading-relaxed">{contextLine}</p>
-            <p className="text-ui-sm text-salve-textFaint/60 m-0 mt-2 italic font-montserrat">
-              "{dailyQuote.q}" <span className="not-italic">, {dailyQuote.a}</span>
+            <p className="text-ui-sm text-salve-textMid m-0 mt-2 italic font-montserrat">
+              "{dailyQuote.q}" <span className="not-italic text-salve-textMid/80">, {dailyQuote.a}</span>
             </p>
           </div>
         </div>
@@ -1999,19 +1999,46 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       <Reveal as="section" aria-label="Beta feedback" className="dash-stagger mb-5 md:mb-6">
         <button
           onClick={() => onNav('feedback')}
-          className="w-full flex items-center gap-3 px-4 py-3 bg-salve-card border border-salve-amber/40 rounded-xl cursor-pointer hover:border-salve-amber/70 hover:bg-salve-amber/5 transition-all group text-left"
+          className="feedback-cta group relative w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl cursor-pointer text-left overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${C.amber}1a 0%, ${C.rose}18 55%, ${C.lav}1a 100%)`,
+            border: `1px solid ${C.amber}55`,
+            boxShadow: `0 4px 18px -6px ${C.amber}55, 0 0 0 1px ${C.amber}22 inset`,
+          }}
         >
-          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: `${C.amber}20` }}>
-            <Mail size={16} color={C.amber} strokeWidth={1.75} />
+          <span
+            aria-hidden="true"
+            className="feedback-cta-shimmer pointer-events-none absolute inset-0"
+          />
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative z-10"
+            style={{
+              background: `linear-gradient(135deg, ${C.amber}, ${C.rose})`,
+              boxShadow: `0 2px 10px -2px ${C.amber}80`,
+            }}
+          >
+            <Mail size={17} color="#fff" strokeWidth={2} />
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="text-[13px] md:text-sm font-semibold text-salve-text font-montserrat">Share feedback</span>
-              <span className="text-[9px] tracking-widest uppercase font-montserrat font-semibold px-1.5 py-0.5 rounded" style={{ color: C.amber, background: `${C.amber}18`, border: `1px solid ${C.amber}40` }}>Beta</span>
+          <div className="flex-1 min-w-0 relative z-10">
+            <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+              <span className="text-[14px] md:text-[15px] font-semibold text-salve-text font-montserrat">
+                Help shape Salve
+              </span>
+              <span
+                className="text-[9px] tracking-widest uppercase font-montserrat font-bold px-1.5 py-0.5 rounded"
+                style={{ color: '#fff', background: C.amber, boxShadow: `0 1px 4px -1px ${C.amber}99` }}
+              >
+                Beta
+              </span>
             </div>
-            <span className="text-[11.5px] md:text-xs text-salve-textFaint font-montserrat">Salve is in beta, your ideas and bug reports shape it</span>
+            <span className="text-[12px] md:text-[13px] text-salve-textMid font-montserrat leading-snug block">
+              Your feedback makes Salve better — tell us what you think
+            </span>
           </div>
-          <ChevronRight size={16} className="text-salve-textFaint group-hover:text-salve-amber transition-colors flex-shrink-0" />
+          <ChevronRight
+            size={18}
+            className="text-salve-amber flex-shrink-0 relative z-10 transition-transform group-hover:translate-x-0.5"
+          />
         </button>
       </Reveal>
 

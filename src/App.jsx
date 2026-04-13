@@ -21,6 +21,7 @@ import SagePopup from './components/ui/SagePopup';
 const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import OnboardingWizard, { hasCompletedOnboarding } from './components/ui/OnboardingWizard';
+import InstallPrompt from './components/ui/InstallPrompt';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -535,6 +536,10 @@ function AppContent() {
       )}
       {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       {showOnboarding && <OnboardingWizard name={data?.settings?.name} onClose={() => setShowOnboarding(false)} />}
+      {/* PWA install invitation — only for signed-in (non-demo) users, deferred
+          until after the onboarding wizard has been completed to avoid
+          stacking modals on first run. */}
+      {!demoMode && session && !showOnboarding && !showWhatsNew && hasCompletedOnboarding() && <InstallPrompt />}
     </div>
   );
 }

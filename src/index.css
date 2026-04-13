@@ -947,6 +947,44 @@ html.theme-crystal .border-salve-border {
   100% { background-position: 200% 0; }
 }
 
+/* Beta feedback CTA — gradient button with drifting highlight sweep */
+.feedback-cta {
+  transition: transform 0.25s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.feedback-cta:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 8px 24px -8px rgb(var(--salve-amber) / 0.6),
+    0 0 0 1px rgb(var(--salve-amber) / 0.45) inset !important;
+}
+.feedback-cta:active {
+  transform: translateY(0);
+}
+.feedback-cta-shimmer {
+  background: linear-gradient(
+    110deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.22) 48%,
+    rgba(255, 255, 255, 0.32) 50%,
+    rgba(255, 255, 255, 0.22) 52%,
+    transparent 80%
+  );
+  background-size: 220% 100%;
+  background-position: -120% 0;
+  animation: feedbackCtaSweep 5.5s ease-in-out infinite;
+  mix-blend-mode: overlay;
+  opacity: 0.85;
+}
+@keyframes feedbackCtaSweep {
+  0%, 20% { background-position: -120% 0; }
+  55%, 100% { background-position: 220% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .feedback-cta-shimmer { animation: none; opacity: 0; }
+  .feedback-cta:hover { transform: none; }
+}
+
+
 @keyframes softPulse {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
