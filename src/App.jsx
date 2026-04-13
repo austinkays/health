@@ -22,6 +22,7 @@ const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import OnboardingWizard, { hasCompletedOnboarding } from './components/ui/OnboardingWizard';
 import InstallPrompt from './components/ui/InstallPrompt';
+import DemoWelcome, { hasSeenDemoWelcome } from './components/ui/DemoWelcome';
 import UpdateBanner from './components/ui/UpdateBanner';
 import useSWUpdate from './hooks/useSWUpdate';
 import DemoBanner from './components/ui/DemoBanner';
@@ -168,6 +169,9 @@ function AppContent() {
   const [sageIntroOpen, setSageIntroOpen] = useState(false);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  // Demo-mode walkthrough modal. Gated on !hasSeenDemoWelcome() so it only
+  // appears on the very first demo entry per browser.
+  const [showDemoWelcome, setShowDemoWelcome] = useState(false);
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
   const insightRatings = useInsightRatings(session);
 
@@ -446,7 +450,13 @@ function AppContent() {
       <Auth
         sessionExpired={sessionExpired}
         onAuthSuccess={() => setSessionExpired(false)}
-        onEnterDemo={() => { setDemoMode(true); setTab('dash'); }}
+        onEnterDemo={() => {
+          setDemoMode(true);
+          setTab('dash');
+          // First-run walkthrough — only show if the user hasn't seen it
+          // already in this browser.
+          if (!hasSeenDemoWelcome()) setShowDemoWelcome(true);
+        }}
       />
     );
   }
@@ -558,6 +568,14 @@ function AppContent() {
           until after the onboarding wizard has been completed to avoid
           stacking modals on first run. */}
       {!demoMode && session && !showOnboarding && !showWhatsNew && hasCompletedOnboarding() && <InstallPrompt />}
+      {demoMode && showDemoWelcome && (
+        <DemoWelcome
+          onNav={onNav}
+          onSage={openSage}
+          onExitDemo={exitDemo}
+          onClose={() => setShowDemoWelcome(false)}
+        />
+      )}
     </div>
   );
 }
