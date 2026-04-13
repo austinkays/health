@@ -13,9 +13,13 @@
 //     get a heavy animated backdrop on first run.
 //
 //   Screen 1: "Try these 4 things"
-//     Four tappable cards that deep-link into the app's most compelling
-//     surfaces (Sage chat, Vitals, Medications, News). Tapping a card
-//     closes the modal and navigates there.
+//     Four informational cards highlighting the app's most compelling
+//     surfaces (Sage chat, Vitals, Medications, News). These are NOT
+//     interactive — tapping them does nothing. The user advances through
+//     the walkthrough via Back/Next, and discovers these surfaces
+//     organically via the Dashboard / SideNav after the modal closes.
+//     Early versions navigated immediately on tap, but that yanked users
+//     out of the walkthrough mid-orientation.
 //
 //   Screen 2: "Make it yours"
 //     Sign-up CTA (calls onExitDemo, which returns to Auth) plus a "Keep
@@ -70,7 +74,7 @@ function getThemePair(reducedMotion) {
   };
 }
 
-export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
+export default function DemoWelcome({ onExitDemo, onClose }) {
   const { setTheme, themeId } = useTheme();
   const [step, setStep] = useState(0);
   const [entered, setEntered] = useState(false);
@@ -99,15 +103,6 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
     markSeen();
     setEntered(false);
     setTimeout(() => { onClose?.(); }, 220);
-  };
-
-  const handleFeature = (action) => {
-    markSeen();
-    setEntered(false);
-    setTimeout(() => {
-      onClose?.();
-      action?.();
-    }, 200);
   };
 
   const handleSignUp = () => {
@@ -246,28 +241,24 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
                     tint={C.sage}
                     title="Chat with Sage"
                     blurb="AI health companion"
-                    onClick={() => handleFeature(onSage)}
                   />
                   <FeatureCard
                     icon={<Heart size={18} color="#fff" strokeWidth={2.25} />}
                     tint={C.rose}
                     title="Explore Vitals"
                     blurb="Trends and charts"
-                    onClick={() => handleFeature(() => onNav?.('vitals'))}
                   />
                   <FeatureCard
                     icon={<Pill size={18} color="#fff" strokeWidth={2.25} />}
                     tint={C.lav}
                     title="Medications"
                     blurb="Drug info and refills"
-                    onClick={() => handleFeature(() => onNav?.('meds'))}
                   />
                   <FeatureCard
                     icon={<Newspaper size={18} color="#fff" strokeWidth={2.25} />}
                     tint={C.amber}
                     title="Read news"
                     blurb="Personalized feed"
-                    onClick={() => handleFeature(() => onNav?.('news'))}
                   />
                 </div>
 
@@ -339,70 +330,126 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
   );
 }
 
-// Live theme-preview card. Pulls the real theme palette from constants/themes
-// so the swatch reflects the actual background + gradient the user will get
-// when they pick it.
+// Live theme-preview card. Renders a scaled-down "real" version of the
+// theme using its own bg + gradient + accent colors, so what the user
+// sees IS the theme they'll get (not a decoration on top of salve-card).
+// Mirrors the ThemeTile pattern in Settings.jsx but larger and richer
+// since this is a first-impression moment.
 function ThemeCard({ themeId, label, blurb, selected, onClick }) {
   const theme = themes[themeId];
   if (!theme) return null;
   const colors = theme.colors;
-  const gradKeys = theme.gradient || ['lav', 'sage', 'amber'];
+  const gradKeys = theme.gradient && theme.gradient.length === 3
+    ? theme.gradient
+    : ['lav', 'sage', 'amber'];
   const grad = gradKeys.map(k => colors[k]).filter(Boolean);
-  const previewBg = colors.bg || colors.card || '#1a1a1a';
-  const headingColor = colors.text || '#fff';
-  const subColor = colors.textMid || '#aaa';
+  const orbGradient = grad.length >= 3
+    ? `linear-gradient(135deg, ${grad[0]}, ${grad[1]}, ${grad[2]})`
+    : `linear-gradient(135deg, ${colors.lav}, ${colors.sage})`;
+
+  const isLight = theme.type === 'light';
+  const ariaLabel = `${theme.label || label} theme, ${isLight ? 'light' : 'dark'}`;
+
+  // Accent dot trio: surface the three primary accents from the palette
+  // so users can glance at the color language of the theme.
+  const accentDots = [colors.lav, colors.sage, colors.amber, colors.rose]
+    .filter(Boolean)
+    .slice(0, 3);
 
   return (
     <button
       onClick={onClick}
       aria-pressed={selected}
-      className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all active:scale-[0.98]"
+      aria-label={ariaLabel}
+      className={`group relative rounded-2xl overflow-hidden cursor-pointer transition-all hover:brightness-105 ${
+        selected ? 'scale-[1.02]' : 'active:scale-[0.98]'
+      }`}
       style={{
-        border: selected ? `2px solid ${C.lav}` : `1px solid ${C.border2 || 'rgba(255,255,255,0.12)'}`,
-        boxShadow: selected ? `0 0 0 3px ${C.lav}33, 0 4px 16px -4px ${C.lav}66` : 'none',
+        backgroundColor: colors.bg,
+        border: selected
+          ? `2px solid ${C.lav}`
+          : `1px solid ${colors.border2 || colors.border || 'rgba(255,255,255,0.12)'}`,
+        boxShadow: selected
+          ? `0 0 0 3px ${C.lav}33, 0 8px 24px -6px ${C.lav}80`
+          : `0 2px 10px -4px ${colors.border2 || 'rgba(0,0,0,0.3)'}`,
       }}
     >
       <div
-        className="relative h-[86px] p-3 flex flex-col justify-between text-left"
-        style={{
-          background: previewBg,
-        }}
+        className="relative h-[148px] px-3.5 py-3 flex flex-col justify-between text-left overflow-hidden"
       >
-        {/* Gradient accent strip to evoke the theme's character */}
+        {/* Soft ambient gradient wash echoing the theme's signature */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 opacity-70 pointer-events-none"
+          className="absolute inset-0 opacity-60 pointer-events-none"
           style={{
             background: grad.length >= 3
-              ? `radial-gradient(circle at 20% 20%, ${grad[0]}55 0%, transparent 55%), radial-gradient(circle at 80% 80%, ${grad[1]}55 0%, transparent 55%), radial-gradient(circle at 50% 50%, ${grad[2]}33 0%, transparent 60%)`
-              : `linear-gradient(135deg, ${grad[0] || colors.lav}33, ${grad[1] || colors.sage}22)`,
+              ? `radial-gradient(circle at 15% 10%, ${grad[0]}44 0%, transparent 55%), radial-gradient(circle at 85% 90%, ${grad[1]}3a 0%, transparent 55%), radial-gradient(circle at 50% 50%, ${grad[2]}22 0%, transparent 70%)`
+              : `linear-gradient(135deg, ${colors.lav}26, ${colors.sage}1a)`,
           }}
         />
+
+        {/* Light/dark chip */}
+        <div
+          aria-hidden="true"
+          className="relative self-end text-[9px] font-montserrat font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full leading-none"
+          style={{
+            color: colors.textMid || colors.text,
+            backgroundColor: `${colors.card2 || colors.card || '#fff'}cc`,
+            border: `1px solid ${colors.border || 'rgba(0,0,0,0.1)'}`,
+          }}
+        >
+          {isLight ? '☀ Light' : '◑ Dark'}
+        </div>
+
+        {/* Gradient orb — the hero element, pulled straight from the theme's own gradient keys */}
+        <div className="relative flex items-center justify-center flex-1">
+          <div
+            className="w-[54px] h-[54px] rounded-full"
+            style={{
+              background: orbGradient,
+              boxShadow: `0 2px 8px ${colors.border2 || 'rgba(0,0,0,0.25)'}, 0 6px 22px -4px ${grad[0] || colors.lav}99, inset 0 1px 2px rgba(255,255,255,0.25)`,
+            }}
+          />
+        </div>
+
+        {/* Label + blurb + accent dots */}
         <div className="relative">
           <div
-            className="text-[12px] font-semibold font-playfair leading-tight"
-            style={{ color: headingColor }}
+            className="text-[13px] font-semibold font-playfair leading-tight mb-0.5"
+            style={{ color: colors.text }}
           >
             {label}
           </div>
-        </div>
-        <div
-          className="relative text-[10px] font-montserrat leading-tight"
-          style={{ color: subColor }}
-        >
-          {blurb}
+          <div
+            className="text-[10px] font-montserrat leading-tight mb-1.5"
+            style={{ color: colors.textFaint || colors.textMid }}
+          >
+            {blurb}
+          </div>
+          <div className="flex items-center gap-1" aria-hidden="true">
+            {accentDots.map((color, i) => (
+              <span
+                key={i}
+                className="block w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: color,
+                  boxShadow: `0 1px 2px ${colors.border2 || 'rgba(0,0,0,0.2)'}`,
+                }}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </button>
   );
 }
 
-function FeatureCard({ icon, tint, title, blurb, onClick }) {
+// Non-interactive informational card. Used on step 1 to show what the
+// user can explore, but tapping it does nothing — the walkthrough
+// continues via Back/Next only. See the file header for why.
+function FeatureCard({ icon, tint, title, blurb }) {
   return (
-    <button
-      onClick={onClick}
-      className="group relative flex flex-col items-start gap-1.5 p-3 rounded-2xl bg-salve-card2/50 hover:bg-salve-card2 border border-salve-border/60 hover:border-salve-border2 text-left cursor-pointer transition-all active:scale-[0.98]"
-    >
+    <div className="relative flex flex-col items-start gap-1.5 p-3 rounded-2xl bg-salve-card2/50 border border-salve-border/60 text-left">
       <div
         className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{
@@ -420,6 +467,6 @@ function FeatureCard({ icon, tint, title, blurb, onClick }) {
           {blurb}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

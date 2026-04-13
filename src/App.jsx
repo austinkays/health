@@ -571,7 +571,7 @@ function AppContent() {
           />
         </Suspense>
       )}
-      {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
+      {showWhatsNew && !showDemoWelcome && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       {showOnboarding && <OnboardingWizard name={data?.settings?.name} onClose={() => setShowOnboarding(false)} />}
       {/* PWA install invitation. Only for signed-in (non-demo) users, deferred
           until after the onboarding wizard has been completed to avoid
@@ -579,8 +579,6 @@ function AppContent() {
       {!demoMode && session && !showOnboarding && !showWhatsNew && hasCompletedOnboarding() && <InstallPrompt />}
       {demoMode && showDemoWelcome && (
         <DemoWelcome
-          onNav={onNav}
-          onSage={openSage}
           onExitDemo={exitDemo}
           onClose={() => setShowDemoWelcome(false)}
         />
