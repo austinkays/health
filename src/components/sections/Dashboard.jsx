@@ -400,7 +400,14 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
 
   const allInsights = useMemo(() => computeCorrelations(data, getCyclePhaseForDate), [data.vitals, data.journal_entries, data.meds, data.activities, data.cycles]);
-  const topInsights = useMemo(() => allInsights.slice(0, 3), [allInsights]);
+  // Show unrated patterns first so new insights surface naturally.
+  // Rated patterns still appear if there aren't enough unrated ones.
+  const topInsights = useMemo(() => {
+    if (!insightRatings) return allInsights.slice(0, 3);
+    const unrated = allInsights.filter(ins => !insightRatings.getRating('pattern', ins.id));
+    const rated = allInsights.filter(ins => insightRatings.getRating('pattern', ins.id));
+    return [...unrated, ...rated].slice(0, 3);
+  }, [allInsights, insightRatings]);
 
   const timeline = useMemo(() => {
     const now = new Date(new Date().toDateString());
@@ -1267,9 +1274,15 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           </div>
                           <p className="text-[11.5px] text-salve-textMid font-montserrat leading-relaxed m-0">{ins.template}</p>
                           <div className="flex items-center justify-between mt-1.5">
-                            {ins.confidence === 'medium' ? (
-                              <span className="text-[12px] text-salve-textFaint font-montserrat">Moderate confidence</span>
-                            ) : <span />}
+                            <span className="text-[10.5px] text-salve-textFaint/70 font-montserrat">
+                              {ins.data?.values?.length ? (() => {
+                                const dates = ins.data.values.map(v => v.date).filter(Boolean).sort();
+                                if (!dates.length) return `${ins.n} data points`;
+                                const newest = new Date(dates[dates.length - 1] + 'T00:00:00');
+                                const daysAgo = Math.round((Date.now() - newest) / 86400000);
+                                return daysAgo <= 1 ? `Last ${dates.length} days · Updated today` : `Last ${dates.length} days · ${daysAgo}d ago`;
+                              })() : ins.n >= 14 ? 'Last 14 days' : `${ins.n} data points`}
+                            </span>
                             {insightRatings && <ThumbsRating surface="pattern" contentKey={ins.id} getRating={insightRatings.getRating} rate={insightRatings.rate} metadata={{ category: ins.category, title: ins.title }} size={11} />}
                           </div>
                         </div>
