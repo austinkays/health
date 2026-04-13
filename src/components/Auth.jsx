@@ -95,10 +95,27 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
       try {
         await signIn(email, shouldCreateUser);
       } catch (err) {
+        const msg = (err?.message || '').toLowerCase();
+        const status = err?.status || err?.statusCode;
+        // Supabase's email rate limit kicks in if the user hammers "Send code"
+        // or resends too many times. The raw error ("email rate limit exceeded"
+        // / 429) is confusing — translate to a friendly, actionable message.
+        if (
+          status === 429 ||
+          msg.includes('rate limit') ||
+          msg.includes('too many') ||
+          msg.includes('exceeded')
+        ) {
+          setError(
+            "We've sent too many codes to this email in a short window. " +
+            'Please wait a minute and try again, or use "Continue with Google" above.'
+          );
+          setLoading(false);
+          return;
+        }
         // Supabase returns "Signups not allowed for otp" (or similar) when
         // shouldCreateUser=false and the email isn't registered. Translate
         // that into a friendly beta-gate message.
-        const msg = (err?.message || '').toLowerCase();
         if (!shouldCreateUser && (msg.includes('signup') || msg.includes('not allowed') || msg.includes('not found'))) {
           setError('Salve is in closed beta. New accounts need an invite code.');
           setLoading(false);
@@ -189,8 +206,25 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
     setCooldownUntil(0);
     try {
       await signIn(email);
+      // Reset the OTP expiry countdown so the freshly-sent code gets a full
+      // 10-minute window (useEffect on `sent` only runs on the sent→true edge).
+      setOtpSecondsLeft(OTP_TTL);
     } catch (err) {
-      setError(err.message || 'Failed to resend code');
+      const msg = (err?.message || '').toLowerCase();
+      const status = err?.status || err?.statusCode;
+      if (
+        status === 429 ||
+        msg.includes('rate limit') ||
+        msg.includes('too many') ||
+        msg.includes('exceeded')
+      ) {
+        setError(
+          "We've sent too many codes to this email in a short window. " +
+          'Please wait a minute before requesting another one.'
+        );
+      } else {
+        setError(err.message || 'Failed to resend code');
+      }
     } finally {
       setLoading(false);
     }
