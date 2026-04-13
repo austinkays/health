@@ -98,7 +98,7 @@ export const LAB_RANGES = {
  * @returns {{ name, unit, low, high } | null}
  */
 export function findLabRange(testName) {
-  if (!testName) return null;
+  if (typeof testName !== 'string' || !testName) return null;
   const key = testName.trim().toLowerCase();
   // Direct match
   if (LAB_RANGES[key]) return LAB_RANGES[key];

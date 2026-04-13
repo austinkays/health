@@ -548,7 +548,7 @@ function AppContent() {
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">
           <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={openSearch} onSage={openSage} />
           <main className="px-fluid-page">
-            <ErrorBoundary onReset={() => { setNavHistory([]); onNav('dash'); }}>
+            <ErrorBoundary resetKey={tab} onReset={() => { setNavHistory([]); onNav('dash'); }}>
               <Suspense fallback={<SkeletonList count={3} />}>
                 {renderSection()}
               </Suspense>

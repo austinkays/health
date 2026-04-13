@@ -53,9 +53,9 @@ export function npiRegistryUrl(npi) {
  * falls back to Google search with specific query (specialty + clinic).
  */
 export function providerLookupUrl(providerName, savedProviders) {
-  if (!providerName?.trim()) return null;
+  if (typeof providerName !== 'string' || !providerName.trim()) return null;
   const nameLC = providerName.trim().toLowerCase();
-  const match = (savedProviders || []).find(p => p.name.trim().toLowerCase() === nameLC);
+  const match = (savedProviders || []).find(p => typeof p?.name === 'string' && p.name.trim().toLowerCase() === nameLC);
   if (match?.npi) return npiRegistryUrl(match.npi);
   // Build specific search query from known provider details
   const parts = [providerName];

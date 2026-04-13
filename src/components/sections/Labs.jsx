@@ -101,7 +101,8 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
   );
 
   const FILTERS = ['all', 'abnormal', 'normal'];
-  const fl = data.labs.filter(l => {
+  const fl = (data.labs || []).filter(l => {
+    if (!l || typeof l !== 'object') return false;
     if (filter === 'all') return true;
     if (filter === 'abnormal') return ['abnormal', 'high', 'low', 'mild-abnormal'].includes(l.flag);
     if (filter === 'normal') return !l.flag || l.flag === 'normal' || l.flag === 'completed';
@@ -264,17 +265,19 @@ export default function Labs({ data, addItem, updateItem, removeItem, highlightI
         fl.map(l => {
           const fc = flagColor(l.flag);
           const isExpanded = expandedId === l.id;
+          const testName = typeof l.test_name === 'string' ? l.test_name : String(l.test_name ?? '');
+          const result = l.result == null ? '' : String(l.result);
           return (
             <Card key={l.id} id={`record-${l.id}`} onClick={() => setExpandedId(isExpanded ? null : l.id)} className={`cursor-pointer transition-all${highlightId === l.id ? ' highlight-ring' : ''}${isDesktop && expandedId === l.id ? ' ring-2 ring-salve-lav/30' : ''}`}>
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5">
-                    <a href={medlinePlusLabUrl(l.test_name)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{l.test_name}</a>
+                    <a href={medlinePlusLabUrl(testName)} target="_blank" rel="noopener noreferrer" className="text-[15px] font-semibold text-salve-text hover:text-salve-sage transition-colors hover:underline">{testName || '(untitled lab)'}</a>
                     {l.flag && <Badge label={fc.label} color={fc.color} bg={fc.bg} />}
                   </div>
-                  {l.result && (
+                  {result && (
                     <div className="text-[15px] text-salve-textMid">
-                      {l.result}{l.unit ? ` ${l.unit}` : ''}{!isExpanded && l.date ? <span className="text-salve-textFaint text-xs ml-2">{fmtDate(l.date)}</span> : ''}
+                      {result}{l.unit ? ` ${l.unit}` : ''}{!isExpanded && l.date ? <span className="text-salve-textFaint text-xs ml-2">{fmtDate(l.date)}</span> : ''}
                     </div>
                   )}
                 </div>
