@@ -561,6 +561,80 @@ export async function syncOuraDailyActivity(existingVitals, existingActivities, 
   return { addedSteps, addedActivities, total: entries.length };
 }
 
+// ── Intraday heart rate (5-min intervals, near-real-time) ──
+
+/**
+ * Fetch intraday heart rate data from Oura's heartrate endpoint.
+ * Returns array of { bpm, source, timestamp } at ~5-min intervals.
+ * Use start_datetime/end_datetime in ISO 8601 format.
+ *
+ * @param {string} startDatetime - ISO 8601 datetime (e.g. '2026-04-13T00:00:00+00:00')
+ * @param {string} endDatetime - ISO 8601 datetime
+ * @returns {Array<{ bpm: number, source: string, timestamp: string }>}
+ */
+export async function fetchOuraIntradayHR(startDatetime, endDatetime) {
+  // heartrate endpoint uses start_datetime/end_datetime, not start_date/end_date
+  const ouraToken = await getValidOuraToken();
+  const authToken = await getAuthToken();
+  if (!authToken) throw new Error('Not signed in');
+
+  const params = new URLSearchParams({
+    provider: 'oura',
+    action: 'data',
+    oura_token: ouraToken,
+    endpoint: 'heartrate',
+    start_date: startDatetime,
+    end_date: endDatetime,
+  });
+
+  const res = await fetch(`/api/wearable?${params}`, {
+    headers: { Authorization: `Bearer ${authToken}` },
+  });
+
+  if (res.status === 401) {
+    const newToken = await refreshAccessToken();
+    params.set('oura_token', newToken);
+    const retry = await fetch(`/api/wearable?${params}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    if (!retry.ok) throw new Error('Oura HR fetch failed after refresh');
+    const d = await retry.json();
+    return d?.data || [];
+  }
+  if (!res.ok) throw new Error('Oura intraday HR fetch failed');
+  const d = await res.json();
+  return d?.data || [];
+}
+
+/**
+ * Get today's intraday HR readings formatted for display.
+ * Returns { readings: [{ time, bpm }], current, min, max, avg }.
+ */
+export async function getIntradayHRToday() {
+  const now = new Date();
+  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startISO = startOfDay.toISOString();
+  const endISO = now.toISOString();
+
+  const raw = await fetchOuraIntradayHR(startISO, endISO);
+  if (!raw.length) return null;
+
+  const readings = raw.map(r => ({
+    time: r.timestamp,
+    bpm: r.bpm,
+    source: r.source, // 'awake', 'rest', 'sleep', etc.
+  }));
+
+  const bpms = readings.map(r => r.bpm).filter(Boolean);
+  return {
+    readings,
+    current: bpms[bpms.length - 1] || null,
+    min: Math.min(...bpms),
+    max: Math.max(...bpms),
+    avg: Math.round(bpms.reduce((a, b) => a + b, 0) / bpms.length),
+  };
+}
+
 /**
  * Full Oura sync, all data types at once.
  * Guarded against concurrent execution (duplicate prevention).

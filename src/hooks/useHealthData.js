@@ -4,6 +4,7 @@ import { cache } from '../services/cache';
 import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 import { buildDemoData } from '../constants/demoData';
 import { trackEvent, EVENTS } from '../services/analytics';
+import useRealtimeSync from './useRealtimeSync';
 
 // Map of Supabase table name → analytics event for per-entity "thing added" tracking.
 // Tables NOT in this map don't fire a per-entity event (e.g. allergies, providers —
@@ -213,6 +214,11 @@ export default function useHealthData(session, demoMode = false) {
     }
     window.location.reload();
   }, []);
+
+  // ── Realtime: subscribe to vitals/activities/cycles changes ──
+  // Merges INSERT/UPDATE/DELETE from any source (Oura auto-sync, Terra webhook,
+  // another browser tab) into state so the UI updates instantly.
+  useRealtimeSync(session?.user?.id, !demoMode && !!session, setData);
 
   return { data, loading, update, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData };
 }

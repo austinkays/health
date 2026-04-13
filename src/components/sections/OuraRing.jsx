@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { RefreshCw, Loader, Heart, Moon, Zap, Wind, Activity, Thermometer, Brain, TrendingUp, TrendingDown, Minus, ChevronDown, AlertCircle } from 'lucide-react';
 import Card from '../ui/Card';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -6,7 +6,7 @@ import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import { C } from '../../constants/colors';
 import { fmtDate } from '../../utils/dates';
-import { isOuraConnected, syncAllOuraData, fetchOuraSleepSessions, fetchOuraReadiness, fetchOuraTemperature, fetchOuraDailySleep } from '../../services/oura';
+import { isOuraConnected, syncAllOuraData, fetchOuraSleepSessions, fetchOuraReadiness, fetchOuraTemperature, fetchOuraDailySleep, getIntradayHRToday } from '../../services/oura';
 
 const AUTO_SYNC_INTERVAL = 5 * 60_000; // 5 minutes
 
@@ -88,6 +88,62 @@ function SleepBar({ label, pct, color }) {
   );
 }
 
+/**
+ * Lightweight SVG sparkline for intraday HR data.
+ * No Recharts dependency — just a polyline with gradient fill.
+ */
+function IntradayHRChart({ readings }) {
+  const W = 400;
+  const H = 80;
+  const PAD = 2;
+
+  const bpms = readings.map(r => r.bpm).filter(Boolean);
+  if (bpms.length < 3) return null;
+
+  const min = Math.min(...bpms) - 5;
+  const max = Math.max(...bpms) + 5;
+  const range = max - min || 1;
+
+  const points = bpms.map((bpm, i) => {
+    const x = PAD + (i / (bpms.length - 1)) * (W - 2 * PAD);
+    const y = H - PAD - ((bpm - min) / range) * (H - 2 * PAD);
+    return `${x},${y}`;
+  });
+
+  const polyline = points.join(' ');
+  // Closed path for gradient fill
+  const fillPath = `M${PAD},${H} ${points.map((p, i) => (i === 0 ? 'L' : '') + p).join(' L')} L${W - PAD},${H} Z`;
+
+  // Time labels (first, mid, last)
+  const fmtTime = (ts) => {
+    try { return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+    catch { return ''; }
+  };
+  const firstTime = fmtTime(readings[0]?.time);
+  const lastTime = fmtTime(readings[readings.length - 1]?.time);
+  const midTime = fmtTime(readings[Math.floor(readings.length / 2)]?.time);
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-20" preserveAspectRatio="none" role="img" aria-label={`Heart rate today: ${bpms.length} readings, range ${Math.min(...bpms)}-${Math.max(...bpms)} bpm`}>
+        <defs>
+          <linearGradient id="hr-fill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={C.rose} stopOpacity="0.3" />
+            <stop offset="100%" stopColor={C.rose} stopOpacity="0.02" />
+          </linearGradient>
+        </defs>
+        <path d={fillPath} fill="url(#hr-fill)" />
+        <polyline points={polyline} fill="none" stroke={C.rose} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <div className="flex justify-between px-1 -mt-1">
+        <span className="text-[9px] text-salve-textFaint font-montserrat">{firstTime}</span>
+        <span className="text-[9px] text-salve-textFaint font-montserrat">{midTime}</span>
+        <span className="text-[9px] text-salve-textFaint font-montserrat">{lastTime}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function OuraRing({ data, addItem, onNav }) {
   const [syncing, setSyncing] = useState(false);
   const [lastSync, setLastSync] = useState(null);
@@ -156,6 +212,31 @@ export default function OuraRing({ data, addItem, onNav }) {
     } catch { /* toast handles errors */ }
     finally { setSyncing(false); }
   };
+
+  // ── Intraday HR (5-min intervals, near-real-time) ──
+  const [intradayHR, setIntradayHR] = useState(null);
+  const intradayTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (!connected) return;
+
+    const fetchIntraday = () => {
+      getIntradayHRToday()
+        .then(hr => { if (hr) setIntradayHR(hr); })
+        .catch(() => {}); // silent — intraday not available on all ring models
+    };
+
+    // Fetch immediately
+    fetchIntraday();
+
+    // Poll every 5 minutes, but only when tab is visible
+    const poll = () => {
+      if (document.visibilityState === 'visible') fetchIntraday();
+    };
+    intradayTimerRef.current = setInterval(poll, AUTO_SYNC_INTERVAL);
+
+    return () => { if (intradayTimerRef.current) clearInterval(intradayTimerRef.current); };
+  }, [connected]);
 
   // Parse latest data
   const latest = useMemo(() => {
@@ -288,6 +369,42 @@ export default function OuraRing({ data, addItem, onNav }) {
           sub={tempDev != null ? 'Deviation from baseline' : 'Not available'}
         />
       </div>
+
+      {/* Intraday Heart Rate — live 5-min readings */}
+      {intradayHR && intradayHR.readings.length > 2 && (
+        <Card className="mb-3 !p-3.5">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-1.5">
+              <Heart size={12} className="text-salve-rose" />
+              <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">Live Heart Rate</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-salve-rose pulse-dot" />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[22px] font-playfair font-semibold text-salve-rose">{intradayHR.current}</span>
+              <span className="text-[12px] text-salve-textFaint">bpm</span>
+            </div>
+          </div>
+
+          {/* Mini stats row */}
+          <div className="flex gap-4 mb-2.5">
+            <span className="text-[11px] text-salve-textFaint font-montserrat">
+              Min <strong className="text-salve-text">{intradayHR.min}</strong>
+            </span>
+            <span className="text-[11px] text-salve-textFaint font-montserrat">
+              Avg <strong className="text-salve-text">{intradayHR.avg}</strong>
+            </span>
+            <span className="text-[11px] text-salve-textFaint font-montserrat">
+              Max <strong className="text-salve-text">{intradayHR.max}</strong>
+            </span>
+            <span className="text-[11px] text-salve-textFaint font-montserrat ml-auto">
+              {intradayHR.readings.length} readings today
+            </span>
+          </div>
+
+          {/* SVG sparkline chart — 5-min intraday HR */}
+          <IntradayHRChart readings={intradayHR.readings} />
+        </Card>
+      )}
 
       {/* Temp not available hint */}
       {tempDev == null && liveData?.temperature?.length === 0 && (
