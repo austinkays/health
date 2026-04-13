@@ -15,8 +15,13 @@
 // unless they explicitly tap "Skip setup".
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, X, Sparkles } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, X, Sparkles, FileUp } from 'lucide-react';
 import { setStarred } from '../../utils/starred';
+import { DEXCOM_ENABLED } from '../../services/dexcom';
+import { WITHINGS_ENABLED } from '../../services/withings';
+import { FITBIT_ENABLED } from '../../services/fitbit';
+import { WHOOP_ENABLED } from '../../services/whoop';
+import { TERRA_ENABLED } from '../../services/terra';
 
 const ONBOARDED_KEY = 'salve:onboarded';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
@@ -82,15 +87,22 @@ const TRACKING_OPTIONS = [
 
 // What devices the user has. Each maps to tip IDs we can confidently
 // dismiss (because they've now got the device wired up another way).
-const DEVICE_OPTIONS = [
-  { id: 'apple',   label: 'iPhone / Apple Health', dismissTips: ['connect-oura'] },
-  { id: 'oura',    label: 'Oura Ring',             dismissTips: ['connect-oura'] },
-  { id: 'dexcom',  label: 'Dexcom CGM',            dismissTips: [] },
-  { id: 'withings',label: 'Withings (scale, BP cuff, sleep mat)', dismissTips: [] },
-  { id: 'fitbit',  label: 'Fitbit',                dismissTips: ['connect-oura'] },
-  { id: 'whoop',   label: 'Whoop',                 dismissTips: ['connect-oura'] },
-  { id: 'none',    label: "None of these",         dismissTips: [] },
+// We filter to only devices whose integration is currently enabled via
+// feature flags so onboarding never advertises something Settings has
+// hidden. Apple Health file/paste import is always available, so it's
+// always shown. Oura is always on.
+const ALL_DEVICE_OPTIONS = [
+  { id: 'apple',    label: 'iPhone / Apple Health',              dismissTips: ['connect-oura'], enabled: true },
+  { id: 'oura',     label: 'Oura Ring',                          dismissTips: ['connect-oura'], enabled: true },
+  { id: 'dexcom',   label: 'Dexcom CGM',                         dismissTips: [],               enabled: DEXCOM_ENABLED },
+  { id: 'withings', label: 'Withings (scale, BP cuff, sleep mat)', dismissTips: [],             enabled: WITHINGS_ENABLED },
+  { id: 'fitbit',   label: 'Fitbit',                             dismissTips: ['connect-oura'], enabled: FITBIT_ENABLED },
+  { id: 'whoop',    label: 'Whoop',                              dismissTips: ['connect-oura'], enabled: WHOOP_ENABLED },
+  { id: 'terra',    label: 'Other wearable (via Terra)',         dismissTips: [],               enabled: TERRA_ENABLED },
+  { id: 'none',     label: "None of these",                      dismissTips: [],               enabled: true },
 ];
+
+const DEVICE_OPTIONS = ALL_DEVICE_OPTIONS.filter(opt => opt.enabled);
 
 // Merge multiple tracking selections into a ranked unique tile list.
 // Tiles that appear in multiple selections get boosted. Capped at 6.
@@ -340,11 +352,11 @@ export default function OnboardingWizard({ name, updateSettings, onClose }) {
                 What devices do you use?
               </h2>
               <p className="text-ui-base text-salve-textMid mt-1 leading-relaxed">
-                We'll point you at the right integrations. Nothing syncs until you set it up.
+                Pick any you have. Nothing syncs until you set it up, and you can skip this step if you'd rather just type things in.
               </p>
             </div>
 
-            <div className="space-y-2 mb-5">
+            <div className="space-y-2 mb-4">
               {DEVICE_OPTIONS.map(opt => {
                 const checked = devices.has(opt.id);
                 return (
@@ -367,6 +379,21 @@ export default function OnboardingWizard({ name, updateSettings, onClose }) {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Generic import callout: works even without a wearable */}
+            <div className="bg-salve-card2 border border-salve-border rounded-lg p-3.5 mb-5 flex gap-3 items-start">
+              <div className="w-8 h-8 rounded-lg bg-salve-lav/15 flex items-center justify-center flex-shrink-0">
+                <FileUp size={16} className="text-salve-lav" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-playfair text-ui-lg font-semibold text-salve-text mb-1">
+                  No wearable? You can still import.
+                </div>
+                <p className="text-ui-base text-salve-textMid leading-relaxed m-0">
+                  Salve can pull in records from most healthcare portals and health apps that let you export your data. Tap Settings, then Data, then Import after finishing setup. If you're not sure how to export from a specific app, ask Sage once you're in and she can walk you through it.
+                </p>
+              </div>
             </div>
 
             <div className="flex gap-2">

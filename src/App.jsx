@@ -391,6 +391,11 @@ function AppContent() {
             localStorage.setItem(FIRST_KEY, '1');
             trackEvent(EVENTS.SIGNED_IN_FIRST_TIME);
           }
+          // Stamp first-visit timestamp for time-based nudges (theme
+          // suggestion card, etc.). Only written once per browser.
+          if (!localStorage.getItem('salve:installed-at')) {
+            localStorage.setItem('salve:installed-at', Date.now().toString());
+          }
         } catch { /* localStorage may be unavailable */ }
       }
       setSession(s);

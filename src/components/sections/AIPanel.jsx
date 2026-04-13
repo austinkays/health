@@ -1184,7 +1184,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       setCrisisType(crisis.type);
       return;
     }
-    const msgs = [...chatMessages, { role: 'user', content: chatInput, ts: Date.now() }];
+    const msgs = [...chatMessages, { role: 'user', content: chatInput }];
     setChatMessages(msgs);
     setChatInput('');
     chatInputRef.current?.focus();
@@ -1195,12 +1195,12 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       if (hasCrud) {
         const r = await sendChatWithTools(msgs, profile, onToolCall);
         const executions = toolExecutionsRef.current.length ? [...toolExecutionsRef.current] : undefined;
-        const updated = [...msgs, { role: 'assistant', content: r.text, toolExecutions: executions, ts: Date.now() }];
+        const updated = [...msgs, { role: 'assistant', content: r.text, toolExecutions: executions }];
         setChatMessages(updated);
         saveConversation(updated);
       } else {
         const r = await sendChat(msgs, profile);
-        const updated = [...msgs, { role: 'assistant', content: r, ts: Date.now() }];
+        const updated = [...msgs, { role: 'assistant', content: r }];
         setChatMessages(updated);
         saveConversation(updated);
       }
@@ -1210,10 +1210,10 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       const isDailyLimit = e.message?.includes('Daily AI limit') || e.message?.includes('Daily Sage limit');
       const errMsg = isDailyLimit
         ? (BILLING_ENABLED
-            ? '⏳ You\'ve used your AI calls for today. Resets at midnight PT.'
-            : '⏳ You\'ve used your daily Sage allowance. During the beta we cap usage so Sage stays free for everyone — resets at midnight PT. Thanks for understanding!')
+            ? "You've used your daily Sage allowance. It resets at midnight Pacific. If you're on premium, you can switch to the free Gemini provider in Settings, then AI Provider to keep going today."
+            : "You've used your daily Sage allowance. It resets at midnight Pacific. During the beta we cap usage so Sage stays free for everyone. Thanks for understanding.")
         : 'Error: ' + e.message;
-      const updated = [...msgs, { role: 'assistant', content: errMsg, ts: Date.now() }];
+      const updated = [...msgs, { role: 'assistant', content: errMsg }];
       setChatMessages(updated);
     } finally {
       setLoading(false);

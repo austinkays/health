@@ -242,6 +242,17 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
                 Takes about 3 minutes · Skip anything you want · Everything stays private
               </p>
             </div>
+
+            {/* Import alternative: generic, no specific app names */}
+            <div className="max-w-[380px] w-full bg-salve-card2 border border-salve-border rounded-xl p-3.5 text-left">
+              <div className="text-[13px] font-semibold font-montserrat text-salve-text mb-1">
+                Already have health data somewhere?
+              </div>
+              <p className="text-[12px] text-salve-textMid font-montserrat leading-relaxed m-0">
+                You can import from most healthcare portals and health apps that export your data. Go to Settings, then Data, then Import. If you want help exporting from a specific app, just ask me here and I'll walk you through it.
+              </p>
+            </div>
+
             <button
               onClick={startIntro}
               className="group relative px-8 py-3.5 rounded-xl bg-salve-sage text-white font-montserrat font-semibold text-[15px] border-none cursor-pointer transition-all duration-300 hover:bg-salve-sage/90 hover:shadow-lg hover:shadow-salve-sage/20 active:scale-[0.97] overflow-hidden"

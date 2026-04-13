@@ -61,6 +61,13 @@ const MESSAGES = [
   'You are allowed to take up space.',
   'You are enough exactly as you are.',
   'Good things are coming your way.',
+  // Patience cues so long AI calls don't feel like the page is hung up.
+  'This can take 20 to 30 seconds. Sage is reading your full chart.',
+  'Hang tight. Sage is pulling everything together.',
+  'Sage is thinking carefully. Worth the wait.',
+  'Cross checking your labs, meds, and patterns.',
+  'Still thinking. Deep analysis takes a moment.',
+  'Almost there. Sage is double checking.',
 ];
 
 function pickRandom(exclude) {

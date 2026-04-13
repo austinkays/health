@@ -272,9 +272,26 @@ export function setAdminActive(v) { _adminActive = !!v; }
 // Prevent unbounded token growth in multi-turn chats by keeping only the
 // most recent messages. Always preserves the latest user message.
 const MAX_CHAT_MESSAGES = 20;
+// Strip any non-spec fields from message objects before sending to the
+// Anthropic Messages API. The API only accepts role + content (plus
+// tool_use_id on tool_result blocks). Fields like `ts`, `toolExecutions`,
+// or anything else we stash on the UI-side message object will cause a
+// 400 "Extra inputs are not permitted". This is defensive so any caller
+// (current or future) gets a clean payload regardless of what the UI
+// layer attached for its own bookkeeping.
+function sanitizeMessages(messages) {
+  if (!messages) return messages;
+  return messages.map(m => {
+    const clean = { role: m.role, content: m.content };
+    if (m.tool_use_id) clean.tool_use_id = m.tool_use_id;
+    return clean;
+  });
+}
+
 function capMessages(messages) {
-  if (!messages || messages.length <= MAX_CHAT_MESSAGES) return messages;
-  return messages.slice(-MAX_CHAT_MESSAGES);
+  const clean = sanitizeMessages(messages);
+  if (!clean || clean.length <= MAX_CHAT_MESSAGES) return clean;
+  return clean.slice(-MAX_CHAT_MESSAGES);
 }
 
 // ── Daily Usage Tracker ──

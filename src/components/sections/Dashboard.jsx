@@ -194,6 +194,17 @@ const STARTER_TIPS = [
     dismissBehavior: 'snooze',
     snoozeDays: 14,
   },
+  {
+    id: 'try-a-theme',
+    icon: Sparkles,
+    color: 'lav',
+    title: 'Make it feel like yours',
+    body: "Salve has 15 themes, from soft pastels to dark cozy to animated cherry blossoms. Tap Settings, then Appearance to try one on.",
+    action: 'settings',
+    actionLabel: 'Pick a theme',
+    dismissBehavior: 'snooze',
+    snoozeDays: 7,
+  },
   // feedback is not a card, it renders as a persistent footer line in the section
 ];
 
@@ -906,6 +917,15 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       if (tip.id === 'add-meds' && activeMeds.length > 0) return false;
       if (tip.id === 'add-providers' && data.providers.length > 0) return false;
       if (tip.id === 'connect-oura' && hasOura) return false;
+      // Theme nudge: only show after 2+ days of use AND still on default theme
+      if (tip.id === 'try-a-theme') {
+        try {
+          const installed = parseInt(localStorage.getItem('salve:installed-at') || '0', 10);
+          const ageDays = installed > 0 ? (now - installed) / 86400000 : 0;
+          const theme = localStorage.getItem('salve:theme') || 'lilac';
+          if (!(installed > 0 && ageDays >= 2 && theme === 'lilac')) return false;
+        } catch { return false; }
+      }
       const record = dismissMap.get(tip.id);
       if (!record) return true;
       if (record.permanent) return false;
@@ -1908,7 +1928,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
                   <ChevronRight size={11} className="text-salve-textFaint/50" />
                 </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2 [&>*]:min-w-0">
                   {labHighlights.map(lab => {
                     const flag = lab.flag;
                     const hasFlag = ['abnormal', 'high', 'low', 'critical'].includes(flag);
@@ -1920,8 +1940,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                           <div className="text-[13px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || 'Lab result'}</div>
                           <div className="text-[12px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
                         </div>
-                        <div className="flex-shrink-0 text-right">
-                          {lab.result && <div className="text-[14px] font-semibold font-montserrat" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
+                        <div className="flex-shrink-0 text-right min-w-0 max-w-[45%]">
+                          {lab.result && <div className="text-[13px] font-semibold font-montserrat truncate" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
                           <div className="text-[9px] font-montserrat" style={{ color: flagColor }}>{flagLabel}</div>
                         </div>
                       </div>
