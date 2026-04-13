@@ -229,6 +229,9 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
                 <Send size={15} />
               </button>
             </div>
+            <p className="text-[11px] text-salve-textFaint/50 italic text-center px-3 pb-2.5 font-montserrat leading-tight">
+              Not medical advice — always consult your healthcare providers.
+            </p>
           </div>
         )}
       </div>
