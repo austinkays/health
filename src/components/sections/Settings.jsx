@@ -242,6 +242,20 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState(null);
   const [selectedPlan, setSelectedPlan] = useState('monthly');
+  const [betaCode, setBetaCode] = useState('');
+  const [betaStatus, setBetaStatus] = useState(null); // null | 'loading' | 'success' | 'error'
+  const handleRedeemBeta = async () => {
+    if (!betaCode.trim()) return;
+    setBetaStatus('loading');
+    try {
+      const { data: ok, error } = await supabase.rpc('claim_beta_invite', { code_in: betaCode.trim().toUpperCase() });
+      if (error || !ok) { setBetaStatus('error'); return; }
+      setBetaStatus('success');
+      setBetaCode('');
+      // Refresh profile so tier updates immediately
+      if (reloadData) await reloadData();
+    } catch { setBetaStatus('error'); }
+  };
   const handleUpgrade = async () => {
     setCheckoutLoading(true);
     setCheckoutError(null);
@@ -1111,6 +1125,36 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
                 Premium upgrades aren't open yet. We'll let you know when they are.
               </p>
+            )}
+          </div>
+        )}
+        {/* Beta code redemption — visible to free users and trial-expired users */}
+        {(userTier === 'free' || trialExpired) && (
+          <div className="mt-3 p-3 rounded-xl border border-salve-lav/20 bg-salve-lav/5">
+            <p className="text-[13px] text-salve-text font-medium font-montserrat mb-1.5">Have a beta code?</p>
+            <p className="text-[12px] text-salve-textFaint font-montserrat mb-2">Redeem it for 2 weeks of full Premium access.</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={betaCode}
+                onChange={e => { setBetaCode(e.target.value.toUpperCase()); setBetaStatus(null); }}
+                placeholder="SPOONIE-XXXX"
+                className="flex-1 px-3 py-1.5 rounded-lg text-[13px] font-montserrat bg-salve-card border border-salve-border text-salve-text placeholder:text-salve-textFaint/50 focus:outline-none focus:border-salve-lav/50 focus:ring-1 focus:ring-salve-lav/20"
+                disabled={betaStatus === 'loading' || betaStatus === 'success'}
+              />
+              <button
+                onClick={handleRedeemBeta}
+                disabled={!betaCode.trim() || betaStatus === 'loading' || betaStatus === 'success'}
+                className="px-4 py-1.5 rounded-lg text-[13px] font-medium font-montserrat bg-salve-lav text-white hover:bg-salve-lav/80 transition-colors disabled:opacity-50 cursor-pointer border-0"
+              >
+                {betaStatus === 'loading' ? 'Checking...' : betaStatus === 'success' ? '✓ Activated' : 'Redeem'}
+              </button>
+            </div>
+            {betaStatus === 'error' && (
+              <p className="text-[12px] text-salve-rose font-montserrat mt-1.5">Invalid or already claimed code. Double check and try again.</p>
+            )}
+            {betaStatus === 'success' && (
+              <p className="text-[12px] text-salve-sage font-montserrat mt-1.5">Premium activated for 14 days. Enjoy!</p>
             )}
           </div>
         )}

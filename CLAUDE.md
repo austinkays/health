@@ -99,11 +99,13 @@ health/
 │       ├── 031_insight_ratings.sql            # Thumbs up/down ratings on AI insights, patterns, news with RLS + unique constraint
 │       ├── 032_usage_events.sql               # PHI-safe self-hosted product analytics: usage_events table (event name + user_id + created_at only, 80-char CHECK), RLS, purge_old_usage_events() 180-day retention
 │       ├── 033_extend_beta_trial.sql          # Trial extension: 14d → 90d for beta period (superseded by 035)
-│       ├── 034_beta_invites.sql               # Closed-beta invite gate: beta_invites table + check_beta_invite(code,email) + claim_beta_invite(code) RPCs. Reserve-on-validate with 30-min email lock. Anon-callable via SECURITY DEFINER.
+│       ├── 034_beta_invites.sql               # Beta invites table + check_beta_invite(code,email) + claim_beta_invite(code) RPCs. Originally a closed-beta signup gate; now repurposed as premium trial code redemption (see 040). Reserve-on-validate with 30-min email lock. Anon-callable via SECURITY DEFINER.
 │       ├── 035_trim_beta_trial_to_30_days.sql # Walks trial back from 90 → 30 days. Idempotent; safe whether 033 was applied or not.
 │       ├── 036_terra_connections.sql           # terra_connections table (user_id, terra_user_id UNIQUE, provider, status, last_webhook_at, last_sync_at). RLS-scoped select/delete; webhooks use service role to bypass.
 │       ├── 037_cycles_add_bbt_mucus_types.sql # Add BBT and cervical mucus type values to cycles
-│       └── 038_stripe_ids.sql                 # Add stripe_customer_id and stripe_subscription_id to profiles
+│       ├── 038_stripe_ids.sql                 # Add stripe_customer_id and stripe_subscription_id to profiles
+│       ├── 039_notification_log_rls.sql       # RLS policies for notification_log table
+│       └── 040_open_signup_beta_codes.sql     # Open signup (new users get free tier, no auto-premium). Repurposes beta invite codes as premium trial grants: claim_beta_invite() now sets tier='premium' + trial_expires_at=14 days
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
@@ -1035,7 +1037,7 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 | `VITE_VAPID_PUBLIC_KEY` | `.env.local` + Vercel env vars | VAPID public key for push subscription registration (client + server) |
 | `SENTRY_AUTH_TOKEN` | Vercel env vars (build-time only) | Sentry auth token for source map uploads via @sentry/vite-plugin |
 | `VERCEL_URL` | Auto-set by Vercel | Deployment URL, used as CORS origin fallback in all api/ handlers |
-| `VITE_BETA_INVITE_REQUIRED` | Vercel env vars | Set to `'true'` to show the invite-code field on the Auth screen. Codes are validated via the `check_beta_invite` Supabase RPC. Used during the closed beta to cap signups. |
+| `VITE_BETA_INVITE_REQUIRED` | Vercel env vars | Set to `'true'` to show the invite-code field on the Auth screen. Now set to `false` for open signup. Beta codes are repurposed as premium trial grants redeemable in Settings (see migration 040). |
 | `TERRA_DEV_ID` | Vercel env vars only | Terra developer ID (from tryterra.co dashboard). Required for the Connect-a-device flow. |
 | `TERRA_API_KEY` | Vercel env vars only | Terra API key (server-side only). Pairs with TERRA_DEV_ID. |
 | `TERRA_SIGNING_SECRET` | Vercel env vars only | HMAC-SHA256 secret used to verify webhooks from Terra. Set in Terra dashboard → Webhooks. |
