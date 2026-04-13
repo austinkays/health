@@ -10,6 +10,7 @@ const CATEGORIES = [
     label: 'Personal',
     icon: User,
     fields: [
+      { key: 'name', label: 'Name', placeholder: 'How should we greet you?', topLevel: true },
       { key: 'pronouns', label: 'Pronouns', placeholder: 'e.g. she/her, he/him, they/them' },
       { key: 'occupation', label: 'Occupation', placeholder: 'e.g. Teacher, Software engineer, Stay-at-home parent' },
       { key: 'employer', label: 'Employer / School', placeholder: 'e.g. Company name or school' },
@@ -68,10 +69,17 @@ const CATEGORIES = [
   },
 ];
 
-function CategorySection({ category, values, onChange, defaultOpen = false }) {
+// Resolve the current value for a field — topLevel fields read from
+// data.settings directly, everything else reads from data.settings.about_me.
+function resolveValue(field, settings, aboutMe) {
+  if (field.topLevel) return settings?.[field.key] || '';
+  return aboutMe[field.key] || '';
+}
+
+function CategorySection({ category, settings, aboutMe, onChange, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const Icon = category.icon;
-  const filledCount = category.fields.filter(f => values[f.key]?.trim()).length;
+  const filledCount = category.fields.filter(f => resolveValue(f, settings, aboutMe).trim()).length;
 
   return (
     <Card className="!p-0 overflow-hidden">
@@ -99,8 +107,8 @@ function CategorySection({ category, values, onChange, defaultOpen = false }) {
             <Field
               key={field.key}
               label={field.label}
-              value={values[field.key] || ''}
-              onChange={v => onChange(field.key, v)}
+              value={resolveValue(field, settings, aboutMe)}
+              onChange={v => onChange(field, v)}
               placeholder={field.placeholder}
               textarea={field.textarea}
               maxLength={field.textarea ? 1000 : 200}
@@ -113,15 +121,23 @@ function CategorySection({ category, values, onChange, defaultOpen = false }) {
 }
 
 export default function AboutMe({ data, updateSettings, onSageIntro }) {
-  const aboutMe = data.settings?.about_me || {};
+  const settings = data.settings || {};
+  const aboutMe = settings.about_me || {};
 
-  const handleChange = (key, value) => {
-    const updated = { ...aboutMe, [key]: value };
+  const handleChange = (field, value) => {
+    if (field.topLevel) {
+      // Top-level profile field (e.g. name) — write to settings directly so
+      // it stays canonical and existing consumers (Header greeting, etc.) keep
+      // working without a migration.
+      updateSettings({ [field.key]: value });
+      return;
+    }
+    const updated = { ...aboutMe, [field.key]: value };
     updateSettings({ about_me: updated });
   };
 
   const filledTotal = CATEGORIES.reduce((sum, cat) =>
-    sum + cat.fields.filter(f => aboutMe[f.key]?.trim()).length, 0
+    sum + cat.fields.filter(f => resolveValue(f, settings, aboutMe).trim()).length, 0
   );
   const totalFields = CATEGORIES.reduce((sum, cat) => sum + cat.fields.length, 0);
 
@@ -144,7 +160,8 @@ export default function AboutMe({ data, updateSettings, onSageIntro }) {
         <CategorySection
           key={cat.id}
           category={cat}
-          values={aboutMe}
+          settings={settings}
+          aboutMe={aboutMe}
           onChange={handleChange}
         />
       ))}

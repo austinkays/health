@@ -17,6 +17,7 @@ import { detectFloFormat, parseFloExport } from '../../services/flo';
 import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, estimateFertility, getCycleAlerts, getSymptothermalStatus, detectBBTShift } from '../../utils/cycles';
 import { isOuraConnected, syncAllOuraData } from '../../services/oura';
 import { trackEvent, EVENTS } from '../../services/analytics';
+import { isSourceHidden } from '../../utils/hiddenSources';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -384,7 +385,9 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
             {ouraSyncMsg || (ouraSyncing ? 'Syncing...' : 'Oura Sync')}
           </button>
         )}
-        <Button variant="secondary" onClick={() => setSubView('import')} className="!py-1.5 !px-3 !text-xs"><Upload size={13} /> Import</Button>
+        {!isSourceHidden('flo') && (
+          <Button variant="secondary" onClick={() => setSubView('import')} className="!py-1.5 !px-3 !text-xs"><Upload size={13} /> Import</Button>
+        )}
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
       </div>
 

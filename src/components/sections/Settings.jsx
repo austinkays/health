@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -25,6 +25,7 @@ import { supabase } from '../../services/supabase';
 import { startCheckout, openCustomerPortal, BILLING_ENABLED } from '../../services/billing';
 import { startTerraConnect, listTerraConnections, disconnectTerraConnection, providerLabel, TERRA_ENABLED } from '../../services/terra';
 import { resetOnboarding } from '../ui/OnboardingWizard';
+import { getHiddenSources, hideSource, unhideAllSources } from '../../utils/hiddenSources';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
@@ -276,6 +277,18 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
+
+  // Per-user opt-out for connection cards. Stored in localStorage (UI pref, not PHI).
+  const [hiddenSources, setHiddenSources] = useState(() => getHiddenSources());
+  const handleHideSource = (id) => {
+    hideSource(id);
+    setHiddenSources(getHiddenSources());
+    if (expandedSource === id) setExpandedSource(null);
+  };
+  const handleShowAllSources = () => {
+    unhideAllSources();
+    setHiddenSources([]);
+  };
 
   const [userEmail, setUserEmail] = useState('');
   const [locationStatus, setLocationStatus] = useState(null); // null | 'detecting' | 'error' | 'success'
@@ -843,6 +856,27 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     if (fileInputRef.current) fileInputRef.current.value = '';
   }
 
+  // Wrapper that hides a connection card when the user has dismissed it,
+  // and renders a small corner X to dismiss it when visible. Stops propagation
+  // so the click doesn't also toggle the card's expand/collapse state.
+  const HideableSource = ({ id, label, children }) => {
+    if (hiddenSources.includes(id)) return null;
+    return (
+      <div className="relative">
+        {children}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); handleHideSource(id); }}
+          aria-label={`Hide ${label}`}
+          title={`Hide ${label}`}
+          className="absolute top-2 right-2 z-10 w-5 h-5 rounded-full flex items-center justify-center bg-salve-card2/90 backdrop-blur-sm text-salve-textFaint hover:text-salve-rose hover:bg-salve-rose/15 transition-colors cursor-pointer border-none p-0"
+        >
+          <X size={11} />
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="mt-2">
       <div className="md:grid md:grid-cols-2 md:gap-6 md:items-start">
@@ -1156,10 +1190,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       <div>
       {/* ══════════════ 5. Profile ══════════════ */}
       <SectionTitle>Profile</SectionTitle>
-      <Card>
-        <Field label="Your Name" value={s.name || ''} onChange={v => set('name', v)} placeholder="How should we greet you?" />
-      </Card>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 mb-1">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 mb-1">
         <button onClick={() => onNav('aboutme')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
         <button onClick={() => onNav('pharmacies')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
         <button onClick={() => onNav('insurance')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
@@ -1312,6 +1343,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </Card>
 
         {/* ── Oura Ring ── */}
+        <HideableSource id="oura" label="Oura Ring">
         <Card>
           <button onClick={() => toggleSource('oura')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
             <div className="flex items-center gap-2.5">
@@ -1385,9 +1417,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           )}
         </Card>
+        </HideableSource>
 
         {/* ── Dexcom CGM ── */}
         {DEXCOM_ENABLED && (
+          <HideableSource id="dexcom" label="Dexcom CGM">
           <Card>
             <button onClick={() => toggleSource('dexcom')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
               <div className="flex items-center gap-2.5">
@@ -1449,10 +1483,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
           </Card>
+          </HideableSource>
         )}
 
         {/* ── Withings ── */}
         {WITHINGS_ENABLED && (
+          <HideableSource id="withings" label="Withings">
           <Card>
             <button onClick={() => toggleSource('withings')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
               <div className="flex items-center gap-2.5">
@@ -1514,10 +1550,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
           </Card>
+          </HideableSource>
         )}
 
         {/* ── Fitbit ── */}
         {FITBIT_ENABLED && (
+          <HideableSource id="fitbit" label="Fitbit">
           <Card>
             <button onClick={() => toggleSource('fitbit')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
               <div className="flex items-center gap-2.5">
@@ -1579,10 +1617,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
           </Card>
+          </HideableSource>
         )}
 
         {/* ── Whoop ── */}
         {WHOOP_ENABLED && (
+          <HideableSource id="whoop" label="Whoop">
           <Card>
             <button onClick={() => toggleSource('whoop')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
               <div className="flex items-center gap-2.5">
@@ -1644,9 +1684,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
           </Card>
+          </HideableSource>
         )}
 
         {/* ── Apple Health ── */}
+        <HideableSource id="apple" label="Apple Health">
         <Card>
           <button onClick={() => toggleSource('apple')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
             <div className="flex items-center gap-2.5">
@@ -1676,9 +1718,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           )}
         </Card>
+        </HideableSource>
 
         {/* ── Terra (Fitbit, Garmin, Withings, Dexcom, etc.) ── */}
         {TERRA_ENABLED && (
+          <HideableSource id="terra" label="Connect a device">
           <Card>
             <button onClick={() => toggleSource('terra')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
               <div className="flex items-center gap-2.5">
@@ -1742,9 +1786,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </div>
             )}
           </Card>
+          </HideableSource>
         )}
 
         {/* ── Flo ── */}
+        <HideableSource id="flo" label="Flo">
         <Card>
           <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
             <div className="flex items-center gap-2.5">
@@ -1772,6 +1818,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             </div>
           )}
         </Card>
+        </HideableSource>
+
+        {hiddenSources.length > 0 && (
+          <div className="text-center mt-1">
+            <button
+              type="button"
+              onClick={handleShowAllSources}
+              className="text-[12px] text-salve-textFaint hover:text-salve-lav font-montserrat bg-transparent border-none cursor-pointer transition-colors"
+            >
+              {hiddenSources.length} hidden · Show all
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ══════════════ 7. Data & Privacy ══════════════ */}

@@ -19,7 +19,7 @@
 // before the sheet slides in — it shouldn't be the very first thing a
 // user sees on load.
 import { useEffect, useState } from 'react';
-import { Download, X, Share, Plus } from 'lucide-react';
+import { Download, X, Share, Plus, MoreHorizontal } from 'lucide-react';
 import { C } from '../../constants/colors';
 
 const INSTALL_DISMISSED_KEY = 'salve:install-dismissed';
@@ -59,7 +59,7 @@ function markSeen() {
   try { localStorage.setItem(INSTALL_SEEN_KEY, 'true'); } catch { /* */ }
 }
 
-export default function InstallPrompt() {
+export default function InstallPrompt({ preAuth = false }) {
   const [visible, setVisible] = useState(false);
   const [entered, setEntered] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -73,6 +73,11 @@ export default function InstallPrompt() {
 
     const ios = isIOS();
 
+    // In preAuth mode we ONLY show on iOS — Chrome/Edge can carry their session
+    // across the install boundary, so non-iOS users don't have a re-auth problem
+    // and the prompt makes more sense after they've explored the app a bit.
+    if (preAuth && !ios) return;
+
     const onBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -80,13 +85,17 @@ export default function InstallPrompt() {
       setTimeout(() => setVisible(true), 1200);
     };
 
-    window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    if (!preAuth) {
+      window.addEventListener('beforeinstallprompt', onBeforeInstall);
+    }
 
     // iOS has no beforeinstallprompt — show manual instructions on first run
     let iosTimer = null;
     if (ios) {
       setIosMode(true);
-      iosTimer = setTimeout(() => setVisible(true), 1500);
+      // Pre-auth shows sooner (the auth screen is the whole experience until
+      // they sign in, so no need to wait for a dashboard to render).
+      iosTimer = setTimeout(() => setVisible(true), preAuth ? 600 : 1500);
     }
 
     // Safety net: if neither path fired within 4s, bail — no prompt available
@@ -97,7 +106,9 @@ export default function InstallPrompt() {
     }, 4000);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      if (!preAuth) {
+        window.removeEventListener('beforeinstallprompt', onBeforeInstall);
+      }
       if (iosTimer) clearTimeout(iosTimer);
       clearTimeout(bailTimer);
     };
@@ -197,10 +208,12 @@ export default function InstallPrompt() {
             </div>
 
             <h3 className="font-playfair text-[20px] md:text-[22px] font-medium text-salve-text m-0 mb-1">
-              Install Salve on your home screen
+              {preAuth && iosMode ? 'Install Salve first' : 'Install Salve on your home screen'}
             </h3>
             <p className="text-ui-md text-salve-textMid m-0 mb-4 leading-snug font-montserrat">
-              Faster access, offline support, and a full-screen app experience — just like a native app.
+              {preAuth && iosMode
+                ? "iPhone won't share your sign-in between Safari and the installed app. Add Salve to your home screen first so you only sign in once."
+                : 'Faster access, offline support, and a full-screen app experience — just like a native app.'}
             </p>
 
             {iosMode ? (
@@ -220,7 +233,7 @@ export default function InstallPrompt() {
                     style={{ background: `${C.lav}22`, color: C.lav }}
                   >2</span>
                   <span className="flex items-center gap-1.5">
-                    Choose <Plus size={14} className="inline" style={{ color: C.lav }} /> "Add to Home Screen"
+                    Scroll down and tap <MoreHorizontal size={14} className="inline" style={{ color: C.lav }} /> "View More" if you don't see it
                   </span>
                 </div>
                 <div className="flex items-center gap-2.5 text-[13px] text-salve-textMid font-montserrat">
@@ -228,6 +241,15 @@ export default function InstallPrompt() {
                     className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
                     style={{ background: `${C.lav}22`, color: C.lav }}
                   >3</span>
+                  <span className="flex items-center gap-1.5">
+                    Choose <Plus size={14} className="inline" style={{ color: C.lav }} /> "Add to Home Screen"
+                  </span>
+                </div>
+                <div className="flex items-center gap-2.5 text-[13px] text-salve-textMid font-montserrat">
+                  <span
+                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
+                    style={{ background: `${C.lav}22`, color: C.lav }}
+                  >4</span>
                   <span>Tap "Add" in the top-right corner</span>
                 </div>
               </div>

@@ -123,9 +123,10 @@ function computeDismissedTips(selectedDeviceIds) {
 
 // ────────────────────────────────────────────────────────────────────
 
-export default function OnboardingWizard({ name, onClose }) {
+export default function OnboardingWizard({ name, updateSettings, onClose }) {
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
+  const [nameInput, setNameInput] = useState(name || '');
   const [tracking, setTracking] = useState(new Set());
   const [devices, setDevices] = useState(new Set());
 
@@ -141,6 +142,14 @@ export default function OnboardingWizard({ name, onClose }) {
     markOnboardingComplete();
 
     if (completed) {
+      // Save the name if they entered one (and it's different from what
+      // was already on file). Skipping the name step leaves the existing
+      // value untouched.
+      const trimmed = nameInput.trim();
+      if (trimmed && trimmed !== (name || '') && typeof updateSettings === 'function') {
+        try { updateSettings({ name: trimmed }); } catch { /* */ }
+      }
+
       // Write starred tiles + dismissed tips
       const tiles = computeStarredTiles([...tracking]);
       if (tiles.length > 0) setStarred(tiles);
@@ -226,11 +235,52 @@ export default function OnboardingWizard({ name, onClose }) {
           </div>
         )}
 
-        {/* ── Step 1: What are you tracking? ── */}
+        {/* ── Step 1: What should we call you? ── */}
         {step === 1 && (
           <div>
             <div className="mb-4">
-              <div className="text-ui-xs text-salve-textFaint font-montserrat tracking-widest uppercase mb-1">Step 1 of 3</div>
+              <div className="text-ui-xs text-salve-textFaint font-montserrat tracking-widest uppercase mb-1">Step 1 of 4</div>
+              <h2 className="font-playfair text-display-md font-semibold text-salve-text m-0">
+                What should we call you?
+              </h2>
+              <p className="text-ui-base text-salve-textMid mt-1 leading-relaxed">
+                Just a first name or nickname is fine. You can change it any time.
+              </p>
+            </div>
+
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') setStep(2); }}
+              placeholder="Your first name or a nickname"
+              autoFocus
+              maxLength={60}
+              className="w-full bg-salve-card2 border border-salve-border rounded-lg px-3.5 py-2.5 text-ui-base text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint mb-5"
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep(0)}
+                className="flex items-center gap-1 text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer px-3 py-2 text-ui-base font-montserrat"
+              >
+                <ChevronLeft size={14} /> Back
+              </button>
+              <button
+                onClick={() => setStep(2)}
+                className="cta-lift flex-1 bg-salve-lav text-salve-bg font-medium rounded-lg py-2.5 text-ui-base hover:bg-salve-lavDim cursor-pointer flex items-center justify-center gap-1"
+              >
+                {nameInput.trim() ? 'Next' : 'Skip'} <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Step 2: What are you tracking? ── */}
+        {step === 2 && (
+          <div>
+            <div className="mb-4">
+              <div className="text-ui-xs text-salve-textFaint font-montserrat tracking-widest uppercase mb-1">Step 2 of 4</div>
               <h2 className="font-playfair text-display-md font-semibold text-salve-text m-0">
                 What are you tracking?
               </h2>
@@ -266,13 +316,13 @@ export default function OnboardingWizard({ name, onClose }) {
 
             <div className="flex gap-2">
               <button
-                onClick={() => setStep(0)}
+                onClick={() => setStep(1)}
                 className="flex items-center gap-1 text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer px-3 py-2 text-ui-base font-montserrat"
               >
                 <ChevronLeft size={14} /> Back
               </button>
               <button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 className="cta-lift flex-1 bg-salve-lav text-salve-bg font-medium rounded-lg py-2.5 text-ui-base hover:bg-salve-lavDim cursor-pointer flex items-center justify-center gap-1"
               >
                 Next <ChevronRight size={14} />
@@ -281,11 +331,11 @@ export default function OnboardingWizard({ name, onClose }) {
           </div>
         )}
 
-        {/* ── Step 2: What devices do you use? ── */}
-        {step === 2 && (
+        {/* ── Step 3: What devices do you use? ── */}
+        {step === 3 && (
           <div>
             <div className="mb-4">
-              <div className="text-ui-xs text-salve-textFaint font-montserrat tracking-widest uppercase mb-1">Step 2 of 3</div>
+              <div className="text-ui-xs text-salve-textFaint font-montserrat tracking-widest uppercase mb-1">Step 3 of 4</div>
               <h2 className="font-playfair text-display-md font-semibold text-salve-text m-0">
                 What devices do you use?
               </h2>
@@ -321,13 +371,13 @@ export default function OnboardingWizard({ name, onClose }) {
 
             <div className="flex gap-2">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="flex items-center gap-1 text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer px-3 py-2 text-ui-base font-montserrat"
               >
                 <ChevronLeft size={14} /> Back
               </button>
               <button
-                onClick={() => setStep(3)}
+                onClick={() => setStep(4)}
                 className="cta-lift flex-1 bg-salve-lav text-salve-bg font-medium rounded-lg py-2.5 text-ui-base hover:bg-salve-lavDim cursor-pointer flex items-center justify-center gap-1"
               >
                 Next <ChevronRight size={14} />
@@ -336,15 +386,15 @@ export default function OnboardingWizard({ name, onClose }) {
           </div>
         )}
 
-        {/* ── Step 3: All set ── */}
-        {step === 3 && (
+        {/* ── Step 4: All set ── */}
+        {step === 4 && (
           <div>
             <div className="text-center mb-5">
               <div className="w-12 h-12 rounded-full bg-salve-sage/15 flex items-center justify-center mx-auto mb-3">
                 <Sparkles size={20} className="text-salve-sage" />
               </div>
               <h2 className="font-playfair text-display-lg font-semibold text-salve-text m-0">
-                You're all set{name ? `, ${name}` : ''}
+                You're all set{nameInput.trim() ? `, ${nameInput.trim()}` : (name ? `, ${name}` : '')}
               </h2>
               <p className="text-ui-base text-salve-textMid mt-2 leading-relaxed">
                 We've personalized your home based on what you told us. You can always customize it from the Dashboard.
@@ -369,7 +419,7 @@ export default function OnboardingWizard({ name, onClose }) {
 
             <div className="flex gap-2">
               <button
-                onClick={() => setStep(2)}
+                onClick={() => setStep(3)}
                 className="flex items-center gap-1 text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer px-3 py-2 text-ui-base font-montserrat"
               >
                 <ChevronLeft size={14} /> Back

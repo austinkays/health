@@ -456,17 +456,24 @@ function AppContent() {
 
   if (!session && !demoMode) {
     return (
-      <Auth
-        sessionExpired={sessionExpired}
-        onAuthSuccess={() => setSessionExpired(false)}
-        onEnterDemo={() => {
-          setDemoMode(true);
-          setTab('dash');
-          // First-run walkthrough, only show if the user hasn't seen it
-          // already in this browser.
-          if (!hasSeenDemoWelcome()) setShowDemoWelcome(true);
-        }}
-      />
+      <>
+        <Auth
+          sessionExpired={sessionExpired}
+          onAuthSuccess={() => setSessionExpired(false)}
+          onEnterDemo={() => {
+            setDemoMode(true);
+            setTab('dash');
+            // First-run walkthrough, only show if the user hasn't seen it
+            // already in this browser.
+            if (!hasSeenDemoWelcome()) setShowDemoWelcome(true);
+          }}
+        />
+        {/* Pre-auth install nudge for iOS Safari only. iPhone won't share the
+            sign-in between Safari and the standalone PWA, so installing
+            BEFORE signing in saves the user from authenticating twice.
+            InstallPrompt internally no-ops when not iOS / already standalone. */}
+        <InstallPrompt preAuth />
+      </>
     );
   }
 
@@ -572,7 +579,7 @@ function AppContent() {
         </Suspense>
       )}
       {showWhatsNew && !showDemoWelcome && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
-      {showOnboarding && <OnboardingWizard name={data?.settings?.name} onClose={() => setShowOnboarding(false)} />}
+      {showOnboarding && <OnboardingWizard name={data?.settings?.name} updateSettings={updateSettings} onClose={() => setShowOnboarding(false)} />}
       {/* PWA install invitation. Only for signed-in (non-demo) users, deferred
           until after the onboarding wizard has been completed to avoid
           stacking modals on first run. */}

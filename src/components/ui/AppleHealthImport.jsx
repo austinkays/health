@@ -333,8 +333,9 @@ export default function AppleHealthImport({ data, reloadData }) {
         <li>Open the <strong className="text-salve-text">Health</strong> app on your iPhone</li>
         <li>Tap your <strong className="text-salve-text">profile picture</strong> (top right)</li>
         <li>Tap <strong className="text-salve-text">Export All Health&nbsp;Data</strong></li>
-        <li>AirDrop or save the .zip file to this device</li>
-        <li>Upload it below</li>
+        <li><strong className="text-salve-text">AirDrop</strong> the export.zip to your computer, or share it to another device</li>
+        <li>On the receiving device, tap <strong className="text-salve-text">Save to Files</strong> (not Quick Look) and pick a folder you'll remember</li>
+        <li>Upload the .zip below</li>
       </ol>
 
       <DropZone
