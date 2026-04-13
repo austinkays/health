@@ -28,6 +28,7 @@ import useSWUpdate from './hooks/useSWUpdate';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import { Analytics } from '@vercel/analytics/react';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
 import { trackEvent, EVENTS, enableAnalytics, disableAnalytics, setupAnalyticsFlush, flush as flushAnalytics } from './services/analytics';
 import { clearOuraTokens } from './services/oura';
@@ -105,6 +106,7 @@ export default function App() {
       <ToastProvider>
         <AppContent />
         <SpeedInsights />
+        <Analytics />
       </ToastProvider>
     </ThemeProvider>
   );
