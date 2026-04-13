@@ -149,6 +149,32 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok });
     }
 
+    if (type === 'invoice.payment_failed') {
+      // Payment failed — Stripe will retry per dunning settings. We don't
+      // downgrade immediately (the subscription.updated/deleted events handle
+      // that), but log it for observability. If you want to show a banner in-app,
+      // set a flag on the profile here.
+      const customerId = obj.customer;
+      const subscriptionId = obj.subscription;
+      console.warn(`[stripe-webhook] invoice.payment_failed for customer=${customerId} sub=${subscriptionId}`);
+
+      // Optional: look up user by stripe_customer_id and flag for in-app banner
+      if (customerId) {
+        const lookupRes = await fetch(
+          `${supabaseUrl}/rest/v1/profiles?stripe_customer_id=eq.${customerId}&select=id`,
+          { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } }
+        );
+        if (lookupRes.ok) {
+          const profiles = await lookupRes.json();
+          if (profiles[0]?.id) {
+            await updateProfile(profiles[0].id, { payment_failed: true });
+            console.log(`[stripe-webhook] Flagged payment_failed for user ${profiles[0].id}`);
+          }
+        }
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     // Unhandled event type — acknowledge
     return res.status(200).json({ ok: true, note: `unhandled: ${type}` });
   } catch (err) {

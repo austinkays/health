@@ -56,7 +56,7 @@ Hobby tier (free) limits that matter at Reddit scale:
 - Commercial use prohibited (if you charge money, you must upgrade)
 
 **If you don't charge money and stay under quotas → Hobby is fine.**
-**If you add Stripe / Lemon Squeezy → upgrade to Pro ($20/mo) before launch.**
+**If you add Stripe payments → upgrade to Pro ($20/mo) before launch.**
 
 Monitor usage at Vercel → Project → Usage. Set up email alerts.
 
@@ -138,69 +138,41 @@ Your tier infrastructure is already in place — `profiles.tier` column
 client-side `isFeatureLocked()`. Payment integration is roughly 3–5 hours of
 work.
 
-### Recommendation: **Lemon Squeezy** (Merchant of Record)
+### Stripe payments (already implemented)
 
-**Why Lemon Squeezy over Stripe for your situation:**
-- They handle sales tax, VAT, and international compliance as the merchant of
-  record. You don't file tax returns for 50 US states + EU VAT.
-- Flat 5% + $0.50 per transaction, no monthly fee.
-- Hosted checkout + subscription management portal — no PCI scope for you.
-- Webhook model is very similar to Stripe's.
-- Solo-dev friendly; explicitly targets indie SaaS.
+Code is complete. Files:
+- `api/stripe-checkout.js` — creates a Stripe hosted checkout session (auth-gated)
+- `api/stripe-webhook.js` — signature-verified webhook handling:
+  `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`, `invoice.payment_failed`
+- `src/services/billing.js` — `startCheckout(plan)`, `openCustomerPortal()`
+- `api/delete-account.js` — cancels active Stripe subscriptions before deletion
 
-**Stripe is better if:** you're already in the Stripe ecosystem, you want the
-absolute lowest fees (2.9% + $0.30), you have capacity to handle tax filings,
-or you need Stripe-specific features (Issuing, Connect, etc.).
+**Setup in Stripe dashboard:**
+1. Create a Product: "Salve Premium" with monthly + annual Price objects
+2. Create a webhook endpoint: `https://<your-domain>/api/stripe-webhook`
+3. Subscribe to events: `checkout.session.completed`,
+   `customer.subscription.updated`, `customer.subscription.deleted`,
+   `invoice.payment_failed`
+4. Copy the webhook signing secret
 
-### Implementation plan (Lemon Squeezy path, ~4 hours)
+**Env vars needed (Vercel, server-only):**
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PREMIUM_PRICE_ID` (monthly)
+- `STRIPE_ANNUAL_PRICE_ID` (annual)
 
-**Setup in Lemon Squeezy dashboard:**
-1. Create account, create a store
-2. Create a Product: "Salve Premium" with a subscription variant
-   (monthly + annual prices, e.g., $5/mo or $48/yr)
-3. Create an API key (Settings → API → Create new key)
-4. Configure webhook URL: `https://<your-domain>/api/lemon-webhook`
-5. Set webhook signing secret (random string), save it
-6. Enable events: `subscription_created`, `subscription_updated`,
-   `subscription_cancelled`, `subscription_resumed`, `subscription_expired`
-
-**Code to add:**
-
-*`api/lemon-checkout.js`* — creates a checkout session for the current user
-- Verifies user auth token
-- Calls Lemon Squeezy API to create a checkout with `custom_data.user_id`
-- Returns the hosted checkout URL for the client to redirect to
-
-*`api/lemon-webhook.js`* — listens for subscription events
-- Verifies webhook signature using HMAC-SHA256 against the signing secret
-- On `subscription_created/updated/resumed`: sets `profiles.tier = 'premium'`
-  (looking up the user via `custom_data.user_id`)
-- On `subscription_cancelled/expired`: sets `profiles.tier = 'free'`
-- Uses Supabase service role key to bypass RLS
-
-*`src/services/billing.js`* — client helpers
-- `startCheckout()` → hits `/api/lemon-checkout`, redirects to returned URL
-- `openCustomerPortal()` → redirects to Lemon Squeezy customer portal
-
-*Settings.jsx* — upgrade UI
-- "Upgrade to Premium" button (only when tier === 'free')
-- "Manage Subscription" button (only when tier === 'premium')
-
-**Env vars needed:**
-- `LEMON_API_KEY` — server-only
-- `LEMON_STORE_ID` — server-only
-- `LEMON_PREMIUM_VARIANT_ID` — server-only (the subscription plan variant ID)
-- `LEMON_WEBHOOK_SECRET` — server-only
+**Env vars needed (Vercel, client-side):**
+- `VITE_BILLING_ENABLED=true` (shows upgrade CTAs)
 
 **Testing:**
-- Lemon Squeezy has test mode (toggle in dashboard)
-- Use test mode + test card numbers until you verify the webhook flow works
-- Check your Supabase `profiles` table after a test subscription to confirm
-  `tier` flipped to 'premium'
+- Use Stripe test mode + test card numbers (`4242 4242 4242 4242`)
+- Verify webhook flow: check Supabase `profiles` table for `tier = 'premium'`
+  after a test subscription
+- Test account deletion with active subscription: confirm sub is cancelled in
+  Stripe dashboard before user is removed
 
 ### What NOT to build yet
-- Upgrade prompts embedded in the app (cards/banners pushing premium)
-- Trial periods (Lemon Squeezy supports them natively when you're ready)
 - Coupon codes / promo flows
 - Team / family plans
 
@@ -235,13 +207,42 @@ Decide these BEFORE sharing publicly so you aren't scrambling:
 | Where do they report bugs? | GitHub issues (already linked) |
 | Who owns the support inbox? | _________________ |
 | How fast do you commit to responding? | _________________ |
-| What's your PHI breach response plan? | _________________ |
+| What's your PHI breach response plan? | See below |
 
-The PHI breach question matters even though you're not HIPAA-covered — if
-users trust you with medical data and you leak it, the reputational damage
-is significant. Have a plan: (1) assess scope, (2) revoke affected tokens,
-(3) notify affected users within 72 hours, (4) patch the vulnerability,
-(5) post-mortem publicly.
+### PHI Breach Response Plan
+
+**Incident responder:** Austin (sole developer, `salveapp@proton.me`).
+
+**Timeline:**
+1. **Within 1 hour:** Assess scope (which tables, how many users, attack vector).
+2. **Within 4 hours:** Contain the breach:
+   - Revoke all active sessions: Supabase Dashboard > Authentication > Sessions
+   - If the anon key is compromised: rotate it via Supabase Dashboard > Settings > API (this will break all existing client sessions; users must re-authenticate)
+   - If a server secret is compromised: rotate it in Vercel env vars and redeploy immediately
+   - If an API endpoint is the vector: disable it by returning 503 in the handler or removing it from `vercel.json`
+3. **Within 24 hours:** Patch the vulnerability and deploy the fix.
+4. **Within 72 hours:** Notify affected users via:
+   - In-app toast/banner on next login (add a `breach_notice` flag to profiles, render a modal in App.jsx)
+   - Direct email to affected accounts (query `auth.users` email via Supabase Dashboard)
+   - If the app is down, use the support email `salveapp@proton.me` to contact users directly
+5. **Within 1 week:** Publish a post-mortem: what happened, what data was exposed, what was fixed, what changed to prevent recurrence. Post to the app's public channel (Reddit thread, GitHub, etc.).
+
+**Communication template:**
+> "We discovered that [description of what was exposed] between [dates]. We
+> immediately [containment steps taken]. Your [specific data type] may have been
+> accessed. We have [fix applied]. We recommend [user action if any, e.g.,
+> 'review your connected wearable devices']. We're sorry and are taking steps
+> to prevent this from happening again."
+
+**Key Supabase admin actions:**
+- Force sign-out all users: `DELETE FROM auth.sessions;` (via SQL Editor with service role)
+- Rotate anon key: Dashboard > Settings > API > Generate new anon key
+- Rotate service role key: Dashboard > Settings > API > Generate new service role key (update all Vercel env vars immediately after)
+- Check audit logs: Dashboard > Logs > Auth logs for suspicious activity
+
+The PHI breach question matters even though Salve is not HIPAA-covered. If
+users trust the app with medical data and it leaks, the reputational damage
+is significant. This plan ensures a structured response under stress.
 
 ---
 

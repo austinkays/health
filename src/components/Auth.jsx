@@ -22,6 +22,27 @@ function getCooldownSeconds(attempts) {
   return 0;
 }
 
+// Persist OTP brute-force cooldown in localStorage so refreshing doesn't reset it
+const COOLDOWN_STORAGE_KEY = 'salve:otp-cooldown';
+function loadCooldownState() {
+  try {
+    const raw = localStorage.getItem(COOLDOWN_STORAGE_KEY);
+    if (!raw) return { attempts: 0, cooldownUntil: 0 };
+    const parsed = JSON.parse(raw);
+    // If cooldown has expired, reset attempts
+    if (parsed.cooldownUntil && Date.now() > parsed.cooldownUntil) {
+      return { attempts: 0, cooldownUntil: 0 };
+    }
+    return { attempts: parsed.attempts || 0, cooldownUntil: parsed.cooldownUntil || 0 };
+  } catch { return { attempts: 0, cooldownUntil: 0 }; }
+}
+function saveCooldownState(attempts, cooldownUntil) {
+  try { localStorage.setItem(COOLDOWN_STORAGE_KEY, JSON.stringify({ attempts, cooldownUntil })); } catch {}
+}
+function clearCooldownState() {
+  try { localStorage.removeItem(COOLDOWN_STORAGE_KEY); } catch {}
+}
+
 export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDemo }) {
   const [email, setEmail] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -31,8 +52,8 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
   const [error, setError] = useState('');
   const [code, setCode] = useState(['', '', '', '', '', '', '', '']);
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(OTP_TTL);
-  const [attempts, setAttempts] = useState(0);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [attempts, setAttempts] = useState(() => loadCooldownState().attempts);
+  const [cooldownUntil, setCooldownUntil] = useState(() => loadCooldownState().cooldownUntil);
   const [cooldownLeft, setCooldownLeft] = useState(0);
   const inputRefs = useRef([]);
 
@@ -48,6 +69,12 @@ export default function Auth({ sessionExpired = false, onAuthSuccess, onEnterDem
     }, 1000);
     return () => clearInterval(interval);
   }, [sent]);
+
+  // Persist cooldown state to localStorage so refresh doesn't reset it
+  useEffect(() => {
+    if (attempts === 0 && cooldownUntil === 0) clearCooldownState();
+    else saveCooldownState(attempts, cooldownUntil);
+  }, [attempts, cooldownUntil]);
 
   // Cooldown countdown timer
   useEffect(() => {

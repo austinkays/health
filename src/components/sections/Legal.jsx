@@ -24,7 +24,7 @@ function Privacy() {
 
       <Section title="What We Collect">
         <p>Salve stores the health information you enter: medications, conditions, vitals, appointments, lab results, journal entries, and related records. We also store your email address for authentication.</p>
-        <p>Salve also records a small amount of anonymous usage information — short event names like "medications section opened" or "journal entry added" — so the developer can see which features are actually helping and focus improvements where they matter. <strong>These events are stored in your own encrypted database alongside your other records, never sent to any third-party analytics vendor, and never include any of your medical data</strong> (no medication names, conditions, journal content, or identifiers). Usage events are automatically purged after 180 days. No tracking cookies, advertising IDs, or cross-site identifiers are used.</p>
+        <p>Salve also records a small amount of anonymous usage information (short event names like "medications section opened" or "journal entry added") so the developer can see which features are actually helping and focus improvements where they matter. <strong>These events are stored in your own encrypted database alongside your other records, never sent to any third-party analytics vendor, and never include any of your medical data</strong> (no medication names, conditions, journal content, or identifiers). Usage events are automatically purged after 180 days. No tracking cookies, advertising IDs, or cross-site identifiers are used.</p>
       </Section>
 
       <Section title="How Data Is Stored">
@@ -39,8 +39,8 @@ function Privacy() {
       <Section title="Data Sharing">
         <p>We do not sell, rent, or share your personal health data with third parties for marketing or advertising purposes. Data is only transmitted to:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Supabase (database hosting — your health data and anonymous usage events are stored here)</li>
-          <li>Vercel (application hosting + serverless API proxies — does not receive analytics data)</li>
+          <li>Supabase (database hosting: your health data and anonymous usage events are stored here)</li>
+          <li>Vercel (application hosting + serverless API proxies, does not receive analytics data)</li>
           <li>Google Gemini and/or Anthropic Claude (AI features, only with your consent)</li>
           <li>Government medical APIs (RxNorm, OpenFDA, NPPES) for drug and provider lookups (no personal data sent)</li>
           <li>Oura API (only if you connect a Ring, OAuth2, tokens stored encrypted locally)</li>

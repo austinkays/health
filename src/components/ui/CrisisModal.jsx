@@ -11,6 +11,8 @@ const RESOURCES = {
     items: [
       { label: '988 Suicide & Crisis Lifeline', action: 'tel:988', actionLabel: 'Call 988', secondary: 'sms:988', secondaryLabel: 'Text 988', desc: 'Free, confidential, 24/7 support' },
       { label: 'Crisis Text Line', action: 'sms:741741&body=HELLO', actionLabel: 'Text HOME to 741741', desc: 'Free crisis counseling via text' },
+      { label: 'SAMHSA Helpline', action: 'tel:1-800-662-4357', actionLabel: 'Call 1-800-662-4357', desc: 'Free substance abuse and mental health referrals, 24/7' },
+      { label: 'The Trevor Project', action: 'tel:1-866-488-7386', actionLabel: 'Call 1-866-488-7386', secondary: 'sms:678-678&body=START', secondaryLabel: 'Text START to 678-678', desc: 'Crisis support for LGBTQ+ young people, 24/7' },
     ],
   },
   medical: {

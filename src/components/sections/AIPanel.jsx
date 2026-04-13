@@ -1162,13 +1162,13 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       const msg = isDailyLimit
         ? (BILLING_ENABLED
             ? '⏳ **Daily Limit Reached**\n\nYou\'ve used your AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for more headroom.'
-            : '⏳ **Daily Sage Limit Reached**\n\nYou\'ve used your AI calls for today. During the beta we cap daily usage so Sage stays free for everyone — your allowance resets at midnight Pacific.\n\nThanks for understanding while we figure out costs.')
+            : '⏳ **Daily Sage Limit Reached**\n\nYou\'ve used your AI calls for today. During the beta we cap daily usage so Sage stays free for everyone. Your allowance resets at midnight Pacific.\n\nThanks for understanding while we figure out costs.')
         : isAdmin
           ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style consultation.'
           : isPremium
             ? (BILLING_ENABLED
                 ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis.\n\nGo to **Settings → AI Provider** to upgrade.'
-                : '🔒 **Premium Feature**\n\nThis feature is part of the Premium tier. Premium isn\'t open yet — we\'ll let you know when it is.')
+                : '🔒 **Premium Feature**\n\nThis feature is part of the Premium tier. Premium isn\'t open yet. We\'ll let you know when it is.')
             : 'Error: ' + e.message;
       setResult({ text: msg, sources: [] });
     } finally {
@@ -1346,7 +1346,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
                     ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style differential diagnosis.'
                     : (BILLING_ENABLED
                         ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.'
-                        : '🔒 **Premium Feature**\n\nThis is part of the Premium tier. Premium isn\'t open yet — we\'ll let you know when it is.');
+                        : '🔒 **Premium Feature**\n\nThis is part of the Premium tier. Premium isn\'t open yet. We\'ll let you know when it is.');
                   setResult({ text: msg });
                   setMode(f.id);
                   setRevealed(true);

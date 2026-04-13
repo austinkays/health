@@ -16,6 +16,11 @@ export function markChangesSeen() {
 export default function WhatsNewModal({ onClose }) {
   const [visible, setVisible] = useState(false);
 
+  // First-time users (no previous version) only see the latest entry.
+  // Returning users see all entries since their last-seen version.
+  const isFirstVisit = !localStorage.getItem(STORAGE_KEY);
+  const entries = isFirstVisit ? CHANGELOG.slice(0, 1) : CHANGELOG;
+
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true));
   }, []);
@@ -33,7 +38,7 @@ export default function WhatsNewModal({ onClose }) {
     >
       <div className="absolute inset-0 bg-black/40" />
       <div
-        className={`relative bg-salve-card border border-salve-border rounded-2xl w-full max-w-[440px] max-h-[80vh] overflow-y-auto px-7 py-6 shadow-xl transition-transform duration-200 ${visible ? 'scale-100' : 'scale-95'}`}
+        className={`relative bg-salve-card border border-salve-border rounded-2xl w-full max-w-[520px] max-h-[80vh] overflow-y-auto px-7 py-6 shadow-xl transition-transform duration-200 ${visible ? 'scale-100' : 'scale-95'}`}
         onClick={e => e.stopPropagation()}
       >
         <div className="text-center mb-5">
@@ -42,7 +47,7 @@ export default function WhatsNewModal({ onClose }) {
           <p className="text-salve-textFaint text-[13px] font-montserrat mt-1 tracking-wide">v{CURRENT_VERSION}</p>
         </div>
 
-        {CHANGELOG.map(entry => (
+        {entries.map(entry => (
           <div key={entry.version} className="mb-5">
             <h3 className="text-[15px] font-semibold text-salve-lav mb-3 tracking-wide">{entry.title}</h3>
             <ul className="space-y-2">

@@ -15,7 +15,7 @@ function getSupabaseConfig() {
 /**
  * Check persistent rate limit by calling the check_rate_limit() SQL function.
  * Returns true if allowed, false if rate limited.
- * On error (Supabase down, etc.), returns true (fail-open — the in-memory check is the backstop).
+ * On 5xx or network error, returns false (fail-closed). On 4xx (e.g., RPC missing), returns true (fail-open with in-memory backstop).
  */
 export async function checkPersistentRateLimit(userId, endpoint, maxRequests, windowSeconds) {
   const config = getSupabaseConfig();

@@ -157,5 +157,36 @@ export default async function handler(req, res) {
   }
 
   console.log(`[cron-reminders] Done — checked: ${checked}, sent: ${sent}`);
-  return res.status(200).json({ checked, sent });
+
+  // ── Feedback notification ─────────────────────────────────────────────
+  // Notify admin users about new feedback submitted in the last 24 hours.
+  let feedbackCount = 0;
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const newFeedback = await supabaseGet(
+      `/feedback?created_at=gte.${since}&select=id,type,message&order=created_at.desc&limit=10`
+    );
+    if (newFeedback.length > 0) {
+      // Find admin users to notify
+      const admins = await supabaseGet(`/profiles?tier=eq.admin&select=id`);
+      for (const admin of admins) {
+        const body = newFeedback.length === 1
+          ? `New ${newFeedback[0].type}: "${(newFeedback[0].message || '').slice(0, 80)}"`
+          : `${newFeedback.length} new feedback submissions in the last 24h`;
+        await sendPush(admin.id, {
+          title: 'Salve: New Feedback',
+          body,
+          tag: 'feedback-digest',
+          url: '/settings',
+        });
+      }
+      feedbackCount = newFeedback.length;
+      console.log(`[cron-reminders] Notified admins about ${feedbackCount} new feedback items`);
+    }
+  } catch (err) {
+    // Non-fatal — feedback notifications are a convenience, not critical
+    console.warn('[cron-reminders] Feedback notification failed:', err.message);
+  }
+
+  return res.status(200).json({ checked, sent, feedbackCount });
 }

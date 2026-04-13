@@ -55,7 +55,47 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Auth verification failed' });
   }
 
-  // Step 2 — delete the auth user via admin API (cascades to all user data)
+  // Step 2 — cancel any active Stripe subscriptions so the user isn't billed
+  // after their account is gone
+  const stripeKey = process.env.STRIPE_SECRET_KEY;
+  if (stripeKey) {
+    try {
+      // Look up the user's stripe_customer_id from their profile
+      const profileRes = await fetch(
+        `${supabaseUrl}/rest/v1/profiles?id=eq.${userId}&select=stripe_customer_id`,
+        {
+          headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` },
+        }
+      );
+      const profiles = profileRes.ok ? await profileRes.json() : [];
+      const customerId = profiles[0]?.stripe_customer_id;
+
+      if (customerId) {
+        // List all active/trialing/past_due subscriptions for this customer
+        const subRes = await fetch(
+          `https://api.stripe.com/v1/customers/${customerId}/subscriptions?status=active&status=trialing&status=past_due`,
+          {
+            headers: { Authorization: `Basic ${Buffer.from(stripeKey + ':').toString('base64')}` },
+          }
+        );
+        if (subRes.ok) {
+          const subs = await subRes.json();
+          for (const sub of subs.data || []) {
+            await fetch(`https://api.stripe.com/v1/subscriptions/${sub.id}`, {
+              method: 'DELETE',
+              headers: { Authorization: `Basic ${Buffer.from(stripeKey + ':').toString('base64')}` },
+            });
+            console.log(`[delete-account] Cancelled Stripe subscription ${sub.id} for ${userId}`);
+          }
+        }
+      }
+    } catch (e) {
+      // Log but don't block deletion — better to orphan a sub than leave a user stuck
+      console.error('[delete-account] Stripe cancellation error (proceeding with deletion):', e);
+    }
+  }
+
+  // Step 3 — delete the auth user via admin API (cascades to all user data)
   try {
     const deleteRes = await fetch(
       `${supabaseUrl}/auth/v1/admin/users/${userId}`,

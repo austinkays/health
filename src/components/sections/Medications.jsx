@@ -897,7 +897,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                 <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
                   {m.display_name || m.name}
                 </div>
-                {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5">{m.name}</div>}
+                {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5 truncate">{m.name}</div>}
                 <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
                 {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
                 {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}

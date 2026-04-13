@@ -30,6 +30,11 @@ import { setSentryUser, clearSentryUser } from './services/sentry';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
 import { trackEvent, EVENTS, enableAnalytics, disableAnalytics, setupAnalyticsFlush, flush as flushAnalytics } from './services/analytics';
+import { clearOuraTokens } from './services/oura';
+import { clearDexcomTokens } from './services/dexcom';
+import { clearWithingsTokens } from './services/withings';
+import { clearFitbitTokens } from './services/fitbit';
+import { clearWhoopTokens } from './services/whoop';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -359,6 +364,14 @@ function AppContent() {
         clearTokenCache();
         flushAnalytics();
         disableAnalytics();
+        // Clear wearable OAuth tokens to prevent cross-user data contamination
+        // if another user signs in on the same device
+        clearOuraTokens();
+        clearDexcomTokens();
+        clearWithingsTokens();
+        clearFitbitTokens();
+        clearWhoopTokens();
+        localStorage.removeItem('salve:oura-baseline');
       } else if (event === 'TOKEN_REFRESHED' && !s) {
         // Transient null during token refresh, do NOT flash auth screen.
         // The next event will have the refreshed session.

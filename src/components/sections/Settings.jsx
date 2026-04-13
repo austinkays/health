@@ -1495,7 +1495,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 ) : (
                   <>
                     <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
-                      Connect your Dexcom CGM to import glucose readings. Sage uses these to spot correlations between blood sugar and your symptoms — especially helpful for dysautonomia, POTS, and reactive hypoglycemia.
+                      Connect your Dexcom CGM to import glucose readings. Sage uses these to spot correlations between blood sugar and your symptoms, especially helpful for dysautonomia, POTS, and reactive hypoglycemia.
                     </p>
                     <button
                       onClick={connectDexcom}
@@ -1696,7 +1696,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 ) : (
                   <>
                     <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
-                      Connect your Whoop to import recovery score, HRV (RMSSD ms), resting heart rate, and sleep. Especially valuable for dysautonomia and POTS — HRV is the key marker for autonomic nervous system function.
+                      Connect your Whoop to import recovery score, HRV (RMSSD ms), resting heart rate, and sleep. Especially valuable for dysautonomia and POTS. HRV is the key marker for autonomic nervous system function.
                     </p>
                     <button
                       onClick={connectWhoop}
@@ -1867,7 +1867,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </button>
                 {demoMode && (
                   <p className="text-ui-xs text-salve-textFaint italic font-montserrat text-center">
-                    Demo mode — sign up to connect your own devices.
+                    Demo mode. Sign up to connect your own devices.
                   </p>
                 )}
               </div>

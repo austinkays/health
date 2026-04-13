@@ -56,11 +56,13 @@ export function initSentry() {
     release: import.meta.env.VITE_SENTRY_RELEASE || undefined,
 
     // No session replay (captures DOM / text / PHI) and no tracing
-    // to keep the bundle slim
-    integrations: [],
+    // to keep the bundle slim. Dedupe suppresses duplicate consecutive errors
+    // so a render loop doesn't exhaust the free Sentry quota (5K/month).
+    integrations: [Sentry.dedupeIntegration()],
     tracesSampleRate: 0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0,
+    maxBreadcrumbs: 50,
 
     // Never capture input values in error events
     sendDefaultPii: false,

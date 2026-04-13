@@ -48,8 +48,8 @@ health/
 │   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier); server-side prompt construction via _prompts.js (raw system only for admin tier)
 │   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier); server-side prompt construction via _prompts.js
-│   ├── lemon-checkout.js         # Vercel serverless: creates Lemon Squeezy hosted checkout session (auth-gated, returns {url})
-│   ├── lemon-webhook.js          # Vercel serverless: Lemon Squeezy subscription lifecycle webhook (HMAC-SHA256 verified; sets profiles.tier)
+│   ├── stripe-checkout.js        # Vercel serverless: creates Stripe hosted checkout session (auth-gated, returns {url})
+│   ├── stripe-webhook.js         # Vercel serverless: Stripe subscription lifecycle webhook (HMAC-SHA256 verified; handles checkout.session.completed, subscription.updated/deleted, invoice.payment_failed; sets profiles.tier)
 │   ├── drug.js                   # Vercel serverless: RxNorm + OpenFDA + NADAC proxy (autocomplete, details, interactions, price)
 │   ├── wearable.js               # Vercel serverless: unified OAuth2 router for ALL wearables (Oura, Dexcom, Withings, Fitbit, Whoop) via ?provider=X&action=token|refresh|data|config. Consolidates 5 integrations into 1 function to stay under the Hobby tier 12-function ceiling. Each provider has its own handler block inline; shared CORS/auth/rate-limit/fetch-with-timeout boilerplate at the top. Per-user rate buckets keyed by (userId, provider).
 │   ├── terra.js                  # Vercel serverless: Terra aggregator — consolidates widget session generation and webhook ingestion into one function. ?route=widget (auth-gated POST → Terra API to generate widget URL). ?route=webhook (HMAC-SHA256 signature-verified over `<ts>.<rawBody>`; 5-min replay window; handles auth/user_reauth/deauth/body/daily/sleep/activity events; maps Terra shapes into vitals/activities tables tagged source: 'terra'). Webhook URL in Terra dashboard must include the ?route=webhook query string.
@@ -83,16 +83,27 @@ health/
 │       ├── 015_cycles.sql                     # Cycle tracking: period, ovulation, symptom, fertility_marker entries with RLS
 │       ├── 016_activities.sql                 # Activities/workouts table for Apple Health import with RLS
 │       ├── 017_genetic_results.sql            # Pharmacogenomic results table with RLS
-│       ├── 018_api_usage.sql                  # API usage tracking table + check_rate_limit() SQL function
-│       ├── 019_user_tier.sql                  # Add tier column (free/premium) to profiles
-│       ├── 020_trial_expires_at.sql           # Add trial_expires_at to profiles for premium trial tracking
-│       ├── 021_feedback.sql                   # In-app user feedback table with RLS
-│       ├── 026_insight_ratings.sql            # Thumbs up/down ratings on AI insights, patterns, news with RLS + unique constraint
-│       ├── 027_extend_beta_trial.sql          # Trial extension: 14d → 90d for beta period (superseded by 029)
-│       ├── 028_beta_invites.sql               # Closed-beta invite gate: beta_invites table + check_beta_invite(code,email) + claim_beta_invite(code) RPCs. Reserve-on-validate with 30-min email lock. Anon-callable via SECURITY DEFINER.
-│       ├── 029_trim_beta_trial_to_30_days.sql # Walks trial back from 90 → 30 days. Idempotent; safe whether 027 was applied or not.
-│       └── 030_terra_connections.sql          # terra_connections table (user_id, terra_user_id UNIQUE, provider, status, last_webhook_at, last_sync_at). RLS-scoped select/delete; webhooks use service role to bypass.
-│       └── 026_usage_events.sql               # PHI-safe self-hosted product analytics: usage_events table (event name + user_id + created_at only, 80-char CHECK), RLS (SELECT/INSERT own rows), set_user_id trigger, idx_usage_events_user_time + idx_usage_events_event_time, purge_old_usage_events() SECURITY DEFINER function for 180-day retention
+│       ├── 018_vitals_source.sql               # Add source column to vitals for Oura/Apple Health/Manual tagging
+│       ├── 019_api_usage.sql                  # API usage tracking table + check_rate_limit() SQL function
+│       ├── 020_user_tier.sql                  # Add tier column (free/premium) to profiles
+│       ├── 021_trial_expires_at.sql           # Add trial_expires_at to profiles for premium trial tracking
+│       ├── 022_feedback.sql                   # In-app user feedback table with RLS
+│       ├── 023_admin_tier.sql                 # Add admin tier to profiles
+│       ├── 024_vitals_time.sql                # Add time column to vitals for hourly import records
+│       ├── 025_load_all_rpc.sql               # load_all_data() SECURITY DEFINER RPC for single-query initial hydration
+│       ├── 026_about_me_and_med_category.sql  # About Me profile fields + medication category column
+│       ├── 027_feedback_response.sql          # Add response column to feedback table
+│       ├── 028_push_notifications.sql         # Push subscriptions, notification_log, medication_reminders tables
+│       ├── 029_journal_enhanced.sql           # Journal enhanced fields (symptoms JSONB, linked_conditions, linked_meds, gratitude)
+│       ├── 030_journal_structured_blocks.sql  # Journal structured content blocks
+│       ├── 031_insight_ratings.sql            # Thumbs up/down ratings on AI insights, patterns, news with RLS + unique constraint
+│       ├── 032_usage_events.sql               # PHI-safe self-hosted product analytics: usage_events table (event name + user_id + created_at only, 80-char CHECK), RLS, purge_old_usage_events() 180-day retention
+│       ├── 033_extend_beta_trial.sql          # Trial extension: 14d → 90d for beta period (superseded by 035)
+│       ├── 034_beta_invites.sql               # Closed-beta invite gate: beta_invites table + check_beta_invite(code,email) + claim_beta_invite(code) RPCs. Reserve-on-validate with 30-min email lock. Anon-callable via SECURITY DEFINER.
+│       ├── 035_trim_beta_trial_to_30_days.sql # Walks trial back from 90 → 30 days. Idempotent; safe whether 033 was applied or not.
+│       ├── 036_terra_connections.sql           # terra_connections table (user_id, terra_user_id UNIQUE, provider, status, last_webhook_at, last_sync_at). RLS-scoped select/delete; webhooks use service role to bypass.
+│       ├── 037_cycles_add_bbt_mucus_types.sql # Add BBT and cervical mucus type values to cycles
+│       └── 038_stripe_ids.sql                 # Add stripe_customer_id and stripe_subscription_id to profiles
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
@@ -122,7 +133,7 @@ health/
 │   │   ├── npi.js                # Client service: searchProviders, lookupNPI (via /api/provider, 429-aware)
 │   │   ├── storage.js            # Import/export: exportAll, encryptExport, decryptExport, validateImport, importRestore, importMerge
 │   │   ├── profile.js            # buildProfile() - assembles comprehensive health context for AI prompts (sanitized against prompt injection; configurable san() char limits; includes ALL medical data: full FDA drug details, providers, upcoming appointments + questions, recent appointment notes, pharmacies, insurance claims, NADAC pricing + monthly cost summary + mechanism of action + cycle stats)
-│   │   ├── billing.js            # Lemon Squeezy client helpers: startCheckout() → POST /api/lemon-checkout → redirect to hosted checkout; openCustomerPortal() → LS billing portal
+│   │   ├── billing.js            # Stripe client helpers: startCheckout(plan) → POST /api/stripe-checkout → redirect to Stripe hosted checkout; openCustomerPortal() → Stripe billing portal
 │   │   ├── toolExecutor.js       # AI tool execution engine: createToolExecutor() routes Anthropic tool_use calls to useHealthData CRUD (add/update/remove/search/list); input sanitization; record existence validation; validateToolInput() gates add/update with per-entity validation (vitals range checks, field length limits)
 │   │   ├── healthkit.js           # Apple Health XML export parser: detectAppleHealthFormat(), parseAppleHealthExport() with chunked regex, **hourly bucketing for HR/SpO2/resp** (up to 24 records/day with `time: 'HH:00'` field) vs. daily for steps/sleep/weight/glucose/BP; workout + FHIR lab parsing, deduplicateAgainst(); DEDUP_KEYS includes time field
 │   │   ├── flo.js                # Flo GDPR data export parser: detectFloFormat(), parseFloExport() → cycles table records; handles period date ranges, symptoms, ovulation; dedupes by date+type+value+symptom
@@ -515,8 +526,8 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
     "api/wearable.js": { "maxDuration": 30 },
     "api/terra.js": { "maxDuration": 30 },
     "api/cron-reminders.js": { "maxDuration": 30 },
-    "api/lemon-checkout.js": { "maxDuration": 15 },
-    "api/lemon-webhook.js": { "maxDuration": 15 },
+    "api/stripe-checkout.js": { "maxDuration": 15 },
+    "api/stripe-webhook.js": { "maxDuration": 15 },
     "api/push-send.js": { "maxDuration": 15 },
     "api/delete-account.js": { "maxDuration": 15 }
   },
@@ -1013,11 +1024,17 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 | `VITE_SENTRY_DSN` | `.env.local` + Vercel env vars (optional) | Sentry project DSN for production error reporting. If unset, Sentry is silently disabled. |
 | `VITE_SENTRY_DSN_DEV` | `.env.local` (optional) | Optional override to enable Sentry in development mode for testing the scrub pipeline |
 | `VITE_SENTRY_RELEASE` | Vercel env vars (optional) | Release identifier (e.g. git SHA) to correlate errors to commits |
-| `LEMON_API_KEY` | Vercel env vars only | Lemon Squeezy API key (from LS dashboard → Settings → API) |
-| `LEMON_STORE_ID` | Vercel env vars only | Lemon Squeezy store ID (numeric, from LS dashboard URL) |
-| `LEMON_PREMIUM_VARIANT_ID` | Vercel env vars only | Lemon Squeezy variant ID for the Premium subscription plan |
-| `LEMON_WEBHOOK_SECRET` | Vercel env vars only | Lemon Squeezy webhook signing secret (from LS dashboard → Webhooks) |
-| `VITE_BILLING_ENABLED` | Vercel env vars | Set to `'true'` once Lemon Squeezy is fully configured. While unset/false, every upgrade CTA is hidden so beta users aren't routed to a broken checkout. |
+| `STRIPE_SECRET_KEY` | Vercel env vars only | Stripe secret API key (from Stripe dashboard → Developers → API keys) |
+| `STRIPE_WEBHOOK_SECRET` | Vercel env vars only | Stripe webhook signing secret (from Stripe dashboard → Webhooks → endpoint → Signing secret) |
+| `STRIPE_PREMIUM_PRICE_ID` | Vercel env vars only | Stripe Price ID for the monthly Premium subscription plan |
+| `STRIPE_ANNUAL_PRICE_ID` | Vercel env vars only | Stripe Price ID for the annual Premium subscription plan |
+| `VITE_BILLING_ENABLED` | Vercel env vars | Set to `'true'` once Stripe is fully configured. While unset/false, every upgrade CTA is hidden so beta users aren't routed to a broken checkout. |
+| `CRON_SECRET` | Vercel env vars only | Shared secret to authenticate Vercel cron invocations (api/cron-reminders.js) |
+| `VAPID_EMAIL` | Vercel env vars only | VAPID contact email for Web Push notifications (api/push-send.js) |
+| `VAPID_PRIVATE_KEY` | Vercel env vars only | VAPID private key for Web Push encryption (api/push-send.js) |
+| `VITE_VAPID_PUBLIC_KEY` | `.env.local` + Vercel env vars | VAPID public key for push subscription registration (client + server) |
+| `SENTRY_AUTH_TOKEN` | Vercel env vars (build-time only) | Sentry auth token for source map uploads via @sentry/vite-plugin |
+| `VERCEL_URL` | Auto-set by Vercel | Deployment URL, used as CORS origin fallback in all api/ handlers |
 | `VITE_BETA_INVITE_REQUIRED` | Vercel env vars | Set to `'true'` to show the invite-code field on the Auth screen. Codes are validated via the `check_beta_invite` Supabase RPC. Used during the closed beta to cap signups. |
 | `TERRA_DEV_ID` | Vercel env vars only | Terra developer ID (from tryterra.co dashboard). Required for the Connect-a-device flow. |
 | `TERRA_API_KEY` | Vercel env vars only | Terra API key (server-side only). Pairs with TERRA_DEV_ID. |
@@ -1044,7 +1061,7 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 | Document | Purpose |
 |----------|---------|
 | `docs/PRODUCTION_AUDIT.md` | Full production-readiness audit: security fixes, data integrity issues, AI underutilization, UX gaps per section, accessibility, PWA/performance, implementation priority checklist |
-| `docs/LAUNCH_CHECKLIST.md` | Focused pre-launch checklist for sharing publicly: Sentry setup, AI cost ceilings, Vercel plan, RLS verification test, Lemon Squeezy payments implementation plan, UX polish checklist, PHI breach response plan |
+| `docs/LAUNCH_CHECKLIST.md` | Focused pre-launch checklist for sharing publicly: Sentry setup, AI cost ceilings, Vercel plan, RLS verification test, Stripe payments setup, UX polish checklist, PHI breach response plan |
 | `docs/IMPORT_IMPLEMENTATION.md` | Import/export/merge implementation guide |
 | `docs/APPLE_HEALTH_SHORTCUT.md` | iOS Shortcut build spec for the Apple Health paste-sync bridge: JSON contract, action-by-action build guide, unit conversions, workout type mapping, testing, distribution |
 | `docs/MIGRATION_PLAN.md` | Migration planning notes |
@@ -1077,7 +1094,7 @@ Full details + exact commands in [`docs/LAUNCH_CHECKLIST.md`](docs/LAUNCH_CHECKL
 - [ ] **Fresh-user walkthrough** — sign up with a clean email, tap through every section, verify all empty states render without crashes. Test on iPhone Safari + Android Chrome. Test PWA install flow (Add to Home Screen).
 - [ ] **Offline mode verification** — enable airplane mode, confirm cached data loads and pending writes queue correctly.
 - [ ] **Support workflow documented** — decide response-time commitment + who owns the `salveapp@proton.me` inbox. Document PHI breach response plan (assess scope → revoke tokens → notify within 72h → patch → post-mortem).
-- [x] **Lemon Squeezy payments** — Code complete: `api/lemon-checkout.js` (creates hosted checkout), `api/lemon-webhook.js` (HMAC-verified subscription lifecycle → flips profiles.tier), `src/services/billing.js` (startCheckout/openCustomerPortal). Settings.jsx shows "Upgrade to Premium →" button for free/trial-expired users, "Manage subscription →" for active premium. App.jsx handles `?checkout=success` redirect with toast. **User still needs to**: create LS account, set up store + product + variant, add 4 env vars (LEMON_API_KEY, LEMON_STORE_ID, LEMON_PREMIUM_VARIANT_ID, LEMON_WEBHOOK_SECRET), configure webhook URL (`/api/lemon-webhook`) in LS dashboard.
+- [x] **Stripe payments** — Code complete: `api/stripe-checkout.js` (creates Stripe hosted checkout session), `api/stripe-webhook.js` (signature-verified subscription lifecycle → flips profiles.tier; handles checkout.session.completed, subscription.updated/deleted, invoice.payment_failed), `src/services/billing.js` (startCheckout/openCustomerPortal). Settings.jsx shows "Upgrade to Premium →" button for free/trial-expired users, "Manage subscription →" for active premium. App.jsx handles `?checkout=success` redirect with toast. Account deletion (`api/delete-account.js`) cancels active Stripe subscriptions before deleting the user. **User still needs to**: set up Stripe products + prices, add 4 env vars (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PREMIUM_PRICE_ID, STRIPE_ANNUAL_PRICE_ID), configure webhook URL (`/api/stripe-webhook`) in Stripe dashboard, set `VITE_BILLING_ENABLED=true`.
 - [ ] **⏰ Fitbit API deprecation — September 2026.** Legacy Fitbit Web API (what the Fitbit section of `api/wearable.js` uses) sunsets Sept 2026. Must either rebuild against Google Health API ([developers.google.com/health](https://developers.google.com/health)) or delete the Fitbit section before that date. Current code works fine for the beta period. Recommended launch date for rebuilt integration: end of May 2026 per Google's guidance. Setting up Google Health API requires a Google Cloud project + OAuth consent screen (not just a dev.fitbit.com app). Existing user tokens cannot be migrated across the switch.
 
 **Support email:** `salveapp@proton.me` (set in `src/components/sections/Legal.jsx`)

@@ -236,7 +236,7 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
                     {meds.map(m => (
                       <div key={m.id} className="flex items-center justify-between py-1 text-xs">
                         <div className="flex-1 min-w-0">
-                          <span className="text-salve-text font-medium">{m.display_name || m.name}</span>
+                          <span className="text-salve-text font-medium truncate">{m.display_name || m.name}</span>
                           {m.dose && <span className="text-salve-textFaint ml-1">{m.dose}</span>}
                         </div>
                         {m.refill_date && (

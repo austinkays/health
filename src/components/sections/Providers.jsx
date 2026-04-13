@@ -230,7 +230,7 @@ export default function Providers({ data, addItem, updateItem, removeItem, highl
                   className="w-full text-left px-3 py-2.5 text-sm text-salve-text hover:bg-salve-lav/10 cursor-pointer bg-transparent border-none font-montserrat border-b border-salve-border/30 last:border-b-0 transition-colors"
                 >
                   <div className="font-medium text-[15px]">{r.name}</div>
-                  {r.specialty && <div className="text-[13px] text-salve-lav">{r.specialty}</div>}
+                  {r.specialty && <div className="text-[13px] text-salve-lav truncate">{r.specialty}</div>}
                   {r.address && <div className="text-[13px] text-salve-textFaint truncate">{r.address}</div>}
                   <div className="text-[12px] text-salve-textFaint mt-0.5">NPI: {r.npi}{r.phone ? ` · ${r.phone}` : ''}</div>
                 </button>

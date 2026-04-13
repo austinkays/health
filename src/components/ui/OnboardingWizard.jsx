@@ -22,6 +22,7 @@ import { WITHINGS_ENABLED } from '../../services/withings';
 import { FITBIT_ENABLED } from '../../services/fitbit';
 import { WHOOP_ENABLED } from '../../services/whoop';
 import { TERRA_ENABLED } from '../../services/terra';
+import { db } from '../../services/db';
 
 const ONBOARDED_KEY = 'salve:onboarded';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
@@ -99,7 +100,8 @@ const ALL_DEVICE_OPTIONS = [
   { id: 'fitbit',   label: 'Fitbit',                             dismissTips: ['connect-oura'], enabled: FITBIT_ENABLED },
   { id: 'whoop',    label: 'Whoop',                              dismissTips: ['connect-oura'], enabled: WHOOP_ENABLED },
   { id: 'terra',    label: 'Other wearable (via Terra)',         dismissTips: [],               enabled: TERRA_ENABLED },
-  { id: 'none',     label: "None of these",                      dismissTips: [],               enabled: true },
+  { id: 'none',     label: 'None of these',                      dismissTips: [],               enabled: true },
+  { id: 'other',    label: 'Something else',                     dismissTips: [],               enabled: true },
 ];
 
 const DEVICE_OPTIONS = ALL_DEVICE_OPTIONS.filter(opt => opt.enabled);
@@ -141,6 +143,7 @@ export default function OnboardingWizard({ name, updateSettings, onClose }) {
   const [nameInput, setNameInput] = useState(name || '');
   const [tracking, setTracking] = useState(new Set());
   const [devices, setDevices] = useState(new Set());
+  const [otherDevice, setOtherDevice] = useState('');
 
   useEffect(() => {
     // Next frame so the transition plays
@@ -176,6 +179,11 @@ export default function OnboardingWizard({ name, updateSettings, onClose }) {
           }
           localStorage.setItem(DISMISSED_TIPS_KEY, JSON.stringify(merged));
         } catch { /* */ }
+      }
+
+      // If the user typed a device request, submit as feedback (fire-and-forget)
+      if (otherDevice.trim()) {
+        db.feedback.add({ type: 'suggestion', message: `Device request from onboarding: ${otherDevice.trim()}` }).catch(() => {});
       }
     }
     setTimeout(onClose, 220);
@@ -228,7 +236,7 @@ export default function OnboardingWizard({ name, updateSettings, onClose }) {
               Welcome{name ? `, ${name}` : ''}
             </h2>
             <p className="text-ui-lg text-salve-textMid font-montserrat leading-relaxed mb-6">
-              Let's set up your home in about 60 seconds. Pick what fits your situation — you can change anything later.
+              Let's set up your home in about 60 seconds. Pick what fits your situation. You can change anything later.
             </p>
             <div className="flex flex-col gap-2">
               <button
@@ -379,6 +387,16 @@ export default function OnboardingWizard({ name, updateSettings, onClose }) {
                   </button>
                 );
               })}
+              {devices.has('other') && (
+                <input
+                  type="text"
+                  value={otherDevice}
+                  onChange={e => setOtherDevice(e.target.value)}
+                  placeholder="Which device or app? (e.g., Garmin, Samsung Health)"
+                  maxLength={100}
+                  className="w-full px-3.5 py-2.5 rounded-lg border border-salve-sage/40 bg-salve-card2 text-salve-text text-ui-base font-montserrat placeholder:text-salve-textFaint/60 focus:outline-none focus:ring-1 focus:ring-salve-sage/50"
+                />
+              )}
             </div>
 
             {/* Generic import callout: works even without a wearable */}
