@@ -27,6 +27,7 @@ import UpdateBanner from './components/ui/UpdateBanner';
 import useSWUpdate from './hooks/useSWUpdate';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
+import { tabFromPath, highlightFromUrl, pushTabUrl } from './utils/router';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 import { setDemoMode as setAIDemoMode, setPremiumActive, setAdminActive, isPremiumActive, isAdminActive } from './services/ai';
@@ -171,9 +172,10 @@ function AppContent() {
       sessionStorage.removeItem(RETRY_TAB_KEY);
       return retryTab;
     }
-    return 'dash';
+    // Read initial tab from URL path (e.g. /medications → 'meds')
+    return tabFromPath();
   });
-  const [highlightId, setHighlightId] = useState(null);
+  const [highlightId, setHighlightId] = useState(() => highlightFromUrl());
   const [navOpts, setNavOpts] = useState(null);
   const [navHistory, setNavHistory] = useState([]);
   const [sageOpen, setSageOpen] = useState(false);
@@ -259,22 +261,54 @@ function AppContent() {
     });
     // Stamp on DOM so lazyWithRetry can read it during chunk-fail reload
     document.documentElement.dataset.salveTab = t;
-    setHighlightId(opts?.highlightId || null);
+    const hId = opts?.highlightId || null;
+    setHighlightId(hId);
     setNavOpts(opts || null);
+    // Sync URL with navigation
+    pushTabUrl(t, hId);
     window.scrollTo(0, 0);
   }, []);
 
   const onBack = useCallback(() => {
-    setNavHistory(prev => {
-      const next = [...prev];
-      const prevTab = next.pop() || 'dash';
-      setTab(prevTab);
-      setHighlightId(null);
+    // Use browser back when we have history entries — this triggers
+    // the popstate listener below which handles state updates.
+    // Fall back to manual navHistory if browser history is empty.
+    if (window.history.state?.tab) {
+      window.history.back();
+    } else {
+      setNavHistory(prev => {
+        const next = [...prev];
+        const prevTab = next.pop() || 'dash';
+        setTab(prevTab);
+        setHighlightId(null);
+        setNavOpts(null);
+        pushTabUrl(prevTab, null, true);
+        window.scrollTo(0, 0);
+        return next;
+      });
+    }
+  }, []);
+
+  // ── Browser back/forward support ──
+  // When the user presses the browser back/forward buttons, popstate fires
+  // and we sync the tab state from the URL.
+  useEffect(() => {
+    const handlePopState = () => {
+      const newTab = tabFromPath();
+      const newHighlight = highlightFromUrl();
+      setTab(newTab);
+      setHighlightId(newHighlight);
       setNavOpts(null);
       window.scrollTo(0, 0);
-      return next;
-    });
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
+
+  // Sync initial URL on mount (replaceState so we don't add a duplicate entry)
+  useEffect(() => {
+    pushTabUrl(tab, highlightId, true);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Stable callbacks for layout components (avoid re-renders from inline arrows)
   const openSearch = useCallback(() => onNav('search'), [onNav]);
@@ -343,6 +377,7 @@ function AppContent() {
     if (window.__ouraCode) {
       // Oura OAuth callback, navigate to settings; session arrives via INITIAL_SESSION below
       setTab('settings');
+      pushTabUrl('settings', null, true);
     }
 
     if (code) {
@@ -483,6 +518,7 @@ function AppContent() {
           onEnterDemo={() => {
             setDemoMode(true);
             setTab('dash');
+            pushTabUrl('dash', null, true);
             // First-run walkthrough, only show if the user hasn't seen it
             // already in this browser.
             if (!hasSeenDemoWelcome()) setShowDemoWelcome(true);
