@@ -36,12 +36,30 @@ export default defineConfig({
         // posts SKIP_WAITING on click.
         clientsClaim: true,
         importScripts: ['/push-handler.js'],
-        // Only precache the HTML shell and CSS — NOT the 60+ JS chunks.
-        // Each deploy generates new hashes, causing a 95-asset download storm
-        // that saturates the connection for 10-30 seconds. Code-split JS chunks
-        // are cached on-demand by the browser's HTTP cache instead.
-        globPatterns: ['**/*.html', '**/*.css'],
+        // Only precache CSS — NOT JS chunks or HTML.
+        // JS: each deploy generates new content hashes causing a download storm.
+        // HTML: precaching index.html causes the SW to serve stale HTML that
+        //   references non-existent JS chunk filenames after a deploy. This is
+        //   the root cause of the "stuck on loading" bug — the old HTML tries
+        //   to load e.g. index-Xy774ywJ.js, Vercel 404s it as text/html, and
+        //   the browser refuses the non-JS MIME type.
+        // Instead, HTML is served NetworkFirst via runtimeCaching below (fresh
+        // from Vercel when online, cached fallback when offline).
+        globPatterns: ['**/*.css'],
+        // Navigation requests (HTML pages) go network-first so users always
+        // get the latest index.html with correct chunk references after a deploy.
+        navigateFallback: null, // disable the default precache-based fallback
         runtimeCaching: [
+          // HTML navigation: always try network first so deploys take effect
+          // immediately. Falls back to cache when offline.
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-pages',
+              networkTimeoutSeconds: 5,
+            },
+          },
           // Google Fonts: network with cache fallback (CacheFirst breaks
           // when the SW activates with an empty cache and network fails).
           {

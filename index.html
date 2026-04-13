@@ -49,6 +49,31 @@
         <style>@keyframes sp{to{transform:rotate(360deg)}}</style>
       </div>
     </div>
+    <script>
+      // Catch stale-chunk errors on the main entry bundle. When Vercel deploys
+      // new builds, old chunk filenames 404 and return HTML. The browser rejects
+      // the HTML as a non-JS MIME type and fires an error event on the script tag.
+      // lazyWithRetry only covers code-split chunks AFTER React mounts — this
+      // covers the entry bundle itself. One-shot reload guard via sessionStorage.
+      window.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName === 'SCRIPT' && e.target.type === 'module') {
+          if (!sessionStorage.getItem('salve:entry-retry')) {
+            sessionStorage.setItem('salve:entry-retry', '1');
+            window.location.reload();
+          } else {
+            // Already retried once — show a message instead of infinite loop
+            var splash = document.getElementById('splash');
+            if (splash) {
+              splash.innerHTML = '<div style="font-size:22px;font-weight:600;letter-spacing:0.08em;margin-bottom:8px">SALVE</div>'
+                + '<div style="font-size:13px;opacity:0.7;margin-bottom:16px">A new version is available</div>'
+                + '<button onclick="sessionStorage.clear();window.location.reload()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(136,102,184,0.4);background:rgba(136,102,184,0.1);color:rgb(var(--salve-text));font-size:13px;cursor:pointer">Refresh</button>';
+            }
+          }
+        }
+      }, true);
+      // Clear the retry flag on successful load so subsequent deploys can retry again
+      window.addEventListener('DOMContentLoaded', function() { sessionStorage.removeItem('salve:entry-retry'); });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
