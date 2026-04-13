@@ -80,7 +80,7 @@ const SUFFIX_ALLOWLIST = {
     'crossReactivity', 'costOptimization', 'geneticExplanation',
     'formHelper', 'monthlySummary',
   ]),
-  import_completed: new Set(['apple_health', 'flo', 'backup', 'sync']),
+  import_completed: new Set(['apple_health', 'flo', 'backup', 'sync', 'mychart']),
 };
 
 const ALLOWED_BASE_NAMES = new Set(Object.values(EVENTS));

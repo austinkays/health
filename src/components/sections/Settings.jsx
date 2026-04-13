@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -14,6 +14,7 @@ import { getAIProvider, setAIProvider, isPremiumActive, isAdminActive, trialDays
 import { useTheme } from '../../hooks/useTheme';
 import AIProfilePreview from '../ui/AIProfilePreview';
 import AppleHealthImport from '../ui/AppleHealthImport';
+import MyChartImport from '../ui/MyChartImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
@@ -1715,6 +1716,29 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </div>
               )}
               <AppleHealthImport data={data} reloadData={reloadData} />
+            </div>
+          )}
+        </Card>
+        </HideableSource>
+
+        {/* ── MyChart / Epic CCDA ── */}
+        <HideableSource id="mychart" label="MyChart">
+        <Card>
+          <button onClick={() => toggleSource('mychart')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-sage/15">
+                <FileText size={16} className="text-salve-sage" />
+              </div>
+              <div className="text-left">
+                <span className="text-[15px] text-salve-text font-medium block">MyChart</span>
+                <span className="text-[12px] text-salve-textFaint">Import records from Epic, Cerner, or any patient portal</span>
+              </div>
+            </div>
+            {expandedSource === 'mychart' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          </button>
+          {expandedSource === 'mychart' && (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              <MyChartImport data={data} reloadData={reloadData} />
             </div>
           )}
         </Card>
