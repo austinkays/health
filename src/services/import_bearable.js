@@ -100,22 +100,28 @@ export function parse(text) {
       entry.moodRating = rating;
       entry.mood = ratingToMood(rating);
     } else if (category === 'energy' && rating != null) {
+      // Bearable uses a 1-5 scale. Normalize to Salve's /10 convention so
+      // the energy chart stays consistent with Oura and manual entries.
+      const normalized = Math.max(1, Math.min(10, Math.round(rating * 2)));
       vitals.push({
         date,
         type: 'energy',
-        value: String(Math.round(rating)),
-        unit: '/5',
+        value: String(normalized),
+        unit: '/10',
         notes: 'from Bearable',
         source: 'bearable',
       });
     } else if (category === 'sleep' && rating != null) {
-      // Bearable tracks sleep quality 1-5 or hours; if >10 assume hours.
-      if (rating > 0 && rating < 24) {
+      // Bearable's "sleep" category can be either a 1-5 quality rating or
+      // actual hours slept. We only store rows that look like realistic hour
+      // counts (3-14) and drop quality ratings since they'd corrupt the
+      // vitals sleep chart if treated as hours.
+      if (rating >= 3 && rating <= 14) {
         vitals.push({
           date,
           type: 'sleep',
           value: String(rating),
-          unit: rating > 10 ? 'min' : 'hr',
+          unit: 'hr',
           notes: 'from Bearable',
           source: 'bearable',
         });
