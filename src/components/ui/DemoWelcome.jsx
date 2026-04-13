@@ -4,28 +4,39 @@
 // orients a brand-new visitor before dropping them into the full dashboard
 // full of unfamiliar (sample) data.
 //
-//   Screen 1 — "Welcome to the demo"
-//     Explains that everything is sample data from a fictional user, nothing
-//     is real, nothing is saved. Sets expectations.
+//   Screen 0: "Pick your vibe"
+//     Two big theme-preview cards. Tapping one applies the theme live via
+//     useTheme().setTheme (which previews only, no localStorage write), so
+//     the background and cards behind the modal update instantly. Pair is
+//     Cherry Blossom (light) vs Aurora (dark) by default, falling back to
+//     Dawnlight vs Midnight for prefers-reduced-motion users so they don't
+//     get a heavy animated backdrop on first run.
 //
-//   Screen 2 — "Try these 4 things"
-//     Four big tappable cards that deep-link into the app's most compelling
-//     surfaces: Sage chat, Vitals, Medications, News. Tapping a card closes
-//     the modal and navigates there.
+//   Screen 1: "Try these 4 things"
+//     Four tappable cards that deep-link into the app's most compelling
+//     surfaces (Sage chat, Vitals, Medications, News). Tapping a card
+//     closes the modal and navigates there.
 //
-//   Screen 3 — "Make it yours"
-//     Sign-up CTA (calls onExitDemo → returns to Auth screen) + "Keep
-//     exploring" which just dismisses.
+//   Screen 2: "Make it yours"
+//     Sign-up CTA (calls onExitDemo, which returns to Auth) plus a "Keep
+//     exploring" secondary action.
 //
-// Shown once per browser, remembered via localStorage key
-// `salve:demo-welcome-seen`. Dismissible from any screen via X button or
-// backdrop tap.
+// Shown once per browser via localStorage key `salve:demo-welcome-seen`.
+// Dismissible from any screen via X button or backdrop tap. If the user
+// dismisses from step 0 without picking, we apply the default light theme
+// (Cherry Blossom, or Dawnlight under reduced motion) so they still get
+// a polished first impression instead of plain Lilac.
 //
-// Wired into App.jsx — gated on `demoMode && !hasBeenSeen()`. Rendered above
-// everything else so it's the first thing a demo visitor interacts with.
-import { useEffect, useState } from 'react';
+// Theme restoration on demo exit is handled in App.jsx: `exitDemo` calls
+// `revertTheme()` before flipping `demoMode` off, which snaps back to the
+// user's committed (localStorage-persisted) theme. Because we only ever
+// call `setTheme` (preview) and never `saveTheme` (persist), nothing the
+// demo visitor picks can clobber a signed-in user's saved preference.
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Leaf, Heart, Pill, Newspaper, ArrowRight, Sparkles } from 'lucide-react';
 import { C } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
+import { themes } from '../../constants/themes';
 
 const DEMO_WELCOME_KEY = 'salve:demo-welcome-seen';
 
@@ -37,17 +48,54 @@ function markSeen() {
   try { localStorage.setItem(DEMO_WELCOME_KEY, 'true'); } catch { /* */ }
 }
 
+function detectReducedMotion() {
+  try {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  } catch { return false; }
+}
+
+// Theme pair selection. Under reduced motion we fall back to the two core
+// themes (no heavy animated backdrops) so first-run feels polished rather
+// than janky on low-end hardware or for motion-sensitive users.
+function getThemePair(reducedMotion) {
+  if (reducedMotion) {
+    return {
+      light: { id: 'dawnlight', label: 'Soft daylight', blurb: 'Warm cream, lavender, berry' },
+      dark:  { id: 'midnight',  label: 'Starlit night', blurb: 'Navy, lavender, sage, amber' },
+    };
+  }
+  return {
+    light: { id: 'cherry', label: 'Cherry blossom', blurb: 'Pink sky, drifting petals' },
+    dark:  { id: 'aurora', label: 'Aurora nights',  blurb: 'Drifting green and violet lights' },
+  };
+}
+
 export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
+  const { setTheme, themeId } = useTheme();
   const [step, setStep] = useState(0);
   const [entered, setEntered] = useState(false);
+  const pickedRef = useRef(false);
+
+  const reducedMotion = useMemo(() => detectReducedMotion(), []);
+  const pair = useMemo(() => getThemePair(reducedMotion), [reducedMotion]);
 
   useEffect(() => {
-    // Next frame so the slide-up transition plays
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
+  const pickTheme = (id) => {
+    pickedRef.current = true;
+    setTheme(id);
+  };
+
   const dismiss = () => {
+    // If the user bailed from the theme picker without choosing, apply a
+    // sensible default so the demo looks good anyway.
+    if (!pickedRef.current) {
+      setTheme(pair.light.id);
+      pickedRef.current = true;
+    }
     markSeen();
     setEntered(false);
     setTimeout(() => { onClose?.(); }, 220);
@@ -67,6 +115,8 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
     setEntered(false);
     setTimeout(() => {
       onClose?.();
+      // Note: onExitDemo is expected to call revertTheme so the user's
+      // persisted theme preference comes back on the Auth screen.
       onExitDemo?.();
     }, 200);
   };
@@ -142,25 +192,41 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
                 >
                   <Sparkles size={20} color="#fff" strokeWidth={2.25} />
                 </div>
-                <h3 className="font-playfair text-[22px] md:text-[24px] font-medium text-salve-text m-0 mb-2 leading-tight">
+                <h3 className="font-playfair text-[22px] md:text-[24px] font-medium text-salve-text m-0 mb-1 leading-tight">
                   Welcome to the Salve demo
                 </h3>
-                <p className="text-ui-md text-salve-textMid m-0 mb-2 leading-snug font-montserrat">
-                  Everything you see here is sample data from a fictional user named <span className="text-salve-text font-semibold">Jordan</span>.
+                <p className="text-ui-sm text-salve-textMid m-0 mb-4 leading-snug font-montserrat">
+                  Everything you see here is sample data from a fictional user named <span className="text-salve-text font-semibold">Jordan</span>. Nothing is saved, nothing is real. Pick your vibe to get started.
                 </p>
-                <p className="text-ui-md text-salve-textMid m-0 mb-5 leading-snug font-montserrat">
-                  Nothing is saved. Nothing is real. Poke around freely — tap anything, break anything, it won't matter.
-                </p>
+
+                <div className="grid grid-cols-2 gap-2 mb-4">
+                  <ThemeCard
+                    themeId={pair.light.id}
+                    label={pair.light.label}
+                    blurb={pair.light.blurb}
+                    selected={themeId === pair.light.id && pickedRef.current}
+                    onClick={() => pickTheme(pair.light.id)}
+                  />
+                  <ThemeCard
+                    themeId={pair.dark.id}
+                    label={pair.dark.label}
+                    blurb={pair.dark.blurb}
+                    selected={themeId === pair.dark.id && pickedRef.current}
+                    onClick={() => pickTheme(pair.dark.id)}
+                  />
+                </div>
+
                 <button
                   onClick={() => setStep(1)}
-                  className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl font-montserrat font-semibold text-[14px] text-white border-none cursor-pointer transition-transform active:scale-[0.98]"
+                  disabled={!pickedRef.current}
+                  className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl font-montserrat font-semibold text-[14px] text-white border-none transition-transform active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed enabled:cursor-pointer"
                   style={{
                     background: `linear-gradient(135deg, ${C.lav}, ${C.sage})`,
-                    boxShadow: `0 4px 14px -4px ${C.lav}99`,
+                    boxShadow: pickedRef.current ? `0 4px 14px -4px ${C.lav}99` : 'none',
                   }}
                 >
-                  Show me around
-                  <ArrowRight size={15} strokeWidth={2.25} />
+                  {pickedRef.current ? 'Show me around' : 'Pick a theme to continue'}
+                  {pickedRef.current && <ArrowRight size={15} strokeWidth={2.25} />}
                 </button>
               </div>
             )}
@@ -186,14 +252,14 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
                     icon={<Heart size={18} color="#fff" strokeWidth={2.25} />}
                     tint={C.rose}
                     title="Explore Vitals"
-                    blurb="Trends & charts"
+                    blurb="Trends and charts"
                     onClick={() => handleFeature(() => onNav?.('vitals'))}
                   />
                   <FeatureCard
                     icon={<Pill size={18} color="#fff" strokeWidth={2.25} />}
                     tint={C.lav}
                     title="Medications"
-                    blurb="Drug info & refills"
+                    blurb="Drug info and refills"
                     onClick={() => handleFeature(() => onNav?.('meds'))}
                   />
                   <FeatureCard
@@ -270,6 +336,64 @@ export default function DemoWelcome({ onNav, onSage, onExitDemo, onClose }) {
         </div>
       </div>
     </>
+  );
+}
+
+// Live theme-preview card. Pulls the real theme palette from constants/themes
+// so the swatch reflects the actual background + gradient the user will get
+// when they pick it.
+function ThemeCard({ themeId, label, blurb, selected, onClick }) {
+  const theme = themes[themeId];
+  if (!theme) return null;
+  const colors = theme.colors;
+  const gradKeys = theme.gradient || ['lav', 'sage', 'amber'];
+  const grad = gradKeys.map(k => colors[k]).filter(Boolean);
+  const previewBg = colors.bg || colors.card || '#1a1a1a';
+  const headingColor = colors.text || '#fff';
+  const subColor = colors.textMid || '#aaa';
+
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={selected}
+      className="group relative rounded-2xl overflow-hidden cursor-pointer transition-all active:scale-[0.98]"
+      style={{
+        border: selected ? `2px solid ${C.lav}` : `1px solid ${C.border2 || 'rgba(255,255,255,0.12)'}`,
+        boxShadow: selected ? `0 0 0 3px ${C.lav}33, 0 4px 16px -4px ${C.lav}66` : 'none',
+      }}
+    >
+      <div
+        className="relative h-[86px] p-3 flex flex-col justify-between text-left"
+        style={{
+          background: previewBg,
+        }}
+      >
+        {/* Gradient accent strip to evoke the theme's character */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 opacity-70 pointer-events-none"
+          style={{
+            background: grad.length >= 3
+              ? `radial-gradient(circle at 20% 20%, ${grad[0]}55 0%, transparent 55%), radial-gradient(circle at 80% 80%, ${grad[1]}55 0%, transparent 55%), radial-gradient(circle at 50% 50%, ${grad[2]}33 0%, transparent 60%)`
+              : `linear-gradient(135deg, ${grad[0] || colors.lav}33, ${grad[1] || colors.sage}22)`,
+          }}
+        />
+        <div className="relative">
+          <div
+            className="text-[12px] font-semibold font-playfair leading-tight"
+            style={{ color: headingColor }}
+          >
+            {label}
+          </div>
+        </div>
+        <div
+          className="relative text-[10px] font-montserrat leading-tight"
+          style={{ color: subColor }}
+        >
+          {blurb}
+        </div>
+      </div>
+    </button>
   );
 }
 

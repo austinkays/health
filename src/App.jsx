@@ -16,7 +16,7 @@ import ErrorBoundary from './components/ui/ErrorBoundary';
 import OfflineBanner from './components/ui/OfflineBanner';
 import SkeletonList from './components/ui/SkeletonCard';
 import { ToastProvider, useToast } from './components/ui/Toast';
-import { ThemeProvider } from './hooks/useTheme';
+import { ThemeProvider, useTheme } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
 const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
@@ -124,6 +124,10 @@ function AppContent() {
   const [authLoading, setAuthLoading] = useState(() => !session); // skip loading if we found a cached session
   const [sessionExpired, setSessionExpired] = useState(false);
   const [demoMode, setDemoMode] = useState(false);
+  // Theme revert on demo exit. DemoWelcome previews themes via setTheme
+  // (no localStorage write), so calling revertTheme snaps back to the
+  // user's committed theme when they leave demo mode.
+  const { revertTheme } = useTheme();
 
   // Seed token cache from the synchronously-read session so useHealthData
   // can start loading immediately without waiting for onAuthStateChange.
@@ -204,7 +208,7 @@ function AppContent() {
   }, [data?.settings]);
   const showToast = useToast();
 
-  // Service-worker update flow — lights up the UpdateBanner when a new
+  // Service-worker update flow. Lights up the UpdateBanner when a new
   // deploy is detected so users never stay stuck on stale code.
   const { needRefresh, updateNow, dismissUpdate } = useSWUpdate();
 
@@ -268,7 +272,12 @@ function AppContent() {
   // Stable callbacks for layout components (avoid re-renders from inline arrows)
   const openSearch = useCallback(() => onNav('search'), [onNav]);
   const openSage = useCallback(() => setSageOpen(true), []);
-  const exitDemo = useCallback(() => setDemoMode(false), []);
+  const exitDemo = useCallback(() => {
+    // Revert any theme the user previewed during the demo walkthrough
+    // so their persisted preference (or default Lilac) comes back.
+    revertTheme();
+    setDemoMode(false);
+  }, [revertTheme]);
   const closeSage = useCallback(() => setSageOpen(false), []);
 
   // Global keyboard shortcuts (desktop)
@@ -453,7 +462,7 @@ function AppContent() {
         onEnterDemo={() => {
           setDemoMode(true);
           setTab('dash');
-          // First-run walkthrough — only show if the user hasn't seen it
+          // First-run walkthrough, only show if the user hasn't seen it
           // already in this browser.
           if (!hasSeenDemoWelcome()) setShowDemoWelcome(true);
         }}
@@ -564,7 +573,7 @@ function AppContent() {
       )}
       {showWhatsNew && <WhatsNewModal onClose={() => setShowWhatsNew(false)} />}
       {showOnboarding && <OnboardingWizard name={data?.settings?.name} onClose={() => setShowOnboarding(false)} />}
-      {/* PWA install invitation — only for signed-in (non-demo) users, deferred
+      {/* PWA install invitation. Only for signed-in (non-demo) users, deferred
           until after the onboarding wizard has been completed to avoid
           stacking modals on first run. */}
       {!demoMode && session && !showOnboarding && !showWhatsNew && hasCompletedOnboarding() && <InstallPrompt />}
