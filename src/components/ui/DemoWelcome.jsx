@@ -1,6 +1,6 @@
 // src/components/ui/DemoWelcome.jsx
 //
-// First-run walkthrough for demo mode. A 3-screen bottom-sheet modal that
+// First-run walkthrough for demo mode. A 2-screen bottom-sheet modal that
 // orients a brand-new visitor before dropping them into the full dashboard
 // full of unfamiliar (sample) data.
 //
@@ -15,15 +15,12 @@
 //   Screen 1: "Try these 4 things"
 //     Four informational cards highlighting the app's most compelling
 //     surfaces (Sage chat, Vitals, Medications, News). These are NOT
-//     interactive — tapping them does nothing. The user advances through
-//     the walkthrough via Back/Next, and discovers these surfaces
-//     organically via the Dashboard / SideNav after the modal closes.
-//     Early versions navigated immediately on tap, but that yanked users
-//     out of the walkthrough mid-orientation.
-//
-//   Screen 2: "Make it yours"
-//     Sign-up CTA (calls onExitDemo, which returns to Auth) plus a "Keep
-//     exploring" secondary action.
+//     interactive — tapping them does nothing. The user finishes the
+//     walkthrough with "Start exploring" which dismisses the modal
+//     straight into the app. Sign-up CTAs remain available at any time
+//     via the persistent DemoBanner at the top (mobile) or the demo
+//     mode card in SideNav (desktop), so we don't need to front-load
+//     the signup ask before the user has even poked around.
 //
 // Shown once per browser via localStorage key `salve:demo-welcome-seen`.
 // Dismissible from any screen via X button or backdrop tap. If the user
@@ -74,7 +71,7 @@ function getThemePair(reducedMotion) {
   };
 }
 
-export default function DemoWelcome({ onExitDemo, onClose }) {
+export default function DemoWelcome({ onClose }) {
   const { setTheme, themeId } = useTheme();
   const [step, setStep] = useState(0);
   const [entered, setEntered] = useState(false);
@@ -103,17 +100,6 @@ export default function DemoWelcome({ onExitDemo, onClose }) {
     markSeen();
     setEntered(false);
     setTimeout(() => { onClose?.(); }, 220);
-  };
-
-  const handleSignUp = () => {
-    markSeen();
-    setEntered(false);
-    setTimeout(() => {
-      onClose?.();
-      // Note: onExitDemo is expected to call revertTheme so the user's
-      // persisted theme preference comes back on the Auth screen.
-      onExitDemo?.();
-    }, 200);
   };
 
   return (
@@ -164,7 +150,7 @@ export default function DemoWelcome({ onExitDemo, onClose }) {
           <div className="relative z-10">
             {/* Step indicator dots */}
             <div className="flex items-center gap-1.5 mb-4" aria-hidden="true">
-              {[0, 1, 2].map(i => (
+              {[0, 1].map(i => (
                 <div
                   key={i}
                   className="h-1 rounded-full transition-all duration-300"
@@ -270,55 +256,15 @@ export default function DemoWelcome({ onExitDemo, onClose }) {
                     Back
                   </button>
                   <button
-                    onClick={() => setStep(2)}
+                    onClick={dismiss}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-montserrat font-semibold text-[13px] text-white border-none cursor-pointer transition-transform active:scale-[0.98]"
                     style={{
                       background: `linear-gradient(135deg, ${C.lav}, ${C.sage})`,
                       boxShadow: `0 4px 14px -4px ${C.lav}99`,
                     }}
                   >
-                    Next
+                    Start exploring
                     <ArrowRight size={14} strokeWidth={2.25} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step === 2 && (
-              <div>
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center mb-3"
-                  style={{
-                    background: `linear-gradient(135deg, ${C.lav}, ${C.sage})`,
-                    boxShadow: `0 4px 16px -4px ${C.lav}99`,
-                  }}
-                >
-                  <Heart size={20} color="#fff" strokeWidth={2.25} />
-                </div>
-                <h3 className="font-playfair text-[22px] md:text-[24px] font-medium text-salve-text m-0 mb-2 leading-tight">
-                  Make it yours
-                </h3>
-                <p className="text-ui-md text-salve-textMid m-0 mb-5 leading-snug font-montserrat">
-                  Like what you see? Sign up to start tracking your own health. It takes 30 seconds, and your data stays encrypted and private.
-                </p>
-
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={handleSignUp}
-                    className="w-full flex items-center justify-center gap-1.5 py-3 rounded-xl font-montserrat font-semibold text-[14px] text-white border-none cursor-pointer transition-transform active:scale-[0.98]"
-                    style={{
-                      background: `linear-gradient(135deg, ${C.lav}, ${C.sage})`,
-                      boxShadow: `0 4px 14px -4px ${C.lav}99`,
-                    }}
-                  >
-                    Sign up
-                    <ArrowRight size={15} strokeWidth={2.25} />
-                  </button>
-                  <button
-                    onClick={dismiss}
-                    className="w-full py-2.5 rounded-xl font-montserrat font-medium text-[13px] text-salve-textMid bg-salve-card2/60 hover:bg-salve-card2 border border-salve-border/60 hover:text-salve-text transition-colors cursor-pointer"
-                  >
-                    Keep exploring
                   </button>
                 </div>
               </div>

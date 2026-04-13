@@ -578,10 +578,7 @@ function AppContent() {
           stacking modals on first run. */}
       {!demoMode && session && !showOnboarding && !showWhatsNew && hasCompletedOnboarding() && <InstallPrompt />}
       {demoMode && showDemoWelcome && (
-        <DemoWelcome
-          onExitDemo={exitDemo}
-          onClose={() => setShowDemoWelcome(false)}
-        />
+        <DemoWelcome onClose={() => setShowDemoWelcome(false)} />
       )}
     </div>
   );
