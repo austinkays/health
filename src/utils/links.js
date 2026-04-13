@@ -25,7 +25,8 @@ export function medlinePlusUrl(topic) {
 
 /** MedlinePlus lab test search, cleans verbose Apple Health/FHIR names */
 export function medlinePlusLabUrl(testName) {
-  let clean = testName
+  const safe = typeof testName === 'string' ? testName : '';
+  let clean = safe
     .replace(/\s*\[.*?\]\s*/g, '')          // strip bracketed codes [LOINC], [Mass/Vol], etc.
     .replace(/\s*\(.*?\)\s*/g, '')          // strip parentheticals (serum), (blood), etc.
     .replace(/\b(in|of|by|per)\s+(serum|plasma|blood|urine|whole blood|body fluid)\b/gi, '') // strip specimen type phrases
@@ -33,8 +34,8 @@ export function medlinePlusLabUrl(testName) {
     .replace(/\s{2,}/g, ' ')               // collapse whitespace
     .trim();
   // If cleaning left nothing useful, fall back to original
-  if (clean.length < 3) clean = testName.trim();
-  return `https://medlineplus.gov/search?query=${encodeURIComponent(clean + ' test')}`;
+  if (clean.length < 3) clean = safe.trim();
+  return `https://medlineplus.gov/search?query=${encodeURIComponent((clean || 'lab') + ' test')}`;
 }
 
 /** CDC vaccine info search */
