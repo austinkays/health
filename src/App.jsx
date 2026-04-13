@@ -22,6 +22,8 @@ const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import OnboardingWizard, { hasCompletedOnboarding } from './components/ui/OnboardingWizard';
 import InstallPrompt from './components/ui/InstallPrompt';
+import UpdateBanner from './components/ui/UpdateBanner';
+import useSWUpdate from './hooks/useSWUpdate';
 import DemoBanner from './components/ui/DemoBanner';
 import { setSentryUser, clearSentryUser } from './services/sentry';
 import { SpeedInsights } from '@vercel/speed-insights/react';
@@ -197,6 +199,10 @@ function AppContent() {
     setAdminActive(isAdminActive(data?.settings));
   }, [data?.settings]);
   const showToast = useToast();
+
+  // Service-worker update flow — lights up the UpdateBanner when a new
+  // deploy is detected so users never stay stuck on stale code.
+  const { needRefresh, updateNow, dismissUpdate } = useSWUpdate();
 
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
@@ -497,8 +503,20 @@ function AppContent() {
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      <SideNav tab={tab} onNav={onNav} onSearch={openSearch} onSage={openSage} name={data.settings.name} demoMode={demoMode} onExitDemo={exitDemo} />
+      <SideNav
+        tab={tab}
+        onNav={onNav}
+        onSearch={openSearch}
+        onSage={openSage}
+        name={data.settings.name}
+        demoMode={demoMode}
+        onExitDemo={exitDemo}
+        updateAvailable={needRefresh}
+        onUpdate={updateNow}
+        onDismissUpdate={dismissUpdate}
+      />
       <div className="md:ml-[260px]">
+        {needRefresh && <UpdateBanner variant="mobile" onUpdate={updateNow} onDismiss={dismissUpdate} />}
         <OfflineBanner />
         {demoMode && <DemoBanner onExit={exitDemo} />}
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">

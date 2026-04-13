@@ -1,5 +1,6 @@
 import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, PenLine, MessageCircle, Newspaper } from 'lucide-react';
 import { handleMagnet, resetMagnet } from '../../utils/fx';
+import UpdateBanner from '../ui/UpdateBanner';
 
 const NAV_ITEMS = [
   { id: 'dash', label: 'Home', icon: Home, key: '1' },
@@ -15,12 +16,18 @@ const NAV_ITEMS = [
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
 const MOD_KEY = isMac ? '⌘' : 'Ctrl+';
 
-export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, onExitDemo }) {
+export default function SideNav({ tab, onNav, onSearch, onSage, name, demoMode, onExitDemo, updateAvailable, onUpdate, onDismissUpdate }) {
   return (
     <nav
       aria-label="Main navigation"
       className="hidden md:flex fixed left-0 top-0 h-full w-[260px] bg-salve-card border-r border-salve-border flex-col z-40"
     >
+      {/* Update banner — pinned above branding so it's the first thing
+          desktop users see when a new deploy lands. */}
+      {updateAvailable && (
+        <UpdateBanner variant="desktop" onUpdate={onUpdate} onDismiss={onDismissUpdate} />
+      )}
+
       {/* App name / branding */}
       <div className="px-6 pt-8 pb-4">
         <h2 className="font-playfair text-display-lg font-semibold text-gradient-magic m-0">Salve</h2>

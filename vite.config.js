@@ -21,11 +21,19 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' mode: new SW waits until the user taps the in-app
+      // "Update available" banner, then we call updateServiceWorker(true)
+      // which sends SKIP_WAITING, activates the new SW, and reloads.
+      // Previously used 'autoUpdate' + skipWaiting which silently swapped
+      // the SW in the background but never reloaded the current tab —
+      // meaning users could stay on stale JS indefinitely.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png'],
       manifest: false, // Use our existing public/manifest.json
       workbox: {
-        skipWaiting: true,
+        // skipWaiting is NOT set — we want the new SW to wait so the
+        // app can show the update banner. updateServiceWorker(true)
+        // posts SKIP_WAITING on click.
         clientsClaim: true,
         importScripts: ['/push-handler.js'],
         // Only precache the HTML shell and CSS — NOT the 60+ JS chunks.
