@@ -1707,15 +1707,16 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
       {/* ── Health Trends grid ─────────────────── */}
       {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
-        <Reveal as="section" aria-label="Health trends" className="mb-4">
+        <Reveal as="section" aria-label="Health trends" className="mb-5 md:mb-6">
           <SectionTitle>Health Trends</SectionTitle>
-          <div className="grid grid-cols-2 gap-fluid-md">
+          <div className="bg-salve-card/50 border border-salve-border/60 rounded-2xl p-2.5 md:p-3">
+          <div className="grid grid-cols-2 gap-2.5 md:gap-3">
 
             {/* Sleep 14-night bar chart */}
             {sleepTrend && (
               <button
                 onClick={() => onNav('vitals')}
-                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+                className="col-span-2 bg-salve-card border border-salve-border/40 rounded-xl p-4 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
                 <div className="flex items-center justify-between mb-1">
                   <div>
@@ -1774,7 +1775,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               return (
               <button
                 onClick={() => onNav('vitals')}
-                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+                className="bg-salve-card border border-salve-border/40 rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Heart Rate</div>
@@ -1833,7 +1834,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               return (
               <button
                 onClick={() => onNav('vitals')}
-                className="bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+                className="bg-salve-card border border-salve-border/40 rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
                 <div className="flex items-center justify-between mb-0.5">
                   <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Blood Oxygen</div>
@@ -1891,7 +1892,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             {labHighlights.length > 0 && (
               <button
                 onClick={() => onNav('labs')}
-                className="col-span-2 bg-salve-card border border-salve-border rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
+                className="col-span-2 bg-salve-card border border-salve-border/40 rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
               >
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
@@ -1906,7 +1907,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     return (
                       <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
                         <div className="min-w-0 flex-1">
-                          <div className="text-[13px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || ', '}</div>
+                          <div className="text-[13px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || 'Lab result'}</div>
                           <div className="text-[12px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
                         </div>
                         <div className="flex-shrink-0 text-right">
@@ -1923,12 +1924,13 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               </button>
             )}
           </div>
+          </div>
         </Reveal>
       )}
 
       {/* ── Getting Started tips (onboarding, dismissible) ── */}
       {visibleTips.length > 0 && (
-        <Reveal as="section" aria-label="Getting started" className="mb-4 mt-4">
+        <Reveal as="section" aria-label="Getting started" className="mb-5 md:mb-6">
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <Lightbulb size={13} className="text-salve-amber" />
@@ -1950,7 +1952,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
               return (
                 <div
                   key={tip.id}
-                  className={`bg-salve-card border border-salve-border rounded-xl p-fluid-lg flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
+                  className={`bg-salve-card border border-salve-border/50 rounded-xl p-fluid-lg flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
                 >
                   <button
                     onClick={() => dismissTip(tip.id)}

@@ -280,18 +280,18 @@ export function buildDemoData() {
 
   const labs = [
     // Recent panel (2 months ago)
-    { id: did(), date: daysAgo(55), name: 'Vitamin D 25-OH', value: '28', unit: 'ng/mL', flag: 'low', range: '30-100', provider: 'Dr. Priya Patel', notes: 'Started supplementation' },
-    { id: did(), date: daysAgo(55), name: 'TSH', value: '2.1', unit: 'mIU/L', flag: 'normal', range: '0.4-4.0', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'Ferritin', value: '42', unit: 'ng/mL', flag: 'normal', range: '15-200', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'Hemoglobin A1C', value: '5.3', unit: '%', flag: 'normal', range: '<5.7', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'Total Cholesterol', value: '195', unit: 'mg/dL', flag: 'normal', range: '<200', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'LDL Cholesterol', value: '118', unit: 'mg/dL', flag: 'normal', range: '<130', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'HDL Cholesterol', value: '52', unit: 'mg/dL', flag: 'normal', range: '>40', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'CBC - WBC', value: '6.2', unit: 'K/uL', flag: 'normal', range: '4.5-11.0', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'CBC - Hemoglobin', value: '14.1', unit: 'g/dL', flag: 'normal', range: '12.0-16.0', provider: 'Dr. Priya Patel', notes: '' },
-    { id: did(), date: daysAgo(55), name: 'B12', value: '380', unit: 'pg/mL', flag: 'normal', range: '200-900', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'Vitamin D 25-OH', result: '28', unit: 'ng/mL', flag: 'low', range: '30-100', provider: 'Dr. Priya Patel', notes: 'Started supplementation' },
+    { id: did(), date: daysAgo(55), test_name: 'TSH', result: '2.1', unit: 'mIU/L', flag: 'normal', range: '0.4-4.0', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'Ferritin', result: '42', unit: 'ng/mL', flag: 'normal', range: '15-200', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'Hemoglobin A1C', result: '5.3', unit: '%', flag: 'normal', range: '<5.7', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'Total Cholesterol', result: '195', unit: 'mg/dL', flag: 'normal', range: '<200', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'LDL Cholesterol', result: '118', unit: 'mg/dL', flag: 'normal', range: '<130', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'HDL Cholesterol', result: '52', unit: 'mg/dL', flag: 'normal', range: '>40', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'CBC - WBC', result: '6.2', unit: 'K/uL', flag: 'normal', range: '4.5-11.0', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'CBC - Hemoglobin', result: '14.1', unit: 'g/dL', flag: 'normal', range: '12.0-16.0', provider: 'Dr. Priya Patel', notes: '' },
+    { id: did(), date: daysAgo(55), test_name: 'B12', result: '380', unit: 'pg/mL', flag: 'normal', range: '200-900', provider: 'Dr. Priya Patel', notes: '' },
     // Follow-up vitamin D (improving)
-    { id: did(), date: daysAgo(10), name: 'Vitamin D 25-OH', value: '38', unit: 'ng/mL', flag: 'normal', range: '30-100', provider: 'Dr. Priya Patel', notes: 'Improved with 2000 IU daily supplementation' },
+    { id: did(), date: daysAgo(10), test_name: 'Vitamin D 25-OH', result: '38', unit: 'ng/mL', flag: 'normal', range: '30-100', provider: 'Dr. Priya Patel', notes: 'Improved with 2000 IU daily supplementation' },
   ];
 
   const todos = [
