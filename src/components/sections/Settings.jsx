@@ -1086,9 +1086,17 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </div>
         </div>
         {userTier === 'admin' && (
-          <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
-            All features unlocked. House Consultation uses both Claude and Gemini simultaneously for dual-AI differential analysis.
-          </p>
+          <>
+            <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mt-1.5">
+              All features unlocked. House Consultation uses both Claude and Gemini simultaneously for dual-AI differential analysis.
+            </p>
+            <button
+              onClick={() => onNav('admin')}
+              className="mt-2 text-[13px] text-salve-lav/80 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+            >
+              Feedback inbox →
+            </button>
+          </>
         )}
         {isOnTrial && (
           <div className="mt-2 space-y-2">

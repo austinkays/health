@@ -99,6 +99,7 @@ const TAB_LABELS = {
   summary: 'Health Summary',
   legal: 'Legal',
   feedback: 'Feedback',
+  admin: 'Admin',
   formhelper: 'Scribe',
   news: 'News',
   aboutme: 'About Me',

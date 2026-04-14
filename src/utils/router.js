@@ -45,6 +45,7 @@ const TAB_TO_PATH = {
   news: '/news',
   formhelper: '/scribe',
   feedback: '/feedback',
+  admin: '/admin',
   legal: '/legal',
   insights: '/insights',
   sleep: '/sleep',

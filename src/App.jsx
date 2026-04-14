@@ -100,6 +100,7 @@ const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
 const FormHelper = lazyWithRetry(() => import('./components/sections/FormHelper'));
 const AboutMe = lazyWithRetry(() => import('./components/sections/AboutMe'));
 const Insights = lazyWithRetry(() => import('./components/sections/Insights'));
+const Admin = lazyWithRetry(() => import('./components/sections/Admin'));
 
 export default function App() {
   return (
@@ -585,6 +586,7 @@ function AppContent() {
       case 'feedback':   return <Feedback {...shared} />;
       case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
       case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} onSageIntro={() => setSageIntroOpen(true)} />;
+      case 'admin':      return <Admin data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
   };
