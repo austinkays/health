@@ -32,6 +32,7 @@ export default function OfflineBanner() {
       role="status"
       aria-live="polite"
       className="sticky top-0 z-50 bg-salve-amber/15 border-b border-salve-amber/30 px-4 py-2 text-center text-sm text-salve-amber"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.5rem)' }}
     >
       <span className="font-medium">You're offline</span>
       {pendingCount > 0 && (
