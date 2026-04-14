@@ -104,6 +104,10 @@ export default async function handler(req, res) {
       }
       if (!isPremium || !trialActive) {
         const reason = isPremium ? 'trial_expired' : 'not_premium';
+        // Log the blocked attempt so the admin dashboard can see tier-gate
+        // pressure. Uses a separate endpoint name so it doesn't pollute the
+        // real 'chat' token totals (no tokens_in/out attached).
+        logUsage(userId, 'chat_blocked');
         return res.status(403).json({
           error: 'Premium feature. Upgrade to use Claude.',
           reason,

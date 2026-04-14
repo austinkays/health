@@ -6,6 +6,8 @@
 // Env vars: STRIPE_SECRET_KEY, STRIPE_PREMIUM_PRICE_ID, STRIPE_ANNUAL_PRICE_ID,
 //           SUPABASE_SERVICE_ROLE_KEY, VITE_SUPABASE_URL
 
+import { logUsage } from './_rateLimit.js';
+
 export default async function handler(req, res) {
   // CORS
   const allowedOrigins = [
@@ -82,6 +84,7 @@ export default async function handler(req, res) {
       }
 
       const portal = await portalRes.json();
+      logUsage(userId, 'stripe_portal');
       return res.status(200).json({ url: portal.url });
     } catch (err) {
       console.error('[stripe-checkout] Portal unexpected error:', err);
@@ -127,6 +130,7 @@ export default async function handler(req, res) {
     const session = await sessionRes.json();
     if (!session.url) return res.status(502).json({ error: 'No checkout URL returned' });
 
+    logUsage(userId, 'stripe_checkout');
     return res.status(200).json({ url: session.url });
   } catch (err) {
     console.error('[stripe-checkout] Unexpected error:', err);

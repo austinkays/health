@@ -4,6 +4,8 @@
 // Server-side cache: 24 hours (shared across all users per instance).
 // Client-side cache: 14 days (per user in localStorage).
 
+import { logUsage } from './_rateLimit.js';
+
 const EXTERNAL_TIMEOUT_MS = 15_000;
 
 function fetchWithTimeout(url, opts = {}) {
@@ -193,6 +195,7 @@ export default async function handler(req, res) {
     } else {
       res.setHeader('Cache-Control', 'no-store');
     }
+    logUsage(userId, 'discover');
     return res.status(200).json({ articles: payload, feedCount: articles.length });
   } catch (err) {
     console.error('[Discover] Error:', err);

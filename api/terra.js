@@ -10,6 +10,7 @@
 // (the ?route=webhook query string is preserved through Vercel rewrites).
 
 import crypto from 'crypto';
+import { logUsage } from './_rateLimit.js';
 
 const EXTERNAL_TIMEOUT_MS = 15_000;
 const TERRA_API_BASE = 'https://api.tryterra.co/v2';
@@ -125,6 +126,7 @@ async function handleWidget(req, res) {
 
     const data = await terraRes.json();
     if (!data?.url) return res.status(502).json({ error: 'Terra response missing URL' });
+    logUsage(userId, 'terra_widget');
     return res.status(200).json({
       url: data.url,
       session_id: data.session_id,
@@ -494,6 +496,9 @@ async function handleWebhook(req, res) {
     if (vitals.length) await bulkInsertVitals(vitals);
     if (activities.length) await bulkInsertActivities(activities);
     touchSync(terraUserId);
+    // We resolved terraUserId → Salve user_id via terra_connections above,
+    // so we can attribute this ingestion to the real user in api_usage.
+    logUsage(userId, 'terra_webhook');
     return res.status(200).json({
       ok: true,
       ingested: { vitals: vitals.length, activities: activities.length },

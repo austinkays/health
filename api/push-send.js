@@ -1,4 +1,5 @@
 import webpush from 'web-push';
+import { logUsage } from './_rateLimit.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -170,6 +171,13 @@ export default async function handler(req, res) {
   // Log when called by service role (cron scheduler) so cron-reminders can dedup
   if (caller.role === 'service' && sent > 0) {
     await logNotification(targetUserId, { title, body, tag, referenceId: req.body?.reference_id });
+  }
+
+  // Only log user-initiated calls to api_usage — cron-reminders already writes
+  // to notification_log, and we don't want to double-count service traffic in
+  // the admin "API calls by endpoint" stat.
+  if (caller.role === 'user') {
+    logUsage(caller.id, 'push');
   }
 
   return res.status(200).json({ sent, failed });
