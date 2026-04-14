@@ -20,7 +20,7 @@ import { ThemeProvider, useTheme } from './hooks/useTheme';
 import SagePopup from './components/ui/SagePopup';
 const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
-import OnboardingWizard, { hasCompletedOnboarding } from './components/ui/OnboardingWizard';
+import OnboardingWizard, { hasCompletedOnboarding, markOnboardingComplete } from './components/ui/OnboardingWizard';
 import InstallPrompt from './components/ui/InstallPrompt';
 import DemoWelcome, { hasSeenDemoWelcome } from './components/ui/DemoWelcome';
 import UpdateBanner from './components/ui/UpdateBanner';
@@ -198,18 +198,48 @@ function AppContent() {
   }, [authLoading, session, demoMode]);
 
   // Show the first-run onboarding wizard for real users who haven't
-  // completed it AND whose account is empty (no meds, conditions, or
-  // vitals logged yet). Skip entirely in demo mode.
+  // completed it AND who look like a brand-new account. "Brand-new"
+  // means: no profile name set AND no records in any meaningful table.
+  // If either signal is present, the user is a returning one — mark
+  // onboarding complete so a fresh browser doesn't re-prompt them
+  // (the localStorage `salve:onboarded` flag is per-browser, so
+  // signing in from a new device used to loop users through the wizard
+  // every time despite having data on file). Skipped in demo mode.
   useEffect(() => {
     if (authLoading || dataLoading || demoMode || !session) return;
     if (hasCompletedOnboarding()) return;
-    const hasData = (data?.meds?.length || 0) > 0
+    const hasName = !!(data?.settings?.name && String(data.settings.name).trim());
+    const hasData = hasName
+      || (data?.meds?.length || 0) > 0
       || (data?.conditions?.length || 0) > 0
       || (data?.vitals?.length || 0) > 0
-      || (data?.journal?.length || 0) > 0;
-    if (hasData) return;
+      || (data?.journal?.length || 0) > 0
+      || (data?.allergies?.length || 0) > 0
+      || (data?.providers?.length || 0) > 0
+      || (data?.appts?.length || 0) > 0
+      || (data?.labs?.length || 0) > 0
+      || (data?.todos?.length || 0) > 0
+      || (data?.cycles?.length || 0) > 0
+      || (data?.activities?.length || 0) > 0
+      || (data?.immunizations?.length || 0) > 0
+      || (data?.procedures?.length || 0) > 0
+      || (data?.pharmacies?.length || 0) > 0
+      || (data?.genetic_results?.length || 0) > 0;
+    if (hasData) {
+      // Returning user on a fresh browser: persist completion so we
+      // never re-prompt on this device.
+      markOnboardingComplete();
+      return;
+    }
     setShowOnboarding(true);
-  }, [authLoading, dataLoading, demoMode, session, data?.meds?.length, data?.conditions?.length, data?.vitals?.length, data?.journal?.length]);
+  }, [
+    authLoading, dataLoading, demoMode, session,
+    data?.settings?.name,
+    data?.meds?.length, data?.conditions?.length, data?.vitals?.length, data?.journal?.length,
+    data?.allergies?.length, data?.providers?.length, data?.appts?.length, data?.labs?.length,
+    data?.todos?.length, data?.cycles?.length, data?.activities?.length, data?.immunizations?.length,
+    data?.procedures?.length, data?.pharmacies?.length, data?.genetic_results?.length,
+  ]);
 
   // Sync premium status into services/ai.js so isFeatureLocked() sees it.
   // Pro features unlock for premium users regardless of provider choice.
