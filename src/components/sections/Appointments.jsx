@@ -22,6 +22,7 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_APPOINTMENT);
   const [editId, setEditId] = useState(null);
+  const [saveError, setSaveError] = useState(null);
   const [prepLoading, setPrepLoading] = useState(null);
   const [prepResult, setPrepResult] = useState({});
   const del = useConfirmDelete();
@@ -78,19 +79,34 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
   };
 
   const saveA = async () => {
-    if (!form.date) return;
-    if (editId) {
-      await updateItem('appointments', editId, form);
-    } else {
-      await addItem('appointments', form);
+    if (!form.date) {
+      setSaveError('Please choose a date for the appointment.');
+      return;
     }
-    setForm(EMPTY_APPOINTMENT);
-    setEditId(null);
-    setSubView(null);
+    setSaveError(null);
+    // Strip any non-DB fields that can sneak in when the form was seeded
+    // from an existing row (Edit flow). Sending `id` / `created_at` /
+    // `updated_at` / `user_id` inside an insert payload works for some
+    // tables but trips PostgREST on others, and it has no business
+    // being in the form state anyway.
+    const { id: _id, created_at: _ca, updated_at: _ua, user_id: _uid, ...payload } = form;
+    try {
+      if (editId) {
+        await updateItem('appointments', editId, payload);
+      } else {
+        await addItem('appointments', payload);
+      }
+      setForm(EMPTY_APPOINTMENT);
+      setEditId(null);
+      setSubView(null);
+    } catch (err) {
+      console.error('[Appointments] Save failed:', err);
+      setSaveError(err?.message || 'Save failed. Please try again.');
+    }
   };
 
   if (subView === 'form') return (
-    <FormWrap title={`${editId ? 'Edit' : 'New'} Appointment`} onBack={() => { setSubView(null); setForm(EMPTY_APPOINTMENT); setEditId(null); }}>
+    <FormWrap title={`${editId ? 'Edit' : 'New'} Appointment`} onBack={() => { setSubView(null); setForm(EMPTY_APPOINTMENT); setEditId(null); setSaveError(null); }}>
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" required />
         <Field label="Time" value={form.time} onChange={v => sf('time', v)} type="time" />
@@ -119,9 +135,14 @@ export default function Appointments({ data, addItem, updateItem, removeItem, hi
         <Field label="Video Call Link" value={form.video_call_url} onChange={v => sf('video_call_url', v)} placeholder="https://zoom.us/j/... or Teams link" />
         <Field label="Questions to Ask" value={form.questions} onChange={v => sf('questions', v)} textarea placeholder="Things to bring up..." />
         <Field label="Post-Visit Notes" value={form.post_notes} onChange={v => sf('post_notes', v)} textarea placeholder="What happened..." />
+        {saveError && (
+          <div className="text-xs text-salve-rose font-montserrat bg-salve-rose/10 border border-salve-rose/20 rounded-lg p-2.5 mb-2">
+            {saveError}
+          </div>
+        )}
         <div className="flex gap-2">
-          <Button onClick={saveA} disabled={!form.date}><Check size={15} /> Save</Button>
-          <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_APPOINTMENT); setEditId(null); }}>Cancel</Button>
+          <Button onClick={saveA}><Check size={15} /> Save</Button>
+          <Button variant="ghost" onClick={() => { setSubView(null); setForm(EMPTY_APPOINTMENT); setEditId(null); setSaveError(null); }}>Cancel</Button>
         </div>
       </Card>
     </FormWrap>
