@@ -5,6 +5,7 @@
 
 ALTER TABLE notification_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users read own notification logs" ON notification_log;
 CREATE POLICY "Users read own notification logs"
   ON notification_log FOR SELECT
   USING (auth.uid() = user_id);

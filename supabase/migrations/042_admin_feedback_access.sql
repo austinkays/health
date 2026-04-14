@@ -2,7 +2,9 @@
 -- Adds additive RLS policies so admins can SELECT + UPDATE every feedback row.
 -- Users continue to see only their own feedback via the existing policies from 022.
 -- Does not grant DELETE to admins — they should never destroy user submissions.
+-- Idempotent: safe to re-run (drops existing admin policies before recreating).
 
+DROP POLICY IF EXISTS "Admins see all feedback" ON feedback;
 CREATE POLICY "Admins see all feedback" ON feedback
   FOR SELECT
   USING (
@@ -12,6 +14,7 @@ CREATE POLICY "Admins see all feedback" ON feedback
     )
   );
 
+DROP POLICY IF EXISTS "Admins update all feedback" ON feedback;
 CREATE POLICY "Admins update all feedback" ON feedback
   FOR UPDATE
   USING (

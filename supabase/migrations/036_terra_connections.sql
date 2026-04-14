@@ -42,8 +42,10 @@ CREATE TRIGGER terra_connections_updated_at
 -- role key which bypasses RLS, so they can write rows for any user.
 ALTER TABLE terra_connections ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "terra_connections_select_own" ON terra_connections;
 CREATE POLICY "terra_connections_select_own" ON terra_connections
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "terra_connections_delete_own" ON terra_connections;
 CREATE POLICY "terra_connections_delete_own" ON terra_connections
   FOR DELETE USING (auth.uid() = user_id);
