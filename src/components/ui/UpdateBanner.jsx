@@ -85,6 +85,7 @@ export default function UpdateBanner({ variant = 'mobile', onUpdate, onDismiss }
         background: `linear-gradient(135deg, ${C.lav}22 0%, ${C.sage}1c 100%)`,
         borderBottom: `1px solid ${C.lav}55`,
         boxShadow: `0 2px 14px -4px ${C.lav}66`,
+        paddingTop: 'env(safe-area-inset-top, 0px)',
       }}
     >
       <div className="flex items-center gap-2.5 px-3 py-2">

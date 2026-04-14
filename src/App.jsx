@@ -223,6 +223,22 @@ function AppContent() {
   // deploy is detected so users never stay stuck on stale code.
   const { needRefresh, updateNow, dismissUpdate } = useSWUpdate();
 
+  // Track offline state so Header knows when OfflineBanner is above it
+  // and can skip its own safe-area-inset-top to avoid a doubled gap.
+  // OfflineBanner still tracks its own state internally for its content;
+  // this is purely a layout signal.
+  const [isOffline, setIsOffline] = useState(() => !navigator.onLine);
+  useEffect(() => {
+    const goOffline = () => setIsOffline(true);
+    const goOnline = () => setIsOffline(false);
+    window.addEventListener('offline', goOffline);
+    window.addEventListener('online', goOnline);
+    return () => {
+      window.removeEventListener('offline', goOffline);
+      window.removeEventListener('online', goOnline);
+    };
+  }, []);
+
   const interactions = useMemo(() => checkInteractions(data.meds), [data.meds]);
 
   // CRUD wrappers that show toast confirmations.
@@ -610,7 +626,7 @@ function AppContent() {
         <OfflineBanner />
         {demoMode && <DemoBanner onExit={exitDemo} />}
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">
-          <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={openSearch} onSage={openSage} />
+          <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={openSearch} onSage={openSage} topBannerActive={needRefresh || demoMode || isOffline} />
           <main className="px-fluid-page">
             <ErrorBoundary resetKey={tab} onReset={() => { setNavHistory([]); onNav('dash'); }}>
               <Suspense fallback={<SkeletonList count={3} />}>
