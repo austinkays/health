@@ -31,6 +31,7 @@ import * as googleFitParser from '../../services/import_google_fit';
 import * as visibleParser from '../../services/import_visible';
 import { CURRENT_VERSION } from '../../constants/changelog';
 import WhatsNewModal from '../ui/WhatsNewModal';
+import UniversalImport from '../ui/UniversalImport';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
@@ -1780,25 +1781,19 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             className="flex items-center gap-1 text-xs text-salve-textMid hover:text-salve-lav transition-colors bg-transparent border-none cursor-pointer font-montserrat"
             aria-expanded={importsExpanded}
           >
-            {importsExpanded ? 'Collapse' : 'Show options'}
+            {importsExpanded ? 'Hide list' : 'Browse apps'}
             {importsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         }
       >Import Data</SectionTitle>
 
-      {!importsExpanded && (
-        <Card className="!py-3">
-          <button
-            onClick={() => setImportsExpanded(true)}
-            className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0"
-          >
-            <span className="text-ui-md text-salve-textMid font-montserrat">
-              Apple Health, MyChart, Visible, Bearable, Garmin, and 10 more
-            </span>
-            <ChevronDown size={14} className="text-salve-textFaint" />
-          </button>
-        </Card>
-      )}
+      <div className="mb-3">
+        <UniversalImport
+          data={data}
+          reloadData={reloadData}
+          onManualFallback={() => setImportsExpanded(true)}
+        />
+      </div>
 
       {importsExpanded && (
       <div className="space-y-2 mb-4">

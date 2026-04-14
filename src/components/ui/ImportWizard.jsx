@@ -30,7 +30,7 @@
  *   export async function parse(content, { onProgress }) { ... }
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
@@ -50,7 +50,7 @@ const TABLE_LABEL = {
 
 const TABLE_ORDER = ['vitals', 'activities', 'cycles', 'journal_entries', 'labs'];
 
-export default function ImportWizard({ parser, data, reloadData }) {
+export default function ImportWizard({ parser, data, reloadData, initialFile = null }) {
   const { META, detect, parse } = parser;
   const [stage, setStage] = useState('idle'); // idle, parsing, preview, importing, done, error
   const [progress, setProgress] = useState(0);
@@ -58,6 +58,18 @@ export default function ImportWizard({ parser, data, reloadData }) {
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
   const fileRef = useRef(null);
+
+  // Auto-trigger when a file is passed in (from the universal drop zone).
+  // handleFile is defined below; wait until after render so it's bound.
+  // Using a ref to track whether we've already triggered this file.
+  const triggeredRef = useRef(false);
+  useEffect(() => {
+    if (initialFile && !triggeredRef.current) {
+      triggeredRef.current = true;
+      handleFile(initialFile);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFile]);
 
   const reset = () => {
     setStage('idle');
