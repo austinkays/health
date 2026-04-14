@@ -35,3 +35,7 @@ salve_icon.png
 # Redundant local subdirectory (app lives at root)
 health/
 .vercel
+
+# Playwright — generated artifacts (not snapshots, those get committed)
+playwright-report/
+test-results/
