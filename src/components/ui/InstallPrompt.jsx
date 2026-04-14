@@ -19,7 +19,7 @@
 // before the sheet slides in — it shouldn't be the very first thing a
 // user sees on load.
 import { useEffect, useState } from 'react';
-import { Download, X, Share, Plus, MoreHorizontal } from 'lucide-react';
+import { Download, X, Share, Plus } from 'lucide-react';
 import { C } from '../../constants/colors';
 
 const INSTALL_DISMISSED_KEY = 'salve:install-dismissed';
@@ -233,7 +233,7 @@ export default function InstallPrompt({ preAuth = false }) {
                     style={{ background: `${C.lav}22`, color: C.lav }}
                   >2</span>
                   <span className="flex items-center gap-1.5">
-                    Scroll down and tap <MoreHorizontal size={14} className="inline" style={{ color: C.lav }} /> "View More" if you don't see it
+                    Scroll down and tap <Plus size={14} className="inline" style={{ color: C.lav }} /> "Add to Home Screen"
                   </span>
                 </div>
                 <div className="flex items-center gap-2.5 text-[13px] text-salve-textMid font-montserrat">
@@ -241,15 +241,6 @@ export default function InstallPrompt({ preAuth = false }) {
                     className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
                     style={{ background: `${C.lav}22`, color: C.lav }}
                   >3</span>
-                  <span className="flex items-center gap-1.5">
-                    Choose <Plus size={14} className="inline" style={{ color: C.lav }} /> "Add to Home Screen"
-                  </span>
-                </div>
-                <div className="flex items-center gap-2.5 text-[13px] text-salve-textMid font-montserrat">
-                  <span
-                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-[11px] font-semibold"
-                    style={{ background: `${C.lav}22`, color: C.lav }}
-                  >4</span>
                   <span>Tap "Add" in the top-right corner</span>
                 </div>
               </div>
