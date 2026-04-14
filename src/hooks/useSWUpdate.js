@@ -1,61 +1,80 @@
 // src/hooks/useSWUpdate.js
 //
-// Wraps vite-plugin-pwa's `useRegisterSW` with Salve-specific behavior:
+// PWA update orchestration. The short version:
 //
-//   1. Poll for SW updates every 60 minutes (so long-lived tabs still
-//      eventually notice a new deploy without requiring the user to
-//      close + reopen the app).
-//   2. Re-check on focus / visibility change so returning to a stale
-//      tab triggers an immediate update check.
-//   3. Expose `needRefresh`, `updateNow()`, and `dismissUpdate()` for
-//      the UpdateBanner component.
+// When a new service worker is waiting, we don't immediately show a
+// banner. Instead we wait for a "safe opportunity" and silently reload
+// the tab so the user returns to fresh code with zero UI friction.
 //
-// How updateNow() actually refreshes everything the user has cached:
-//   • virtual:pwa-register sends { type: 'SKIP_WAITING' } to the waiting
-//     Service Worker, which calls skipWaiting() and activates.
-//   • The new SW's activate handler (from Workbox) nukes the old
-//     precache — fresh HTML + CSS become the current SW's cache.
-//   • `updateServiceWorker(true)` then does window.location.reload()
-//     which fetches the new index.html from the fresh precache. That
-//     new HTML references the new content-hashed JS chunks (e.g.
-//     Dashboard-<newhash>.js), so the browser's HTTP cache misses and
-//     downloads them.
-//   • Encrypted localStorage cache (hc:cache) stays — it's a read-
-//     through data cache, not code — so we don't lose the user's data.
+// Safe opportunities, in order of preference:
 //
-// No stale JS, no stale HTML, no data loss. One tap.
-import { useEffect } from 'react';
+//   1. Tab becomes hidden (user tabs away, locks the phone, switches
+//      apps). Silent reload happens while they aren't looking. When
+//      they come back, they see the fresh app. This is the ~95% case.
+//
+//   2. Tab has been continuously visible + idle (no input / keydown /
+//      pointerdown / scroll) for 5 minutes AND no input / textarea /
+//      contenteditable has focus. Catches the rare "Dashboard left
+//      open all afternoon" case without interrupting active typing.
+//
+//   3. Fallback banner: if 12 hours have passed without ever finding a
+//      safe moment (pathological long session), we finally surface the
+//      in-app banner so the user at least knows there's an update
+//      waiting. They can tap it whenever they're ready.
+//
+// Why this matters: small fixes shipped throughout the day used to
+// trigger an "Update available" banner on every open tab, training
+// users to tap the same button over and over. The WhatsNewModal system
+// already handles meaningful-change communication via the changelog
+// file, so users never miss real news even when updates happen
+// silently — WhatsNewModal auto-shows on their next page load, which
+// is now automatic.
+//
+// Safety guards:
+//   • Skip reload while an input / textarea / contenteditable has focus
+//     (would lose unsaved form state — typing a journal entry, filling
+//     a medication form, etc.).
+//   • Hidden-tab reload is always safe (nothing is focused and the user
+//     isn't looking at the page).
+//   • Encrypted localStorage data cache (hc:cache) survives reloads, so
+//     the user's records are not affected.
+import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 
-const CHECK_INTERVAL_MS = 60 * 60 * 1000; // 60 minutes
+const UPDATE_POLL_MS = 60 * 60 * 1000;          // 60 min — poll for new SWs
+const IDLE_RELOAD_MS = 5 * 60 * 1000;           // 5 min of idle = safe to reload
+const FALLBACK_BANNER_MS = 12 * 60 * 60 * 1000; // 12 hr worst case → show banner
 
 export default function useSWUpdate() {
+  const [showBanner, setShowBanner] = useState(false);
+  const needRefreshAtRef = useRef(null);
+  const idleTimerRef = useRef(null);
+
   const {
-    needRefresh: [needRefresh, setNeedRefresh],
+    needRefresh: [needRefresh],
     updateServiceWorker,
   } = useRegisterSW({
     onRegisteredSW(_swUrl, registration) {
       if (!registration) return;
 
-      // Periodic update check while the tab is open.
+      // Periodic update check while the tab is open, so long-lived tabs
+      // notice new deploys without requiring a close+reopen.
       const interval = setInterval(() => {
-        // Only poll while the document is visible to avoid background
-        // network chatter (mobile data / battery).
         if (document.visibilityState === 'visible') {
           registration.update().catch(() => { /* offline is fine */ });
         }
-      }, CHECK_INTERVAL_MS);
+      }, UPDATE_POLL_MS);
 
-      // Refresh check whenever the tab regains focus.
+      // Re-check on visibility / focus so returning to a stale tab
+      // triggers an immediate update check.
       const onVisible = () => {
         if (document.visibilityState === 'visible') {
-          registration.update().catch(() => { /* offline is fine */ });
+          registration.update().catch(() => { /* */ });
         }
       };
       document.addEventListener('visibilitychange', onVisible);
       window.addEventListener('focus', onVisible);
 
-      // Store cleanup on the registration so HMR doesn't leak listeners.
       registration.__salveCleanup = () => {
         clearInterval(interval);
         document.removeEventListener('visibilitychange', onVisible);
@@ -63,14 +82,80 @@ export default function useSWUpdate() {
       };
     },
     onRegisterError(err) {
-      // Non-fatal — app still works without a SW, just no offline / no
-      // install prompt. Surface in console for debugging.
       // eslint-disable-next-line no-console
       console.warn('[sw] registration failed:', err);
     },
   });
 
-  // Safety: if HMR re-mounts the hook, run any prior cleanup.
+  // Record the moment we first notice an update so the 12-hour fallback
+  // deadline is honored even across re-renders of this effect.
+  useEffect(() => {
+    if (needRefresh && !needRefreshAtRef.current) {
+      needRefreshAtRef.current = Date.now();
+    }
+  }, [needRefresh]);
+
+  // Auto-update orchestration. Runs whenever there's a waiting SW.
+  useEffect(() => {
+    if (!needRefresh) return;
+
+    function hasFocusedInput() {
+      const el = document.activeElement;
+      if (!el) return false;
+      const tag = el.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (el.isContentEditable) return true;
+      return false;
+    }
+
+    function silentReload() {
+      // SKIP_WAITING + location.reload() from vite-plugin-pwa.
+      updateServiceWorker(true);
+    }
+
+    // ── Opportunity 1: tab becomes hidden ──
+    // Always safe — no focused input and the user isn't looking. The
+    // reload happens in the background; when they return, the fresh
+    // HTML loads and references the new content-hashed JS chunks.
+    function onVisibilityChange() {
+      if (document.visibilityState === 'hidden') {
+        silentReload();
+      }
+    }
+
+    // ── Opportunity 2: user idle for 5 min with no focused input ──
+    // Catches the "never tabs away" case. If a text field has focus we
+    // just wait — the next idle window will catch us.
+    function resetIdleTimer() {
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      idleTimerRef.current = setTimeout(() => {
+        if (!hasFocusedInput()) silentReload();
+      }, IDLE_RELOAD_MS);
+    }
+
+    // ── Opportunity 3: fallback banner after 12 hours ──
+    // Last-resort surfacing so users in a pathological single-session
+    // loop still get a way to grab the update manually.
+    const firstSeen = needRefreshAtRef.current || Date.now();
+    const elapsed = Date.now() - firstSeen;
+    const bannerDelay = Math.max(0, FALLBACK_BANNER_MS - elapsed);
+    const bannerTimer = setTimeout(() => setShowBanner(true), bannerDelay);
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    const idleEvents = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    idleEvents.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
+    resetIdleTimer();
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      idleEvents.forEach(e => window.removeEventListener(e, resetIdleTimer));
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+      clearTimeout(bannerTimer);
+    };
+  }, [needRefresh, updateServiceWorker]);
+
+  // HMR cleanup: re-mounting the hook shouldn't leak listeners from a
+  // prior registration.
   useEffect(() => {
     return () => {
       if (typeof navigator !== 'undefined' && navigator.serviceWorker) {
@@ -84,8 +169,18 @@ export default function useSWUpdate() {
   }, []);
 
   return {
-    needRefresh,
+    // The banner only surfaces in the exceptional 12+ hour stuck case.
+    // Small fixes silently reload on tab-hidden or idle — users never
+    // see a prompt. Bigger updates are communicated via WhatsNewModal
+    // on the next page load, which is now automatic.
+    needRefresh: showBanner,
     updateNow: () => updateServiceWorker(true),
-    dismissUpdate: () => setNeedRefresh(false),
+    dismissUpdate: () => {
+      setShowBanner(false);
+      // Intentionally NOT clearing needRefresh — if the user dismisses
+      // the banner, we still want silent auto-reload on their next
+      // safe window (tab away, go idle, etc.) so they don't stay
+      // stranded on old code.
+    },
   };
 }
