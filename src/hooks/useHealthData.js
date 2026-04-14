@@ -68,6 +68,12 @@ export default function useHealthData(session, demoMode = false) {
     }
 
     let cancelled = false;
+    // Flip back to loading when a real session arrives. Without this, a
+    // fresh-browser sign-in flow leaves `loading=false` from the no-session
+    // branch above, and App.jsx's onboarding guard sees dataLoading=false
+    // with still-empty data and pops the wizard — even on accounts that
+    // have plenty of data. See the onboarding effect in App.jsx.
+    setLoading(true);
 
     async function load() {
       // Ensure cache has the token for decryption
