@@ -1,6 +1,21 @@
-export const CURRENT_VERSION = '1.1.0-beta.2';
+export const CURRENT_VERSION = '1.2.0-beta.3';
 
 export const CHANGELOG = [
+  {
+    version: '1.2.0-beta.3',
+    date: '2026-04-13',
+    title: 'Live Tracking & Quality of Life',
+    items: [
+      'Live heart rate from Oura Ring (5-minute intraday chart)',
+      'Real-time data sync — vitals update instantly from any source',
+      'Every section now has its own URL for bookmarking and sharing',
+      'Browser back/forward buttons work naturally',
+      'Visible app import (ME/CFS pacing tracker)',
+      'Rich link previews when sharing on Reddit, Discord, and Twitter',
+      '404 page for unknown URLs',
+      'Database performance improvements for large datasets',
+    ],
+  },
   {
     version: '1.1.0-beta.2',
     date: '2026-04-09',

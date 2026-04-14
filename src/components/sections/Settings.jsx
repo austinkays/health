@@ -29,6 +29,8 @@ import * as garminParser from '../../services/import_garmin';
 import * as fitbitTakeoutParser from '../../services/import_fitbit_takeout';
 import * as googleFitParser from '../../services/import_google_fit';
 import * as visibleParser from '../../services/import_visible';
+import { CURRENT_VERSION } from '../../constants/changelog';
+import WhatsNewModal from '../ui/WhatsNewModal';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, getOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
@@ -305,6 +307,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   }, [userTier]);
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
+  const [showChangelog, setShowChangelog] = useState(false);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
 
   // Per-user opt-out for connection cards. Stored in localStorage (UI pref, not PHI).
@@ -2359,9 +2362,16 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <Sparkles size={14} className="text-salve-textFaint" />
             Re-run onboarding wizard
           </button>
+          <button
+            onClick={() => setShowChangelog(true)}
+            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav transition-colors"
+          >
+            <Star size={14} className="text-salve-textFaint" />
+            What's New
+          </button>
           <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
             <Info size={14} />
-            Salve v1.1.0
+            Salve v{CURRENT_VERSION}
           </div>
         </div>
       </Card>
@@ -2389,6 +2399,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           Personal health reference tool<br />Always consult your healthcare providers
         </p>
       </div>
+      {showChangelog && <WhatsNewModal onClose={() => setShowChangelog(false)} />}
     </div>
   );
 }
