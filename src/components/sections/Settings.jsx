@@ -308,6 +308,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [dataExpanded, setDataExpanded] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
   const [showChangelog, setShowChangelog] = useState(false);
+  const [importsExpanded, setImportsExpanded] = useState(false);
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
 
   // Per-user opt-out for connection cards. Stored in localStorage (UI pref, not PHI).
@@ -1278,8 +1279,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         <button onClick={() => onNav('insurance')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
       </div>
 
-      {/* ══════════════ 6. Connected Sources ══════════════ */}
-      <SectionTitle>Connected Sources</SectionTitle>
+      {/* ══════════════ 6. Connected Devices ══════════════ */}
+      <SectionTitle>Connected Devices</SectionTitle>
 
       <div className="space-y-2 mb-4">
         {/* ── Claude Health Sync (always first) ── */}
@@ -1769,6 +1770,39 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </HideableSource>
         )}
 
+      </div>
+
+      {/* ══════════════ 6b. Import Data ══════════════ */}
+      <SectionTitle
+        action={
+          <button
+            onClick={() => setImportsExpanded(v => !v)}
+            className="flex items-center gap-1 text-xs text-salve-textMid hover:text-salve-lav transition-colors bg-transparent border-none cursor-pointer font-montserrat"
+            aria-expanded={importsExpanded}
+          >
+            {importsExpanded ? 'Collapse' : 'Show options'}
+            {importsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          </button>
+        }
+      >Import Data</SectionTitle>
+
+      {!importsExpanded && (
+        <Card className="!py-3">
+          <button
+            onClick={() => setImportsExpanded(true)}
+            className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0"
+          >
+            <span className="text-ui-md text-salve-textMid font-montserrat">
+              Apple Health, MyChart, Visible, Bearable, Garmin, and 10 more
+            </span>
+            <ChevronDown size={14} className="text-salve-textFaint" />
+          </button>
+        </Card>
+      )}
+
+      {importsExpanded && (
+      <div className="space-y-2 mb-4">
+
         {/* ── Apple Health ── */}
         <HideableSource id="apple" label="Apple Health">
         <Card>
@@ -1968,6 +2002,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </div>
         )}
       </div>
+      )}
 
       {/* ══════════════ 7. Data & Privacy ══════════════ */}
       <SectionTitle
