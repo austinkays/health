@@ -105,7 +105,10 @@ health/
 │       ├── 037_cycles_add_bbt_mucus_types.sql # Add BBT and cervical mucus type values to cycles
 │       ├── 038_stripe_ids.sql                 # Add stripe_customer_id and stripe_subscription_id to profiles
 │       ├── 039_notification_log_rls.sql       # RLS policies for notification_log table
-│       └── 040_open_signup_beta_codes.sql     # Open signup (new users get free tier, no auto-premium). Repurposes beta invite codes as premium trial grants: claim_beta_invite() now sets tier='premium' + trial_expires_at=14 days
+│       ├── 040_open_signup_beta_codes.sql     # Open signup (new users get free tier, no auto-premium). Repurposes beta invite codes as premium trial grants: claim_beta_invite() now sets tier='premium' + trial_expires_at=14 days
+│       ├── 041_index_audit.sql                # Index audit pass
+│       ├── 042_admin_feedback_access.sql      # RLS policies so tier='admin' users can SELECT + UPDATE all feedback rows (not just their own). No DELETE for admins.
+│       └── 043_admin_stats_rpc.sql            # get_admin_stats() SECURITY DEFINER RPC: aggregates cross-user stats (DAU/WAU/MAU, 14-day DAU sparkline, section traffic, AI feature usage, API call volume + tokens by endpoint, signups, trial count, feedback summary) for the Admin page. Inline profiles.tier='admin' gate; non-admins get an exception. Powered by existing usage_events + api_usage + profiles + feedback tables. All time windows capped (7d/14d/30d) to stay cheap as tables grow.
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
