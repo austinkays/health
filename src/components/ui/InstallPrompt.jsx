@@ -166,9 +166,9 @@ export default function InstallPrompt({ preAuth = false }) {
         role="dialog"
         aria-label="Install Salve"
         aria-modal="true"
-        className="fixed left-0 right-0 bottom-0 z-[9999] px-4 pb-5 pt-2 md:left-1/2 md:right-auto md:bottom-6 md:max-w-[440px] md:-translate-x-1/2 md:px-0"
+        className="fixed left-1/2 bottom-0 z-[9999] w-full max-w-[440px] px-4 pb-5 pt-2 md:bottom-6 md:px-0"
         style={{
-          transform: entered ? 'translateY(0)' : 'translateY(100%)',
+          transform: entered ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(100%)',
           transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
           paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))',
         }}
