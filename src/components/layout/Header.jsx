@@ -105,13 +105,20 @@ const TAB_LABELS = {
   aboutme: 'About Me',
 };
 
-export default function Header({ tab, name, onBack, onSearch, onSage, action }) {
+export default function Header({ tab, name, onBack, onSearch, onSage, action, topBannerActive = false }) {
   const isDash = tab === 'dash';
   const isSearch = tab === 'search';
   const isSage = tab === 'ai';
 
+  // When a sticky banner (update/demo) is mounted above Header, that banner
+  // already absorbs the iOS safe-area-inset-top. Skip it here to avoid
+  // doubling the status-bar gap.
+  const topPadding = topBannerActive
+    ? 'pt-7'
+    : 'pt-[calc(env(safe-area-inset-top,0px)+1.75rem)]';
+
   return (
-    <header className="px-6 pt-[calc(env(safe-area-inset-top,0px)+1.75rem)] pb-5 relative md:pt-8 md:pb-6">
+    <header className={`px-6 ${topPadding} pb-5 relative md:pt-8 md:pb-6`}>
       <div className="flex items-center gap-2.5">
         {/* Back button: visible on mobile, hidden on md+ (sidebar provides nav context) */}
         {!isDash && (
