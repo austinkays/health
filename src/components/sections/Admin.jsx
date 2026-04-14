@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, Bug, Lightbulb, ChevronDown, RefreshCw, Shield } from 'lucide-react';
+import { MessageSquare, Bug, Lightbulb, ChevronDown, RefreshCw, Shield, Activity, Users, TrendingUp, Zap } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { isAdminActive } from '../../services/ai';
 import Card from '../ui/Card';
@@ -39,6 +39,290 @@ const STATUS_ACTIONS = [
 function formatDate(ts) {
   if (!ts) return '';
   return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatNum(n) {
+  if (n == null) return '—';
+  const num = Number(n);
+  if (!Number.isFinite(num)) return '—';
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + 'M';
+  if (num >= 10_000) return (num / 1000).toFixed(0) + 'k';
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
+  return num.toLocaleString();
+}
+
+// Short section/feature/endpoint labels for the top-N lists
+function prettyLabel(raw) {
+  if (!raw) return '(unknown)';
+  // /api/gemini → gemini, section keys → title-case
+  return String(raw)
+    .replace(/^\/?api\//, '')
+    .replace(/\.js$/, '')
+    .replace(/_/g, ' ');
+}
+
+function StatCard({ label, value, hint }) {
+  return (
+    <div className="rounded-lg border border-salve-border bg-salve-card2/40 p-3">
+      <div className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat mb-1">
+        {label}
+      </div>
+      <div className="text-xl font-semibold text-salve-text font-montserrat tabular-nums leading-none">
+        {value}
+      </div>
+      {hint && (
+        <div className="text-[11px] text-salve-textFaint font-montserrat mt-1.5">
+          {hint}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Tiny inline SVG bar chart for the 14-day DAU series. No Recharts
+// dependency — keeps this panel cheap.
+function DauSparkline({ series }) {
+  if (!Array.isArray(series) || series.length === 0) {
+    return <div className="text-[11px] text-salve-textFaint font-montserrat">No activity yet.</div>;
+  }
+  const max = Math.max(1, ...series.map(d => d.users || 0));
+  const W = 280;
+  const H = 48;
+  const gap = 3;
+  const barW = Math.max(1, (W - gap * (series.length - 1)) / series.length);
+  return (
+    <svg
+      viewBox={`0 0 ${W} ${H}`}
+      width="100%"
+      height={H}
+      role="img"
+      aria-label={`Daily active users, last ${series.length} days`}
+      className="block"
+    >
+      {series.map((d, i) => {
+        const h = Math.max(2, ((d.users || 0) / max) * (H - 4));
+        const x = i * (barW + gap);
+        const y = H - h;
+        return (
+          <rect
+            key={d.date || i}
+            x={x}
+            y={y}
+            width={barW}
+            height={h}
+            rx={1.5}
+            fill={C.lav}
+            opacity={d.users > 0 ? 0.85 : 0.2}
+          >
+            <title>{`${d.date}: ${d.users} ${d.users === 1 ? 'user' : 'users'}`}</title>
+          </rect>
+        );
+      })}
+    </svg>
+  );
+}
+
+function TopList({ items, labelKey, valueKey = 'count', emptyText, accent = C.lav, max = 8 }) {
+  if (!items || items.length === 0) {
+    return <div className="text-[11px] text-salve-textFaint font-montserrat">{emptyText}</div>;
+  }
+  const top = items.slice(0, max);
+  const peak = Math.max(1, ...top.map(i => i[valueKey] || 0));
+  return (
+    <div className="space-y-1.5">
+      {top.map((item, i) => {
+        const val = item[valueKey] || 0;
+        const pct = (val / peak) * 100;
+        return (
+          <div key={i} className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="text-[11px] text-salve-textMid font-montserrat truncate">
+                  {prettyLabel(item[labelKey])}
+                </span>
+                <span className="text-[11px] text-salve-textFaint font-montserrat tabular-nums shrink-0">
+                  {formatNum(val)}
+                </span>
+              </div>
+              <div className="h-1 rounded-full bg-salve-border/50 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, background: accent, opacity: 0.7 }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function StatsPanel() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError]     = useState(null);
+  const [stats, setStats]     = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error: rpcErr } = await supabase.rpc('get_admin_stats');
+      if (rpcErr) throw rpcErr;
+      setStats(data || null);
+    } catch (err) {
+      console.error('Failed to load admin stats:', err);
+      setError(err?.message || 'Failed to load stats');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const tierBreakdown = useMemo(() => {
+    const byTier = stats?.users_by_tier || {};
+    return Object.entries(byTier)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tier, n]) => `${n} ${tier}`)
+      .join(' · ');
+  }, [stats]);
+
+  return (
+    <Card>
+      <div className="flex items-center gap-2 mb-3">
+        <Activity size={14} className="text-salve-lav" />
+        <h3 className="text-[13px] font-semibold text-salve-text font-montserrat m-0">
+          Beta traffic & usage
+        </h3>
+        <button
+          onClick={load}
+          disabled={loading}
+          aria-label="Refresh stats"
+          className="ml-auto flex items-center gap-1 text-[11px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat disabled:opacity-50"
+        >
+          <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </div>
+
+      {error && (
+        <p className="text-[12px] text-salve-rose font-montserrat m-0 mb-2">{error}</p>
+      )}
+
+      {loading && !stats && (
+        <div className="text-[12px] text-salve-textFaint font-montserrat">Loading stats…</div>
+      )}
+
+      {stats && (
+        <div className="space-y-4">
+          {/* Headline stat grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <StatCard
+              label="Total users"
+              value={formatNum(stats.users_total)}
+              hint={tierBreakdown || '—'}
+            />
+            <StatCard
+              label="Active (24h)"
+              value={formatNum(stats.dau)}
+              hint={`${formatNum(stats.wau)} this week`}
+            />
+            <StatCard
+              label="Active (30d)"
+              value={formatNum(stats.mau)}
+              hint={`${formatNum(stats.events_last_30d)} events`}
+            />
+            <StatCard
+              label="New signups"
+              value={formatNum(stats.signups_last_7d)}
+              hint={`${formatNum(stats.signups_last_30d)} last 30d`}
+            />
+            <StatCard
+              label="On trial"
+              value={formatNum(stats.users_in_trial)}
+              hint="Premium trial active"
+            />
+            <StatCard
+              label="API calls (7d)"
+              value={formatNum(stats.api_calls_7d)}
+              hint={`${formatNum(stats.api_tokens_7d)} tokens`}
+            />
+            <StatCard
+              label="Feedback"
+              value={formatNum(stats.feedback_total)}
+              hint={`${formatNum(stats.feedback_unreviewed)} unreviewed`}
+            />
+            <StatCard
+              label="Events (7d)"
+              value={formatNum(stats.events_last_7d)}
+              hint="All tracked events"
+            />
+          </div>
+
+          {/* DAU sparkline */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <TrendingUp size={11} className="text-salve-textFaint" />
+              <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
+                Daily active users — last 14 days
+              </span>
+            </div>
+            <DauSparkline series={stats.dau_series_14d} />
+          </div>
+
+          {/* Two-column top lists */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Users size={11} className="text-salve-textFaint" />
+                <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
+                  Top sections (30d)
+                </span>
+              </div>
+              <TopList
+                items={stats.sections_30d}
+                labelKey="section"
+                emptyText="No section traffic yet."
+                accent={C.lav}
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap size={11} className="text-salve-textFaint" />
+                <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
+                  AI features used (30d)
+                </span>
+              </div>
+              <TopList
+                items={stats.ai_features_30d}
+                labelKey="feature"
+                emptyText="No AI features run yet."
+                accent={C.sage}
+              />
+            </div>
+          </div>
+
+          {/* API endpoint breakdown */}
+          <div>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Activity size={11} className="text-salve-textFaint" />
+              <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
+                API calls by endpoint (7d)
+              </span>
+            </div>
+            <TopList
+              items={stats.api_by_endpoint_7d}
+              labelKey="endpoint"
+              valueKey="calls"
+              emptyText="No API calls yet."
+              accent={C.amber}
+            />
+          </div>
+        </div>
+      )}
+    </Card>
+  );
 }
 
 export default function Admin({ data, onNav }) {
@@ -139,6 +423,8 @@ export default function Admin({ data, onNav }) {
 
   return (
     <div className="space-y-4">
+      <StatsPanel />
+
       <div className="flex items-center gap-2 mt-1">
         <Shield size={14} className="text-salve-lav" />
         <p className="text-sm text-salve-textFaint font-montserrat m-0">
