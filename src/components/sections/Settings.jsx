@@ -97,11 +97,11 @@ function CopyButton({ text, label, copiedLabel = 'Copied!', ariaLabel }) {
 }
 
 /* ── ThemeTile ───────────────────────────────────────────────────────────────
-   A theme card uses the theme's own bg as its surface, an orb showing the
-   accent gradient, the name, and a light/dark indicator. Premium themes
-   show a soft "Premium" pill in the top-right. Active gets a lav ring.
+   Compact theme card: theme's own bg, small accent-gradient orb, name with
+   optional ✦ sparkle for signature (experimental) themes, light/dark label.
+   Active tile gets a lav ring.
 ──────────────────────────────────────────────────────────────────────────── */
-function ThemeTile({ theme, isActive, isLocked, onSelect }) {
+function ThemeTile({ theme, isActive, isSignature, onSelect }) {
   const c = theme.colors;
   const grad = theme.gradient && theme.gradient.length === 3
     ? `linear-gradient(135deg, ${c[theme.gradient[0]]}, ${c[theme.gradient[1]]}, ${c[theme.gradient[2]]})`
@@ -109,24 +109,20 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
   return (
     <button
       onClick={() => onSelect(theme.id)}
-      aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isLocked ? ', premium' : ''}`}
+      aria-label={`${theme.label} theme${theme.type === 'light' ? ' (light)' : ' (dark)'}${isSignature ? ', signature' : ''}`}
       aria-pressed={isActive}
       style={{ backgroundColor: c.bg, borderColor: isActive ? undefined : c.border }}
-      className={`relative px-2 py-2.5 rounded-xl border transition-all font-montserrat text-center cursor-pointer hover:brightness-105 ${
+      className={`relative px-1.5 py-2 rounded-xl border transition-all font-montserrat text-center cursor-pointer hover:brightness-105 ${
         isActive ? 'ring-2 ring-salve-lav border-transparent' : ''
       }`}
     >
-      {isLocked && (
-        <span className="absolute top-1 right-1 bg-salve-lav/15 text-salve-lav rounded-full px-1.5 py-0.5 text-[8px] font-medium leading-none">
-          Premium
-        </span>
-      )}
       <span
         aria-hidden="true"
-        className="block w-[30px] h-[30px] rounded-full mx-auto mb-1.5 shadow-sm"
-        style={{ background: grad, boxShadow: `0 1px 2px ${c.border2}, 0 3px 8px ${c.border}` }}
+        className="block w-[22px] h-[22px] rounded-full mx-auto mb-1 shadow-sm"
+        style={{ background: grad, boxShadow: `0 1px 2px ${c.border2}, 0 2px 6px ${c.border}` }}
       />
-      <span className="text-ui-base font-medium block leading-tight" style={{ color: c.text }}>
+      <span className="text-ui-sm font-medium block leading-tight" style={{ color: c.text }}>
+        {isSignature && <span className="text-[9px] opacity-70" style={{ color: c.lav }}>✦ </span>}
         {theme.label}
       </span>
       <span className="text-ui-xs block mt-0.5" style={{ color: c.textFaint }}>
@@ -137,19 +133,19 @@ function ThemeTile({ theme, isActive, isLocked, onSelect }) {
 }
 
 /* ── ThemeSelector ───────────────────────────────────────────────────────────
-   Core themes in a 3-col grid (always — no md:6 jump). Premium themes inside
-   a <details> accordion. Free users can preview live; selection isn't saved
-   for premium themes. Footer line + upgrade link shown to non-premium.
+   All 15 themes in a flat 4-col grid (lights first, then darks, alphabetical
+   within each group). Signature (experimental) themes self-identify via a
+   subtle ✦ sparkle on the tile — no accordion, no hidden section.
+   Free users can preview signature themes live; selection isn't persisted.
 ──────────────────────────────────────────────────────────────────────────── */
 function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, userTier, onUpgrade }) {
-  const core = Object.values(allThemes).filter(t => !t.experimental)
-    .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
-  const experimental = Object.values(allThemes).filter(t => t.experimental)
-    .sort((a, b) => (a.type === 'light' ? 0 : 1) - (b.type === 'light' ? 0 : 1));
+  const all = Object.values(allThemes).sort((a, b) => {
+    // lights before darks, then alphabetical within each group
+    if (a.type !== b.type) return a.type === 'light' ? -1 : 1;
+    return a.label.localeCompare(b.label);
+  });
   const canSavePremium = userTier === 'premium' || userTier === 'admin';
 
-  // Auto-save on click. Free users previewing premium themes get the live
-  // theme applied to the DOM but the selection isn't persisted.
   const handleSelect = (id) => {
     const isExperimental = !!allThemes[id]?.experimental;
     if (isExperimental && !canSavePremium) {
@@ -159,7 +155,7 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
     }
   };
 
-  // When a free user leaves Settings while previewing a premium theme, revert.
+  // When a free user leaves Settings while previewing a signature theme, revert.
   const cleanupRef = useRef(null);
   const isPreviewingPremium = !canSavePremium && allThemes[themeId]?.experimental;
   cleanupRef.current = { isPreviewingPremium, revertTheme };
@@ -172,45 +168,22 @@ function ThemeSelector({ allThemes, themeId, setTheme, saveTheme, revertTheme, u
 
   return (
     <div>
-      {/* Core themes — always 3-col */}
-      <div className="grid grid-cols-3 gap-2">
-        {core.map(t => (
+      <div className="grid grid-cols-4 gap-1.5">
+        {all.map(t => (
           <ThemeTile
             key={t.id}
             theme={t}
             isActive={themeId === t.id}
-            isLocked={false}
+            isSignature={!!t.experimental}
             onSelect={handleSelect}
           />
         ))}
       </div>
 
-      {/* Premium themes accordion */}
-      {experimental.length > 0 && (
-        <details className="mt-4 group">
-          <summary className="flex items-center gap-1.5 text-ui-base text-salve-lav font-montserrat cursor-pointer select-none list-none px-1 py-1.5 hover:text-salve-text transition-colors">
-            <Sparkles size={12} className="text-salve-lav" aria-hidden="true" />
-            <span>Premium themes</span>
-            <ChevronDown size={14} className="text-salve-lav ml-auto group-open:rotate-180 transition-transform" aria-hidden="true" />
-          </summary>
-          <div className="grid grid-cols-3 gap-2 mt-2.5">
-            {experimental.map(t => (
-              <ThemeTile
-                key={t.id}
-                theme={t}
-                isActive={themeId === t.id}
-                isLocked={!canSavePremium}
-                onSelect={handleSelect}
-              />
-            ))}
-          </div>
-        </details>
-      )}
-
-      {/* Footer for non-premium users — wraps naturally, no em dashes */}
+      {/* Footer for non-premium users */}
       {!canSavePremium && (
         <p className="mt-3 text-ui-sm text-salve-textFaint font-montserrat leading-relaxed px-1">
-          Preview only. Themes reset on reload.
+          ✦ themes are preview only and reset on reload.
           {BILLING_ENABLED && (
             <>
               {' '}
