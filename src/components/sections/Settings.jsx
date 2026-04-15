@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -29,6 +29,8 @@ import * as garminParser from '../../services/import_garmin';
 import * as fitbitTakeoutParser from '../../services/import_fitbit_takeout';
 import * as googleFitParser from '../../services/import_google_fit';
 import * as visibleParser from '../../services/import_visible';
+import * as prometheaseParser from '../../services/import_promethease';
+import * as twentyThreeMeParser from '../../services/import_23andme';
 import { CURRENT_VERSION } from '../../constants/changelog';
 import WhatsNewModal from '../ui/WhatsNewModal';
 import UniversalImport from '../ui/UniversalImport';
@@ -881,6 +883,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     { parser: garminParser,        Icon: Compass,     tint: 'sage', subtitle: 'Workouts, wellness, and sleep (ZIP)' },
     { parser: fitbitTakeoutParser, Icon: Watch,       tint: 'sage', subtitle: 'Offline alternative to the Fitbit OAuth sync (ZIP)' },
     { parser: googleFitParser,     Icon: Activity,    tint: 'sage', subtitle: 'Steps, HR, and weight from Google Takeout (ZIP)' },
+    { parser: prometheaseParser,   Icon: Dna,         tint: 'lav',  subtitle: 'Pharmacogenomic SNP analysis (JSON)' },
+    { parser: twentyThreeMeParser, Icon: Dna,         tint: 'lav',  subtitle: 'Raw DNA data — PGx variants only (TXT)' },
   ];
 
   // Wrapper that hides a connection card when the user has dismissed it,

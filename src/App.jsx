@@ -17,7 +17,7 @@ import OfflineBanner from './components/ui/OfflineBanner';
 import SkeletonList from './components/ui/SkeletonCard';
 import { ToastProvider, useToast } from './components/ui/Toast';
 import { ThemeProvider, useTheme } from './hooks/useTheme';
-import SagePopup from './components/ui/SagePopup';
+const SagePopup = lazyWithRetry(() => import('./components/ui/SagePopup'));
 const SageIntroChat = lazyWithRetry(() => import('./components/ui/SageIntro'));
 import WhatsNewModal, { hasUnseenChanges } from './components/ui/WhatsNewModal';
 import OnboardingWizard, { hasCompletedOnboarding, markOnboardingComplete } from './components/ui/OnboardingWizard';
@@ -685,12 +685,14 @@ function AppContent() {
         </div>
       </div>
       {sageOpen && (
-        <SagePopup
-          open={sageOpen}
-          onClose={closeSage}
-          onOpenFullChat={() => onNav('ai')}
-          data={data}
-        />
+        <Suspense fallback={null}>
+          <SagePopup
+            open={sageOpen}
+            onClose={closeSage}
+            onOpenFullChat={() => onNav('ai')}
+            data={data}
+          />
+        </Suspense>
       )}
       {sageIntroOpen && (
         <Suspense fallback={null}>

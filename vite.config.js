@@ -6,6 +6,10 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 export default defineConfig({
   build: {
     sourcemap: true, // Required for Sentry sourcemap upload
+    // pdfjs-dist worker is ~1.2 MB and is already lazy-loaded in FormHelper
+    // (only downloaded when user selects a PDF in Scribe). Raise the limit
+    // above that so it doesn't cause noise in CI / Vercel build output.
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -14,6 +18,12 @@ export default defineConfig({
           'vendor-supabase': ['@supabase/supabase-js'],
           'vendor-icons': ['lucide-react'],
           'vendor-recharts': ['recharts'],
+          // Sentry SDK (~150 kB) — eagerly initialised but rarely changes,
+          // so give it its own long-lived cache chunk.
+          'vendor-sentry': ['@sentry/react'],
+          // Markdown renderer — pulled in by AIMarkdown which SagePopup uses.
+          // Isolated here so it can be cached independently of the main bundle.
+          'vendor-markdown': ['react-markdown', 'remark-gfm'],
         },
       },
     },

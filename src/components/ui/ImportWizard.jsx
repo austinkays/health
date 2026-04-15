@@ -46,9 +46,10 @@ const TABLE_LABEL = {
   cycles:          'Cycle & period entries',
   journal_entries: 'Journal entries',
   labs:            'Lab results',
+  genetic_results: 'Pharmacogenomic results',
 };
 
-const TABLE_ORDER = ['vitals', 'activities', 'cycles', 'journal_entries', 'labs'];
+const TABLE_ORDER = ['vitals', 'activities', 'cycles', 'journal_entries', 'labs', 'genetic_results'];
 
 export default function ImportWizard({ parser, data, reloadData, initialFile = null }) {
   const { META, detect, parse } = parser;

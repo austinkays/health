@@ -260,6 +260,7 @@ export const DEDUP_KEYS = {
   cycles:          (r) => `${r.date}|${r.type}|${r.value || ''}|${r.symptom || ''}`,
   journal_entries: (r) => `${r.date}|${(r.title || '').slice(0, 40)}|${(r.content || '').slice(0, 60)}`,
   labs:            (r) => `${r.date}|${r.test_name}|${r.result}`,
+  genetic_results: (r) => `${r.gene}|${r.variant}|${r.source || ''}`,
 };
 
 /** Read a File as text (UTF-8). Returns a promise. */
