@@ -2450,14 +2450,28 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </button>
           <button
             onClick={() => setShowChangelog(true)}
-            className="flex items-center gap-2.5 text-sm text-salve-text font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav transition-colors"
+            className="w-full rounded-xl border border-salve-lav/20 bg-salve-lav/6 px-3.5 py-3 text-left transition-colors hover:border-salve-lav/35 hover:bg-salve-lav/10"
           >
-            <Star size={14} className="text-salve-textFaint" />
-            What's New
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-salve-lav/12 text-salve-lav">
+                  <Star size={14} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-salve-text font-montserrat">What&apos;s New</div>
+                  <div className="mt-0.5 text-[13px] leading-relaxed text-salve-textFaint font-montserrat">
+                    See the latest update and older release notes whenever you want.
+                  </div>
+                </div>
+              </div>
+              <span className="rounded-full bg-salve-card px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-salve-textFaint font-montserrat whitespace-nowrap">
+                v{CURRENT_VERSION}
+              </span>
+            </div>
           </button>
           <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
             <Info size={14} />
-            Salve v{CURRENT_VERSION}
+            Auto-opens only when you change the active update notice.
           </div>
         </div>
       </Card>

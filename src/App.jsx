@@ -191,7 +191,9 @@ function AppContent() {
   const { data, loading: dataLoading, addItem, updateItem, removeItem, updateSettings, eraseAll, reloadData } = useHealthData(demoMode ? null : session, demoMode);
   const insightRatings = useInsightRatings(session);
 
-  // Show What's New modal on first load if version changed
+  // Show What's New on first load only when the current announcement id changes.
+  // This is intentionally separate from ordinary deploys so routine pushes do
+  // not auto-popup people unless we mean to announce something.
   useEffect(() => {
     if (!authLoading && (session || demoMode) && hasUnseenChanges()) {
       setShowWhatsNew(true);
