@@ -1092,6 +1092,43 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </button>
       </div>
 
+      {/* Sage Memory */}
+      {(isPremiumActive() || isAdminActive()) && (
+        <Card>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={14} className="text-salve-lav" aria-hidden="true" />
+            <span className="text-sm text-salve-text font-medium font-montserrat">Sage Memory</span>
+          </div>
+          <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
+            Sage remembers facts and preferences from your conversations to personalize future chats.
+          </p>
+          {data?.settings?.sage_memory ? (
+            <>
+              <textarea
+                readOnly
+                value={data.settings.sage_memory}
+                rows={Math.min(8, data.settings.sage_memory.split('\n').length + 1)}
+                className="w-full bg-salve-bg/60 border border-salve-border rounded-lg px-3 py-2 text-[13px] text-salve-textMid font-montserrat resize-none mb-2"
+              />
+              <button
+                onClick={() => {
+                  if (window.confirm('Clear all of Sage\'s memories? This cannot be undone.')) {
+                    updateSettings({ sage_memory: '' });
+                  }
+                }}
+                className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+              >
+                Clear memory
+              </button>
+            </>
+          ) : (
+            <p className="text-[13px] text-salve-textFaint font-montserrat italic">
+              No memories yet — Sage will learn as you chat.
+            </p>
+          )}
+        </Card>
+      )}
+
       {/* ══════════════ 4. Premium ══════════════ */}
       <SectionTitle>Premium</SectionTitle>
       <Card>

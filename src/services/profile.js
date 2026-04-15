@@ -124,6 +124,9 @@ export function buildProfile(data) {
   if (s.name) p += 'Patient name: ' + san(s.name) + '\n';
   if (s.location) p += 'Location: ' + san(s.location) + '\n';
 
+  // Sage Memory — persistent facts/preferences extracted from past conversations
+  if (s.sage_memory) p += '\n══ SAGE MEMORY ══\nThese are facts and preferences you learned from past conversations with this user. Reference them naturally when relevant:\n' + san(s.sage_memory, 2000) + '\n';
+
   // About Me, personal context for form filling and AI
   const about = s.about_me || {};
   const aboutEntries = Object.entries(about).filter(([, v]) => v && String(v).trim());

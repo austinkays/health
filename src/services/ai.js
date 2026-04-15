@@ -1,6 +1,7 @@
 import { getAuthToken } from './token';
 import { HEALTH_TOOLS } from '../constants/tools';
 import { trackEvent, EVENTS } from './analytics';
+import { db } from './db';
 
 // ── AI Provider + Model Routing ──
 
@@ -569,6 +570,49 @@ export async function fetchCorrelationNarrative(insights, profileText) {
     return JSON.parse(jsonMatch[0]);
   } catch {
     return null;
+  }
+}
+
+/* ── Sage Memory: extract facts from conversations ────── */
+
+export async function extractMemoryUpdate(messages, existingMemory = '') {
+  if (!_premiumActive && !_adminActive) return;
+  const userMsgs = messages.filter(m => m.role === 'user');
+  if (userMsgs.length < 2) return;
+
+  // Build a condensed transcript of the conversation (last 20 messages)
+  const recent = messages.slice(-20);
+  const transcript = recent.map(m => `${m.role === 'user' ? 'User' : 'Sage'}: ${typeof m.content === 'string' ? m.content.slice(0, 500) : ''}`).join('\n');
+
+  const prompt = existingMemory
+    ? `Existing memory:\n${existingMemory}\n\nConversation:\n${transcript}`
+    : `Conversation:\n${transcript}`;
+
+  try {
+    const raw = await callAPI(
+      [{ role: 'user', content: prompt }],
+      'sageMemory', '',    // no profile needed for memory extraction
+      300, false, 'insight' // Lite tier, keep cheap
+    );
+    if (!raw) return;
+    const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
+    if (!cleaned || cleaned === 'NONE' || cleaned.length < 5) return;
+
+    // Merge new bullets with existing memory, cap at 2000 chars
+    let merged = existingMemory
+      ? existingMemory.trim() + '\n' + cleaned
+      : cleaned;
+    if (merged.length > 2000) {
+      // Keep most recent lines, trim from top
+      const lines = merged.split('\n').filter(l => l.trim());
+      while (lines.join('\n').length > 2000 && lines.length > 1) lines.shift();
+      merged = lines.join('\n');
+    }
+
+    await db.profile.update({ sage_memory: merged });
+  } catch (e) {
+    // Fire-and-forget — don't disrupt UX
+    console.warn('[sage-memory] extraction failed:', e.message);
   }
 }
 

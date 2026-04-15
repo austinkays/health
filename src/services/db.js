@@ -324,7 +324,7 @@ export const db = {
       await supabase.from('profiles').update({
         name: '', location: '', pharmacy: '',
         insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '',
-        health_background: '', ai_mode: 'onDemand',
+        health_background: '', ai_mode: 'onDemand', sage_memory: '',
       }).eq('id', uid);
     } catch (err) {
       errors.push({ table: 'profiles', error: err.message });

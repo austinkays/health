@@ -9,7 +9,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchMonthlySummary, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage, getConversationCap } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchMonthlySummary, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage, getConversationCap, extractMemoryUpdate } from '../../services/ai';
 import { BILLING_ENABLED } from '../../services/billing';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
@@ -1166,6 +1166,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   };
 
   const startNewChat = () => {
+    // Fire-and-forget memory extraction from the conversation being closed
+    const userMsgCount = chatMessages.filter(m => m.role === 'user').length;
+    if (userMsgCount >= 2) {
+      extractMemoryUpdate(chatMessages, data?.settings?.sage_memory).catch(() => {});
+    }
     setChatMessages([]);
     setConversationId(null);
     setChatInput('');
