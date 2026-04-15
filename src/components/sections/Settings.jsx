@@ -1026,11 +1026,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 {/* What you'll receive */}
                 {pushEnabled && !demoMode && (
                   <div className="mt-2 mb-1">
-                    <p className="text-xs text-salve-textFaint font-montserrat mb-1.5">What you\u2019ll receive:</p>
+                    <p className="text-xs text-salve-textFaint font-montserrat mb-1.5">What you'll receive:</p>
                     <ul className="text-xs text-salve-textMid font-montserrat space-y-0.5 pl-4 list-disc">
                       <li>Medication reminders at your scheduled times</li>
                       <li>Appointment reminders the day before</li>
-                      <li>Refill alerts 3 days before they\u2019re due</li>
+                      <li>Refill alerts 3 days before they're due</li>
                       <li>Overdue to-do nudges</li>
                     </ul>
                     <button
