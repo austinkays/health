@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import {
   Wind, ChevronDown, Plus, Loader, MapPin,
-  TrendingUp, TrendingDown, Minus,
+  TrendingUp, TrendingDown, Minus, Zap,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts';
 import Card from './Card';
-import { fmtDate } from '../../utils/dates';
-import { fetchBarometricData } from '../../services/barometric';
+import { fmtDate, todayISO } from '../../utils/dates';
+import { fetchBarometricData, BARO_SCIENCE } from '../../services/barometric';
 import { C } from '../../constants/colors';
 
 /* ── Trend config ──────────────────────────────────────────── */
@@ -19,65 +19,40 @@ const TREND = {
     Icon: TrendingUp,
     label: 'Rising',
     color: () => C.amber,
-    tip: 'Pressure is rising — usually signals improving weather. Many people feel better on rising-pressure days.',
+    tip: 'Pressure is rising, usually signaling improving weather. Many people feel better on rising-pressure days.',
   },
   falling: {
     Icon: TrendingDown,
     label: 'Falling',
     color: () => C.rose,
-    tip: 'Pressure is dropping — commonly linked to increased joint pain, migraines, and autonomic symptoms. Today may be a good day to rest.',
+    tip: 'Pressure is dropping. This is commonly linked to increased joint pain, migraines, and autonomic symptoms. Today may be a good day to rest.',
   },
   stable: {
     Icon: Minus,
     label: 'Stable',
     color: () => C.sage,
-    tip: 'Pressure is stable — typically a more predictable day for pressure-sensitive conditions.',
+    tip: 'Pressure is stable, typically a more predictable day for pressure-sensitive conditions.',
   },
 };
 
-/* ── Scientific explanations ───────────────────────────────── */
-
-const SCIENCE = [
-  {
-    condition: 'Arthritis & Joint Pain',
-    detail:
-      'When atmospheric pressure drops, the tissues surrounding joints expand slightly, compressing nerve endings and synovial fluid. Studies show even a 1 hPa decrease correlates with increased pain ratings in osteoarthritis and rheumatoid arthritis. Rapid drops of 5+ hPa over 24 hours are especially impactful.',
-  },
-  {
-    condition: 'Fibromyalgia',
-    detail:
-      'Central sensitization in fibromyalgia amplifies the nervous system\'s response to environmental stimuli. Falling pressure activates baroreceptors and peripheral pain receptors more strongly, which can worsen widespread pain, fatigue, and cognitive symptoms ("fibro fog").',
-  },
-  {
-    condition: 'Migraines & Headaches',
-    detail:
-      'Rapid pressure changes — particularly drops — are one of the most consistently reported migraine triggers. The mechanism involves changes in cerebrospinal fluid pressure, trigeminal nerve activation, and altered serotonin metabolism. Effects often appear 12–24 hours after the pressure change.',
-  },
-  {
-    condition: 'POTS & Dysautonomia',
-    detail:
-      'Atmospheric pressure provides passive external compression on blood vessels, assisting venous return to the heart. When pressure drops, the autonomic nervous system must compensate harder to maintain blood pressure during position changes, worsening orthostatic intolerance and tachycardia.',
-  },
-  {
-    condition: 'ME/CFS',
-    detail:
-      'Many people with ME/CFS report that weather pressure changes can trigger post-exertional malaise and worsen cognitive symptoms. The mechanism likely involves autonomic dysregulation and immune system changes that are not yet fully understood.',
-  },
-];
+/* ── Scientific explanations come from services/barometric.js as BARO_SCIENCE ── */
 
 /* ── Component ─────────────────────────────────────────────── */
 
 /**
  * @param {Object} props
- * @param {string}   props.locationStr  - User profile location (e.g. "Chicago, IL")
- * @param {Function} props.onLogPressure - Called with a partial vital object to pre-fill the log form
+ * @param {string}   props.locationStr      - User profile location (e.g. "Chicago, IL")
+ * @param {Function} props.onLogPressure    - Called with a partial vital object to pre-fill the log form
+ * @param {Function} props.onAutoLogPressure - Called with a complete vital object to save directly (auto-log)
  */
-export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
+export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPressure, onNav }) {
   const [baro, setBaro] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sciOpen, setSciOpen] = useState(false);
   const [logged, setLogged] = useState(false);
+  const [autoLog, setAutoLog] = useState(() => localStorage.getItem('salve:baro-autolog') === 'true');
+  const [autoLogged, setAutoLogged] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,6 +76,29 @@ export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
 
     return () => { cancelled = true; };
   }, [locationStr]);
+
+  // Auto-log: fires when baro arrives or autoLog is toggled
+  useEffect(() => {
+    if (!autoLog || !baro?.current || !onAutoLogPressure) return;
+    const today = todayISO();
+    if (localStorage.getItem('salve:baro-autolog-date') === today) return;
+    const t = TREND[baro.trend] ?? TREND.stable;
+    onAutoLogPressure({
+      type: 'pressure',
+      value: String(baro.current),
+      unit: 'hPa',
+      notes: `Auto-logged: ${t.label}${baro.change24h != null ? ` (${baro.change24h > 0 ? '+' : ''}${baro.change24h} hPa vs 24h ago)` : ''}`,
+    });
+    localStorage.setItem('salve:baro-autolog-date', today);
+    setAutoLogged(true);
+  }, [autoLog, baro, onAutoLogPressure]);
+
+  const toggleAutoLog = () => {
+    const next = !autoLog;
+    setAutoLog(next);
+    localStorage.setItem('salve:baro-autolog', String(next));
+    if (!next) setAutoLogged(false);
+  };
 
   /* ── Loading skeleton ──────────────────────────────────────── */
   if (loading) {
@@ -164,7 +162,8 @@ export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
       type: 'pressure',
       value: String(baro.current),
       unit: 'hPa',
-      notes: `Logged from weather data — ${t.label}${baro.change24h != null ? ` (${baro.change24h > 0 ? '+' : ''}${baro.change24h} hPa vs 24h ago)` : ''}`,
+      notes: `Logged from weather data: ${t.label}${baro.change24h != null ? ` (${baro.change24h > 0 ? '+' : ''}${baro.change24h} hPa vs 24h ago)` : ''}`,
+
     });
     setLogged(true);
   };
@@ -309,6 +308,21 @@ export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
         </button>
 
         <button
+          onClick={toggleAutoLog}
+          aria-pressed={autoLog}
+          aria-label={autoLog ? 'Disable daily auto-log' : 'Enable daily auto-log to vitals'}
+          className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-[12px] font-medium font-montserrat border transition-colors cursor-pointer"
+          style={
+            autoLog
+              ? { borderColor: C.sage, color: C.sage, background: `${C.sage}15` }
+              : { borderColor: C.border, color: C.textFaint, background: 'transparent' }
+          }
+        >
+          <Zap size={12} aria-hidden="true" />
+          {autoLogged ? 'Auto-logged ✓' : autoLog ? 'Auto-log on' : 'Auto-log daily'}
+        </button>
+
+        <button
           onClick={() => setSciOpen(o => !o)}
           aria-expanded={sciOpen}
           aria-label={sciOpen ? 'Hide why this matters' : 'Show why this matters'}
@@ -328,16 +342,16 @@ export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
       {sciOpen && (
         <div className="mt-4 border-t border-salve-border/40 pt-4 space-y-3">
           <p
-            className="text-[12px] font-montserrat leading-relaxed"
+            className="text-[13px] font-montserrat leading-relaxed"
             style={{ color: C.textFaint }}
           >
             Barometric (atmospheric) pressure is the weight of the air column above us, measured in hPa.
-            Normal sea-level pressure is around 1013 hPa. Rapid drops — especially{' '}
-            <strong style={{ color: C.textMid }}>5+ hPa over 24 hours</strong> — are most
+            Normal sea-level pressure is around 1013 hPa. Rapid drops, especially{' '}
+            <strong style={{ color: C.textMid }}>5+ hPa over 24 hours</strong>, are most
             commonly linked to symptom flares in pressure-sensitive conditions:
           </p>
 
-          {SCIENCE.map(({ condition, detail }) => (
+          {BARO_SCIENCE.map(({ condition, detail }) => (
             <div
               key={condition}
               className="rounded-xl p-3"
@@ -347,13 +361,13 @@ export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
               }}
             >
               <div
-                className="text-[12px] font-semibold font-montserrat mb-0.5"
+                className="text-[13px] font-semibold font-montserrat mb-0.5"
                 style={{ color: C.textMid }}
               >
                 {condition}
               </div>
               <div
-                className="text-[12px] font-montserrat leading-relaxed"
+                className="text-[13px] font-montserrat leading-relaxed"
                 style={{ color: C.textFaint }}
               >
                 {detail}
@@ -362,12 +376,12 @@ export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
           ))}
 
           <p
-            className="text-[11px] font-montserrat italic"
+            className="text-[12px] font-montserrat italic"
             style={{ color: C.textFaint, opacity: 0.7 }}
           >
             Tracking pressure alongside your pain and mood vitals can reveal personal patterns.
-            Most people experience effects within 12–48 hours of a significant pressure change.
-            This data is for personal awareness only — always discuss symptom patterns with your
+            Most people experience effects within 12 to 48 hours of a significant pressure change.
+            This data is for personal awareness only. Always discuss symptom patterns with your
             healthcare provider.
           </p>
         </div>

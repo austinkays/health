@@ -10,7 +10,7 @@ import {
   PenLine, UserCircle, Newspaper, Flame, ArrowLeftRight, Clock,
   Wind, TrendingDown, Minus,
 } from 'lucide-react';
-import { readCachedBarometric } from '../../services/barometric';
+import { readCachedBarometric, PRESSURE_SENSITIVE } from '../../services/barometric';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -105,6 +105,7 @@ function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnorma
 const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
 const SEEN_RESOURCES_KEY = 'salve:seen-resources';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
+const BARO_ALERT_DISMISS_KEY = 'salve:baro-alert-dismissed';
 
 // dismissBehavior:
 //   'auto'     , hidden by data check (no dismiss needed); snoozes 7d if dismissed before data exists
@@ -884,7 +885,47 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, []);
 
-  /* Today chips, compact at-a-glance strip above search */
+  /* Barometric pressure advisory — only for pressure-sensitive users on significant changes */
+  const [baroAlertDismissed, setBaroAlertDismissed] = useState(() => {
+    try {
+      const raw = localStorage.getItem(BARO_ALERT_DISMISS_KEY);
+      return raw === localISODate();
+    } catch { return false; }
+  });
+  const dismissBaroAlert = useCallback(() => {
+    localStorage.setItem(BARO_ALERT_DISMISS_KEY, localISODate());
+    setBaroAlertDismissed(true);
+  }, []);
+  const baroAlert = useMemo(() => {
+    if (!baroChip || baroAlertDismissed) return null;
+    const change24h = baroChip.change24h ?? 0;
+    const change3h = baroChip.change3h ?? 0;
+    if (Math.abs(change24h) < 5 && Math.abs(change3h) < 3) return null;
+    const userConds = (data.conditions || []).map(c => c.name?.toLowerCase() || '');
+    const matchedConditions = (data.conditions || [])
+      .filter(c => PRESSURE_SENSITIVE.some(ps => c.name?.toLowerCase().includes(ps)))
+      .map(c => c.name);
+    if (matchedConditions.length === 0) return null;
+    const direction = change24h < 0 || change3h < -1 ? 'falling' : 'rising';
+    const magLabel = Math.abs(change24h) >= 1
+      ? `${Math.abs(change24h).toFixed(1)} hPa in 24h`
+      : `${Math.abs(change3h).toFixed(1)} hPa in 3h`;
+    const tips = direction === 'falling' ? [
+      'Stay well-hydrated — dehydration worsens pressure-related symptoms.',
+      'Avoid skipping medications today.',
+      'Rest proactively; don\'t wait until you\'re in a flare.',
+      'Heat therapy (warm compress or heating pad) can ease joint and muscle pain.',
+      'Track your symptoms in your journal to spot patterns over time.',
+    ] : [
+      'Gentle movement may help — rising pressure is often better tolerated.',
+      'A mild walk or light stretching may reduce stiffness.',
+      'Keep your normal medication schedule.',
+      'Consider this a good day for mild activity if you\'re feeling well.',
+    ];
+    return { current: baroChip.current, change24h, change3h, trend: baroChip.trend, direction, magLabel, matchedConditions, tips };
+  }, [baroChip, baroAlertDismissed, data.conditions]);
+
+
   const todayChips = useMemo(() => {
     const chips = [];
     const now = new Date(); now.setHours(0, 0, 0, 0);
@@ -1339,6 +1380,52 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
                   </button>
                 ))}
+              </Card>
+            </section>
+          )}
+
+          {/* Barometric pressure advisory */}
+          {baroAlert && (
+            <section aria-label="Barometric pressure advisory" className="dash-stagger dash-stagger-3 mb-4 md:mb-6">
+              <Card className="!p-0 overflow-hidden" style={{ borderLeft: `3px solid ${C.amber}40` }}>
+                <div className="flex items-center justify-between px-4 md:px-5 py-3 border-b border-salve-border/40">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Wind size={13} style={{ color: C.amber }} aria-hidden="true" />
+                    <span className="text-ui-sm font-semibold font-montserrat" style={{ color: C.amber }}>
+                      Pressure {baroAlert.direction === 'falling' ? '↓ dropping' : '↑ rising'}
+                    </span>
+                    <span className="text-[11px] text-salve-textFaint truncate">{baroAlert.current} hPa · {baroAlert.magLabel}</span>
+                  </div>
+                  <button
+                    onClick={dismissBaroAlert}
+                    className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors flex-shrink-0 ml-2"
+                    aria-label="Dismiss pressure advisory"
+                  >
+                    <X size={13} />
+                  </button>
+                </div>
+                <div className="px-4 md:px-5 py-3">
+                  <p className="text-ui-sm text-salve-textMid mb-2.5">
+                    {baroAlert.matchedConditions.length > 0
+                      ? `This pressure shift may affect your ${baroAlert.matchedConditions.slice(0, 2).join(' and ')}.`
+                      : 'A significant pressure shift has been detected near you.'}
+                  </p>
+                  <ul className="flex flex-col gap-1.5 mb-3" aria-label="Tips for today">
+                    {baroAlert.tips.map((tip, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span className="text-[11px] font-bold mt-0.5 flex-shrink-0" style={{ color: C.amber }}>·</span>
+                        <span className="text-ui-sm text-salve-textMid">{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button
+                    onClick={() => onNav('vitals')}
+                    className="text-[12px] font-medium font-montserrat transition-colors hover:opacity-80"
+                    style={{ color: C.amber }}
+                  >
+                    Log your pressure →
+                  </button>
+                </div>
               </Card>
             </section>
           )}

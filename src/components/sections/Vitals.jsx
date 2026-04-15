@@ -111,6 +111,11 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
     setSubView('form');
   };
 
+  // Directly save pressure vital (called by BarometricCard auto-log)
+  const handleAutoLogPressure = async (vital) => {
+    await addItem('vitals', { ...EMPTY_VITAL, date: todayISO(), ...vital });
+  };
+
   const vi = VITAL_TYPES.find(t => t.id === ct);
 
   const cutoffDate = useMemo(() => {
@@ -237,6 +242,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
       <BarometricCard
         locationStr={data?.settings?.location || ''}
         onLogPressure={handleLogPressure}
+        onAutoLogPressure={handleAutoLogPressure}
         onNav={onNav}
       />
       <div className="flex justify-end mb-3">

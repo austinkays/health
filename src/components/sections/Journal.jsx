@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff, Calendar, Activity, Zap, Heart, Moon, Pill } from 'lucide-react';
+import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff, Calendar, Activity, Zap, Heart, Moon, Pill, Wind } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -17,6 +17,7 @@ import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import CrisisModal from '../ui/CrisisModal';
 import { getCyclePhaseForDate } from '../../utils/cycles';
+import { readCachedBarometric, PRESSURE_SENSITIVE } from '../../services/barometric';
 import { getReflectionPrompt, isPositiveMood, getContextualPrompt } from '../../constants/journalPrompts';
 import { detectCrisis } from '../../utils/crisis';
 import useVoiceInput from '../../hooks/useVoiceInput';
@@ -515,6 +516,47 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
 
         {/* ── Tags ── */}
         <Field label="Tags" value={form.tags} onChange={v => sf('tags', v)} placeholder="flare, fatigue, headache..." />
+
+        {/* ── Barometric pressure context chip ── */}
+        {(() => {
+          const baro = readCachedBarometric();
+          if (!baro) return null;
+          const conditions = data?.conditions || [];
+          const hasSensitive = conditions.some(c =>
+            PRESSURE_SENSITIVE.some(k => (c.name || '').toLowerCase().includes(k))
+          );
+          if (!hasSensitive) return null;
+          const trendConfig = {
+            rising: { label: 'Rising', color: C.amber, emoji: '↑' },
+            falling: { label: 'Falling', color: C.rose, emoji: '↓' },
+            stable: { label: 'Stable', color: C.sage, emoji: '→' },
+          };
+          const tc = trendConfig[baro.trend] ?? trendConfig.stable;
+          return (
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-xl mt-1 mb-0.5"
+              style={{ background: `${C.amber}0d`, border: `1px solid ${C.amber}25` }}
+            >
+              <Wind size={13} aria-hidden="true" style={{ color: C.amber, flexShrink: 0 }} />
+              <span className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>
+                Today's pressure: <span style={{ color: tc.color }}>{tc.emoji} {baro.current} hPa ({tc.label})</span>
+                {baro.change24h != null && (
+                  <span style={{ color: C.textFaint }}>
+                    {' '}· {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa from yesterday
+                  </span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => onNav?.('vitals')}
+                className="ml-auto text-[11px] font-montserrat underline cursor-pointer bg-transparent border-none p-0 flex-shrink-0"
+                style={{ color: C.amber }}
+              >
+                Log
+              </button>
+            </div>
+          );
+        })()}
 
         {/* ══════════ MORE ABOUT TODAY, Topic Pills ══════════ */}
         <div className="mt-1 mb-4">

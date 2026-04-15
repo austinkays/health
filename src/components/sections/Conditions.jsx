@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink, FlaskConical, BookOpen } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Stethoscope, ChevronDown, Pill, User, ExternalLink, FlaskConical, BookOpen, Wind } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -14,6 +14,7 @@ import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
 import { medlinePlusUrl, providerLookupUrl, clinicalTrialsUrl } from '../../utils/links';
 import { matchResources, normalizeCondition } from '../../constants/resources/index.js';
+import { readCachedBarometric, PRESSURE_SENSITIVE, BARO_SCIENCE } from '../../services/barometric';
 import SplitView, { useIsDesktop } from '../layout/SplitView';
 
 const STATUS_COLORS = {
@@ -165,6 +166,89 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
               <p className="text-[12px] text-salve-textFaint/70 mt-2 leading-snug">
                 External resources are not medical advice. Always consult your healthcare providers.
               </p>
+            </details>
+          );
+        })()}
+        {/* Barometric pressure callout for pressure-sensitive conditions */}
+        {(() => {
+          const norm = (c.name || '').toLowerCase();
+          const matchedKey = PRESSURE_SENSITIVE.find(k => norm.includes(k));
+          if (!matchedKey) return null;
+          const science = BARO_SCIENCE.find(s => s.conditions?.some(k => norm.includes(k)));
+          const baro = readCachedBarometric();
+          const trendConfig = {
+            rising: { label: 'Rising', color: C.amber },
+            falling: { label: 'Falling', color: C.rose },
+            stable: { label: 'Stable', color: C.sage },
+          };
+          const tc = baro?.trend ? trendConfig[baro.trend] : null;
+          return (
+            <details className="mt-2.5 pt-2 border-t border-salve-border/30 group/baro">
+              <summary
+                className="text-[13px] font-semibold cursor-pointer list-none flex items-center gap-1.5 select-none"
+                style={{ color: C.amber }}
+              >
+                <Wind size={11} aria-hidden="true" />
+                Barometric pressure
+                {baro && tc && (
+                  <span className="text-[12px] font-normal" style={{ color: tc.color }}>
+                    {baro.current} hPa &middot; {tc.label}
+                  </span>
+                )}
+                <ChevronDown size={11} className="ml-auto transition-transform group-open/baro:rotate-180 text-salve-textFaint" />
+              </summary>
+              <div className="mt-2.5 space-y-2">
+                {!baro && (
+                  <p className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>
+                    Set your location in Settings to see live pressure data.
+                  </p>
+                )}
+                {baro && (
+                  <div className="rounded-xl p-3" style={{ background: `${C.amber}10`, borderLeft: `3px solid ${C.amber}50` }}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[15px] font-semibold font-montserrat" style={{ color: tc?.color ?? C.textMid }}>
+                        {baro.current} hPa
+                      </span>
+                      {tc && (
+                        <span className="text-[12px] font-medium font-montserrat rounded-full px-2 py-0.5" style={{ background: `${tc.color}20`, color: tc.color }}>
+                          {tc.label}
+                        </span>
+                      )}
+                      {baro.change24h != null && (
+                        <span className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>
+                          {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa vs 24h ago
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {science && (
+                  <div className="rounded-xl p-3" style={{ background: `${C.amber}08`, borderLeft: `3px solid ${C.amber}30` }}>
+                    <div className="text-[12px] font-semibold font-montserrat mb-0.5" style={{ color: C.textMid }}>
+                      Why pressure affects {science.condition}
+                    </div>
+                    <p className="text-[13px] font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
+                      {science.detail}
+                    </p>
+                  </div>
+                )}
+                <p className="text-[12px] font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
+                  Track pressure alongside your pain, mood, and energy vitals to discover your personal
+                  weather patterns. Most people experience effects within 12&ndash;48 hours of a significant
+                  pressure change. Visit{' '}
+                  <button
+                    onClick={() => onNav?.('vitals')}
+                    className="underline cursor-pointer bg-transparent border-none p-0 text-[12px] font-montserrat"
+                    style={{ color: C.amber }}
+                  >
+                    Vitals
+                  </button>
+                  {' '}to log pressure and enable auto-logging.
+                </p>
+                <p className="text-[12px] font-montserrat italic" style={{ color: C.textFaint, opacity: 0.7 }}>
+                  For personal awareness only. Always discuss symptom patterns with your healthcare provider.
+                </p>
+              </div>
             </details>
           );
         })()}

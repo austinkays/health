@@ -4,6 +4,54 @@
 const CACHE_KEY = 'salve:baro-cache';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
+/**
+ * Conditions known to be sensitive to barometric pressure changes.
+ * Used by Conditions.jsx and Journal.jsx to surface relevant context.
+ */
+export const PRESSURE_SENSITIVE = [
+  'arthritis', 'fibromyalgia', 'migraine', 'headache', 'pots', 'dysautonomia',
+  'me/cfs', 'chronic fatigue', 'chronic pain', 'joint pain', 'lupus',
+  'sjogren', 'raynaud', 'scleroderma',
+];
+
+/**
+ * Scientific explanations for each pressure-sensitive condition group.
+ * Mirrors the SCIENCE array in BarometricCard.jsx — single source of truth.
+ * `conditions` maps to PRESSURE_SENSITIVE keys for matching.
+ */
+export const BARO_SCIENCE = [
+  {
+    condition: 'Arthritis & Joint Pain',
+    conditions: ['arthritis', 'joint pain'],
+    detail:
+      'When atmospheric pressure drops, the tissues surrounding joints expand slightly, compressing nerve endings and synovial fluid. Studies show even a 1 hPa decrease correlates with increased pain ratings in osteoarthritis and rheumatoid arthritis. Rapid drops of 5+ hPa over 24 hours are especially impactful.',
+  },
+  {
+    condition: 'Fibromyalgia',
+    conditions: ['fibromyalgia', 'chronic pain'],
+    detail:
+      'Central sensitization in fibromyalgia amplifies the nervous system\'s response to environmental stimuli. Falling pressure activates baroreceptors and peripheral pain receptors more strongly, which can worsen widespread pain, fatigue, and cognitive symptoms ("fibro fog").',
+  },
+  {
+    condition: 'Migraines & Headaches',
+    conditions: ['migraine', 'headache'],
+    detail:
+      'Rapid pressure changes (particularly drops) are one of the most consistently reported migraine triggers. The mechanism involves changes in cerebrospinal fluid pressure, trigeminal nerve activation, and altered serotonin metabolism. Effects often appear 12 to 24 hours after the pressure change.',
+  },
+  {
+    condition: 'POTS & Dysautonomia',
+    conditions: ['pots', 'dysautonomia'],
+    detail:
+      'Atmospheric pressure provides passive external compression on blood vessels, assisting venous return to the heart. When pressure drops, the autonomic nervous system must compensate harder to maintain blood pressure during position changes, worsening orthostatic intolerance and tachycardia.',
+  },
+  {
+    condition: 'ME/CFS',
+    conditions: ['me/cfs', 'chronic fatigue'],
+    detail:
+      'Many people with ME/CFS report that weather pressure changes can trigger post-exertional malaise and worsen cognitive symptoms. The mechanism likely involves autonomic dysregulation and immune system changes that are not yet fully understood.',
+  },
+];
+
 async function geocodeZip(zip) {
   // US zip code lookup via Zippopotam.us (free, no API key, HTTPS)
   try {

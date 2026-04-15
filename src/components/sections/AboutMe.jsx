@@ -12,7 +12,7 @@ const CATEGORIES = [
     icon: User,
     fields: [
       { key: 'name', label: 'Name', placeholder: 'How should we greet you?', topLevel: true },
-      { key: 'location', label: 'Location (zip code)', placeholder: 'e.g. 60601 — used for barometric pressure tracking', topLevel: true },
+      { key: 'location', label: 'Location (zip code)', placeholder: 'e.g. 60601 (used for barometric pressure tracking)', topLevel: true },
       { key: 'pronouns', label: 'Pronouns', placeholder: 'e.g. she/her, he/him, they/them' },
       { key: 'occupation', label: 'Occupation', placeholder: 'e.g. Teacher, Software engineer, Stay-at-home parent' },
       { key: 'employer', label: 'Employer / School', placeholder: 'e.g. Company name or school' },
