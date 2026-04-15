@@ -35,7 +35,7 @@ export const CHANGELOG = [
       'Desktop sidebar with split-view layouts',
       'Health trends: sleep, heart rate, SpO\u2082 charts',
       'Apple Health and Oura Ring sync',
-      '15 themes including 9 animated styles',
+      '16 themes including 9 animated styles',
       'Chat with Sage to manage your records',
       'Cycle tracking with fertility predictions',
       'Offline support with encrypted cache',

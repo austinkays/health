@@ -37,7 +37,7 @@ proactively surface the unchecked items — don't wait to be asked.
   `src/constants/colors.js` for Recharts/dynamic styles. All colors flow
   through CSS variables set by the active theme.
 - `style={{ color: '#xxx' }}` will break theming. Don't do it.
-- 15 themes defined in `src/constants/themes.js` (6 core + 9 experimental).
+- 16 themes defined in `src/constants/themes.js` (7 core + 9 experimental).
   Each has 16 color keys + 4 ambiance RGB triplets + 3-stop `gradient` array.
 - Per-theme CSS effects live in `src/index.css` scoped by `html.theme-{id}`
   selectors. Effects use `body::before` / `body::after` / `html::before` at

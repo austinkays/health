@@ -199,7 +199,7 @@ const STARTER_TIPS = [
     icon: Sparkles,
     color: 'lav',
     title: 'Make it feel like yours',
-    body: "Salve has 15 themes, from soft pastels to dark cozy to animated cherry blossoms. Tap Settings, then Appearance to try one on.",
+    body: "Salve has 16 themes, from soft pastels to dark cozy to animated cherry blossoms. Tap Settings, then Appearance to try one on.",
     action: 'settings',
     actionLabel: 'Pick a theme',
     dismissBehavior: 'snooze',

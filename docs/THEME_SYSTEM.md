@@ -424,7 +424,8 @@ html.theme-aurora .card-border {
 | **Noir** | Dark | `#18181a` | `#b4b4ba` silver | `#9eb09e` sage | `#d0c0a8` sand |
 | **Midnight** | Dark | `#1d1a2a` | `#b49cde` violet | `#8fc29a` mint | `#dcc088` gold |
 | **Forest** | Dark | `#1a2016` | `#8fb870` leaf | `#b4c894` moss | `#b88748` bark |
-| **Dawnlight** | Light | `#faf7f2` | `#7c6aaa` plum | `#3d8a5c` forest | `#b8860b` honey |
+| **Meadow** | Light | `#f2f7f0` | `#5a8c4e` leaf | `#3e8a6a` sage | `#a08030` gold |
+| **Seafoam** | Light | `#f0f7f7` | `#2e98a0` teal | `#38886e` sage | `#a08838` sand |
 | **Sunrise** | Light | `#fdf4ec` | `#c4648c` coral | `#589080` teal | `#d06820` tangerine |
 
 ### Experimental Themes (Animated)

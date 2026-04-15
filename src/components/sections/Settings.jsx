@@ -133,7 +133,7 @@ function ThemeTile({ theme, isActive, isSignature, onSelect }) {
 }
 
 /* ── ThemeSelector ───────────────────────────────────────────────────────────
-   All 15 themes in a flat 4-col grid (lights first, then darks, alphabetical
+   All 16 themes in a flat 4-col grid (lights first, then darks, alphabetical
    within each group). Signature (experimental) themes self-identify via a
    subtle ✦ sparkle on the tile — no accordion, no hidden section.
    Free users can preview signature themes live; selection isn't persisted.
