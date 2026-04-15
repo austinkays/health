@@ -268,6 +268,14 @@ export function setPremiumActive(v) { _premiumActive = !!v; }
 let _adminActive = false;
 export function setAdminActive(v) { _adminActive = !!v; }
 
+// ── Conversation Cap ──
+// Free users can save up to 5 conversations; premium/admin get unlimited.
+const FREE_CONVERSATION_CAP = 5;
+export function getConversationCap() {
+  if (_demoMode || _premiumActive || _adminActive) return Infinity;
+  return FREE_CONVERSATION_CAP;
+}
+
 // ── Message History Cap ──
 // Prevent unbounded token growth in multi-turn chats by keeping only the
 // most recent messages. Always preserves the latest user message.

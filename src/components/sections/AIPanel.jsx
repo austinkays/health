@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Stethoscope, Shield, FileText, ArrowRight } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Stethoscope, Shield, FileText, ArrowRight, Clock, Trash2, X } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
@@ -9,7 +9,7 @@ import Motif from '../ui/Motif';
 import AIConsentGate from '../ui/AIConsentGate';
 import { SectionTitle } from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchMonthlySummary, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage } from '../../services/ai';
+import { fetchInsight, fetchConnections, fetchNews, fetchResources, fetchCostOptimization, fetchCyclePatterns, fetchMonthlySummary, sendHouseChat, sendChat, sendChatWithTools, getAIProvider, isFeatureLocked, getDailyUsage, getConversationCap } from '../../services/ai';
 import { BILLING_ENABLED } from '../../services/billing';
 import { buildProfile } from '../../services/profile';
 import AIProfilePreview from '../ui/AIProfilePreview';
@@ -18,6 +18,7 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { DESTRUCTIVE_TOOLS } from '../../constants/tools';
 import { createToolExecutor } from '../../services/toolExecutor';
 import { computeCycleStats, getCyclePhaseForDate } from '../../utils/cycles';
+import { fmtDateRelative } from '../../utils/dates';
 import CrisisModal from '../ui/CrisisModal';
 import { detectCrisis } from '../../utils/crisis';
 
@@ -975,6 +976,9 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [conversationId, setConversationId] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [conversationList, setConversationList] = useState([]);
+  const [deletingConvoId, setDeletingConvoId] = useState(null);
   const [savedNews, setSavedNews] = useState(() => {
     try { return JSON.parse(localStorage.getItem(NEWS_SAVE_KEY) || '[]'); } catch { return []; }
   });
@@ -1063,20 +1067,27 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     houseEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [houseMessages]);
 
-  // Load most recent conversation on entering chat mode
+  // Load most recent conversation + full list on entering chat mode
+  const refreshConversationList = useCallback(() => {
+    return db.conversations.list().then(convos => {
+      setConversationList(convos || []);
+      return convos || [];
+    }).catch(() => []);
+  }, []);
+
   useEffect(() => {
     if (mode !== 'ask') return;
     let cancelled = false;
-    db.conversations.list().then(convos => {
+    refreshConversationList().then(convos => {
       if (cancelled || !convos?.length) return;
       const latest = convos[0];
       if (latest.messages?.length) {
         setChatMessages(latest.messages);
         setConversationId(latest.id);
       }
-    }).catch(() => {});
+    });
     return () => { cancelled = true; };
-  }, [mode]);
+  }, [mode, refreshConversationList]);
 
   const saveConversation = async (msgs) => {
     try {
@@ -1084,9 +1095,42 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       if (conversationId) {
         await db.conversations.update(conversationId, { title, messages: msgs });
       } else {
+        // Enforce conversation cap for free users
+        const cap = getConversationCap();
+        if (cap !== Infinity) {
+          const all = await db.conversations.list();
+          if (all && all.length >= cap) {
+            // Delete oldest conversations to make room
+            const toRemove = all.slice(cap - 1); // keep (cap - 1), new one will be #cap
+            for (const old of toRemove) {
+              await db.conversations.remove(old.id);
+            }
+          }
+        }
         const saved = await db.conversations.add({ title, messages: msgs });
         if (saved?.id) setConversationId(saved.id);
       }
+      refreshConversationList();
+    } catch {}
+  };
+
+  const loadConversation = (convo) => {
+    setChatMessages(convo.messages || []);
+    setConversationId(convo.id);
+    setChatInput('');
+    setToolExecutions([]);
+    setShowHistory(false);
+  };
+
+  const deleteConversation = async (id) => {
+    try {
+      await db.conversations.remove(id);
+      if (conversationId === id) {
+        setChatMessages([]);
+        setConversationId(null);
+      }
+      setDeletingConvoId(null);
+      refreshConversationList();
     } catch {}
   };
 
@@ -1125,6 +1169,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     setChatMessages([]);
     setConversationId(null);
     setChatInput('');
+    setToolExecutions([]);
+    refreshConversationList();
   };
 
   const runFeature = async (id) => {
@@ -1270,10 +1316,68 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         Chat with Sage
       </SectionTitle>
       {chatMessages.length > 0 && (
-        <div className="flex justify-end mb-2">
+        <div className="flex justify-end gap-1.5 mb-2">
+          <button onClick={() => { setShowHistory(h => !h); refreshConversationList(); }} className="inline-flex items-center gap-1 text-[13px] text-salve-textMid bg-salve-card2 hover:bg-salve-lav/10 rounded-full px-2.5 py-1 transition-colors font-montserrat border border-salve-border cursor-pointer" aria-label="Chat history">
+            <Clock size={11} /> History
+          </button>
           <button onClick={startNewChat} className="inline-flex items-center gap-1 text-[13px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat border-none cursor-pointer">
             <Plus size={11} /> New Chat
           </button>
+        </div>
+      )}
+      {!chatMessages.length && conversationList.length > 0 && (
+        <div className="flex justify-end mb-2">
+          <button onClick={() => { setShowHistory(h => !h); refreshConversationList(); }} className="inline-flex items-center gap-1 text-[13px] text-salve-textMid bg-salve-card2 hover:bg-salve-lav/10 rounded-full px-2.5 py-1 transition-colors font-montserrat border border-salve-border cursor-pointer" aria-label="Chat history">
+            <Clock size={11} /> History
+          </button>
+        </div>
+      )}
+      {showHistory && (
+        <div className="mb-3 rounded-xl border border-salve-border bg-salve-card overflow-hidden">
+          <div className="flex items-center justify-between px-3 py-2 border-b border-salve-border/50">
+            <span className="text-[13px] font-montserrat font-medium text-salve-text">Chat History</span>
+            <div className="flex items-center gap-2">
+              {getConversationCap() !== Infinity && (
+                <span className="text-[11px] font-montserrat text-salve-textFaint">
+                  {conversationList.length}/{getConversationCap()} saved
+                </span>
+              )}
+              <button onClick={() => setShowHistory(false)} className="text-salve-textFaint hover:text-salve-text transition-colors bg-transparent border-none cursor-pointer p-0.5" aria-label="Close history">
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+          {conversationList.length === 0 ? (
+            <p className="text-[12px] text-salve-textFaint font-montserrat text-center py-4">No saved chats yet</p>
+          ) : (
+            <div className="max-h-[240px] overflow-y-auto">
+              {conversationList.map(c => (
+                <div key={c.id} className={`flex items-center gap-2 px-3 py-2 hover:bg-salve-lav/5 transition-colors cursor-pointer border-b border-salve-border/30 last:border-0 ${conversationId === c.id ? 'bg-salve-lav/10' : ''}`}>
+                  <button onClick={() => loadConversation(c)} className="flex-1 text-left bg-transparent border-none cursor-pointer p-0 min-w-0">
+                    <p className="text-[13px] text-salve-text font-montserrat truncate">{c.title || 'Chat'}</p>
+                    <p className="text-[11px] text-salve-textFaint font-montserrat">{fmtDateRelative(c.updated_at || c.created_at)}</p>
+                  </button>
+                  {deletingConvoId === c.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button onClick={() => deleteConversation(c.id)} className="text-[11px] text-salve-rose bg-salve-rose/10 rounded-full px-2 py-0.5 font-montserrat border-none cursor-pointer">Delete</button>
+                      <button onClick={() => setDeletingConvoId(null)} className="text-[11px] text-salve-textFaint bg-transparent rounded-full px-1.5 py-0.5 font-montserrat border-none cursor-pointer">Cancel</button>
+                    </div>
+                  ) : (
+                    <button onClick={(e) => { e.stopPropagation(); setDeletingConvoId(c.id); }} className="text-salve-textFaint hover:text-salve-rose transition-colors bg-transparent border-none cursor-pointer p-1 shrink-0" aria-label="Delete conversation">
+                      <Trash2 size={13} />
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {getConversationCap() !== Infinity && conversationList.length >= getConversationCap() && (
+            <div className="px-3 py-2 border-t border-salve-border/50 bg-salve-card2/50">
+              <p className="text-[11px] text-salve-lav/70 font-montserrat text-center">
+                ✦ <span className="italic">Upgrade for unlimited chat history</span>
+              </p>
+            </div>
+          )}
         </div>
       )}
       <ChatMessageList messages={chatMessages} toolExecutions={toolExecutions} loading={loading} confirmPending={confirmPending} chatEndRef={chatEndRef} />
