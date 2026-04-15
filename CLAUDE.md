@@ -659,7 +659,7 @@ The app uses an **extensible theme system** with CSS custom properties. All 16 c
 | **Midnight** | Dark | Navy + lavender + sage + amber |
 | **Forest** | Dark | Woodland greens, olive, amber, warm rust |
 | **Meadow** | Light | Soft sage + leafy green |
-| **Seafoam** | Light | Cool teal on soft cream |
+| **Seafoam** | Light | Robin's egg blue on soft cream |
 | **Sunrise** | Light | Warm peach + coral cream + pink |
 
 *Experimental themes (with signature animated effect layer):*
