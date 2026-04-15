@@ -256,16 +256,72 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   }, [data.meds]);
   const [pharmacyFilter, setPharmacyFilter] = useState('all');
   const [catFilter, setCatFilter] = useState('all');
+  const [sortMode, setSortMode] = useState(() => {
+    try { return localStorage.getItem('salve:med-sort') || 'alpha'; }
+    catch { return 'alpha'; }
+  });
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem('salve:med-sort', sortMode); } catch {}
+  }, [sortMode]);
 
   // Check if any meds have non-default categories (show filter pills only when relevant)
   const hasCategories = (data.meds || []).some(m => m.category && m.category !== 'medication');
 
-  const fl = (data.meds || []).filter(m => {
-    const statusOk = filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false;
-    const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
-    const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
-    return statusOk && pharmaOk && catOk;
-  });
+  // Map a frequency string to a "primary bucket" ordinal for schedule sort.
+  // Buckets: 0 morning, 3 bedtime, 4 PRN, 5 other. Multi-dose regimens
+  // (BID/TID/QID) map to 0 (morning) because they start their day there;
+  // within a bucket we fall back to alpha on display_name/name.
+  const scheduleBucket = (frequency) => {
+    const f = String(frequency || '').toLowerCase();
+    if (/prn|as.?needed/.test(f)) return 4;
+    if (/bedtime|qhs|evening|night/.test(f)) return 3;
+    if (/morning|am\b|once.*day|daily|every.?day|bid|tid|qid|twice|three.*day|four.*day/.test(f)) return 0;
+    if (/week|biweek|month/.test(f)) return 5;
+    return 5;
+  };
+
+  const groupedMeds = useMemo(() => {
+    const base = (data.meds || []).filter(m => {
+      const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
+      const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
+      return pharmaOk && catOk;
+    });
+    const nameKey = (m) => (m.display_name || m.name || '').toLowerCase();
+    const cmpAlpha = (a, b) => nameKey(a).localeCompare(nameKey(b));
+    const cmpSchedule = (a, b) => (scheduleBucket(a.frequency) - scheduleBucket(b.frequency)) || cmpAlpha(a, b);
+    const cmpRefill = (a, b) => {
+      const ad = a.refill_date ? new Date(a.refill_date).getTime() : Infinity;
+      const bd = b.refill_date ? new Date(b.refill_date).getTime() : Infinity;
+      return (ad - bd) || cmpAlpha(a, b);
+    };
+    const cmpCategory = (a, b) => {
+      const ac = (a.category || 'medication');
+      const bc = (b.category || 'medication');
+      return ac.localeCompare(bc) || cmpAlpha(a, b);
+    };
+    const cmp = {
+      alpha: cmpAlpha,
+      schedule: cmpSchedule,
+      refill: cmpRefill,
+      category: cmpCategory,
+    }[sortMode] || cmpAlpha;
+
+    const active = base.filter(m => m.active !== false).slice().sort(cmp);
+    const discontinued = base.filter(m => m.active === false).slice().sort(cmpAlpha);
+
+    // Honor existing status filter: if user chose 'inactive', hide active entirely.
+    if (filter === 'inactive') return { active: [], discontinued };
+    if (filter === 'active') return { active, discontinued: [] };
+    return { active, discontinued };
+  }, [data.meds, pharmacyFilter, catFilter, sortMode, filter]);
+
+  // Backwards-compat alias used by cross-reference logic still reading a flat list.
+  const fl = useMemo(
+    () => [...groupedMeds.active, ...groupedMeds.discontinued],
+    [groupedMeds]
+  );
 
   /* ── Monthly cost estimate from NADAC prices ── */
   const monthlyCost = useMemo(() => {
