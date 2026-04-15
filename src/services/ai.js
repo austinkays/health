@@ -430,8 +430,17 @@ async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWe
 }
 
 export async function fetchInsight(profileText) {
+  const today = new Date().toISOString().split('T')[0];
+  const categories = [
+    'a lesser-known fact about one of my conditions',
+    'a helpful or surprising tip about one of my medications',
+    'a non-obvious connection between two of my health issues',
+    'a seasonal, lifestyle, or environmental consideration relevant to my profile',
+    'an encouraging piece of recent medical progress relevant to one of my conditions',
+  ];
+  const category = categories[Math.floor(Math.random() * categories.length)];
   return callAPI(
-    [{ role: 'user', content: 'Based on my health profile, give me today\'s insight.' }],
+    [{ role: 'user', content: `Based on my health profile, give me today\'s insight. Today is ${today}. Focus on: ${category}.` }],
     'insight', profileText,
     2000, false, 'insight'
   );
@@ -799,8 +808,17 @@ export async function fillFormQuestions(questionsText, profileText, imageDataArr
 }
 
 export async function fetchCyclePatterns(cycleProfileText) {
+  const today = new Date().toISOString().split('T')[0];
+  const angles = [
+    'Pay particular attention to how symptom severity (pain, fatigue, brain fog) correlates with cycle phase.',
+    'Pay particular attention to mood, emotional patterns, and energy levels across cycle phases.',
+    'Pay particular attention to how vitals (heart rate, temperature, sleep) shift through the cycle.',
+    'Pay particular attention to medication timing — are there phases where symptoms break through more or medications seem less effective?',
+    'Pay particular attention to leading indicators — what tends to appear in the days before a notable shift in how I feel?',
+  ];
+  const angle = angles[Math.floor(Math.random() * angles.length)];
   return callAPI(
-    [{ role: 'user', content: 'Analyze my cycle-correlated health patterns from the data below.' }],
+    [{ role: 'user', content: `Analyze my cycle-correlated health patterns from the data below. Today is ${today}. ${angle}` }],
     'cyclePatterns', cycleProfileText,
     2000, false, 'cyclePatterns'
   );
