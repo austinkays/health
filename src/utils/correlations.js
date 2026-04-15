@@ -1189,29 +1189,36 @@ export function computeMicroInsights(data) {
   const weekAgo = shiftDate(today, -7);
   const monthAgo = shiftDate(today, -30);
 
+  const vitals = data?.vitals || [];
+  const journal = data?.journal_entries || data?.journal || [];
+  const meds = data?.meds || data?.medications || [];
+  const activities = data?.activities || [];
+  const appts = data?.appts || data?.appointments || [];
+  const conditions = data?.conditions || [];
+
   // helper: filter entries within a date range
   const since = (arr, dateField, cutoff) =>
     arr.filter(r => (r[dateField] || '') >= cutoff);
 
   // 1. Total vitals tracked
-  if (data.vitals.length >= 10) {
-    micros.push({ emoji: '📊', text: `You've tracked ${data.vitals.length} vitals entries`, id: 'total_vitals' });
+  if (vitals.length >= 10) {
+    micros.push({ emoji: '📊', text: `You've tracked ${vitals.length} vitals entries`, id: 'total_vitals' });
   }
 
   // 2. Journal entries this month
-  const journalMonth = since(data.journal_entries, 'date', monthAgo).length;
+  const journalMonth = since(journal, 'date', monthAgo).length;
   if (journalMonth >= 3) {
     micros.push({ emoji: '📝', text: `${journalMonth} journal entries this month`, id: 'journal_month' });
   }
 
   // 3. Active medications count
-  const activeMeds = data.meds.filter(m => m.active !== false).length;
+  const activeMeds = meds.filter(m => m.active !== false).length;
   if (activeMeds >= 2) {
     micros.push({ emoji: '💊', text: `${activeMeds} active medications tracked`, id: 'active_meds' });
   }
 
   // 4. Sleep average this week vs last week
-  const sleepVitals = data.vitals.filter(v => v.type === 'sleep' && v.value > 0);
+  const sleepVitals = vitals.filter(v => v.type === 'sleep' && v.value > 0);
   const sleepThisWeek = sleepVitals.filter(v => v.date >= weekAgo);
   const twoWeeksAgo = shiftDate(today, -14);
   const sleepLastWeek = sleepVitals.filter(v => v.date >= twoWeeksAgo && v.date < weekAgo);
@@ -1227,23 +1234,23 @@ export function computeMicroInsights(data) {
   }
 
   // 5. Workouts this week
-  const workoutsWeek = since(data.activities, 'date', weekAgo).length;
+  const workoutsWeek = since(activities, 'date', weekAgo).length;
   if (workoutsWeek >= 1) {
-    const workoutsLastWeek = data.activities.filter(a => (a.date || '') >= twoWeeksAgo && (a.date || '') < weekAgo).length;
+    const workoutsLastWeek = activities.filter(a => (a.date || '') >= twoWeeksAgo && (a.date || '') < weekAgo).length;
     let suffix = '';
     if (workoutsWeek > workoutsLastWeek && workoutsLastWeek > 0) suffix = ' — your most active week recently';
     micros.push({ emoji: '💪', text: `${workoutsWeek} workout${workoutsWeek !== 1 ? 's' : ''} this week${suffix}`, id: 'workouts_week' });
   }
 
   // 6. Resting HR average this week
-  const hrWeek = data.vitals.filter(v => v.type === 'hr' && v.date >= weekAgo && v.value > 0);
+  const hrWeek = vitals.filter(v => v.type === 'hr' && v.date >= weekAgo && v.value > 0);
   if (hrWeek.length >= 3) {
     const avg = Math.round(hrWeek.reduce((s, v) => s + v.value, 0) / hrWeek.length);
     micros.push({ emoji: '❤️', text: `Resting HR average this week: ${avg} bpm`, id: 'hr_avg' });
   }
 
   // 7. Mood trend (2 weeks)
-  const moodEntries = data.journal_entries
+  const moodEntries = journal
     .filter(j => j.mood && j.date >= twoWeeksAgo)
     .map(j => ({ date: j.date, val: MOOD_SCORE[j.mood] || 0 }))
     .filter(m => m.val > 0)
@@ -1261,7 +1268,7 @@ export function computeMicroInsights(data) {
   }
 
   // 8. Next appointment countdown
-  const upcoming = data.appts
+  const upcoming = appts
     .filter(a => a.date >= today)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (upcoming.length > 0) {
@@ -1275,13 +1282,13 @@ export function computeMicroInsights(data) {
   }
 
   // 9. Total conditions managed
-  const activeConditions = (data.conditions || []).filter(c => c.status === 'active' || c.status === 'managed').length;
+  const activeConditions = conditions.filter(c => c.status === 'active' || c.status === 'managed').length;
   if (activeConditions >= 2) {
     micros.push({ emoji: '🏥', text: `Managing ${activeConditions} active conditions`, id: 'conditions_count' });
   }
 
   // 10. Steps this week
-  const stepsWeek = data.vitals.filter(v => v.type === 'steps' && v.date >= weekAgo && v.value > 0);
+  const stepsWeek = vitals.filter(v => v.type === 'steps' && v.date >= weekAgo && v.value > 0);
   if (stepsWeek.length >= 3) {
     const total = stepsWeek.reduce((s, v) => s + v.value, 0);
     const avgDaily = Math.round(total / stepsWeek.length);
