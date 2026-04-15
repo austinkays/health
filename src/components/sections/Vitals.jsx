@@ -51,7 +51,7 @@ const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
 const SOURCE_COLOR = { oura: C.sage, apple_health: C.lav, manual: C.textFaint };
 
-export default function Vitals({ data, addItem, removeItem }) {
+export default function Vitals({ data, addItem, removeItem, onNav }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_VITAL });
   const [ct, setCt] = useState(() => {
@@ -237,6 +237,7 @@ export default function Vitals({ data, addItem, removeItem }) {
       <BarometricCard
         locationStr={data?.settings?.location || ''}
         onLogPressure={handleLogPressure}
+        onNav={onNav}
       />
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>

@@ -594,7 +594,7 @@ function AppContent() {
     switch (tab) {
       case 'dash':        return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} onSageIntro={() => setSageIntroOpen(true)} dataLoading={dataLoading} insightRatings={insightRatings} />;
       case 'meds':        return <Medications {...shared} interactions={interactions} onNav={onNav} />;
-      case 'vitals':      return <Vitals {...shared} />;
+      case 'vitals':      return <Vitals {...shared} onNav={onNav} />;
       case 'appts':       return <Appointments {...shared} />;
       case 'conditions':  return <Conditions {...shared} onNav={onNav} />;
       case 'providers':   return <Providers {...shared} />;

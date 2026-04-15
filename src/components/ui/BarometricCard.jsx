@@ -72,7 +72,7 @@ const SCIENCE = [
  * @param {string}   props.locationStr  - User profile location (e.g. "Chicago, IL")
  * @param {Function} props.onLogPressure - Called with a partial vital object to pre-fill the log form
  */
-export default function BarometricCard({ locationStr, onLogPressure }) {
+export default function BarometricCard({ locationStr, onLogPressure, onNav }) {
   const [baro, setBaro] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -126,7 +126,15 @@ export default function BarometricCard({ locationStr, onLogPressure }) {
             <p className="text-[13px] font-montserrat" style={{ color: C.textFaint }}>
               {error
                 ? 'Could not load barometric pressure data.'
-                : 'Enable location access (or add your city in Settings) to see local barometric pressure.'}
+                : <>
+                    Enable location access or{' '}
+                    <button
+                      onClick={() => onNav?.('aboutme')}
+                      className="underline bg-transparent border-none p-0 font-montserrat text-[13px] cursor-pointer"
+                      style={{ color: C.textFaint }}
+                    >add your zip code in About Me</button>
+                    {' '}to see local barometric pressure.
+                  </>}
             </p>
             {error && (
               <p className="text-[11px] font-montserrat mt-0.5" style={{ color: C.textFaint, opacity: 0.6 }}>
