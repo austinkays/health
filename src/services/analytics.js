@@ -81,6 +81,11 @@ const SUFFIX_ALLOWLIST = {
     'formHelper', 'monthlySummary',
   ]),
   import_completed: new Set(['apple_health', 'flo', 'backup', 'sync', 'mychart']),
+  theme_changed: new Set([
+    'lilac', 'noir', 'midnight', 'forest', 'meadow', 'seafoam', 'sunrise',
+    'aurora', 'neon', 'cherry', 'sunbeam', 'blaze', 'ember', 'galactic',
+    'prismatic', 'crystal',
+  ]),
 };
 
 const ALLOWED_BASE_NAMES = new Set(Object.values(EVENTS));

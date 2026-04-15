@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna } from 'lucide-react';
+import { Trash2, Download, Upload, ShieldOff, Shield, Sparkles, ChevronDown, ChevronUp, Star, ClipboardCopy, Loader, Unlink, RefreshCw, Apple, LogOut, MapPin, Crown, MessageCircle, Bug, Info, Heart, Smartphone, X, FileText, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna, LayoutGrid } from 'lucide-react';
 import Card from '../ui/Card';
 import DropZone from '../ui/DropZone';
 import { OuraIcon } from '../ui/OuraIcon';
@@ -285,6 +285,13 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [expandedSource, setExpandedSource] = useState(null);
   const [showChangelog, setShowChangelog] = useState(false);
   const [importsExpanded, setImportsExpanded] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState(null);
+  const toggleCategory = (catId) => setExpandedCategory(prev => {
+    if (prev === catId) return null;
+    // Collapsing old category — reset any expanded child source
+    setExpandedSource(null);
+    return catId;
+  });
   const toggleSource = (id) => setExpandedSource(prev => prev === id ? null : id);
 
   // Per-user opt-out for connection cards. Stored in localStorage (UI pref, not PHI).
@@ -869,22 +876,32 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   // card wired to the shared ImportWizard component. Adding a new parser
   // means: write the parser service file, drop one entry in here. No other
   // boilerplate.
-  const MORE_IMPORTS = [
-    { parser: clueParser,          Icon: Moon,        tint: 'rose', subtitle: 'Period, symptoms, and ovulation (CSV)' },
-    { parser: naturalCyclesParser, Icon: Thermometer, tint: 'rose', subtitle: 'BBT and period tracking (CSV)' },
-    { parser: daylioParser,        Icon: Smile,       tint: 'amber', subtitle: 'Mood and micro-journal (CSV)' },
-    { parser: bearableParser,      Icon: Gauge,       tint: 'lav',  subtitle: 'Mood, energy, sleep, and symptoms (CSV)' },
-    { parser: visibleParser,       Icon: Eye,         tint: 'lav',  subtitle: 'HR, HRV, stability scores, and symptoms (CSV)' },
-    { parser: libreParser,         Icon: Droplet,     tint: 'rose', subtitle: 'CGM glucose history from LibreView (CSV)' },
-    { parser: mysugrParser,        Icon: Droplets,    tint: 'rose', subtitle: 'Diabetes logbook (CSV)' },
-    { parser: stravaParser,        Icon: Bike,        tint: 'sage', subtitle: 'Workouts from your Strava archive (CSV or ZIP)' },
-    { parser: sleepCycleParser,    Icon: Bed,         tint: 'lav',  subtitle: 'Sleep sessions and quality (CSV)' },
-    { parser: samsungParser,       Icon: Smartphone,  tint: 'sage', subtitle: 'Steps, HR, sleep, weight, BP, glucose (ZIP)' },
-    { parser: garminParser,        Icon: Compass,     tint: 'sage', subtitle: 'Workouts, wellness, and sleep (ZIP)' },
-    { parser: fitbitTakeoutParser, Icon: Watch,       tint: 'sage', subtitle: 'Offline alternative to the Fitbit OAuth sync (ZIP)' },
-    { parser: googleFitParser,     Icon: Activity,    tint: 'sage', subtitle: 'Steps, HR, and weight from Google Takeout (ZIP)' },
-    { parser: prometheaseParser,   Icon: Dna,         tint: 'lav',  subtitle: 'Pharmacogenomic SNP analysis (JSON)' },
-    { parser: twentyThreeMeParser, Icon: Dna,         tint: 'lav',  subtitle: 'Raw DNA data — PGx variants only (TXT)' },
+  const IMPORT_CATEGORIES = [
+    { id: 'cycle', emoji: '🌸', label: 'Cycle & Fertility', items: [
+      { parser: clueParser,          Icon: Moon,        tint: 'rose', subtitle: 'Period, symptoms, and ovulation (CSV)' },
+      { parser: naturalCyclesParser, Icon: Thermometer, tint: 'rose', subtitle: 'BBT and period tracking (CSV)' },
+    ]},
+    { id: 'fitness', emoji: '💪', label: 'Fitness & Activity', items: [
+      { parser: stravaParser,        Icon: Bike,        tint: 'sage', subtitle: 'Workouts from your Strava archive (CSV or ZIP)' },
+      { parser: sleepCycleParser,    Icon: Bed,         tint: 'lav',  subtitle: 'Sleep sessions and quality (CSV)' },
+      { parser: samsungParser,       Icon: Smartphone,  tint: 'sage', subtitle: 'Steps, HR, sleep, weight, BP, glucose (ZIP)' },
+      { parser: garminParser,        Icon: Compass,     tint: 'sage', subtitle: 'Workouts, wellness, and sleep (ZIP)' },
+      { parser: fitbitTakeoutParser, Icon: Watch,       tint: 'sage', subtitle: 'Offline alternative to the Fitbit OAuth sync (ZIP)' },
+      { parser: googleFitParser,     Icon: Activity,    tint: 'sage', subtitle: 'Steps, HR, and weight from Google Takeout (ZIP)' },
+    ]},
+    { id: 'mood', emoji: '😊', label: 'Mood & Symptoms', items: [
+      { parser: daylioParser,        Icon: Smile,       tint: 'amber', subtitle: 'Mood and micro-journal (CSV)' },
+      { parser: bearableParser,      Icon: Gauge,       tint: 'lav',  subtitle: 'Mood, energy, sleep, and symptoms (CSV)' },
+      { parser: visibleParser,       Icon: Eye,         tint: 'lav',  subtitle: 'HR, HRV, stability scores, and symptoms (CSV)' },
+    ]},
+    { id: 'glucose', emoji: '🩸', label: 'Blood Sugar', items: [
+      { parser: libreParser,         Icon: Droplet,     tint: 'rose', subtitle: 'CGM glucose history from LibreView (CSV)' },
+      { parser: mysugrParser,        Icon: Droplets,    tint: 'rose', subtitle: 'Diabetes logbook (CSV)' },
+    ]},
+    { id: 'genetics', emoji: '🔬', label: 'Genetics', items: [
+      { parser: prometheaseParser,   Icon: Dna,         tint: 'lav',  subtitle: 'Pharmacogenomic SNP analysis (JSON)' },
+      { parser: twentyThreeMeParser, Icon: Dna,         tint: 'lav',  subtitle: 'Raw DNA data — PGx variants only (TXT)' },
+    ]},
   ];
 
   // Wrapper that hides a connection card when the user has dismissed it,
@@ -1838,10 +1855,11 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         action={
           <button
             onClick={() => setImportsExpanded(v => !v)}
-            className="flex items-center gap-1 text-xs text-salve-textMid hover:text-salve-lav transition-colors bg-transparent border-none cursor-pointer font-montserrat"
+            className="flex items-center gap-1.5 text-xs text-salve-textMid hover:text-salve-lav transition-colors bg-transparent border-none cursor-pointer font-montserrat"
             aria-expanded={importsExpanded}
           >
-            {importsExpanded ? 'Hide list' : 'Browse apps'}
+            <LayoutGrid size={12} />
+            {importsExpanded ? 'Hide list' : 'Browse 15 apps'}
             {importsExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         }
@@ -1914,34 +1932,94 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </Card>
         </HideableSource>
 
-        {/* ── More app imports (Clue, Daylio, Libre, Samsung, Garmin, etc.) ── */}
-        {MORE_IMPORTS.map(({ parser, Icon, tint, subtitle }) => {
-          const id = parser.META.id;
-          const isOpen = expandedSource === id;
-          const tintBg = tint === 'rose' ? 'bg-salve-rose/15' : tint === 'amber' ? 'bg-salve-amber/15' : tint === 'lav' ? 'bg-salve-lav/15' : 'bg-salve-sage/15';
-          const tintFg = tint === 'rose' ? 'text-salve-rose' : tint === 'amber' ? 'text-salve-amber' : tint === 'lav' ? 'text-salve-lav' : 'text-salve-sage';
+        {/* ── App import categories ── */}
+        {IMPORT_CATEGORIES.map(cat => {
+          const visibleItems = cat.items.filter(i => !hiddenSources.includes(i.parser.META.id));
+          const hasFlo = cat.id === 'cycle' && !hiddenSources.includes('flo');
+          const visibleCount = visibleItems.length + (hasFlo ? 1 : 0);
+          if (visibleCount === 0) return null;
+          const isCatOpen = expandedCategory === cat.id;
           return (
-            <HideableSource key={id} id={id} label={parser.META.label}>
+            <div key={cat.id}>
               <Card>
-                <button onClick={() => toggleSource(id)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+                <button
+                  onClick={() => toggleCategory(cat.id)}
+                  className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0"
+                  aria-expanded={isCatOpen}
+                >
                   <div className="flex items-center gap-2.5">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tintBg}`}>
-                      <Icon size={16} className={tintFg} />
-                    </div>
-                    <div className="text-left">
-                      <span className="text-[15px] text-salve-text font-medium block">{parser.META.label}</span>
-                      <span className="text-[12px] text-salve-textFaint">{subtitle}</span>
-                    </div>
+                    <span className="text-base" aria-hidden="true">{cat.emoji}</span>
+                    <span className="text-[15px] text-salve-text font-medium">{cat.label}</span>
+                    <span className="text-[11px] text-salve-textFaint bg-salve-card2 rounded-full px-1.5 py-0.5 font-montserrat">{visibleCount}</span>
                   </div>
-                  {isOpen ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+                  {isCatOpen ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
                 </button>
-                {isOpen && (
-                  <div className="mt-3 pt-3 border-t border-salve-border/50">
-                    <ImportWizard parser={parser} data={data} reloadData={reloadData} />
-                  </div>
-                )}
               </Card>
-            </HideableSource>
+              {isCatOpen && (
+                <div className="space-y-2 mt-2 pl-3 border-l-2 border-salve-border/40">
+                  {visibleItems.map(({ parser, Icon, tint, subtitle }) => {
+                    const id = parser.META.id;
+                    const isOpen = expandedSource === id;
+                    const tintBg = tint === 'rose' ? 'bg-salve-rose/15' : tint === 'amber' ? 'bg-salve-amber/15' : tint === 'lav' ? 'bg-salve-lav/15' : 'bg-salve-sage/15';
+                    const tintFg = tint === 'rose' ? 'text-salve-rose' : tint === 'amber' ? 'text-salve-amber' : tint === 'lav' ? 'text-salve-lav' : 'text-salve-sage';
+                    return (
+                      <HideableSource key={id} id={id} label={parser.META.label}>
+                        <Card>
+                          <button onClick={() => toggleSource(id)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${tintBg}`}>
+                                <Icon size={16} className={tintFg} />
+                              </div>
+                              <div className="text-left">
+                                <span className="text-[15px] text-salve-text font-medium block">{parser.META.label}</span>
+                                <span className="text-[12px] text-salve-textFaint">{subtitle}</span>
+                              </div>
+                            </div>
+                            {isOpen ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+                          </button>
+                          {isOpen && (
+                            <div className="mt-3 pt-3 border-t border-salve-border/50">
+                              <ImportWizard parser={parser} data={data} reloadData={reloadData} />
+                            </div>
+                          )}
+                        </Card>
+                      </HideableSource>
+                    );
+                  })}
+                  {hasFlo && (
+                    <HideableSource id="flo" label="Flo">
+                      <Card>
+                        <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
+                              <Heart size={16} className="text-salve-rose" />
+                            </div>
+                            <div className="text-left">
+                              <span className="text-[15px] text-salve-text font-medium block">Flo</span>
+                              <span className="text-[12px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
+                            </div>
+                          </div>
+                          {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+                        </button>
+                        {expandedSource === 'flo' && (
+                          <div className="mt-3 pt-3 border-t border-salve-border/50">
+                            <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mb-2">
+                              Import your cycle history from Flo. Go to Flo → Profile → Settings → Request My Data, then upload the JSON file in the Cycle Tracker section.
+                            </p>
+                            <button
+                              onClick={() => onNav('cycles')}
+                              className="text-xs text-salve-rose font-montserrat bg-transparent border border-salve-rose/30 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-rose/10 transition-colors"
+                            >
+                              Go to Cycle Tracker →
+                            </button>
+                          </div>
+                        )}
+                      </Card>
+                    </HideableSource>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
 
@@ -2013,37 +2091,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           </Card>
           </HideableSource>
         )}
-
-        {/* ── Flo ── */}
-        <HideableSource id="flo" label="Flo">
-        <Card>
-          <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
-                <Heart size={16} className="text-salve-rose" />
-              </div>
-              <div className="text-left">
-                <span className="text-[15px] text-salve-text font-medium block">Flo</span>
-                <span className="text-[12px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
-              </div>
-            </div>
-            {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-          </button>
-          {expandedSource === 'flo' && (
-            <div className="mt-3 pt-3 border-t border-salve-border/50">
-              <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mb-2">
-                Import your cycle history from Flo. Go to Flo → Profile → Settings → Request My Data, then upload the JSON file in the Cycle Tracker section.
-              </p>
-              <button
-                onClick={() => onNav('cycles')}
-                className="text-xs text-salve-rose font-montserrat bg-transparent border border-salve-rose/30 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-rose/10 transition-colors"
-              >
-                Go to Cycle Tracker →
-              </button>
-            </div>
-          )}
-        </Card>
-        </HideableSource>
 
         {hiddenSources.length > 0 && (
           <div className="text-center mt-1">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { MessageSquare, Bug, Lightbulb, ChevronDown, ChevronLeft, RefreshCw, Shield, Activity, Users, TrendingUp, Zap, DollarSign, AlertTriangle, Trash2, Plus, Ticket, Copy } from 'lucide-react';
+import { MessageSquare, Bug, Lightbulb, ChevronDown, ChevronLeft, RefreshCw, Shield, Activity, Users, TrendingUp, Zap, DollarSign, AlertTriangle, Trash2, Plus, Ticket, Copy, Palette, Clock } from 'lucide-react';
 import { supabase } from '../../services/supabase';
 import { isAdminActive } from '../../services/ai';
 import Card from '../ui/Card';
@@ -8,6 +8,8 @@ import SkeletonList from '../ui/SkeletonCard';
 import ConfirmBar from '../ui/ConfirmBar';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import { C } from '../../constants/colors';
+import { themes } from '../../constants/themes';
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
 
 const TYPE_META = {
   feedback:   { label: 'Feedback',   icon: MessageSquare, color: C.lav },
@@ -202,6 +204,12 @@ function useAdminStats() {
 
   useEffect(() => { load(); }, [load]);
 
+  // 30-second auto-refresh for live counter
+  useEffect(() => {
+    const id = setInterval(load, 30_000);
+    return () => clearInterval(id);
+  }, [load]);
+
   return { stats, loading, error, refresh: load };
 }
 
@@ -231,6 +239,17 @@ function StatsPanel({ stats, loading, error, onRefresh }) {
           Refresh
         </button>
       </div>
+
+      {/* Live users badge */}
+      {stats?.active_now != null && (
+        <div className="flex items-center gap-2 mb-3 px-2 py-1.5 rounded-lg bg-salve-sage/10 border border-salve-sage/20 w-fit">
+          <span className="pulse-dot w-2 h-2 rounded-full bg-salve-sage shrink-0" />
+          <span className="text-[12px] font-medium text-salve-sage font-montserrat tabular-nums">
+            {stats.active_now} active now
+          </span>
+          <span className="text-[10px] text-salve-textFaint font-montserrat">last 5 min</span>
+        </div>
+      )}
 
       {error && (
         <p className="text-[12px] text-salve-rose font-montserrat m-0 mb-2">{error}</p>
@@ -396,6 +415,12 @@ function StatsPanel({ stats, loading, error, onRefresh }) {
               accent={C.amber}
             />
           </div>
+
+          {/* Theme popularity pie chart */}
+          <ThemeDistributionChart data={stats.theme_distribution} />
+
+          {/* Hourly usage heatmap */}
+          <HourlyDistributionChart data={stats.hourly_distribution} />
         </div>
       )}
     </Card>
@@ -408,6 +433,135 @@ function StatsPanel({ stats, loading, error, onRefresh }) {
 function renderEndpointCost(item) {
   if (item.cost_usd == null || Number(item.cost_usd) === 0) return null;
   return formatUSD(item.cost_usd);
+}
+
+// ─── Theme popularity pie chart ───────────────────────────────────────────
+const THEME_PIE_TOP = 8;
+
+function ThemeTooltip({ active, payload }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="bg-salve-card px-2 py-1 rounded shadow text-xs text-salve-text border border-salve-border">
+      <span className="font-medium capitalize">{d.theme}</span>: {d.count}
+    </div>
+  );
+}
+
+function themeColor(name) {
+  if (name === 'other') return C.textFaint;
+  return themes[name]?.colors?.lav || C.lav;
+}
+
+function ThemeDistributionChart({ data }) {
+  if (!data?.length) return null;
+  const sorted = [...data].sort((a, b) => b.count - a.count);
+  const top = sorted.slice(0, THEME_PIE_TOP);
+  const rest = sorted.slice(THEME_PIE_TOP);
+  const items = [...top];
+  if (rest.length) {
+    items.push({ theme: 'other', count: rest.reduce((s, r) => s + r.count, 0) });
+  }
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Palette size={11} className="text-salve-textFaint" />
+        <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
+          Theme popularity (30d)
+        </span>
+      </div>
+      <div className="h-[180px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={items}
+              dataKey="count"
+              nameKey="theme"
+              cx="50%"
+              cy="50%"
+              innerRadius={40}
+              outerRadius={70}
+              paddingAngle={2}
+            >
+              {items.map((entry, i) => (
+                <Cell key={i} fill={themeColor(entry.theme)} />
+              ))}
+            </Pie>
+            <RechartsTooltip content={<ThemeTooltip />} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 justify-center">
+        {items.map(entry => (
+          <div key={entry.theme} className="flex items-center gap-1 text-[10px] text-salve-textMid">
+            <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: themeColor(entry.theme) }} />
+            {entry.theme}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Hourly usage distribution bar chart ──────────────────────────────────
+
+function HourlyTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const d = payload[0].payload;
+  return (
+    <div className="bg-salve-card px-2 py-1 rounded shadow text-xs text-salve-text border border-salve-border">
+      <span className="font-medium">{String(d.hour).padStart(2, '0')}:00 UTC</span>
+      <span className="mx-1">·</span>
+      {d.events} events · {d.users} users
+    </div>
+  );
+}
+
+function HourlyDistributionChart({ data }) {
+  if (!data?.length) return null;
+  const maxEvents = Math.max(...data.map(d => d.events), 1);
+  return (
+    <div>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Clock size={11} className="text-salve-textFaint" />
+        <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
+          Usage by hour — last 7 days (UTC)
+        </span>
+      </div>
+      <div className="h-[160px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+            <XAxis
+              dataKey="hour"
+              tick={{ fontSize: 9, fill: C.textFaint }}
+              tickFormatter={h => h % 3 === 0 ? `${String(h).padStart(2, '0')}:00` : ''}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: C.textFaint }}
+              axisLine={false}
+              tickLine={false}
+              allowDecimals={false}
+            />
+            <RechartsTooltip content={<HourlyTooltip />} cursor={{ fill: C.lav, opacity: 0.08 }} />
+            <Bar dataKey="events" radius={[3, 3, 0, 0]}>
+              {data.map((entry, i) => (
+                <Cell
+                  key={i}
+                  fill={C.lav}
+                  fillOpacity={0.3 + 0.7 * (entry.events / maxEvents)}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="text-[9px] text-salve-textFaint font-montserrat text-center mt-1 m-0">
+        All times UTC · brighter bars = more activity
+      </p>
+    </div>
+  );
 }
 
 // ─── Per-user drill-down ──────────────────────────────────────────────────
@@ -1121,6 +1275,7 @@ export default function Admin({ data, onNav }) {
   // Per-feedback-item reply drafts. Keyed by feedback id so each card has its own state.
   const [replyDraft, setReplyDraft] = useState({});
   const [savingReply, setSavingReply] = useState(null);
+  const [copiedId, setCopiedId]       = useState(null);
   // Feedback delete confirmation — uses the standard ConfirmBar pattern
   // from useConfirmDelete, matching Todos.jsx/Medications.jsx/etc.
   const delFeedback = useConfirmDelete();
@@ -1462,6 +1617,21 @@ export default function Admin({ data, onNav }) {
 
                 {isExpanded && (
                   <div className="mt-3 pt-3 border-t border-salve-border/50">
+                    {/* Copy full feedback to clipboard */}
+                    <button
+                      onClick={async () => {
+                        const text = `[${meta.label}] from ${userLabel} (${dateStr})\n\n${item.message}`;
+                        await navigator.clipboard.writeText(text);
+                        setCopiedId(item.id);
+                        setTimeout(() => setCopiedId(prev => prev === item.id ? null : prev), 1500);
+                      }}
+                      className="flex items-center gap-1.5 text-[12px] px-3 py-1.5 mb-3 rounded-full border border-salve-border text-salve-textFaint hover:text-salve-text hover:border-salve-lav/40 bg-transparent font-montserrat cursor-pointer transition-colors"
+                      aria-label="Copy feedback to clipboard"
+                    >
+                      <Copy size={11} />
+                      {copiedId === item.id ? 'Copied!' : 'Copy feedback'}
+                    </button>
+
                     {/* Reply to user — uses migration 042's admin UPDATE policy */}
                     <p className="text-[11px] text-salve-textFaint font-montserrat uppercase tracking-wider mb-2">
                       {item.response ? 'Edit reply' : 'Reply to user'}
