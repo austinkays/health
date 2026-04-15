@@ -18,6 +18,7 @@ import { buildProfile, fdaBullet } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { drugAutocomplete, drugDetails } from '../../services/drugs';
+import { isSubscribed as isPushSubscribed } from '../../services/push';
 import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
 import { validateMedication } from '../../utils/validate';
@@ -68,6 +69,12 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   useEffect(() => {
     const id = setInterval(() => setNowTick(new Date()), 60_000);
     return () => clearInterval(id);
+  }, []);
+  const [pushOn, setPushOn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    isPushSubscribed().then(v => { if (!cancelled) setPushOn(!!v); }).catch(() => {});
+    return () => { cancelled = true; };
   }, []);
   const [errors, setErrors] = useState({});
   const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
@@ -616,9 +623,103 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     </div>
   );
 
+  /* ── Schedule block: reminders + push status, shown at top of detail pane ── */
+  const renderScheduleBlock = (m) => {
+    const medReminders = (data.medication_reminders || [])
+      .filter(r => r.medication_id === m.id)
+      .sort((a, b) => (a.reminder_time || '').localeCompare(b.reminder_time || ''));
+    const isAdding = reminderAddId === m.id;
+    return (
+      <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-semibold font-montserrat text-salve-lav uppercase tracking-wider">Schedule</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-[11px] font-montserrat ${pushOn ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
+              {pushOn ? '🔔 Notifications on' : (
+                <a
+                  href="#"
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); onNav?.('settings'); }}
+                  className="text-salve-textFaint no-underline hover:text-salve-lav hover:underline"
+                >
+                  Set up notifications →
+                </a>
+              )}
+            </span>
+            {!isAdding && (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setReminderAddId(m.id); setReminderTime('08:00'); }}
+                className="inline-flex items-center gap-0.5 text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
+              >
+                <Plus size={11} aria-hidden="true" /> Add time
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isAdding && (
+          <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-card border border-salve-lav/30">
+            <input
+              type="time"
+              value={reminderTime}
+              onChange={e => setReminderTime(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              autoFocus
+              className="bg-salve-card2 border border-salve-border rounded-lg px-2 py-1 text-xs text-salve-text font-montserrat focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+            />
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                if (reminderTime) {
+                  addItem('medication_reminders', { medication_id: m.id, reminder_time: reminderTime + ':00', enabled: true });
+                  setReminderAddId(null);
+                }
+              }}
+              className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
+            >Save</button>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); setReminderAddId(null); }}
+              className="text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
+            >Cancel</button>
+          </div>
+        )}
+
+        {medReminders.length === 0 && !isAdding && (
+          <p className="text-[12px] text-salve-textFaint/70 font-montserrat italic">No reminders set. Tap &ldquo;Add time&rdquo; to schedule one.</p>
+        )}
+
+        {medReminders.map(r => (
+          <div key={r.id} className="flex items-center justify-between py-1 first:pt-0">
+            <div className="flex items-center gap-2">
+              <Clock size={11} className={r.enabled ? 'text-salve-lav' : 'text-salve-textFaint'} aria-hidden="true" />
+              <span className={`text-[13px] font-montserrat ${r.enabled ? 'text-salve-text' : 'text-salve-textFaint line-through'}`}>
+                {formatTime(r.reminder_time)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); updateItem('medication_reminders', r.id, { enabled: !r.enabled }); }}
+                className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
+              >{r.enabled ? 'Pause' : 'Enable'}</button>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); removeItem('medication_reminders', r.id); }}
+                className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
+              >Remove</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
   const renderMedDetail = (m) => (
     <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+      {renderScheduleBlock(m)}
       {/* Desktop: show med name as title in detail pane */}
       {isDesktop && (
         <div className="mb-3">
@@ -761,74 +862,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         );
       })()}
 
-      {/* Reminders */}
-      {(() => {
-        const medReminders = (data.medication_reminders || []).filter(r => r.medication_id === m.id);
-        const isAdding = reminderAddId === m.id;
-        return (
-          <div className="mt-2.5 pt-2.5 border-t border-salve-border/40">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[13px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Reminders</span>
-              {!isAdding && (
-                <button
-                  onClick={() => { setReminderAddId(m.id); setReminderTime('08:00'); }}
-                  className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline flex items-center gap-0.5"
-                >
-                  <Plus size={11} /> Add
-                </button>
-              )}
-            </div>
-            {/* Inline time picker */}
-            {isAdding && (
-              <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-card border border-salve-lav/30">
-                <input
-                  type="time"
-                  value={reminderTime}
-                  onChange={e => setReminderTime(e.target.value)}
-                  autoFocus
-                  className="bg-salve-card2 border border-salve-border rounded-lg px-2 py-1 text-xs text-salve-text font-montserrat focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
-                />
-                <button
-                  onClick={() => {
-                    if (reminderTime) {
-                      addItem('medication_reminders', { medication_id: m.id, reminder_time: reminderTime + ':00', enabled: true });
-                      setReminderAddId(null);
-                    }
-                  }}
-                  className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
-                >Save</button>
-                <button
-                  onClick={() => setReminderAddId(null)}
-                  className="text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
-                >Cancel</button>
-              </div>
-            )}
-            {medReminders.map(r => (
-              <div key={r.id} className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-montserrat text-salve-text">{r.reminder_time?.slice(0, 5)}</span>
-                  <span className={`text-[12px] font-montserrat ${r.enabled ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
-                    {r.enabled ? 'Active' : 'Paused'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateItem('medication_reminders', r.id, { enabled: !r.enabled })}
-                    className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
-                  >{r.enabled ? 'Pause' : 'Enable'}</button>
-                  <button
-                    onClick={() => removeItem('medication_reminders', r.id)}
-                    className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
-                  >Remove</button>
-                </div>
-              </div>
-            ))}
-            {medReminders.length === 0 && !isAdding && (
-              <p className="text-[12px] text-salve-textFaint/60 font-montserrat italic">No reminders set</p>
-            )}
-          </div>
-        );
-      })()}
 
       <div className="flex gap-2.5 mt-2.5 flex-wrap">
         <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
