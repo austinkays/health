@@ -1309,109 +1309,184 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
   const chatEndRef = useRef(null);
   const chatInputRef = useRef(null);
+  const chatPanelRef = useRef(null);
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, loading]);
 
+  // Focus input when overlay opens; restore focus on close
+  const chatOverlayTriggerRef = useRef(null);
+  useEffect(() => {
+    if (mode === 'ask') {
+      chatOverlayTriggerRef.current = document.activeElement;
+      setTimeout(() => chatInputRef.current?.focus(), 60);
+    } else if (chatOverlayTriggerRef.current) {
+      chatOverlayTriggerRef.current.focus();
+      chatOverlayTriggerRef.current = null;
+    }
+  }, [mode]);
+
+  // Escape key closes the chat overlay
+  useEffect(() => {
+    if (mode !== 'ask') return;
+    const handleKey = (e) => { if (e.key === 'Escape') setMode(null); };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [mode]);
+
+  // Focus trap inside chat overlay panel
+  const FOCUSABLE_SEL = 'a[href],button:not([disabled]),input:not([disabled]),textarea:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  useEffect(() => {
+    if (mode !== 'ask') return;
+    const panel = chatPanelRef.current;
+    if (!panel) return;
+    const trap = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusable = Array.from(panel.querySelectorAll(FOCUSABLE_SEL));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey) {
+        if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+      } else {
+        if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    };
+    panel.addEventListener('keydown', trap);
+    return () => panel.removeEventListener('keydown', trap);
+  }, [mode]);
+
   if (mode === 'ask') return (
     <AIConsentGate>
     {crisisType && <CrisisModal type={crisisType} onClose={() => setCrisisType(null)} />}
-    <div className="mt-2">
-      <SectionTitle action={<button onClick={() => { setMode(null); }} className="text-xs text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat">Back</button>}>
-        Chat with Sage
-      </SectionTitle>
-      {chatMessages.length > 0 && (
-        <div className="flex justify-end gap-1.5 mb-2">
-          <button onClick={() => { setShowHistory(h => !h); refreshConversationList(); }} className="inline-flex items-center gap-1 text-[13px] text-salve-textMid bg-salve-card2 hover:bg-salve-lav/10 rounded-full px-2.5 py-1 transition-colors font-montserrat border border-salve-border cursor-pointer" aria-label="Chat history">
-            <Clock size={11} /> History
-          </button>
-          <button onClick={startNewChat} className="inline-flex items-center gap-1 text-[13px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat border-none cursor-pointer">
-            <Plus size={11} /> New Chat
+    <div
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:pl-[260px] bg-black/50 backdrop-blur-sm"
+      onClick={() => setMode(null)}
+    >
+      <div
+        ref={chatPanelRef}
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Chat with Sage"
+        className="w-full max-w-[480px] md:max-w-[700px] bg-salve-card border-t border-salve-border rounded-t-2xl md:rounded-2xl flex flex-col shadow-2xl md:mb-4"
+        style={{ height: '78vh', maxHeight: '78vh' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-salve-border flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Leaf size={18} className="text-salve-sage" />
+            <span className="font-playfair text-lg text-salve-text">Chat with Sage</span>
+          </div>
+          <button
+            onClick={() => setMode(null)}
+            aria-label="Close"
+            className="bg-transparent border-none text-salve-textMid hover:text-salve-text cursor-pointer p-1.5 flex transition-colors"
+          >
+            <X size={18} />
           </button>
         </div>
-      )}
-      {!chatMessages.length && conversationList.length > 0 && (
-        <div className="flex justify-end mb-2">
-          <button onClick={() => { setShowHistory(h => !h); refreshConversationList(); }} className="inline-flex items-center gap-1 text-[13px] text-salve-textMid bg-salve-card2 hover:bg-salve-lav/10 rounded-full px-2.5 py-1 transition-colors font-montserrat border border-salve-border cursor-pointer" aria-label="Chat history">
-            <Clock size={11} /> History
-          </button>
-        </div>
-      )}
-      {showHistory && (
-        <div className="mb-3 rounded-xl border border-salve-border bg-salve-card overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-salve-border/50">
-            <span className="text-[13px] font-montserrat font-medium text-salve-text">Chat History</span>
-            <div className="flex items-center gap-2">
-              {getConversationCap() !== Infinity && (
-                <span className="text-[11px] font-montserrat text-salve-textFaint">
-                  {conversationList.length}/{getConversationCap()} saved
-                </span>
-              )}
-              <button onClick={() => setShowHistory(false)} className="text-salve-textFaint hover:text-salve-text transition-colors bg-transparent border-none cursor-pointer p-0.5" aria-label="Close history">
-                <X size={14} />
+
+        {/* Scrollable messages area */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 min-h-0">
+          {chatMessages.length > 0 && (
+            <div className="flex justify-end gap-1.5 mb-2">
+              <button onClick={() => { setShowHistory(h => !h); refreshConversationList(); }} className="inline-flex items-center gap-1 text-[13px] text-salve-textMid bg-salve-card2 hover:bg-salve-lav/10 rounded-full px-2.5 py-1 transition-colors font-montserrat border border-salve-border cursor-pointer" aria-label="Chat history">
+                <Clock size={11} /> History
+              </button>
+              <button onClick={startNewChat} className="inline-flex items-center gap-1 text-[13px] text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/20 rounded-full px-2.5 py-1 transition-colors font-montserrat border-none cursor-pointer">
+                <Plus size={11} /> New Chat
               </button>
             </div>
-          </div>
-          {conversationList.length === 0 ? (
-            <p className="text-[12px] text-salve-textFaint font-montserrat text-center py-4">No saved chats yet</p>
-          ) : (
-            <div className="max-h-[240px] overflow-y-auto">
-              {conversationList.map(c => (
-                <div key={c.id} className={`flex items-center gap-2 px-3 py-2 hover:bg-salve-lav/5 transition-colors cursor-pointer border-b border-salve-border/30 last:border-0 ${conversationId === c.id ? 'bg-salve-lav/10' : ''}`}>
-                  <button onClick={() => loadConversation(c)} className="flex-1 text-left bg-transparent border-none cursor-pointer p-0 min-w-0">
-                    <p className="text-[13px] text-salve-text font-montserrat truncate">{c.title || 'Chat'}</p>
-                    <p className="text-[11px] text-salve-textFaint font-montserrat">{fmtDateRelative(c.updated_at || c.created_at)}</p>
-                  </button>
-                  {deletingConvoId === c.id ? (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => deleteConversation(c.id)} className="text-[11px] text-salve-rose bg-salve-rose/10 rounded-full px-2 py-0.5 font-montserrat border-none cursor-pointer">Delete</button>
-                      <button onClick={() => setDeletingConvoId(null)} className="text-[11px] text-salve-textFaint bg-transparent rounded-full px-1.5 py-0.5 font-montserrat border-none cursor-pointer">Cancel</button>
-                    </div>
-                  ) : (
-                    <button onClick={(e) => { e.stopPropagation(); setDeletingConvoId(c.id); }} className="text-salve-textFaint hover:text-salve-rose transition-colors bg-transparent border-none cursor-pointer p-1 shrink-0" aria-label="Delete conversation">
-                      <Trash2 size={13} />
-                    </button>
+          )}
+          {!chatMessages.length && conversationList.length > 0 && (
+            <div className="flex justify-end mb-2">
+              <button onClick={() => { setShowHistory(h => !h); refreshConversationList(); }} className="inline-flex items-center gap-1 text-[13px] text-salve-textMid bg-salve-card2 hover:bg-salve-lav/10 rounded-full px-2.5 py-1 transition-colors font-montserrat border border-salve-border cursor-pointer" aria-label="Chat history">
+                <Clock size={11} /> History
+              </button>
+            </div>
+          )}
+          {showHistory && (
+            <div className="mb-3 rounded-xl border border-salve-border bg-salve-card overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-salve-border/50">
+                <span className="text-[13px] font-montserrat font-medium text-salve-text">Chat History</span>
+                <div className="flex items-center gap-2">
+                  {getConversationCap() !== Infinity && (
+                    <span className="text-[11px] font-montserrat text-salve-textFaint">
+                      {conversationList.length}/{getConversationCap()} saved
+                    </span>
                   )}
+                  <button onClick={() => setShowHistory(false)} className="text-salve-textFaint hover:text-salve-text transition-colors bg-transparent border-none cursor-pointer p-0.5" aria-label="Close history">
+                    <X size={14} />
+                  </button>
                 </div>
-              ))}
+              </div>
+              {conversationList.length === 0 ? (
+                <p className="text-[12px] text-salve-textFaint font-montserrat text-center py-4">No saved chats yet</p>
+              ) : (
+                <div className="max-h-[240px] overflow-y-auto">
+                  {conversationList.map(c => (
+                    <div key={c.id} className={`flex items-center gap-2 px-3 py-2 hover:bg-salve-lav/5 transition-colors cursor-pointer border-b border-salve-border/30 last:border-0 ${conversationId === c.id ? 'bg-salve-lav/10' : ''}`}>
+                      <button onClick={() => loadConversation(c)} className="flex-1 text-left bg-transparent border-none cursor-pointer p-0 min-w-0">
+                        <p className="text-[13px] text-salve-text font-montserrat truncate">{c.title || 'Chat'}</p>
+                        <p className="text-[11px] text-salve-textFaint font-montserrat">{fmtDateRelative(c.updated_at || c.created_at)}</p>
+                      </button>
+                      {deletingConvoId === c.id ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => deleteConversation(c.id)} className="text-[11px] text-salve-rose bg-salve-rose/10 rounded-full px-2 py-0.5 font-montserrat border-none cursor-pointer">Delete</button>
+                          <button onClick={() => setDeletingConvoId(null)} className="text-[11px] text-salve-textFaint bg-transparent rounded-full px-1.5 py-0.5 font-montserrat border-none cursor-pointer">Cancel</button>
+                        </div>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); setDeletingConvoId(c.id); }} className="text-salve-textFaint hover:text-salve-rose transition-colors bg-transparent border-none cursor-pointer p-1 shrink-0" aria-label="Delete conversation">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {getConversationCap() !== Infinity && conversationList.length >= getConversationCap() && (
+                <div className="px-3 py-2 border-t border-salve-border/50 bg-salve-card2/50">
+                  <p className="text-[11px] text-salve-lav/70 font-montserrat text-center">
+                    ✦ <span className="italic">Upgrade for unlimited chat history</span>
+                  </p>
+                </div>
+              )}
             </div>
           )}
-          {getConversationCap() !== Infinity && conversationList.length >= getConversationCap() && (
-            <div className="px-3 py-2 border-t border-salve-border/50 bg-salve-card2/50">
-              <p className="text-[11px] text-salve-lav/70 font-montserrat text-center">
-                ✦ <span className="italic">Upgrade for unlimited chat history</span>
-              </p>
+          <ChatMessageList messages={chatMessages} toolExecutions={toolExecutions} loading={loading} confirmPending={confirmPending} chatEndRef={chatEndRef} />
+        </div>
+
+        {/* Pinned bottom: usage counter + input + upsell */}
+        <div className="border-t border-salve-border flex-shrink-0 px-4 pb-4 pt-3">
+          {usage.remaining <= 3 && (
+            <div className="text-center mb-2">
+              <span className="text-[12px] font-montserrat text-salve-amber">
+                {usage.remaining === 0 ? 'Daily calls refresh at midnight PT' : `${usage.remaining} of ${usage.limit} remaining today`}
+              </span>
             </div>
           )}
+          <div className="flex gap-2">
+            <input
+              ref={chatInputRef}
+              className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[15px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
+              placeholder="Ask Sage about your health..."
+              disabled={loading || cooldown}
+            />
+            <Button onClick={handleChat} disabled={!chatInput.trim() || loading || cooldown} className="!px-3" aria-label="Send message">
+              <Send size={16} />
+            </Button>
+          </div>
+          {isFeatureLocked('toolUse') && (
+            <p className="text-[11px] text-salve-lav/70 font-montserrat mt-1 text-center">
+              ✦ <span className="italic">Upgrade for data commands</span> — "add Lexapro 10mg", "log today's BP"
+            </p>
+          )}
         </div>
-      )}
-      <ChatMessageList messages={chatMessages} toolExecutions={toolExecutions} loading={loading} confirmPending={confirmPending} chatEndRef={chatEndRef} />
-      {usage.remaining <= 3 && (
-        <div className="text-center mb-2">
-          <span className="text-[12px] font-montserrat text-salve-amber">
-            {usage.remaining === 0 ? 'Daily calls refresh at midnight PT' : `${usage.remaining} of ${usage.limit} remaining today`}
-          </span>
-        </div>
-      )}
-      <div className="flex gap-2">
-        <input
-          ref={chatInputRef}
-          className="flex-1 bg-salve-card2 border border-salve-border rounded-xl px-3.5 py-2.5 text-[15px] text-salve-text font-montserrat outline-none focus:border-salve-lav placeholder:text-salve-textFaint"
-          value={chatInput}
-          onChange={e => setChatInput(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleChat()}
-          placeholder="Ask Sage about your health..."
-          disabled={loading || cooldown}
-        />
-        <Button onClick={handleChat} disabled={!chatInput.trim() || loading || cooldown} className="!px-3" aria-label="Send message">
-          <Send size={16} />
-        </Button>
       </div>
-      {isFeatureLocked('toolUse') && (
-        <p className="text-[11px] text-salve-lav/70 font-montserrat mt-1 text-center">
-          ✦ <span className="italic">Upgrade for data commands</span> — "add Lexapro 10mg", "log today's BP"
-        </p>
-      )}
     </div>
     </AIConsentGate>
   );

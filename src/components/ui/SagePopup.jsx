@@ -137,9 +137,9 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
           <div className="flex items-center gap-1">
             <button
               onClick={() => { onClose(); onOpenFullChat?.(); }}
-              aria-label="Open full chat"
+              aria-label="AI Features"
               className="bg-transparent border-none text-salve-textMid hover:text-salve-lav cursor-pointer p-1.5 flex transition-colors"
-              title="Open full chat"
+              title="AI Features"
             >
               <MessageSquare size={16} />
             </button>
