@@ -358,7 +358,7 @@ export default function SageIntroChat({ data, addItem, updateItem, removeItem, u
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
               placeholder="Type your answer..."
               disabled={loading}
-              className="flex-1 py-2.5 px-3.5 rounded-xl border border-salve-border bg-salve-card2 text-sm font-montserrat text-salve-text focus:outline-none focus:border-salve-sage/50 transition-colors disabled:opacity-50"
+              className="flex-1 py-2.5 px-3.5 rounded-xl border border-salve-border bg-salve-card2 text-base font-montserrat text-salve-text focus:outline-none focus:border-salve-sage/50 transition-colors disabled:opacity-50"
             />
             <button
               onClick={send}

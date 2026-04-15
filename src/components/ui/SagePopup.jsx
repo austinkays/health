@@ -218,7 +218,7 @@ export default function SagePopup({ open, onClose, onOpenFullChat, data }) {
                 placeholder="Ask Sage…"
                 aria-label="Ask Sage"
                 disabled={false}
-                className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-[15px] text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
+                className="flex-1 bg-salve-card2 border border-salve-border rounded-full px-4 py-2.5 text-base text-salve-text placeholder:text-salve-textFaint font-montserrat outline-none focus:border-salve-lav/40 transition-colors"
               />
               <button
                 onClick={send}
