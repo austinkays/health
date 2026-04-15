@@ -100,6 +100,68 @@ const existingOut = condenseFDA(existingFda);
 assertContains('condenseFDA still outputs boxed warning', existingOut, 'boxed warning');
 assertContains('condenseFDA still outputs contraindications', existingOut, 'contraindications');
 
+// ── Task 3: condenseFDA expansion ─────────────────────────────
+// Use a rich FDA fixture with all fields we care about to verify
+// the new indications / dosage / precautions branches, fdaBullet
+// header stripping, and that dropped-field hygiene (no overdosage /
+// storage) is enforced.
+function assertContainsRich(label, haystack, needle) {
+  if (String(haystack).includes(needle)) {
+    console.log(`\u2713 ${label}`);
+  } else {
+    console.error(`\u2717 ${label} \u2014 missing substring: ${JSON.stringify(needle)}`);
+    failed++;
+  }
+}
+function assertExcludesRich(label, haystack, needle) {
+  if (!String(haystack).includes(needle)) {
+    console.log(`\u2713 ${label}`);
+  } else {
+    console.error(`\u2717 ${label} \u2014 unexpectedly found: ${JSON.stringify(needle)}`);
+    failed++;
+  }
+}
+
+const richFda = {
+  boxed_warning: ['Risk of respiratory depression with opioid use'],
+  indications: ['1 INDICATIONS AND USAGE TRAMADOL is indicated for the management of moderate to moderately severe pain in adults.'],
+  dosage: ['2 DOSAGE AND ADMINISTRATION Initiate treatment with 25 mg/day in the morning and titrate upward.'],
+  contraindications: ['Do not use with MAO inhibitors'],
+  precautions: ['5 WARNINGS AND PRECAUTIONS Serotonin syndrome may occur with concomitant serotonergic drug use.'],
+  drug_interactions: ['Increased risk with SSRIs'],
+  adverse_reactions: ['Most common adverse reactions are dizziness, nausea, constipation, headache, and somnolence.'],
+  pregnancy: ['May cause neonatal opioid withdrawal syndrome.'],
+  overdosage: ['Symptoms include respiratory depression'],
+  storage: ['Store at room temperature'],
+};
+const richOut = condenseFDA(richFda);
+
+// New branches must be present
+assertContainsRich('condenseFDA adds "used for" for indications field', richOut, 'used for:');
+assertContainsRich('condenseFDA adds "dosing" for dosage field', richOut, 'dosing:');
+assertContainsRich('condenseFDA adds "precautions" for precautions field', richOut, 'precautions:');
+
+// Header stripping must apply via fdaBullet
+assertContainsRich(
+  'condenseFDA strips "1 INDICATIONS AND USAGE" prefix from indications output',
+  richOut,
+  'TRAMADOL is indicated'
+);
+assertExcludesRich('condenseFDA output does not contain "1 INDICATIONS AND USAGE"', richOut, '1 INDICATIONS AND USAGE');
+assertExcludesRich('condenseFDA output does not contain "2 DOSAGE AND ADMINISTRATION"', richOut, '2 DOSAGE AND ADMINISTRATION');
+assertExcludesRich('condenseFDA output does not contain "5 WARNINGS AND PRECAUTIONS"', richOut, '5 WARNINGS AND PRECAUTIONS');
+
+// Dropped fields — never fed to Sage
+assertExcludesRich('condenseFDA does NOT include overdosage field', richOut, 'overdosage:');
+assertExcludesRich('condenseFDA does NOT include storage field', richOut, 'storage:');
+
+// Existing branches still present and untouched
+assertContainsRich('condenseFDA still includes boxed warning', richOut, 'boxed warning:');
+assertContainsRich('condenseFDA still includes contraindications', richOut, 'contraindications:');
+assertContainsRich('condenseFDA still includes interactions', richOut, 'interactions:');
+assertContainsRich('condenseFDA still includes side effects', richOut, 'side effects:');
+assertContainsRich('condenseFDA still includes pregnancy', richOut, 'pregnancy:');
+
 if (failed > 0) {
   console.error(`\n${failed} assertion(s) failed`);
   process.exit(1);

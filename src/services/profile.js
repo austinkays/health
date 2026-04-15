@@ -16,8 +16,17 @@ function condenseFDA(fda) {
   if (fda.boxed_warning?.length) {
     out += ' ⚠ boxed warning: ' + san(fda.boxed_warning[0], 140);
   }
+  if (fda.indications?.length) {
+    out += ' | used for: ' + fdaBullet(fda.indications[0], 180);
+  }
+  if (fda.dosage?.length) {
+    out += ' | dosing: ' + fdaBullet(fda.dosage[0], 180);
+  }
   if (fda.contraindications?.length) {
     out += ' | contraindications: ' + san(fda.contraindications[0], 100);
+  }
+  if (fda.precautions?.length) {
+    out += ' | precautions: ' + fdaBullet(fda.precautions[0], 180);
   }
   if (fda.drug_interactions?.length) {
     out += ' | interactions: ' + san(fda.drug_interactions[0], 100);
