@@ -39,10 +39,14 @@ health/
 ├── vite.config.js
 ├── tailwind.config.js
 ├── postcss.config.js
+├── playwright.config.js
 ├── vercel.json
 ├── index.html
 ├── .env.local                    # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (not committed)
 ├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── visual-regression.yml # CI: Playwright visual regression tests on PR
 ├── api/
 │   ├── _prompts.js               # Server-side prompt allowlist: PROMPTS object (19 prompt keys), buildSystemPrompt(key, profileText, opts), isValidPromptKey(), sanProfile() sanitizer, TOOLS_ADDENDUM constant — clients send prompt_key not raw system prompts
 │   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
@@ -64,8 +68,11 @@ health/
 │   └── salve-sync.jsx            # Claude artifact for MCP health data sync into Salve (directive header instructs Claude.ai to auto-render)
 ├── docs/
 │   ├── IMPORT_IMPLEMENTATION.md  # Import/export/merge implementation guide
+│   ├── LIVE_TRACKING_PIPELINE.md # Live wearable tracking pipeline design doc
 │   ├── MIGRATION_PLAN.md         # Migration planning notes
 │   └── superpowers/specs/        # Design specs for upcoming features
+├── scripts/
+│   └── rls-verify.mjs            # RLS end-to-end verification script (two-user cross-contamination check)
 ├── supabase/
 │   └── migrations/
 │       ├── 001_schema.sql        # Full DB schema: profiles, meds, conditions, etc.
@@ -108,11 +115,13 @@ health/
 │       ├── 040_open_signup_beta_codes.sql     # Open signup (new users get free tier, no auto-premium). Repurposes beta invite codes as premium trial grants: claim_beta_invite() now sets tier='premium' + trial_expires_at=14 days
 │       ├── 041_index_audit.sql                # Index audit pass
 │       ├── 042_admin_feedback_access.sql      # RLS policies so tier='admin' users can SELECT + UPDATE all feedback rows (not just their own). No DELETE for admins.
-│       └── 043_admin_stats_rpc.sql            # get_admin_stats() SECURITY DEFINER RPC: aggregates cross-user stats (DAU/WAU/MAU, 14-day DAU sparkline, section traffic, AI feature usage, API call volume + tokens by endpoint, signups, trial count, feedback summary) for the Admin page. Inline profiles.tier='admin' gate; non-admins get an exception. Powered by existing usage_events + api_usage + profiles + feedback tables. All time windows capped (7d/14d/30d) to stay cheap as tables grow.
+│       ├── 043_admin_stats_rpc.sql            # get_admin_stats() SECURITY DEFINER RPC: aggregates cross-user stats (DAU/WAU/MAU, 14-day DAU sparkline, section traffic, AI feature usage, API call volume + tokens by endpoint, signups, trial count, feedback summary) for the Admin page. Inline profiles.tier='admin' gate; non-admins get an exception. Powered by existing usage_events + api_usage + profiles + feedback tables. All time windows capped (7d/14d/30d) to stay cheap as tables grow.
+│       ├── 044_admin_stats_v2.sql             # Extends get_admin_stats() with cost tracking (per-provider spend, token costs), tier-gate pressure metrics, per-user drill-down RPC
+│       └── 045_admin_v3_deletes_and_beta_codes.sql # Admin panel v3: per-provider cost split, beta invite management RPCs (list/create/revoke), admin feedback delete policy
 ├── src/
 │   ├── main.jsx                  # Entry point, mount App
 │   ├── index.css                 # Tailwind directives + Google Fonts import + CSS variable defaults for theme system (:root with RGB triplets) + all color references use CSS variables (rgb(var(--salve-*) / opacity)) + time-aware ambiance CSS variables (theme-adaptive) + magical hover/glow/shimmer effects + highlight-ring animation + no-scrollbar utility + expand-section CSS grid animation + toast-enter animation + wellness-fade animation + breathe meditation animation (10s cycle) + section-enter deblur transition + AI prose reveal stagger + celebration particle burst + ready-reveal shimmer + responsive desktop typography (14px base at md+) + print styles (hides nav/decorations, white bg, forces sections open, page breaks)
-│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery, ThemeProvider wrapper, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s), sageOpen state + SagePopup render at app root, SideNav render for desktop sidebar, global keyboard shortcuts (Cmd/Ctrl+K → search, Escape → close Sage popup), responsive layout wrapper (md:ml-[220px] sidebar offset, md:max-w-[720px] lg:max-w-[960px] content column)
+│   ├── App.jsx                   # Auth gate, session management, router shell (<main> wrapper), view switching, ErrorBoundary wrapper, lazyWithRetry chunk recovery (preserves current tab on reload via sessionStorage), ThemeProvider wrapper, section-enter deblur animations, highlightId deep-link state, onNav(tab, opts) extended navigation with navHistory stack (back button returns to previous section instead of always Home, capped at 20 entries), URL routing via router.js (pushState/popState, 404 page for unknown paths), ToastProvider wrapper, toast-wrapped CRUD (with celebration sparkle burst on success), time-aware ambiance hook (applies ambiance-morning/day/evening/night class to html element every 60s), sageOpen state + SagePopup render at app root (conditional mount — only when open), SideNav render for desktop sidebar, global keyboard shortcuts (Cmd/Ctrl+K → search, Escape → close Sage popup), responsive layout wrapper (md:ml-[220px] sidebar offset, md:max-w-[720px] lg:max-w-[960px] content column), InstallPrompt PWA prompt, demoMode state + DemoBanner + DemoWelcome, Vercel SpeedInsights + Analytics (production only), Admin section (lazy, tier-gated)
 │   ├── constants/
 │   │   ├── colors.js             # Color palette: Proxy C object that reads active theme's hex colors at access time (backward-compatible with all 28+ importers)
 │   │   ├── themes.js             # Theme presets (single source of truth): 15 themes (6 core: lilac/noir/midnight/forest/dawnlight/sunrise + 9 experimental: aurora/neon/cherry/sunbeam/blaze/ember/galactic/prismatic/crystal). Each theme: 16 hex colors + ambiance RGB (4 periods) + gradient array (3 color keys) + optional experimental:true flag; hexToRgbTriplet() utility
@@ -122,6 +131,10 @@ health/
 │   │   ├── journalPrompts.js     # Mood-aware reflection prompts: PROMPTS (7 mood categories × ~7 prompts each), getReflectionPrompt(mood) with no-repeat rotation, getMoodCategory(), isPositiveMood()
 │   │   ├── pgx.js                # Pharmacogenomic drug-gene lookup: PGX_GENES, PHENOTYPES, PGX_INTERACTIONS (~40 gene-drug pairs), findPgxMatches()
 │   │   ├── tools.js              # Anthropic tool definitions: HEALTH_TOOLS (27 tools incl add/remove cycle, todos, activity, genetic), DESTRUCTIVE_TOOLS set, TOOL_TABLE_MAP, RECORD_SUMMARIES
+│   │   ├── quotes.js             # 40+ curated wellness quotes with getDailyQuote() deterministic daily rotation (replaces ZenQuotes API dependency)
+│   │   ├── demoData.js           # Fictional demo user profile (ADHD/IBS/allergies, 15+ meds, vitals, journal, cycles) with relative dates for try-before-signup demo mode
+│   │   ├── demoResponses.js      # Canned AI responses for demo mode: DEMO_INSIGHTS object (insight/connections/news/resources/costs/labInterpret/vitalsTrend), SAGE_KEYWORDS keyword→reply map for offline Sage chat
+│   │   ├── formTemplates.js      # Pre-built medical form question templates for Scribe: FORM_TEMPLATES array (New Patient Intake, Specialist Referral, Annual Physical, etc.) with category + questions
 │   │   └── resources/
 │   │       ├── index.js           # Resource registry: RESOURCES[], registerResources(), normalizeCondition(), matchResources(data) ranking utility
 │   │       ├── everycure.js       # 10 active EveryCure drug repurposing programs (portfolio data, condition/medication tags, research stages)
@@ -155,6 +168,8 @@ health/
 │   │   ├── import_garmin.js      # Garmin Connect ZIP import → vitals + activities. Walks DI-Connect-* JSON files defensively (sniffs for known field names), pulls summarizedActivities for workouts (type map + duration/distance/HR), wellness files for daily steps/resting HR/sleep, weight files with kg-vs-grams heuristic
 │   │   ├── import_fitbit_takeout.js # Fitbit Google Takeout ZIP import → vitals + activities. Offline alternative to the OAuth integration. Parses per-day Fitbit Takeout JSON files (steps-YYYY-MM-DD.json, heart_rate-*, sleep-*, weight-*, exercise-*) with date pulled from filename; aggregates step minutes + HR readings to daily values
 │   │   ├── import_google_fit.js  # Google Takeout Fit ZIP import → vitals. Prefers the top-level "Daily activity metrics.csv" aggregated file, falls back to walking per-day files under "Daily activity metrics/". Extracts steps, average HR, average weight (kg → lbs)
+│   │   ├── import_visible.js     # Visible (ME/CFS pacing app) CSV import → vitals + journal_entries. Maps HR zones, HRV, sleep hours, Stability Score, symptoms, exertion/crash/PEM flags, period tracking, PacePoints
+│   │   ├── mychart.js            # Epic MyChart / CCDA XML parser: detectCCDA(), parseCCDA() with 8 LOINC section codes, namespace-agnostic DOM walking. Extracts conditions, meds, allergies, immunizations, labs, vitals, procedures, providers from ClinicalDocument XML
 │   │   ├── oura.js               # Oura Ring integration: OAuth2 flow (getOuraAuthUrl, exchangeOuraCode), token storage (encrypted localStorage), auto-refresh, data fetching (temperature/sleep/readiness/spo2/stress/workouts via /api/oura proxy), temperature deviation→BBT conversion (ouraDeviationToBBT), syncAllOuraData() bulk sync (temperature→cycles BBT, sleep/HR/SpO2/readiness/stress→vitals, workouts→activities), manual entry override protection, per-data-type dedup
 │   │   ├── ratings.js            # Insight ratings service: rateInsight (upsert), removeRating, loadRatings for thumbs up/down on AI content
 │   │   ├── newsCache.js          # Unified news article cache: merges RSS + Sage AI news + saved bookmarks; cacheSageNewsFromResult() parses markdown; buildNewsFeed() with relevance scoring
@@ -165,7 +180,7 @@ health/
 │   │   ├── fitbit.js             # Fitbit client: OAuth helpers (Basic Auth on token endpoint), syncFitbitData(days) pulls sleep+HR+steps+weight in parallel, FITBIT_ENABLED flag. Calls /api/wearable?provider=fitbit. ⚠️ Legacy API sunsets Sept 2026 — migrate to Google Health API before then.
 │   │   ├── whoop.js              # Whoop client: OAuth helpers (requires 'offline' scope for refresh_token), syncWhoopData(days) pulls recoveries (HRV + RHR + recovery score) and sleep sessions, WHOOP_ENABLED flag. Calls /api/wearable?provider=whoop. App approval required before credentials.
 │   │   ├── push.js               # Web Push API client: VAPID public key registration, service worker integration, subscribeToPush/unsubscribeFromPush/isSubscribed/getPermissionState/sendTestPush helpers
-│   │   ├── quote.js              # Daily wellness quote service (ZenQuotes API), 24-hour localStorage cache
+│   │   ├── quote.js              # Daily wellness quote service: reads from static constants/quotes.js, deterministic daily rotation, no external API dependency
 │   │   ├── sentry.js             # Sentry error reporting: initSentry() only activates when VITE_SENTRY_DSN is set; disabled in dev unless VITE_SENTRY_DSN_DEV; beforeSend scrubs request bodies, form data, and known health field names to prevent PII leaks
 │   │   └── fx.js                 # Cursor-follow micro-interaction helpers: handleSpotlight(e) sets --mx/--my CSS vars on currentTarget from pointer position, handleMagnet(e, strength) translates target toward cursor, resetMagnet(e) snaps back. All DOM writes, no React re-renders.
 │   │   └── analytics.js          # PHI-safe self-hosted product analytics: writes to Supabase `usage_events` table directly (no third-party vendor). `trackEvent(name)` fire-and-forget, batched (20 events or 10s, whichever first, plus page-hide flush). Double allowlist: `EVENTS` constant for base names, per-event `SUFFIX_ALLOWLIST` for enum discriminators (section IDs, AI feature names, import sources). Unknown/suffixed-wrong events silently dropped (dev-only warning). `enableAnalytics()` / `disableAnalytics()` gated on session + demo mode. `setupAnalyticsFlush()` wires visibilitychange + pagehide listeners. NEVER accepts properties — event name only. Backstopped by migration 026 schema CHECK length ≤80 and RLS.
@@ -173,6 +188,7 @@ health/
 │   │   ├── useHealthData.js      # Main data hook: load from Supabase, CRUD operations, state mgmt, reloadData
 │   │   ├── useConfirmDelete.js   # Delete confirmation state management
 │   │   ├── useInsightRatings.js  # Thumbs up/down hook: loads all ratings on mount, optimistic local state + background Supabase upsert, toggle-to-unrate
+│   │   ├── useRealtimeSync.js    # Supabase Realtime subscription hook for live-updating vitals/activities/cycles from external wearable sources (Oura, Terra, etc.)
 │   │   ├── useTheme.jsx          # Theme system: ThemeProvider (applies --salve-* color vars + --ambiance-* RGB + --salve-gradient-1/2/3 per-theme gradient stops to :root), useTheme() hook (themeId, setTheme, saveTheme, C, themes), getActiveC() standalone getter for non-React contexts
 │   │   ├── useScrollReveal.js    # IntersectionObserver singleton: shared observer for the whole app, adds .reveal-in class when elements scroll into view, one-shot per element. Respects prefers-reduced-motion. Used by Reveal.jsx wrapper.
 │   │   └── useVoiceInput.js      # Web Speech API wrapper: mic access, speech-to-text transcription, error handling for browser support gaps. Used by Journal entry form mic button.
@@ -209,6 +225,9 @@ health/
 │   │   │   ├── DemoBanner.jsx    # Persistent sticky banner at the top of every view while in demo mode. "Demo mode · sample data" + "Sign up" pill button. `md:hidden` — desktop users see the demo card in SideNav instead.
 │   │   │   ├── DemoWelcome.jsx   # First-run demo-mode walkthrough bottom-sheet modal. 3 steps: (0) "Pick your vibe" — welcome text + two ThemeCard previews that apply the theme live via useTheme().setTheme (preview only, no localStorage write). Default pair is Cherry Blossom (light) vs Aurora (dark); under prefers-reduced-motion it falls back to Dawnlight vs Midnight so motion-sensitive users don't get heavy animated backdrops. Continue button disabled until a theme is picked; if the user dismisses without picking, Cherry Blossom (or Dawnlight under reduced motion) is applied as a sensible default. (1) "Try these 4 things" — 2×2 grid of tappable feature cards (Chat with Sage, Explore Vitals, Medications, Read news) that close the modal and deep-link via onNav/onSage. (2) "Make it yours" — Sign up CTA (calls onExitDemo) + Keep exploring. Remembered via localStorage `salve:demo-welcome-seen` so it only runs once per browser. `hasSeenDemoWelcome()` helper. Triggered from Auth.jsx `onEnterDemo` callback in App.jsx only when not already seen. Theme restoration on demo exit is handled in App.jsx's `exitDemo` callback, which calls `revertTheme()` from useTheme before flipping `demoMode` off so the user's committed (localStorage-persisted) preference comes back on the Auth screen. Because DemoWelcome only ever calls `setTheme` (preview) and never `saveTheme` (persist), demo picks can never clobber a signed-in user's saved preference.
 │   │   │   ├── ExternalLinkBadge.jsx # Small inline badge indicator on any link that opens a third-party site, so users are never surprised when they're leaving Salve.
+│   │   │   ├── InstallPrompt.jsx  # PWA install prompt bottom-sheet: Chrome/Edge native beforeinstallprompt + iOS manual instructions ("Add to Home Screen" steps). Dismissal persisted in localStorage `salve:install-dismissed`. `preAuth` prop variant for iOS on Auth screen.
+│   │   │   ├── UniversalImport.jsx # Smart drag-and-drop import zone: auto-detects source app via importDetect.js, routes to correct parser (ImportWizard/AppleHealthImport/MyChartImport). Handles 15+ formats from a single drop target.
+│   │   │   ├── MyChartImport.jsx  # Epic MyChart / CCDA XML+ZIP import UI: file picker, parseCCDA() integration, dedup preview across 8 tables, bulk insert. Companion to mychart.js service.
 │   │   │   └── SagePopup.jsx     # Bottom-sheet modal chat with Sage. Triggered by Leaf button in Header (mobile) or Ask Sage button in SideNav (desktop). Multi-turn chat via sendChat, consent-gated, auto-scroll, Enter-to-send. "Full chat" shortcut navigates to AI tab. Wider on desktop (md:max-w-[600px]), rounded corners on desktop. On desktop uses `md:pl-[260px]` on the outer wrapper so the dialog centers in the content area rather than the full viewport (accounting for 260px sidebar).
 │   │   ├── layout/
 │   │   │   ├── Header.jsx        # Semantic <header>, clean (no background decor), aria-labels on all buttons, Sage leaf-icon button on left (opens SagePopup via onSage callback), Search magnifying-glass button on right (all pages); "Hello, {name}" on Home uses theme-aware .text-gradient-magic; optional action prop for section-specific buttons; TAB_LABELS for all 27 sections. Desktop: back/search/sage buttons hidden at md+ (sidebar provides these), responsive font sizes
@@ -250,9 +269,10 @@ health/
 │   │       ├── AppleHealthPage.jsx # Apple Health data management page: shows imported record counts by type, lets the user re-run imports, delete Apple Health-sourced entries, or paste a new JSON export from the iOS Shortcut.
 │   │       ├── News.jsx            # Personalized health news feed: multi-source articles (RSS from NIH/FDA + cached Sage news + saved bookmarks), filter pills (All/Saved/Sage/RSS), condition-matched relevance scoring, bookmark toggle, source badges with accent colors, empty state guidance. Code-split, accessible via SideNav (key 5) + Quick Access tile + Dashboard Discover "See all" link
 │   │       ├── FormHelper.jsx      # "Scribe" — AI-powered medical intake form filler: paste form questions, Sage generates first-person answers from health profile, per-answer copy buttons + Copy All, sensitive question detection (⚠ flags for self-harm/trauma/substance/relationship questions), AIConsentGate-wrapped, wellness messages during loading. Navigation: SideNav item on desktop (key 6), dedicated card on Dashboard mobile (hidden md:hidden on desktop)
+│   │       ├── Admin.jsx           # Admin dashboard (tier='admin' gated via isAdminActive()): StatsPanel (DAU/WAU/MAU sparklines, AI cost tracking per-provider, section traffic, signup trends), UserDrilldown (per-user activity timeline), FeedbackPanel (triage: respond/flag/delete), BetaInvitesPanel (create/list/revoke invite codes). Uses get_admin_stats() RPC.
 │   │       ├── Feedback.jsx        # In-app feedback form: type selector pills (feedback/bug/suggestion), message textarea, submit with confirmation, previously submitted list with expand/delete
 │   │       ├── Legal.jsx          # Privacy Policy, Terms of Service, HIPAA Notice (tabbed interface)
-│   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export, Claude sync artifact download + copyable prompt, Support section (Report a Bug → GitHub issues, Send Feedback → in-app Feedback section). **MORE_IMPORTS array** drives a collapsible card block (after Apple Health + MyChart) wiring 12 app parsers into <ImportWizard> with lucide icons + theme tints: Clue (Moon/rose), Natural Cycles (Thermometer/rose), Daylio (Smile/amber), Bearable (Gauge/lav), Libre (Droplet/rose), mySugr (Droplets/rose), Strava (Bike/sage), Sleep Cycle (Bed/lav), Samsung Health (Smartphone/sage), Garmin (Compass/sage), Fitbit Takeout (Watch/sage), Google Fit (Activity/sage). Each card is individually hideable via HideableSource
+│   │       └── Settings.jsx      # Appearance (theme selector: Midnight/Ember/Dawnlight/Frost with color preview dots), AI Provider (Gemini free / Claude premium toggle), Profile, Sage mode, pharmacy, insurance, health bg, Oura Ring connection (OAuth2 connect/disconnect, BBT baseline config, manual sync), data mgmt, import/export (UniversalImport auto-detect drop zone), Claude sync artifact download + copyable prompt, Support section (Report a Bug → GitHub issues, Send Feedback → in-app Feedback section). **MORE_IMPORTS array** drives a collapsible card block (after Apple Health + MyChart) wiring 13 app parsers into <ImportWizard> with lucide icons + theme tints: Clue (Moon/rose), Natural Cycles (Thermometer/rose), Daylio (Smile/amber), Bearable (Gauge/lav), Libre (Droplet/rose), mySugr (Droplets/rose), Strava (Bike/sage), Sleep Cycle (Bed/lav), Samsung Health (Smartphone/sage), Garmin (Compass/sage), Fitbit Takeout (Watch/sage), Google Fit (Activity/sage), Visible (Eye/sage). Each card is individually hideable via HideableSource
 │   └── utils/
 │       ├── uid.js                # ID generator (legacy, Supabase uses gen_random_uuid())
 │       ├── dates.js              # Date formatting helpers. Exports `localISODate(d)` which returns YYYY-MM-DD in the user's local timezone (fixes UTC drift in trend chart filters — previously many places used `toISOString().slice(0,10)` which rolled west-of-UTC users into tomorrow's date).
@@ -264,7 +284,14 @@ health/
 │       ├── validate.js           # Per-entity form validators: validateField (generic), validateVital (VITAL_LIMITS per-type hard ranges), validateMedication, validateLab, getVitalWarning; used by Vitals/Meds/Labs forms + toolExecutor.js
 │       ├── correlations.js       # Pure-function health pattern correlation engine: detects recurring symptoms, mood-severity correlations, trigger patterns across meds/conditions/vitals. computeCorrelations() consumed by Insights section + Dashboard pattern card. No React, no side effects, no app-specific imports.
 │       ├── crisis.js             # Deterministic crisis keyword detection (offline, no AI dependency). Returns {isCrisis, type} to select appropriate emergency resources. Phrase-level regex patterns grouped by crisis type (self-harm, substance, domestic). Triggers CrisisModal on matching Journal entries.
+│       ├── router.js             # Lightweight URL routing: tabFromPath(), isKnownRoute(), pathFromTab(), highlightFromUrl(). Maps 40+ tab IDs ↔ URL paths. Pure History API pushState/popState, no react-router dependency. 404 detection for unknown paths.
+│       ├── importDetect.js       # Universal file type auto-detection: detectImportFile(file). Three strategies: text sniffing (CSV column headers, XML root elements), ZIP filename pattern matching, JSON structure inspection. Returns {type, parser} for routing.
+│       ├── hiddenSources.js      # Per-user opt-out for Settings import source cards: isSourceHidden(id), toggleSourceHidden(id). localStorage `salve:hidden-sources`.
 │       └── starred.js            # Starred/pinned Dashboard tile state: localStorage `salve:starred` key stores array of section IDs. `getStarred()`, `setStarred(ids)`, `toggleStar(id)`, `isStarred(id)`. Capped at `STAR_MAX = 6`. Dispatches `salve:starred-change` custom event for cross-component sync. Seeded by OnboardingWizard.
+├── tests/
+│   └── visual/
+│       ├── auth.spec.js          # Playwright visual regression test for Auth screen
+│       └── install-prompt.spec.js # Playwright visual regression test for InstallPrompt component
 ```
 
 ### Database (Supabase)
@@ -315,7 +342,7 @@ The `db.js` service provides a generic CRUD factory: `list()`, `add()`, `update(
 
 Beyond Salve's own backup format and CCDA, Salve imports data from many third-party health / fitness / tracker apps. Each parser is a standalone service file following a consistent contract: `export const META` (id, label, tagline, accept, inputType, walkthrough), `export function detect(input)`, and `export function parse(input, { onProgress })` returning `{ vitals?, activities?, cycles?, journal_entries?, labs?, counts }`. The shared `<ImportWizard>` component consumes this contract and handles file drop, ArrayBuffer/JSZip extraction, progress, dedup, preview, confirm, bulk insert, and error states. Shared helpers live in `src/services/_parse.js` (CSV parser, date normalizer, unit converters, daily aggregator, dedup).
 
-**Supported apps (12, in addition to Apple Health + Flo + MyChart CCDA):**
+**Supported apps (13, in addition to Apple Health + Flo + MyChart CCDA):**
 
 | App | File | Input | Writes to |
 |-----|------|-------|-----------|
@@ -331,6 +358,7 @@ Beyond Salve's own backup format and CCDA, Salve imports data from many third-pa
 | Garmin Connect | `import_garmin.js` | ZIP of JSON | vitals (steps, HR, weight, sleep) + activities |
 | Fitbit Takeout | `import_fitbit_takeout.js` | ZIP (Google Takeout) | vitals + activities (offline alternative to Fitbit OAuth sync) |
 | Google Fit | `import_google_fit.js` | ZIP (Google Takeout) | vitals (steps, HR, weight) |
+| Visible | `import_visible.js` | CSV | vitals (HR, HRV, sleep, Stability Score) + journal_entries (symptoms, PEM, exertion/crash flags) |
 
 All writes go through `db.bulkAdd(table, rows)` in 500-row batches and are deduplicated against existing data via standard `DEDUP_KEYS` (vitals on date|type|time|value, cycles on date|type|value|symptom, journal_entries on date|title|content, etc.) so re-importing the same file is idempotent and cross-source data (e.g. Apple + Samsung + Garmin) never creates duplicates on the same day. Parsers emit a `source` field on every row so the Vitals and Activities source filter pills show per-app origins. High-frequency data (CGM glucose, heart rate) is always aggregated to daily values with reading count + range in the notes field to avoid flooding the tables.
 
@@ -377,7 +405,7 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 - Translates Anthropic-format requests ↔ Gemini API format (messages, tools, responses, web search)
 - **Model routing:** `model` param from client selects: `gemini-2.0-flash-lite` (simple), `gemini-2.5-flash` (general), `gemini-2.5-pro-preview-06-05` (complex)
 - **Rate limited:** 15 req/min per user (in-memory + persistent via `_rateLimit.js`)
-- **Daily limit:** 10 calls/day per user (queries `api_usage` table, resets midnight PT — computed via `Intl.DateTimeFormat` parts, DST-safe)
+- **Daily limit:** 15 calls/day per user (queries `api_usage` table, resets midnight PT — computed via `Intl.DateTimeFormat` parts, DST-safe)
 - **Upstream error passthrough:** non-2xx Gemini responses (or responses with `error` body) are surfaced to the client with the real status code instead of being translated into a 200 "no response" message
 - **API key transport:** Gemini key sent via `x-goog-api-key` header (not URL query string) to avoid exposure in server logs / CDN caches
 - **Feature gating:** Pro-tier features (connections, care gaps, etc.) blocked client-side via `isFeatureLocked()`
@@ -389,15 +417,15 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 - **Tier gate:** Checks `profiles.tier = 'premium'` before allowing requests; returns 403 for free users
 - **Model routing:** `model` param selects: `claude-haiku-4-5-20251001` (simple), `claude-sonnet-4-6` (general), `claude-opus-4-6` (complex)
 - **Rate limited:** 20 req/min per user (in-memory + persistent)
-- No daily limit for premium users
+- **Daily limit:** 30 calls/day per user
 - Forwards to `https://api.anthropic.com/v1/messages`
 
 **Smart model routing** (client-side in `ai.js`):
 | Tier | Features | Gemini Model | Claude Model |
 |------|----------|-------------|-------------|
 | Lite | insight, labInterpret, vitalsTrend, geneticExplanation, crossReactivity | Flash-Lite | Haiku |
-| Flash | chat, news, appointmentPrep, everything else | Flash | Sonnet |
-| Pro | connections, careGapDetect, journalPatterns, cyclePatterns, appealDraft, costOptimization, immunizationSchedule | Pro | Opus |
+| Flash | chat, news, appointmentPrep, resources, costOptimization, journalPatterns, cyclePatterns, everything else | Flash | Sonnet |
+| Pro | connections, careGapDetect, appealDraft, immunizationSchedule, monthlySummary, houseConsultation | Pro | Opus |
 
 **Shared infrastructure** (`api/_rateLimit.js`):
 - `checkPersistentRateLimit(userId, endpoint, max, windowSec)` — cross-instance rate limiting via Supabase `check_rate_limit()` SQL function
@@ -995,7 +1023,7 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 - [ ] Ratings: tapping same thumb again toggles off (un-rates)
 - [ ] Ratings: tapping opposite thumb switches vote
 - [ ] Ratings: ratings persist across page reloads (stored in Supabase insight_ratings table)
-- [ ] What's New: modal shows on first visit after deploy with v1.1.0-beta.2 changelog
+- [ ] What's New: modal shows on first visit after deploy with v1.2.0-beta.3 changelog
 - [ ] Dashboard: "Your personalized news feed" Getting Started tip appears and links to News
 
 ### Scribe Tests
@@ -1012,6 +1040,55 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 - [ ] Scribe: answers use first-person voice ("I", "my", "me")
 - [ ] Scribe: questions with no matching profile data show ⚠ "answer this one yourself"
 - [ ] Scribe: disclaimer card appears below results
+
+### Admin Panel Tests
+- [ ] Admin: section only visible when `profiles.tier = 'admin'`
+- [ ] Admin: StatsPanel shows DAU/WAU/MAU sparklines and AI cost tracking per provider
+- [ ] Admin: UserDrilldown shows per-user activity timeline
+- [ ] Admin: FeedbackPanel lists feedback with respond/flag/delete actions
+- [ ] Admin: BetaInvitesPanel creates, lists, and revokes invite codes
+- [ ] Admin: non-admin users cannot access (returns to Home)
+
+### URL Routing Tests
+- [ ] URL routing: navigating to `/medications` opens Medications section
+- [ ] URL routing: browser back/forward buttons navigate between sections
+- [ ] URL routing: unknown paths show 404 page
+- [ ] URL routing: direct URL load with valid path opens correct section
+- [ ] URL routing: deep-link with `?highlight=<id>` scrolls to record
+
+### PWA Install Prompt Tests
+- [ ] InstallPrompt: Chrome/Edge shows native install prompt on eligible pages
+- [ ] InstallPrompt: iOS shows manual "Add to Home Screen" instructions
+- [ ] InstallPrompt: dismissal persists in localStorage `salve:install-dismissed`
+- [ ] InstallPrompt: `preAuth` prop variant renders on Auth screen for iOS
+
+### Universal Import Tests
+- [ ] UniversalImport: drag-and-drop auto-detects Apple Health XML
+- [ ] UniversalImport: drag-and-drop auto-detects MyChart CCDA XML
+- [ ] UniversalImport: drag-and-drop auto-detects CSV from supported apps
+- [ ] UniversalImport: drag-and-drop auto-detects ZIP archives (Samsung, Garmin, Fitbit, Strava)
+- [ ] UniversalImport: unknown file type shows error message
+
+### MyChart / CCDA Import Tests
+- [ ] MyChart: parses ClinicalDocument XML with 8 LOINC section codes
+- [ ] MyChart: extracts conditions, meds, allergies, immunizations, labs, vitals, procedures, providers
+- [ ] MyChart: dedup preview shows new/skipped counts per table
+- [ ] MyChart: handles both raw XML and ZIP containing XML
+
+### Visible Import Tests
+- [ ] Visible: detects Visible CSV format (Date, HR zones, HRV, Stability Score columns)
+- [ ] Visible: imports HR, HRV, sleep hours, Stability Score to vitals
+- [ ] Visible: imports symptoms, PEM flags, exertion/crash to journal_entries
+- [ ] Visible: deduplicates against existing vitals and journal entries
+
+### Demo Mode Tests
+- [ ] Demo: "Try without signing up" button on Auth screen enters demo mode
+- [ ] Demo: DemoBanner shows on all views with "Sign up" button
+- [ ] Demo: DemoWelcome shows theme picker + feature cards on first demo visit
+- [ ] Demo: sample data loads from demoData.js (ADHD/IBS profile, 15+ meds)
+- [ ] Demo: Sage chat uses canned responses from demoResponses.js
+- [ ] Demo: theme reverts on demo exit (preview-only, no persist)
+- [ ] Demo: analytics disabled in demo mode
 
 ## Environment Variables
 
