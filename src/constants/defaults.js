@@ -1,6 +1,6 @@
 // Default data shapes for new entries
 
-import { todayISO } from '../utils/dates';
+import { todayISO } from '../utils/dates.js';
 
 export const EMPTY_MED = {
   name: '', display_name: '', dose: '', frequency: '', route: 'Oral',

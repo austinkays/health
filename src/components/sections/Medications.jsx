@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart, Zap } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart, Zap, Clock } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -14,14 +14,16 @@ import { C } from '../../constants/colors';
 import { Building2 } from 'lucide-react';
 import { fetchCrossReactivity } from '../../services/ai';
 import { findPgxMatches } from '../../constants/pgx';
-import { buildProfile } from '../../services/profile';
+import { buildProfile, fdaBullet } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { drugAutocomplete, drugDetails } from '../../services/drugs';
+import { isSubscribed as isPushSubscribed } from '../../services/push';
 import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
 import { validateMedication } from '../../utils/validate';
 import { checkInteractions } from '../../utils/interactions';
+import { formatTime, getNextDoseIn } from '../../utils/reminders';
 import SplitView, { useIsDesktop } from '../layout/SplitView';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
@@ -59,18 +61,21 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   // Cancel bulk ops on unmount to prevent state updates after navigation
   const cancelledRef = useRef(false);
   useEffect(() => () => { cancelledRef.current = true; }, []);
-  const [fdaDetailId, setFdaDetailId] = useState(null);
-  const [fdaExpanded, setFdaExpanded] = useState({});
-
-  /** Strip leading FDA section headers like "ADVERSE REACTIONS" or "Pregnancy:" from label text */
-  const stripFdaHeader = (text) => {
-    if (!text) return text;
-    return text.replace(/^[A-Z][A-Z &/,()-]+(?::\s*|\s+)/,'').replace(/^\s+/,'');
-  };
   const isDesktop = useIsDesktop();
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  const [pushOn, setPushOn] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    isPushSubscribed().then(v => { if (!cancelled) setPushOn(!!v); }).catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const [errors, setErrors] = useState({});
   const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
 
@@ -256,16 +261,72 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   }, [data.meds]);
   const [pharmacyFilter, setPharmacyFilter] = useState('all');
   const [catFilter, setCatFilter] = useState('all');
+  const [sortMode, setSortMode] = useState(() => {
+    try { return localStorage.getItem('salve:med-sort') || 'alpha'; }
+    catch { return 'alpha'; }
+  });
+  const [showDiscontinued, setShowDiscontinued] = useState(false);
+
+  useEffect(() => {
+    try { localStorage.setItem('salve:med-sort', sortMode); } catch {}
+  }, [sortMode]);
 
   // Check if any meds have non-default categories (show filter pills only when relevant)
   const hasCategories = (data.meds || []).some(m => m.category && m.category !== 'medication');
 
-  const fl = (data.meds || []).filter(m => {
-    const statusOk = filter === 'all' ? true : filter === 'active' ? m.active !== false : m.active === false;
-    const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
-    const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
-    return statusOk && pharmaOk && catOk;
-  });
+  // Map a frequency string to a "primary bucket" ordinal for schedule sort.
+  // Buckets: 0 morning, 3 bedtime, 4 PRN, 5 other. Multi-dose regimens
+  // (BID/TID/QID) map to 0 (morning) because they start their day there;
+  // within a bucket we fall back to alpha on display_name/name.
+  const scheduleBucket = (frequency) => {
+    const f = String(frequency || '').toLowerCase();
+    if (/prn|as.?needed/.test(f)) return 4;
+    if (/bedtime|qhs|evening|night/.test(f)) return 3;
+    if (/morning|am\b|once.*day|daily|every.?day|bid|tid|qid|twice|three.*day|four.*day/.test(f)) return 0;
+    if (/week|biweek|month/.test(f)) return 5;
+    return 5;
+  };
+
+  const groupedMeds = useMemo(() => {
+    const base = (data.meds || []).filter(m => {
+      const pharmaOk = pharmacyFilter === 'all' ? true : (m.pharmacy?.trim() || '') === pharmacyFilter;
+      const catOk = catFilter === 'all' ? true : (m.category || 'medication') === catFilter;
+      return pharmaOk && catOk;
+    });
+    const nameKey = (m) => (m.display_name || m.name || '').toLowerCase();
+    const cmpAlpha = (a, b) => nameKey(a).localeCompare(nameKey(b));
+    const cmpSchedule = (a, b) => (scheduleBucket(a.frequency) - scheduleBucket(b.frequency)) || cmpAlpha(a, b);
+    const cmpRefill = (a, b) => {
+      const ad = a.refill_date ? new Date(a.refill_date).getTime() : Infinity;
+      const bd = b.refill_date ? new Date(b.refill_date).getTime() : Infinity;
+      return (ad - bd) || cmpAlpha(a, b);
+    };
+    const cmpCategory = (a, b) => {
+      const ac = (a.category || 'medication');
+      const bc = (b.category || 'medication');
+      return ac.localeCompare(bc) || cmpAlpha(a, b);
+    };
+    const cmp = {
+      alpha: cmpAlpha,
+      schedule: cmpSchedule,
+      refill: cmpRefill,
+      category: cmpCategory,
+    }[sortMode] || cmpAlpha;
+
+    const active = base.filter(m => m.active !== false).slice().sort(cmp);
+    const discontinued = base.filter(m => m.active === false).slice().sort(cmpAlpha);
+
+    // Honor existing status filter: if user chose 'inactive', hide active entirely.
+    if (filter === 'inactive') return { active: [], discontinued };
+    if (filter === 'active') return { active, discontinued: [] };
+    return { active, discontinued };
+  }, [data.meds, pharmacyFilter, catFilter, sortMode, filter]);
+
+  // Backwards-compat alias used by cross-reference logic still reading a flat list.
+  const fl = useMemo(
+    () => [...groupedMeds.active, ...groupedMeds.discontinued],
+    [groupedMeds]
+  );
 
   /* ── Monthly cost estimate from NADAC prices ── */
   const monthlyCost = useMemo(() => {
@@ -462,9 +523,203 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     </FormWrap>
   );
 
+  const DiscontinuedToggle = ({ count, open, onToggle, renderCards }) => (
+    <div className="mt-3">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 text-[13px] font-montserrat text-salve-textFaint hover:text-salve-textMid bg-transparent border-none cursor-pointer py-1.5 px-1"
+      >
+        <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-0' : '-rotate-90'}`} />
+        {count} discontinued {count === 1 ? 'med' : 'meds'}
+      </button>
+      {open && <div className="opacity-60">{renderCards()}</div>}
+    </div>
+  );
+
+  const renderMedCardBody = (m, isExpanded) => (
+    <div className="flex justify-between items-start">
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
+          {m.display_name || m.name}
+        </div>
+        {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5 truncate">{m.name}</div>}
+        <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+        {/* Card-surface reminder row */}
+        {(() => {
+          if (m.active === false) return null;
+          const reminders = (data.medication_reminders || [])
+            .filter(r => r.medication_id === m.id)
+            .sort((a, b) => (a.reminder_time || '').localeCompare(b.reminder_time || ''));
+          const enabled = reminders.filter(r => r.enabled);
+          if (enabled.length === 0) {
+            return (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setExpandedId(m.id); setReminderAddId(m.id); setReminderTime('08:00'); }}
+                className="inline-flex items-center gap-1 mt-1 text-[12px] text-salve-lav bg-transparent border-none cursor-pointer p-0 hover:underline font-montserrat"
+                aria-label={`Set a reminder for ${m.display_name || m.name}`}
+              >
+                <Clock size={11} aria-hidden="true" /> Set reminder
+              </button>
+            );
+          }
+          const timeLabels = enabled.map(r => formatTime(r.reminder_time)).join(' · ');
+          const nextIn = getNextDoseIn(enabled, nowTick);
+          const aria = nextIn
+            ? `Scheduled at ${timeLabels}, next dose in ${nextIn}`
+            : `Scheduled at ${timeLabels}`;
+          return (
+            <div className="flex items-center gap-2 mt-1 text-[12px] text-salve-textMid" aria-label={aria}>
+              <Clock size={11} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
+              <span className="font-montserrat">{timeLabels}</span>
+              {nextIn && <span className="text-salve-textFaint font-montserrat">· Next in {nextIn}</span>}
+            </div>
+          );
+        })()}
+        {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
+        {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
+        {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {m.fda_data.pharm_class?.length > 0 && (
+              <span className="inline-flex items-center py-0.5 px-1.5 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[9px] text-salve-sage font-medium truncate max-w-[200px]">
+                {m.fda_data.pharm_class[0].replace(/ \[.*\]$/, '')}
+              </span>
+            )}
+            {m.fda_data.boxed_warning?.length > 0 && (
+              <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
+                <AlertTriangle size={8} /> Boxed Warning
+              </span>
+            )}
+          </div>
+        )}
+        {!isExpanded && (() => {
+          const cycleLabel = getCycleRelatedLabel(m);
+          const pgxMatches = findPgxMatches(m.display_name || m.name, data.genetic_results);
+          if (!cycleLabel && pgxMatches.length === 0) return null;
+          return (
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {cycleLabel && (
+                <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
+                  <Heart size={8} /> {cycleLabel}
+                </span>
+              )}
+              {pgxMatches.map((pm, i) => (
+                <span key={i} className={`inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full text-[9px] font-medium ${
+                  pm.severity === 'danger' ? 'bg-salve-rose/10 border border-salve-rose/20 text-salve-rose'
+                    : pm.severity === 'caution' ? 'bg-salve-amber/10 border border-salve-amber/20 text-salve-amber'
+                    : 'bg-salve-lav/10 border border-salve-lav/20 text-salve-lav'
+                }`}>
+                  <Zap size={8} /> {pm.gene} {pm.phenotype.split(' ')[0]}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+      <div className="flex items-center gap-1 ml-2">
+        {m.refill_date && !isExpanded && <span className="text-[13px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
+        <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+      </div>
+    </div>
+  );
+
+  /* ── Schedule block: reminders + push status, shown at top of detail pane ── */
+  const renderScheduleBlock = (m) => {
+    const medReminders = (data.medication_reminders || [])
+      .filter(r => r.medication_id === m.id)
+      .sort((a, b) => (a.reminder_time || '').localeCompare(b.reminder_time || ''));
+    const isAdding = reminderAddId === m.id;
+    return (
+      <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[11px] font-semibold font-montserrat text-salve-lav uppercase tracking-wider">Schedule</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-[11px] font-montserrat ${pushOn ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
+              {pushOn ? '🔔 Notifications on' : (
+                <a
+                  href="#"
+                  onClick={e => { e.preventDefault(); e.stopPropagation(); onNav?.('settings'); }}
+                  className="text-salve-textFaint no-underline hover:text-salve-lav hover:underline"
+                >
+                  Set up notifications →
+                </a>
+              )}
+            </span>
+            {!isAdding && (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setReminderAddId(m.id); setReminderTime('08:00'); }}
+                className="inline-flex items-center gap-0.5 text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
+              >
+                <Plus size={11} aria-hidden="true" /> Add time
+              </button>
+            )}
+          </div>
+        </div>
+
+        {isAdding && (
+          <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-card border border-salve-lav/30">
+            <input
+              type="time"
+              value={reminderTime}
+              onChange={e => setReminderTime(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              autoFocus
+              className="bg-salve-card2 border border-salve-border rounded-lg px-2 py-1 text-xs text-salve-text font-montserrat focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+            />
+            <button
+              type="button"
+              onClick={e => {
+                e.stopPropagation();
+                if (reminderTime) {
+                  addItem('medication_reminders', { medication_id: m.id, reminder_time: reminderTime + ':00', enabled: true });
+                  setReminderAddId(null);
+                }
+              }}
+              className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
+            >Save</button>
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); setReminderAddId(null); }}
+              className="text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
+            >Cancel</button>
+          </div>
+        )}
+
+        {medReminders.length === 0 && !isAdding && (
+          <p className="text-[12px] text-salve-textFaint/70 font-montserrat italic">No reminders set. Tap &ldquo;Add time&rdquo; to schedule one.</p>
+        )}
+
+        {medReminders.map(r => (
+          <div key={r.id} className="flex items-center justify-between py-1 first:pt-0">
+            <div className="flex items-center gap-2">
+              <Clock size={11} className={r.enabled ? 'text-salve-lav' : 'text-salve-textFaint'} aria-hidden="true" />
+              <span className={`text-[13px] font-montserrat ${r.enabled ? 'text-salve-text' : 'text-salve-textFaint line-through'}`}>
+                {formatTime(r.reminder_time)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); updateItem('medication_reminders', r.id, { enabled: !r.enabled }); }}
+                className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
+              >{r.enabled ? 'Pause' : 'Enable'}</button>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); removeItem('medication_reminders', r.id); }}
+                className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
+              >Remove</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
   const renderMedDetail = (m) => (
     <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
+      {renderScheduleBlock(m)}
       {/* Desktop: show med name as title in detail pane */}
       {isDesktop && (
         <div className="mb-3">
@@ -505,97 +760,83 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           </div>
         );
       })()}
-      {/* ── Inline FDA summary ── */}
+      {/* ── Inline FDA summary (At a glance) ── */}
       {m.fda_data && (
         <div className="mt-2 p-2.5 rounded-lg bg-salve-sage/5 border border-salve-sage/15">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+          <div className="text-[11px] font-semibold font-montserrat text-salve-sage uppercase tracking-wider mb-1.5">At a glance</div>
+          <dl className="space-y-1 text-[13px]">
             {m.fda_data.generic_name && m.fda_data.generic_name.toLowerCase() !== m.name.toLowerCase() && (
-              <span className="text-salve-textMid"><span className="font-medium">Generic:</span> {m.fda_data.generic_name}</span>
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Generic</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.generic_name}</dd>
+              </div>
             )}
             {m.fda_data.brand_name && m.fda_data.brand_name.toLowerCase() !== m.name.toLowerCase() && (
-              <span className="text-salve-textMid"><span className="font-medium">Brand:</span> {m.fda_data.brand_name}</span>
-            )}
-            {m.fda_data.manufacturer && (
-              <span className="text-salve-textMid"><span className="font-medium">Mfr:</span> {m.fda_data.manufacturer}</span>
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Brand</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.brand_name}</dd>
+              </div>
             )}
             {m.fda_data.pharm_class?.length > 0 && (
-              <span className="text-salve-textMid"><span className="font-medium">Class:</span> {m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Class</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</dd>
+              </div>
             )}
             {m.fda_data.pharm_class_moa?.length > 0 && (
-              <span className="text-salve-textMid"><span className="font-medium">How it works:</span> {m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
-            )}
-          </div>
-          {/* ── Boxed warning (expandable) ── */}
-          {m.fda_data.boxed_warning?.length > 0 && (
-            <div className="mt-1.5">
-              <div className="flex items-center gap-1 text-[12px] text-salve-rose font-medium">
-                <AlertTriangle size={10} /> FDA Black Box Warning
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">How it works</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</dd>
               </div>
-              <div className={`mt-1 text-[12px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
-              {m.fda_data.boxed_warning[0].length > 500 && (
-                <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:warning`]: !prev[`${m.id}:warning`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors">
-                  {fdaExpanded[`${m.id}:warning`] ? 'Show less' : 'Show more'}
-                </button>
-              )}
-            </div>
-          )}
-          {/* ── Indications (always visible when available) ── */}
-          {m.fda_data.indications?.length > 0 && (
-            <div className="mt-1.5 text-[12px] text-salve-textMid leading-relaxed">
-              <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 500 ? 'line-clamp-4' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
-              {m.fda_data.indications[0].length > 500 && (
-                <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:indications`]: !prev[`${m.id}:indications`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors block">
-                  {fdaExpanded[`${m.id}:indications`] ? 'Show less' : 'Show more'}
-                </button>
-              )}
-            </div>
-          )}
-          {/* ── Drug Details toggle ── */}
-          {(m.fda_data.adverse_reactions?.length > 0 || m.fda_data.dosage?.length > 0 || m.fda_data.contraindications?.length > 0 || m.fda_data.drug_interactions?.length > 0 || m.fda_data.pregnancy?.length > 0 || m.fda_data.precautions?.length > 0 || m.fda_data.storage?.length > 0 || m.fda_data.overdosage?.length > 0) && (
-            <>
-              <button
-                onClick={() => setFdaDetailId(fdaDetailId === m.id ? null : m.id)}
-                className="mt-1.5 flex items-center gap-1 text-[12px] text-salve-sage font-medium bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
+            )}
+            {m.fda_data.indications?.length > 0 && (
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Used for</dt>
+                <dd className="text-salve-textMid flex-1">{fdaBullet(m.fda_data.indications[0], 160)}</dd>
+              </div>
+            )}
+            {m.fda_data.manufacturer && (
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Mfr</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.manufacturer}</dd>
+              </div>
+            )}
+          </dl>
+          {m.fda_data.boxed_warning?.length > 0 && (
+            <div className="mt-2.5 p-2 rounded-lg bg-salve-rose/5 border border-salve-rose/20">
+              <div className="flex items-center gap-1 text-[12px] text-salve-rose font-semibold mb-0.5">
+                <AlertTriangle size={11} aria-hidden="true" /> FDA Black Box Warning
+              </div>
+              <div className="text-[12px] text-salve-rose/85 leading-relaxed">
+                {fdaBullet(m.fda_data.boxed_warning[0], 180)}
+              </div>
+              <a
+                href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 mt-1 text-[11px] text-salve-rose/90 font-medium no-underline hover:underline"
               >
-                <Info size={10} />
-                {fdaDetailId === m.id ? 'Hide details' : 'More drug details'}
-                <ChevronDown size={9} className={`transition-transform ${fdaDetailId === m.id ? 'rotate-180' : ''}`} />
-              </button>
-              {fdaDetailId === m.id && (
-                <div className="mt-1.5 space-y-2 text-[12px] leading-relaxed">
-                  {[
-                    { key: 'adverse_reactions', label: 'Side Effects', color: 'text-salve-amber', data: m.fda_data.adverse_reactions },
-                    { key: 'dosage', label: 'Dosage & Administration', color: 'text-salve-text', data: m.fda_data.dosage },
-                    { key: 'contraindications', label: 'Contraindications', color: 'text-salve-rose', data: m.fda_data.contraindications },
-                    { key: 'drug_interactions', label: 'Drug Interactions', color: 'text-salve-amber', data: m.fda_data.drug_interactions },
-                    { key: 'precautions', label: 'Precautions', color: 'text-salve-text', data: m.fda_data.precautions },
-                    { key: 'pregnancy', label: 'Pregnancy', color: 'text-salve-lav', data: m.fda_data.pregnancy },
-                    { key: 'overdosage', label: 'Overdosage', color: 'text-salve-rose', data: m.fda_data.overdosage },
-                    { key: 'storage', label: 'Storage', color: 'text-salve-textMid', data: m.fda_data.storage },
-                  ].filter(s => s.data?.length > 0).map(s => {
-                    const sKey = `${m.id}:${s.key}`;
-                    const isOpen = !!fdaExpanded[sKey];
-                    const text = stripFdaHeader(s.data[0]);
-                    const isLong = text && text.length > 500;
-                    return (
-                      <div key={s.key}>
-                        <div className={`font-medium ${s.color} mb-0.5`}>{s.label}</div>
-                        <div className={`text-salve-textMid whitespace-pre-line ${!isOpen && isLong ? 'line-clamp-6' : ''}`}>{text}</div>
-                        {isLong && (
-                          <button
-                            onClick={() => setFdaExpanded(prev => ({ ...prev, [sKey]: !isOpen }))}
-                            className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
-                          >
-                            {isOpen ? 'Show less' : 'Show more'}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
+                Read full FDA label on DailyMed <ExternalLink size={9} aria-hidden="true" />
+              </a>
+            </div>
           )}
+          {/* DailyMed deep-link chips */}
+          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-salve-sage/15">
+            {['Side effects', 'Dosage', 'Interactions'].map(label => (
+              <a
+                key={label}
+                href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 py-1 px-2 rounded-full bg-salve-card2 border border-salve-border text-[11px] text-salve-textMid font-montserrat no-underline hover:border-salve-sage/30 hover:text-salve-sage transition-colors"
+                aria-label={`View ${label.toLowerCase()} for ${m.display_name || m.name} on DailyMed`}
+              >
+                {label} <ExternalLink size={9} aria-hidden="true" />
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
@@ -621,74 +862,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         );
       })()}
 
-      {/* Reminders */}
-      {(() => {
-        const medReminders = (data.medication_reminders || []).filter(r => r.medication_id === m.id);
-        const isAdding = reminderAddId === m.id;
-        return (
-          <div className="mt-2.5 pt-2.5 border-t border-salve-border/40">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[13px] font-medium font-montserrat text-salve-textFaint uppercase tracking-wider">Reminders</span>
-              {!isAdding && (
-                <button
-                  onClick={() => { setReminderAddId(m.id); setReminderTime('08:00'); }}
-                  className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline flex items-center gap-0.5"
-                >
-                  <Plus size={11} /> Add
-                </button>
-              )}
-            </div>
-            {/* Inline time picker */}
-            {isAdding && (
-              <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-card border border-salve-lav/30">
-                <input
-                  type="time"
-                  value={reminderTime}
-                  onChange={e => setReminderTime(e.target.value)}
-                  autoFocus
-                  className="bg-salve-card2 border border-salve-border rounded-lg px-2 py-1 text-xs text-salve-text font-montserrat focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
-                />
-                <button
-                  onClick={() => {
-                    if (reminderTime) {
-                      addItem('medication_reminders', { medication_id: m.id, reminder_time: reminderTime + ':00', enabled: true });
-                      setReminderAddId(null);
-                    }
-                  }}
-                  className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
-                >Save</button>
-                <button
-                  onClick={() => setReminderAddId(null)}
-                  className="text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
-                >Cancel</button>
-              </div>
-            )}
-            {medReminders.map(r => (
-              <div key={r.id} className="flex items-center justify-between py-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-montserrat text-salve-text">{r.reminder_time?.slice(0, 5)}</span>
-                  <span className={`text-[12px] font-montserrat ${r.enabled ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
-                    {r.enabled ? 'Active' : 'Paused'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => updateItem('medication_reminders', r.id, { enabled: !r.enabled })}
-                    className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
-                  >{r.enabled ? 'Pause' : 'Enable'}</button>
-                  <button
-                    onClick={() => removeItem('medication_reminders', r.id)}
-                    className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
-                  >Remove</button>
-                </div>
-              </div>
-            ))}
-            {medReminders.length === 0 && !isAdding && (
-              <p className="text-[12px] text-salve-textFaint/60 font-montserrat italic">No reminders set</p>
-            )}
-          </div>
-        );
-      })()}
 
       <div className="flex gap-2.5 mt-2.5 flex-wrap">
         <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
@@ -730,18 +903,35 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
 
-      <div className="flex gap-1.5 mb-3.5">
-        {['active', 'inactive', 'all'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`py-1.5 px-4 rounded-full text-xs font-medium border cursor-pointer font-montserrat capitalize ${
-              filter === f ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
-            }`}
+      <div className="flex items-center justify-between gap-2 mb-3.5">
+        <div className="flex gap-1.5">
+          {['active', 'inactive', 'all'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`py-1.5 px-4 rounded-full text-xs font-medium border cursor-pointer font-montserrat capitalize ${
+                filter === f ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-1.5 text-[12px] text-salve-textFaint font-montserrat">
+          <span className="sr-only">Sort medications by</span>
+          <span aria-hidden="true">Sort:</span>
+          <select
+            value={sortMode}
+            onChange={e => setSortMode(e.target.value)}
+            className="bg-salve-card2 border border-salve-border rounded-lg text-xs text-salve-text font-montserrat py-1 px-2 cursor-pointer appearance-none pr-6 truncate max-w-[150px]"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6a80' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}
           >
-            {f}
-          </button>
-        ))}
+            <option value="alpha">A–Z</option>
+            <option value="schedule">Schedule</option>
+            <option value="refill">Refill date</option>
+            <option value="category">Category</option>
+          </select>
+        </label>
       </div>
 
       {/* ── Monthly cost estimate ── */}
@@ -887,74 +1077,70 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           actionLabel="Add your first medication"
           onAction={() => setSubView('form')}
         />
-      ) :
-        fl.map(m => {
+      ) : (() => {
+        const renderCard = (m) => {
           const isExpanded = expandedId === m.id;
           return (
-          <Card key={m.id} id={`record-${m.id}`} onClick={() => setExpandedId(isExpanded ? null : m.id)} className={`cursor-pointer transition-all${highlightId === m.id ? ' highlight-ring' : ''}${isDesktop && expandedId === m.id ? ' ring-2 ring-salve-lav/30' : ''}`}>
-            <div className="flex justify-between items-start">
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
-                  {m.display_name || m.name}
-                </div>
-                {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5 truncate">{m.name}</div>}
-                <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
-                {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
-                {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
-                {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {m.fda_data.pharm_class?.length > 0 && (
-                      <span className="inline-flex items-center py-0.5 px-1.5 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[9px] text-salve-sage font-medium truncate max-w-[200px]">
-                        {m.fda_data.pharm_class[0].replace(/ \[.*\]$/, '')}
-                      </span>
-                    )}
-                    {m.fda_data.boxed_warning?.length > 0 && (
-                      <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
-                        <AlertTriangle size={8} /> Boxed Warning
-                      </span>
-                    )}
-                  </div>
-                )}
-                {!isExpanded && (() => {
-                  const cycleLabel = getCycleRelatedLabel(m);
-                  const pgxMatches = findPgxMatches(m.display_name || m.name, data.genetic_results);
-                  if (!cycleLabel && pgxMatches.length === 0) return null;
-                  return (
-                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      {cycleLabel && (
-                        <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
-                          <Heart size={8} /> {cycleLabel}
-                        </span>
-                      )}
-                      {pgxMatches.map((pm, i) => (
-                        <span key={i} className={`inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full text-[9px] font-medium ${
-                          pm.severity === 'danger' ? 'bg-salve-rose/10 border border-salve-rose/20 text-salve-rose'
-                            : pm.severity === 'caution' ? 'bg-salve-amber/10 border border-salve-amber/20 text-salve-amber'
-                            : 'bg-salve-lav/10 border border-salve-lav/20 text-salve-lav'
-                        }`}>
-                          <Zap size={8} /> {pm.gene} {pm.phenotype.split(' ')[0]}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="flex items-center gap-1 ml-2">
-                {m.refill_date && !isExpanded && <span className="text-[13px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
-                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </div>
-            </div>
-            {/* Mobile: inline expand. Desktop: detail goes to side pane */}
-            {!isDesktop && (
-              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
-                {isExpanded && renderMedDetail(m)}
-              </div></div>
-            )}
-          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
-          </Card>
+            <Card
+              key={m.id}
+              id={`record-${m.id}`}
+              onClick={() => setExpandedId(isExpanded ? null : m.id)}
+              className={`cursor-pointer transition-all${highlightId === m.id ? ' highlight-ring' : ''}${isDesktop && expandedId === m.id ? ' ring-2 ring-salve-lav/30' : ''}`}
+            >
+              {renderMedCardBody(m, isExpanded)}
+              {!isDesktop && (
+                <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
+                  {isExpanded && renderMedDetail(m)}
+                </div></div>
+              )}
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
+            </Card>
           );
-        })
-      }
+        };
+
+        if (sortMode === 'category' && groupedMeds.active.length > 0) {
+          const byCat = groupedMeds.active.reduce((acc, m) => {
+            const key = m.category || 'medication';
+            (acc[key] = acc[key] || []).push(m);
+            return acc;
+          }, {});
+          const catLabel = (k) => MED_CATEGORIES.find(c => c.value === k)?.label || k;
+          return (
+            <>
+              {Object.entries(byCat).map(([k, meds]) => (
+                <div key={k}>
+                  <div className="text-[11px] font-semibold font-montserrat text-salve-textFaint uppercase tracking-wider mt-3 mb-1.5 px-1">
+                    {catLabel(k)}
+                  </div>
+                  {meds.map(renderCard)}
+                </div>
+              ))}
+              {groupedMeds.discontinued.length > 0 && (
+                <DiscontinuedToggle
+                  count={groupedMeds.discontinued.length}
+                  open={showDiscontinued}
+                  onToggle={() => setShowDiscontinued(o => !o)}
+                  renderCards={() => groupedMeds.discontinued.map(renderCard)}
+                />
+              )}
+            </>
+          );
+        }
+
+        return (
+          <>
+            {groupedMeds.active.map(renderCard)}
+            {groupedMeds.discontinued.length > 0 && (
+              <DiscontinuedToggle
+                count={groupedMeds.discontinued.length}
+                open={showDiscontinued}
+                onToggle={() => setShowDiscontinued(o => !o)}
+                renderCards={() => groupedMeds.discontinued.map(renderCard)}
+              />
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 
