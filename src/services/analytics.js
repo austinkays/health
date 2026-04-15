@@ -56,6 +56,10 @@ export const EVENTS = {
   THEME_CHANGED: 'theme_changed',
   DASHBOARD_CUSTOMIZED: 'dashboard_customized',
   FEEDBACK_SUBMITTED: 'feedback_submitted',
+
+  // Patterns & insights — are the new pattern types landing?
+  PATTERN_VIEWED: 'pattern_viewed',
+  INSIGHT_REFRESHED: 'insight_refreshed',
 };
 
 // Suffix allowlists for events that carry an enum discriminator.
@@ -85,6 +89,10 @@ const SUFFIX_ALLOWLIST = {
     'lilac', 'noir', 'midnight', 'forest', 'meadow', 'seafoam', 'sunrise',
     'aurora', 'neon', 'cherry', 'sunbeam', 'blaze', 'ember', 'galactic',
     'prismatic', 'crystal',
+  ]),
+  pattern_viewed: new Set([
+    'correlation', 'trend', 'trigger', 'medication', 'anomaly', 'insight',
+    'dayofweek', 'streak', 'comparison', 'timeofday',
   ]),
 };
 

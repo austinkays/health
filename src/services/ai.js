@@ -430,10 +430,12 @@ async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWe
 }
 
 export async function fetchInsight(profileText) {
+  const focusIndex = new Date().getDay(); // 0=Sun … 6=Sat
   return callAPI(
     [{ role: 'user', content: 'Based on my health profile, give me today\'s insight.' }],
     'insight', profileText,
-    2000, false, 'insight'
+    2000, false, 'insight',
+    { focusIndex }
   );
 }
 

@@ -837,7 +837,456 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
   }
 
   // -------------------------------------------------------------------------
+  // 7. Day-of-week patterns  (category: 'dayofweek')
+  // -------------------------------------------------------------------------
+  {
+    const DOW_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const metricsForDow = [
+      { series: extractMoodSeries(journal), metric: 'mood', polarity: 'up_is_good' },
+      { series: extractVitalSeries(vitals, 'pain'), metric: 'pain', polarity: 'down_is_good' },
+      { series: extractVitalSeries(vitals, 'energy'), metric: 'energy', polarity: 'up_is_good' },
+      { series: extractVitalSeries(vitals, 'sleep'), metric: 'sleep', polarity: 'up_is_good' },
+    ];
+
+    for (const { series, metric, polarity } of metricsForDow) {
+      if (series.length < 14) continue;
+
+      const byDow = [[], [], [], [], [], [], []];
+      for (const { date, value } of series) {
+        const d = new Date(date + 'T00:00:00Z');
+        byDow[d.getUTCDay()].push(value);
+      }
+
+      const avgs = byDow.map((vals, i) => ({
+        dow: i,
+        label: DOW_NAMES[i],
+        avg: vals.length >= 2 ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 100) / 100 : null,
+        count: vals.length,
+      })).filter(d => d.avg !== null);
+
+      if (avgs.length < 5) continue;
+
+      const sorted = [...avgs].sort((a, b) => b.avg - a.avg);
+      const best = sorted[0];
+      const worst = sorted[sorted.length - 1];
+      const diff = Math.abs(best.avg - worst.avg);
+
+      if (diff < 0.5) continue;
+
+      const label = METRIC_LABELS[metric] || metric;
+      const betterDay = polarity === 'down_is_good' ? worst : best;
+      const worsDay = polarity === 'down_is_good' ? best : worst;
+
+      const template = `Your ${label} tends to be best on ${betterDay.label}s (${fmt(betterDay.avg)}) and worst on ${worsDay.label}s (${fmt(worsDay.avg)}).`;
+      const score = clamp(Math.round(diff * 8 + 20), 20, 75);
+
+      insights.push({
+        id: nextId(`dayofweek-${metric}`),
+        type: 'dayofweek',
+        category: 'dayofweek',
+        title: `${titleCase(label)} by Day of Week`,
+        template,
+        narrative: null,
+        score,
+        confidence: confidence(series.length),
+        n: series.length,
+        data: {
+          type: 'bar',
+          values: avgs.map(d => ({ label: d.label.slice(0, 3), value: d.avg, count: d.count })),
+        },
+        metricA: metric,
+        direction: 'neutral',
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 8. Streaks & consistency  (category: 'streak')
+  // -------------------------------------------------------------------------
+  {
+    // Medication adherence streak (consecutive days with at least one logged med)
+    const medDates = new Set(
+      meds.filter(m => m.active !== false && m.start_date).map(m => m.start_date)
+    );
+    // Journal streak (consecutive days with an entry)
+    const journalDates = new Set(journal.filter(e => e.date).map(e => e.date));
+    // Exercise streak
+    const exerciseDates = new Set(activities.filter(a => a.date).map(a => a.date));
+
+    const calcStreak = (dateSet) => {
+      if (!dateSet.size) return { current: 0, longest: 0 };
+      const sorted = [...dateSet].sort().reverse();
+      const today = sorted[0];
+      let current = 1;
+      for (let i = 1; i < sorted.length; i++) {
+        if (dayDiff(sorted[i - 1], sorted[i]) === 1) current++;
+        else break;
+      }
+      // Check if streak includes today (or yesterday for tolerance)
+      const now = new Date().toISOString().slice(0, 10);
+      const daysOld = dayDiff(now, today);
+      if (daysOld > 1) current = 0;
+
+      // Longest streak
+      let longest = 1, run = 1;
+      const asc = [...dateSet].sort();
+      for (let i = 1; i < asc.length; i++) {
+        if (dayDiff(asc[i], asc[i - 1]) === 1) { run++; longest = Math.max(longest, run); }
+        else run = 1;
+      }
+      return { current, longest };
+    };
+
+    const streaks = [
+      { name: 'journaling', ...calcStreak(journalDates), n: journalDates.size },
+      { name: 'exercise', ...calcStreak(exerciseDates), n: exerciseDates.size },
+    ];
+
+    for (const s of streaks) {
+      if (s.n < 7) continue;
+
+      const val = s.current > 0 ? s.current : s.longest;
+      if (val < 3) continue;
+      const isCurrent = s.current > 0;
+      const score = clamp(Math.round(val * 4 + 15), 20, 80);
+
+      const template = isCurrent
+        ? `You're on a ${val}-day ${s.name} streak! Keep it going.`
+        : `Your longest ${s.name} streak was ${val} days. Start a new one today?`;
+
+      insights.push({
+        id: nextId(`streak-${s.name}`),
+        type: 'streak',
+        category: 'streak',
+        title: `${titleCase(s.name)} Streak`,
+        template,
+        narrative: null,
+        score,
+        confidence: 'high',
+        n: s.n,
+        data: {
+          type: 'stat',
+          values: [
+            { label: 'Current', value: s.current },
+            { label: 'Longest', value: s.longest },
+          ],
+        },
+        direction: isCurrent ? 'positive' : 'neutral',
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 9. Week-over-week comparison  (category: 'comparison')
+  // -------------------------------------------------------------------------
+  {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const oneWeekAgo = shiftDate(todayStr, -7);
+    const twoWeeksAgo = shiftDate(todayStr, -14);
+
+    const weekAvg = (series, from, to) => {
+      const vals = series.filter(s => s.date >= from && s.date < to).map(s => s.value);
+      if (vals.length < 3) return null;
+      return Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 100) / 100;
+    };
+
+    const compMetrics = [
+      { series: extractVitalSeries(vitals, 'sleep'), metric: 'sleep', polarity: 'up_is_good' },
+      { series: extractMoodSeries(journal), metric: 'mood', polarity: 'up_is_good' },
+      { series: extractVitalSeries(vitals, 'pain'), metric: 'pain', polarity: 'down_is_good' },
+      { series: extractVitalSeries(vitals, 'energy'), metric: 'energy', polarity: 'up_is_good' },
+      { series: extractVitalSeries(vitals, 'steps'), metric: 'steps', polarity: 'up_is_good' },
+    ];
+
+    for (const { series, metric, polarity } of compMetrics) {
+      const thisWeek = weekAvg(series, oneWeekAgo, todayStr);
+      const lastWeek = weekAvg(series, twoWeeksAgo, oneWeekAgo);
+      if (thisWeek === null || lastWeek === null) continue;
+
+      const change = Math.round((thisWeek - lastWeek) * 100) / 100;
+      const pctChange = lastWeek !== 0 ? Math.round((change / Math.abs(lastWeek)) * 100) : 0;
+      if (Math.abs(pctChange) < 5) continue;
+
+      const label = METRIC_LABELS[metric] || metric;
+      const improving = (polarity === 'up_is_good' && change > 0) || (polarity === 'down_is_good' && change < 0);
+      const dirWord = change > 0 ? 'up' : 'down';
+      const sentiment = improving ? ', an improvement' : ', worth watching';
+
+      const template = `Your ${label} is ${dirWord} ${Math.abs(pctChange)}% this week vs last (${fmt(lastWeek)} → ${fmt(thisWeek)})${sentiment}.`;
+      const score = clamp(Math.round(Math.abs(pctChange) * 0.5 + 25), 25, 75);
+
+      insights.push({
+        id: nextId(`comparison-${metric}`),
+        type: 'comparison',
+        category: 'comparison',
+        title: `${titleCase(label)}: This Week vs Last`,
+        template,
+        narrative: null,
+        score,
+        confidence: 'medium',
+        n: series.filter(s => s.date >= twoWeeksAgo).length,
+        data: {
+          type: 'comparison',
+          values: [
+            { label: 'Last week', value: lastWeek },
+            { label: 'This week', value: thisWeek },
+          ],
+        },
+        metricA: metric,
+        direction: improving ? 'positive' : 'negative',
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 10. Medication adherence → symptom correlation  (category: 'medication')
+  // -------------------------------------------------------------------------
+  {
+    // For meds with start_date, check if journal symptom frequency differs
+    // on days where the user logged the med vs skipped (approximated by
+    // checking if journal mentions med adherence data)
+    const adherenceMeds = meds.filter(m => m.active !== false && m.name);
+
+    for (const med of adherenceMeds) {
+      if (!journal.length) break;
+
+      // Use journal adherence data if available
+      const takenDays = [];
+      const missedDays = [];
+      for (const entry of journal) {
+        if (!entry.date || !Array.isArray(entry.med_adherence)) continue;
+        const rec = entry.med_adherence.find(a => a.med_id === med.id || a.name === med.name);
+        if (!rec) continue;
+        if (rec.taken) takenDays.push(entry);
+        else missedDays.push(entry);
+      }
+
+      if (takenDays.length < 5 || missedDays.length < 3) continue;
+
+      const avgSeverity = (entries) => {
+        const vals = entries.filter(e => e.severity != null).map(e => Number(e.severity));
+        return vals.length >= 2 ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10 : null;
+      };
+
+      const takenSev = avgSeverity(takenDays);
+      const missedSev = avgSeverity(missedDays);
+      if (takenSev === null || missedSev === null) continue;
+
+      const diff = Math.abs(missedSev - takenSev);
+      if (diff < 0.5) continue;
+
+      const better = takenSev < missedSev ? 'lower' : 'higher';
+      const template = `On days you take ${med.display_name || med.name}, your symptom severity averages ${fmt(takenSev)} vs ${fmt(missedSev)} on missed days (${better} is better for you).`;
+      const score = clamp(Math.round(diff * 12 + 25), 25, 80);
+
+      insights.push({
+        id: nextId(`adherence-${med.name}`),
+        type: 'adherence',
+        category: 'medication',
+        title: `${med.display_name || med.name} Adherence`,
+        template,
+        narrative: null,
+        score,
+        confidence: confidence(takenDays.length + missedDays.length),
+        n: takenDays.length + missedDays.length,
+        data: {
+          type: 'comparison',
+          values: [
+            { label: 'Taken', value: takenSev, count: takenDays.length },
+            { label: 'Missed', value: missedSev, count: missedDays.length },
+          ],
+        },
+        metricA: med.name,
+        metricB: 'severity',
+        medName: med.name,
+        direction: takenSev <= missedSev ? 'positive' : 'negative',
+      });
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 11. Time-of-day mood/energy patterns  (category: 'timeofday')
+  // -------------------------------------------------------------------------
+  {
+    // Use journal entry time (from date or created_at) to bucket mood/energy
+    const bucketEntry = (entry) => {
+      const ts = entry.created_at || entry.date;
+      if (!ts) return null;
+      const d = new Date(ts);
+      const h = d.getHours();
+      if (isNaN(h)) return null;
+      if (h < 6) return 'night';
+      if (h < 12) return 'morning';
+      if (h < 18) return 'afternoon';
+      return 'evening';
+    };
+
+    const moodByTime = { morning: [], afternoon: [], evening: [] };
+    for (const entry of journal) {
+      if (!entry.mood || !MOOD_SCORE[entry.mood]) continue;
+      const bucket = bucketEntry(entry);
+      if (bucket && moodByTime[bucket]) moodByTime[bucket].push(MOOD_SCORE[entry.mood]);
+    }
+
+    const timeBuckets = Object.entries(moodByTime)
+      .filter(([, vals]) => vals.length >= 3)
+      .map(([label, vals]) => ({
+        label: titleCase(label),
+        avg: Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 100) / 100,
+        count: vals.length,
+      }));
+
+    if (timeBuckets.length >= 2) {
+      const sorted = [...timeBuckets].sort((a, b) => b.avg - a.avg);
+      const best = sorted[0];
+      const worst = sorted[sorted.length - 1];
+      const diff = best.avg - worst.avg;
+
+      if (diff >= 0.5) {
+        const totalN = timeBuckets.reduce((s, b) => s + b.count, 0);
+        const template = `Your mood tends to be highest in the ${best.label.toLowerCase()} (${fmt(best.avg)}/8) and lowest in the ${worst.label.toLowerCase()} (${fmt(worst.avg)}/8).`;
+        const score = clamp(Math.round(diff * 8 + 22), 22, 70);
+
+        insights.push({
+          id: nextId('timeofday-mood'),
+          type: 'timeofday',
+          category: 'timeofday',
+          title: 'Mood by Time of Day',
+          template,
+          narrative: null,
+          score,
+          confidence: confidence(totalN),
+          n: totalN,
+          data: {
+            type: 'bar',
+            values: timeBuckets.map(b => ({ label: b.label, value: b.avg, count: b.count })),
+          },
+          metricA: 'mood',
+          direction: 'neutral',
+        });
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
   // Sort by score descending and return
   // -------------------------------------------------------------------------
   return insights.sort((a, b) => b.score - a.score);
+}
+
+// ---------------------------------------------------------------------------
+// Micro-insights: quick daily-rotating stat one-liners
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns an array of small stat observations, each { emoji, text, id }.
+ * Dashboard picks 2 per day using day-of-year rotation.
+ */
+export function computeMicroInsights(data) {
+  const micros = [];
+  const today = new Date().toISOString().slice(0, 10);
+  const weekAgo = shiftDate(today, -7);
+  const monthAgo = shiftDate(today, -30);
+
+  // helper: filter entries within a date range
+  const since = (arr, dateField, cutoff) =>
+    arr.filter(r => (r[dateField] || '') >= cutoff);
+
+  // 1. Total vitals tracked
+  if (data.vitals.length >= 10) {
+    micros.push({ emoji: '📊', text: `You've tracked ${data.vitals.length} vitals entries`, id: 'total_vitals' });
+  }
+
+  // 2. Journal entries this month
+  const journalMonth = since(data.journal_entries, 'date', monthAgo).length;
+  if (journalMonth >= 3) {
+    micros.push({ emoji: '📝', text: `${journalMonth} journal entries this month`, id: 'journal_month' });
+  }
+
+  // 3. Active medications count
+  const activeMeds = data.meds.filter(m => m.active !== false).length;
+  if (activeMeds >= 2) {
+    micros.push({ emoji: '💊', text: `${activeMeds} active medications tracked`, id: 'active_meds' });
+  }
+
+  // 4. Sleep average this week vs last week
+  const sleepVitals = data.vitals.filter(v => v.type === 'sleep' && v.value > 0);
+  const sleepThisWeek = sleepVitals.filter(v => v.date >= weekAgo);
+  const twoWeeksAgo = shiftDate(today, -14);
+  const sleepLastWeek = sleepVitals.filter(v => v.date >= twoWeeksAgo && v.date < weekAgo);
+  if (sleepThisWeek.length >= 3) {
+    const avg = sleepThisWeek.reduce((s, v) => s + v.value, 0) / sleepThisWeek.length;
+    let suffix = '';
+    if (sleepLastWeek.length >= 3) {
+      const prevAvg = sleepLastWeek.reduce((s, v) => s + v.value, 0) / sleepLastWeek.length;
+      const diff = avg - prevAvg;
+      if (Math.abs(diff) >= 0.2) suffix = ` (${diff > 0 ? '↑' : '↓'} ${Math.abs(diff).toFixed(1)} from last week)`;
+    }
+    micros.push({ emoji: '😴', text: `Average sleep this week: ${avg.toFixed(1)} hrs${suffix}`, id: 'sleep_avg' });
+  }
+
+  // 5. Workouts this week
+  const workoutsWeek = since(data.activities, 'date', weekAgo).length;
+  if (workoutsWeek >= 1) {
+    const workoutsLastWeek = data.activities.filter(a => (a.date || '') >= twoWeeksAgo && (a.date || '') < weekAgo).length;
+    let suffix = '';
+    if (workoutsWeek > workoutsLastWeek && workoutsLastWeek > 0) suffix = ' — your most active week recently';
+    micros.push({ emoji: '💪', text: `${workoutsWeek} workout${workoutsWeek !== 1 ? 's' : ''} this week${suffix}`, id: 'workouts_week' });
+  }
+
+  // 6. Resting HR average this week
+  const hrWeek = data.vitals.filter(v => v.type === 'hr' && v.date >= weekAgo && v.value > 0);
+  if (hrWeek.length >= 3) {
+    const avg = Math.round(hrWeek.reduce((s, v) => s + v.value, 0) / hrWeek.length);
+    micros.push({ emoji: '❤️', text: `Resting HR average this week: ${avg} bpm`, id: 'hr_avg' });
+  }
+
+  // 7. Mood trend (2 weeks)
+  const moodEntries = data.journal_entries
+    .filter(j => j.mood && j.date >= twoWeeksAgo)
+    .map(j => ({ date: j.date, val: MOOD_SCORE[j.mood] || 0 }))
+    .filter(m => m.val > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (moodEntries.length >= 5) {
+    const firstHalf = moodEntries.slice(0, Math.floor(moodEntries.length / 2));
+    const secondHalf = moodEntries.slice(Math.floor(moodEntries.length / 2));
+    const avgFirst = firstHalf.reduce((s, m) => s + m.val, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((s, m) => s + m.val, 0) / secondHalf.length;
+    const diff = avgSecond - avgFirst;
+    if (Math.abs(diff) >= 0.4) {
+      const dir = diff > 0 ? 'improving' : 'dipping';
+      micros.push({ emoji: '📈', text: `Your mood trend is ${dir} over the last 2 weeks`, id: 'mood_trend' });
+    }
+  }
+
+  // 8. Next appointment countdown
+  const upcoming = data.appts
+    .filter(a => a.date >= today)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (upcoming.length > 0) {
+    const next = upcoming[0];
+    const daysOut = dayDiff(today, next.date);
+    const provider = next.provider || 'your provider';
+    if (daysOut <= 14) {
+      const when = daysOut === 0 ? 'today' : daysOut === 1 ? 'tomorrow' : `in ${daysOut} days`;
+      micros.push({ emoji: '🩺', text: `Next appointment: ${provider} ${when}`, id: 'next_appt' });
+    }
+  }
+
+  // 9. Total conditions managed
+  const activeConditions = (data.conditions || []).filter(c => c.status === 'active' || c.status === 'managed').length;
+  if (activeConditions >= 2) {
+    micros.push({ emoji: '🏥', text: `Managing ${activeConditions} active conditions`, id: 'conditions_count' });
+  }
+
+  // 10. Steps this week
+  const stepsWeek = data.vitals.filter(v => v.type === 'steps' && v.date >= weekAgo && v.value > 0);
+  if (stepsWeek.length >= 3) {
+    const total = stepsWeek.reduce((s, v) => s + v.value, 0);
+    const avgDaily = Math.round(total / stepsWeek.length);
+    micros.push({ emoji: '🚶', text: `Averaging ${avgDaily.toLocaleString()} steps/day this week`, id: 'steps_avg' });
+  }
+
+  return micros;
 }

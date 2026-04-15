@@ -5,6 +5,17 @@ const FREE_PROFILE_CHAR_LIMIT = 40000;
 const PREMIUM_PROFILE_CHAR_LIMIT = 100000;
 const ADMIN_PROFILE_CHAR_LIMIT = 150000;
 
+// Daily rotating insight focus areas (indexed by day-of-week: 0=Sun … 6=Sat)
+const INSIGHT_FOCUS_AREAS = [
+  'prevention — a preventive health tip, screening reminder, or wellness practice tailored to their profile',
+  'medication — a lesser-known fact about one of their medications, interaction tip, timing or food advice',
+  'condition — new research or a lesser-known aspect of one of their conditions',
+  'connection — a non-obvious cross-connection between two of their health issues or meds',
+  'lifestyle — a seasonal, nutrition, sleep, or exercise tip specific to their conditions and medications',
+  'encouragement — progress they have made, positive trends in their data, or strength recognition',
+  'research — recent medical progress or clinical trial relevant to their conditions or medications',
+];
+
 // Sanitize user-provided profile text: strip angle brackets / braces, cap length
 function sanProfile(text, limit = FREE_PROFILE_CHAR_LIMIT) {
   if (!text) return '';
@@ -19,7 +30,7 @@ function getProfileCharLimit(tier) {
 
 const PROMPTS = {
   insight:
-    'You are a compassionate, knowledgeable health companion. Given this patient\'s health profile, share ONE interesting, useful, or empowering health insight they might not know. It could be: a lesser-known fact about one of their conditions, a helpful tip about one of their medications, a connection between two of their health issues, a seasonal or lifestyle consideration, or an encouraging piece of recent medical progress. Keep it warm, concise (3-4 sentences), and specific to THEIR profile. Do not repeat generic advice. Start with a relevant emoji.',
+    'You are a compassionate, knowledgeable health companion. Given this patient\'s health profile, share ONE interesting, useful, or empowering health insight they might not know. Keep it warm, concise (3-4 sentences), and specific to THEIR profile. Do not repeat generic advice. Start with a relevant emoji.',
 
   connections:
     'You are an insightful health analyst. Given this patient\'s complete health profile, look for non-obvious connections, patterns, and insights across their medications, conditions, symptoms, and vitals. Consider: medications that might worsen another condition, overlapping side effects, symptom patterns in their journal, vitals trends that correlate with entries, nutritional or lifestyle factors linking conditions, whether their med regimen is internally consistent. Be specific and reference THEIR actual data. Format with clear sections. Be warm but thorough. End with a note that this is not medical advice.',
@@ -285,12 +296,19 @@ const PROMPT_KEYS = new Set(Object.keys(PROMPTS));
  * @param {boolean} [opts.useToolsAddendum] — append data-control tool instructions
  * @param {string} [opts.extra] — extra instructions to append (sanitized, max 500 chars)
  * @param {string} [opts.userTier] — free, premium, or admin
+ * @param {number} [opts.focusIndex] — day-of-week index (0-6) for insight focus rotation
  * @returns {string|null} — assembled system prompt, or null if key is invalid
  */
 export function buildSystemPrompt(promptKey, profileText, opts = {}) {
   if (!PROMPT_KEYS.has(promptKey)) return null;
 
   let prompt = PROMPTS[promptKey];
+
+  // Append daily focus area for insight prompts
+  if (promptKey === 'insight' && opts.focusIndex != null) {
+    const idx = Math.abs(Math.round(opts.focusIndex)) % INSIGHT_FOCUS_AREAS.length;
+    prompt += ' Today\'s focus: ' + INSIGHT_FOCUS_AREAS[idx] + '. Specifically explore this angle using their actual data — do not just give generic advice about this topic.';
+  }
 
   // Replace {DATE} placeholder if present
   if (opts.date) {

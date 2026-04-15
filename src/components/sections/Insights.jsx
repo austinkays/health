@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Sparkles, Moon, Activity, Heart, Pill, TrendingUp, TrendingDown, Minus, Lock, ChevronRight } from 'lucide-react';
+import { Sparkles, Moon, Activity, Heart, Pill, TrendingUp, TrendingDown, Minus, Lock, ChevronRight, Calendar, Flame, ArrowLeftRight, Clock } from 'lucide-react';
 import Card from '../ui/Card';
 import EmptyState from '../ui/EmptyState';
 import { computeCorrelations } from '../../utils/correlations';
@@ -7,16 +7,20 @@ import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
 
 const CATEGORY_META = {
-  sleep:      { icon: Moon,       border: 'border-salve-lav',   color: C.lav,   label: 'Sleep' },
-  exercise:   { icon: Activity,   border: 'border-salve-sage',  color: C.sage,  label: 'Exercise' },
-  medication: { icon: Pill,       border: 'border-salve-sage',  color: C.sage,  label: 'Medication' },
-  cycle:      { icon: Heart,      border: 'border-salve-amber', color: C.amber, label: 'Cycle' },
-  trend:      { icon: TrendingUp, border: 'border-salve-lav',   color: C.lav,   label: 'Trends' },
-  symptom:    { icon: Activity,   border: 'border-salve-rose',  color: C.rose,  label: 'Symptoms' },
+  sleep:      { icon: Moon,            border: 'border-salve-lav',   color: C.lav,   label: 'Sleep' },
+  exercise:   { icon: Activity,        border: 'border-salve-sage',  color: C.sage,  label: 'Exercise' },
+  medication: { icon: Pill,            border: 'border-salve-sage',  color: C.sage,  label: 'Medication' },
+  cycle:      { icon: Heart,           border: 'border-salve-amber', color: C.amber, label: 'Cycle' },
+  trend:      { icon: TrendingUp,      border: 'border-salve-lav',   color: C.lav,   label: 'Trends' },
+  symptom:    { icon: Activity,        border: 'border-salve-rose',  color: C.rose,  label: 'Symptoms' },
+  dayofweek:  { icon: Calendar,        border: 'border-salve-amber', color: C.amber, label: 'Day of Week' },
+  streak:     { icon: Flame,           border: 'border-salve-sage',  color: C.sage,  label: 'Streaks' },
+  comparison: { icon: ArrowLeftRight,  border: 'border-salve-lav',   color: C.lav,   label: 'Comparisons' },
+  timeofday:  { icon: Clock,           border: 'border-salve-lav',   color: C.lav,   label: 'Time of Day' },
 };
 
-const FILTER_PILLS = ['All', 'Sleep', 'Exercise', 'Medication', 'Cycle', 'Symptoms', 'Trends'];
-const FILTER_MAP = { All: null, Sleep: 'sleep', Exercise: 'exercise', Medication: 'medication', Cycle: 'cycle', Symptoms: 'symptom', Trends: 'trend' };
+const FILTER_PILLS = ['All', 'Sleep', 'Exercise', 'Medication', 'Cycle', 'Symptoms', 'Trends', 'Day of Week', 'Streaks', 'Comparisons', 'Time of Day'];
+const FILTER_MAP = { All: null, Sleep: 'sleep', Exercise: 'exercise', Medication: 'medication', Cycle: 'cycle', Symptoms: 'symptom', Trends: 'trend', 'Day of Week': 'dayofweek', Streaks: 'streak', Comparisons: 'comparison', 'Time of Day': 'timeofday' };
 
 /* ── Mini bar chart ───────────────────────────────────────── */
 

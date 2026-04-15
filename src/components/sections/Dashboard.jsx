@@ -7,7 +7,7 @@ import {
   Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
   Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
-  PenLine, UserCircle, Newspaper,
+  PenLine, UserCircle, Newspaper, Flame, ArrowLeftRight, Clock,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -20,6 +20,7 @@ import { C } from '../../constants/colors';
 import { VITAL_TYPES } from '../../constants/defaults';
 import { fetchInsight, isPremiumActive } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
+import { trackEvent, EVENTS } from '../../services/analytics';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { searchEntities, highlightMatch } from '../../utils/search.jsx';
@@ -32,7 +33,7 @@ import { fetchDiscoverArticles } from '../../services/discover';
 import { getDailyQuote } from '../../constants/quotes';
 import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
-import { computeCorrelations } from '../../utils/correlations';
+import { computeCorrelations, computeMicroInsights } from '../../utils/correlations';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { handleSpotlight } from '../../utils/fx';
 import Reveal from '../ui/Reveal';
@@ -400,14 +401,66 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const activeMeds = useMemo(() => data.meds.filter(m => m.active !== false), [data.meds]);
 
   const allInsights = useMemo(() => computeCorrelations(data, getCyclePhaseForDate), [data.vitals, data.journal_entries, data.meds, data.activities, data.cycles]);
-  // Show unrated patterns first so new insights surface naturally.
-  // Rated patterns still appear if there aren't enough unrated ones.
+  // Daily rotation: offset into the sorted insights list by day-of-year so
+  // users see different patterns each day. Thumbs-down decays score (×0.3),
+  // thumbs-up boosts slightly (×1.1) so disliked patterns sink and fresh
+  // ones surface. Unrated patterns still get priority over rated ones.
   const topInsights = useMemo(() => {
-    if (!insightRatings) return allInsights.slice(0, 3);
-    const unrated = allInsights.filter(ins => !insightRatings.getRating('pattern', ins.id));
-    const rated = allInsights.filter(ins => insightRatings.getRating('pattern', ins.id));
-    return [...unrated, ...rated].slice(0, 3);
+    if (!allInsights.length) return [];
+    const now = new Date();
+    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+
+    const scored = allInsights.map(ins => {
+      const rating = insightRatings?.getRating('pattern', ins.id);
+      let multiplier = 1;
+      if (rating === -1) multiplier = 0.3;
+      else if (rating === 1) multiplier = 1.1;
+      const isUnrated = !rating;
+      return { ...ins, _adj: ins.score * multiplier, _unrated: isUnrated };
+    });
+
+    // Sort: unrated first, then by adjusted score descending
+    scored.sort((a, b) => {
+      if (a._unrated !== b._unrated) return a._unrated ? -1 : 1;
+      return b._adj - a._adj;
+    });
+
+    // Rotate by day-of-year so the window shifts daily
+    const pool = scored.length;
+    const offset = dayOfYear % Math.max(pool, 1);
+    const rotated = [];
+    for (let i = 0; i < Math.min(3, pool); i++) {
+      rotated.push(scored[(offset + i) % pool]);
+    }
+    return rotated;
   }, [allInsights, insightRatings]);
+
+  // Track which pattern categories are surfaced (fire once per page load)
+  const patternCatsTracked = useRef(false);
+  useEffect(() => {
+    if (patternCatsTracked.current || !topInsights.length) return;
+    patternCatsTracked.current = true;
+    const seen = new Set();
+    for (const ins of topInsights) {
+      if (ins.category && !seen.has(ins.category)) {
+        seen.add(ins.category);
+        trackEvent(`${EVENTS.PATTERN_VIEWED}:${ins.category}`);
+      }
+    }
+  }, [topInsights]);
+
+  // Micro-insights: 2 daily-rotating quick stat chips
+  const microInsights = useMemo(() => {
+    const all = computeMicroInsights(data);
+    if (!all.length) return [];
+    const now = new Date();
+    const dayOfYear = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+    const pick = [];
+    for (let i = 0; i < Math.min(2, all.length); i++) {
+      pick.push(all[(dayOfYear + i) % all.length]);
+    }
+    return pick;
+  }, [data.vitals, data.journal_entries, data.meds, data.activities, data.appts, data.conditions]);
 
   const timeline = useMemo(() => {
     const now = new Date(new Date().toDateString());
@@ -677,12 +730,21 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
   /* Appointments within 48 hours for prep nudge */
   /* ── AI Insight ─────────────────────────────── */
-  const loadInsight = async () => {
+  const insightCacheKey = `salve:daily-insight-${new Date().toISOString().slice(0, 10)}`;
+
+  const loadInsight = async (forceRefresh = false) => {
+    if (!forceRefresh) {
+      try {
+        const cached = localStorage.getItem(insightCacheKey);
+        if (cached) { setInsight(cached); return; }
+      } catch (_) { /* localStorage unavailable */ }
+    }
     setInsightLoading(true);
     try {
       const profile = buildProfile(data);
       const result = await fetchInsight(profile);
       setInsight(result);
+      try { localStorage.setItem(insightCacheKey, result); } catch (_) { /* quota */ }
     } catch (e) {
       const isDailyLimit = e.message?.includes('Daily AI limit');
       setInsight(isDailyLimit ? 'Daily insight limit reached. Resets at midnight PT.' : 'Unable to load insight. ' + e.message);
@@ -1021,6 +1083,21 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </section>
       )}
 
+      {/* ── Micro-insights: quick rotating stat chips ── */}
+      {microInsights.length > 0 && (
+        <div className="dash-stagger dash-stagger-2 mb-3 flex items-center gap-2 flex-wrap">
+          {microInsights.map(mi => (
+            <span
+              key={mi.id}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-salve-card2/60 border border-salve-border/40 font-montserrat text-[11.5px] text-salve-textMid"
+            >
+              <span>{mi.emoji}</span>
+              <span>{mi.text}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* ── Centerpiece Search, hidden on desktop (SideNav ⌘K handles it) ── */}
       <section aria-label="Search" className="dash-stagger dash-stagger-2 mb-5 md:mb-7 md:hidden">
         <div className={`search-hero ${searchFocused ? 'search-hero-focused' : ''}`}>
@@ -1251,14 +1328,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   const catColors = {
                     sleep: 'border-salve-lav', exercise: 'border-salve-sage', medication: 'border-salve-sage',
                     cycle: 'border-salve-amber', trend: 'border-salve-lav', symptom: 'border-salve-rose',
+                    dayofweek: 'border-salve-amber', streak: 'border-salve-sage', comparison: 'border-salve-lav', timeofday: 'border-salve-lav',
                   };
                   const catIcons = {
                     sleep: Moon, exercise: Activity, medication: Pill,
                     cycle: Heart, trend: TrendingUp, symptom: Activity,
+                    dayofweek: Calendar, streak: Flame, comparison: ArrowLeftRight, timeofday: Clock,
                   };
                   const catHex = {
                     sleep: C.lav, exercise: C.sage, medication: C.sage,
                     cycle: C.amber, trend: C.lav, symptom: C.rose,
+                    dayofweek: C.amber, streak: C.sage, comparison: C.lav, timeofday: C.lav,
                   };
                   const Icon = catIcons[ins.category] || Sparkles;
                   const borderCls = catColors[ins.category] || 'border-salve-lav';
@@ -1360,7 +1440,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                         aria-label="Copy insight"
                       ><Copy size={12} /></button>
                       <button
-                        onClick={() => { setInsight(null); loadInsight(); }}
+                        onClick={() => { setInsight(null); loadInsight(true); trackEvent(EVENTS.INSIGHT_REFRESHED); }}
                         className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
                         aria-label="New insight"
                       ><RefreshCw size={12} /></button>
