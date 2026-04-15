@@ -14,7 +14,7 @@ import { C } from '../../constants/colors';
 import { Building2 } from 'lucide-react';
 import { fetchCrossReactivity } from '../../services/ai';
 import { findPgxMatches } from '../../constants/pgx';
-import { buildProfile } from '../../services/profile';
+import { buildProfile, fdaBullet } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { drugAutocomplete, drugDetails } from '../../services/drugs';
@@ -59,14 +59,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   // Cancel bulk ops on unmount to prevent state updates after navigation
   const cancelledRef = useRef(false);
   useEffect(() => () => { cancelledRef.current = true; }, []);
-  const [fdaDetailId, setFdaDetailId] = useState(null);
-  const [fdaExpanded, setFdaExpanded] = useState({});
-
-  /** Strip leading FDA section headers like "ADVERSE REACTIONS" or "Pregnancy:" from label text */
-  const stripFdaHeader = (text) => {
-    if (!text) return text;
-    return text.replace(/^[A-Z][A-Z &/,()-]+(?::\s*|\s+)/,'').replace(/^\s+/,'');
-  };
   const isDesktop = useIsDesktop();
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
@@ -651,76 +643,16 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
               <span className="text-salve-textMid"><span className="font-medium">How it works:</span> {m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
             )}
           </div>
-          {/* ── Boxed warning (expandable) ── */}
+          {/* Boxed warning — compact render, replaced with proper banner in Task 7 */}
           {m.fda_data.boxed_warning?.length > 0 && (
             <div className="mt-1.5">
               <div className="flex items-center gap-1 text-[12px] text-salve-rose font-medium">
                 <AlertTriangle size={10} /> FDA Black Box Warning
               </div>
-              <div className={`mt-1 text-[12px] text-salve-rose/80 leading-relaxed whitespace-pre-line ${!fdaExpanded[`${m.id}:warning`] && m.fda_data.boxed_warning[0].length > 500 ? 'line-clamp-6' : ''}`}>{stripFdaHeader(m.fda_data.boxed_warning[0])}</div>
-              {m.fda_data.boxed_warning[0].length > 500 && (
-                <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:warning`]: !prev[`${m.id}:warning`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors">
-                  {fdaExpanded[`${m.id}:warning`] ? 'Show less' : 'Show more'}
-                </button>
-              )}
+              <div className="mt-1 text-[12px] text-salve-rose/80 leading-relaxed">
+                {fdaBullet(m.fda_data.boxed_warning[0], 180)}
+              </div>
             </div>
-          )}
-          {/* ── Indications (always visible when available) ── */}
-          {m.fda_data.indications?.length > 0 && (
-            <div className="mt-1.5 text-[12px] text-salve-textMid leading-relaxed">
-              <span className="font-medium text-salve-text">Used for:</span> <span className={`whitespace-pre-line ${!fdaExpanded[`${m.id}:indications`] && m.fda_data.indications[0].length > 500 ? 'line-clamp-4' : ''}`}>{stripFdaHeader(m.fda_data.indications[0])}</span>
-              {m.fda_data.indications[0].length > 500 && (
-                <button onClick={() => setFdaExpanded(prev => ({ ...prev, [`${m.id}:indications`]: !prev[`${m.id}:indications`] }))} className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors block">
-                  {fdaExpanded[`${m.id}:indications`] ? 'Show less' : 'Show more'}
-                </button>
-              )}
-            </div>
-          )}
-          {/* ── Drug Details toggle ── */}
-          {(m.fda_data.adverse_reactions?.length > 0 || m.fda_data.dosage?.length > 0 || m.fda_data.contraindications?.length > 0 || m.fda_data.drug_interactions?.length > 0 || m.fda_data.pregnancy?.length > 0 || m.fda_data.precautions?.length > 0 || m.fda_data.storage?.length > 0 || m.fda_data.overdosage?.length > 0) && (
-            <>
-              <button
-                onClick={() => setFdaDetailId(fdaDetailId === m.id ? null : m.id)}
-                className="mt-1.5 flex items-center gap-1 text-[12px] text-salve-sage font-medium bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
-              >
-                <Info size={10} />
-                {fdaDetailId === m.id ? 'Hide details' : 'More drug details'}
-                <ChevronDown size={9} className={`transition-transform ${fdaDetailId === m.id ? 'rotate-180' : ''}`} />
-              </button>
-              {fdaDetailId === m.id && (
-                <div className="mt-1.5 space-y-2 text-[12px] leading-relaxed">
-                  {[
-                    { key: 'adverse_reactions', label: 'Side Effects', color: 'text-salve-amber', data: m.fda_data.adverse_reactions },
-                    { key: 'dosage', label: 'Dosage & Administration', color: 'text-salve-text', data: m.fda_data.dosage },
-                    { key: 'contraindications', label: 'Contraindications', color: 'text-salve-rose', data: m.fda_data.contraindications },
-                    { key: 'drug_interactions', label: 'Drug Interactions', color: 'text-salve-amber', data: m.fda_data.drug_interactions },
-                    { key: 'precautions', label: 'Precautions', color: 'text-salve-text', data: m.fda_data.precautions },
-                    { key: 'pregnancy', label: 'Pregnancy', color: 'text-salve-lav', data: m.fda_data.pregnancy },
-                    { key: 'overdosage', label: 'Overdosage', color: 'text-salve-rose', data: m.fda_data.overdosage },
-                    { key: 'storage', label: 'Storage', color: 'text-salve-textMid', data: m.fda_data.storage },
-                  ].filter(s => s.data?.length > 0).map(s => {
-                    const sKey = `${m.id}:${s.key}`;
-                    const isOpen = !!fdaExpanded[sKey];
-                    const text = stripFdaHeader(s.data[0]);
-                    const isLong = text && text.length > 500;
-                    return (
-                      <div key={s.key}>
-                        <div className={`font-medium ${s.color} mb-0.5`}>{s.label}</div>
-                        <div className={`text-salve-textMid whitespace-pre-line ${!isOpen && isLong ? 'line-clamp-6' : ''}`}>{text}</div>
-                        {isLong && (
-                          <button
-                            onClick={() => setFdaExpanded(prev => ({ ...prev, [sKey]: !isOpen }))}
-                            className="mt-0.5 text-[9px] text-salve-sage bg-transparent border-none cursor-pointer font-montserrat p-0 hover:text-salve-text transition-colors"
-                          >
-                            {isOpen ? 'Show less' : 'Show more'}
-                          </button>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
           )}
         </div>
       )}
