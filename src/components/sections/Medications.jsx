@@ -623,37 +623,83 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           </div>
         );
       })()}
-      {/* ── Inline FDA summary ── */}
+      {/* ── Inline FDA summary (At a glance) ── */}
       {m.fda_data && (
         <div className="mt-2 p-2.5 rounded-lg bg-salve-sage/5 border border-salve-sage/15">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+          <div className="text-[11px] font-semibold font-montserrat text-salve-sage uppercase tracking-wider mb-1.5">At a glance</div>
+          <dl className="space-y-1 text-[13px]">
             {m.fda_data.generic_name && m.fda_data.generic_name.toLowerCase() !== m.name.toLowerCase() && (
-              <span className="text-salve-textMid"><span className="font-medium">Generic:</span> {m.fda_data.generic_name}</span>
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Generic</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.generic_name}</dd>
+              </div>
             )}
             {m.fda_data.brand_name && m.fda_data.brand_name.toLowerCase() !== m.name.toLowerCase() && (
-              <span className="text-salve-textMid"><span className="font-medium">Brand:</span> {m.fda_data.brand_name}</span>
-            )}
-            {m.fda_data.manufacturer && (
-              <span className="text-salve-textMid"><span className="font-medium">Mfr:</span> {m.fda_data.manufacturer}</span>
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Brand</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.brand_name}</dd>
+              </div>
             )}
             {m.fda_data.pharm_class?.length > 0 && (
-              <span className="text-salve-textMid"><span className="font-medium">Class:</span> {m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Class</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.pharm_class.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</dd>
+              </div>
             )}
             {m.fda_data.pharm_class_moa?.length > 0 && (
-              <span className="text-salve-textMid"><span className="font-medium">How it works:</span> {m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</span>
-            )}
-          </div>
-          {/* Boxed warning — compact render, replaced with proper banner in Task 7 */}
-          {m.fda_data.boxed_warning?.length > 0 && (
-            <div className="mt-1.5">
-              <div className="flex items-center gap-1 text-[12px] text-salve-rose font-medium">
-                <AlertTriangle size={10} /> FDA Black Box Warning
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">How it works</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.pharm_class_moa.map(c => c.replace(/ \[.*\]$/, '')).join(', ')}</dd>
               </div>
-              <div className="mt-1 text-[12px] text-salve-rose/80 leading-relaxed">
+            )}
+            {m.fda_data.indications?.length > 0 && (
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Used for</dt>
+                <dd className="text-salve-textMid flex-1">{fdaBullet(m.fda_data.indications[0], 160)}</dd>
+              </div>
+            )}
+            {m.fda_data.manufacturer && (
+              <div className="flex gap-2">
+                <dt className="text-salve-textFaint w-24 flex-shrink-0">Mfr</dt>
+                <dd className="text-salve-textMid flex-1">{m.fda_data.manufacturer}</dd>
+              </div>
+            )}
+          </dl>
+          {m.fda_data.boxed_warning?.length > 0 && (
+            <div className="mt-2.5 p-2 rounded-lg bg-salve-rose/5 border border-salve-rose/20">
+              <div className="flex items-center gap-1 text-[12px] text-salve-rose font-semibold mb-0.5">
+                <AlertTriangle size={11} aria-hidden="true" /> FDA Black Box Warning
+              </div>
+              <div className="text-[12px] text-salve-rose/85 leading-relaxed">
                 {fdaBullet(m.fda_data.boxed_warning[0], 180)}
               </div>
+              <a
+                href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 mt-1 text-[11px] text-salve-rose/90 font-medium no-underline hover:underline"
+              >
+                Read full FDA label on DailyMed <ExternalLink size={9} aria-hidden="true" />
+              </a>
             </div>
           )}
+          {/* DailyMed deep-link chips */}
+          <div className="flex flex-wrap gap-1.5 mt-2.5 pt-2 border-t border-salve-sage/15">
+            {['Side effects', 'Dosage', 'Interactions'].map(label => (
+              <a
+                key={label}
+                href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                className="inline-flex items-center gap-1 py-1 px-2 rounded-full bg-salve-card2 border border-salve-border text-[11px] text-salve-textMid font-montserrat no-underline hover:border-salve-sage/30 hover:text-salve-sage transition-colors"
+                aria-label={`View ${label.toLowerCase()} for ${m.display_name || m.name} on DailyMed`}
+              >
+                {label} <ExternalLink size={9} aria-hidden="true" />
+              </a>
+            ))}
+          </div>
         </div>
       )}
 
