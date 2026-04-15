@@ -45,6 +45,7 @@ import { startTerraConnect, listTerraConnections, disconnectTerraConnection, pro
 import { resetOnboarding } from '../ui/OnboardingWizard';
 import { getHiddenSources, hideSource, unhideAllSources } from '../../utils/hiddenSources';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
+import { isStandalone, isIOS, isAndroid, isSafari } from '../../utils/platform';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
 
@@ -947,54 +948,102 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       {/* ── Notifications ── */}
       <SectionTitle>Notifications</SectionTitle>
       <Card>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <p className="text-sm font-montserrat font-medium text-salve-text">Push Notifications</p>
-              <p className="text-[13px] text-salve-textFaint font-montserrat mt-0.5">
-                {pushPermission === 'denied'
-                  ? 'Blocked by your browser, check browser settings to allow'
-                  : pushPermission === 'unsupported'
-                    ? 'Not supported in this browser'
-                    : pushEnabled
-                      ? 'Receiving reminders on this device'
-                      : 'Get reminders for medications, appointments, and more'}
-              </p>
-            </div>
-            <button
-              onClick={async () => {
-                setPushLoading(true);
-                try {
-                  if (pushEnabled) {
-                    await unsubscribeFromPush();
-                    setPushEnabled(false);
-                  } else {
-                    await subscribeToPush();
-                    setPushEnabled(true);
-                    setPushPermission('granted');
-                  }
-                } catch (err) {
-                  if (err.message?.includes('denied')) setPushPermission('denied');
-                }
-                setPushLoading(false);
-              }}
-              disabled={pushLoading || (!pushEnabled && (pushPermission === 'denied' || pushPermission === 'unsupported')) || demoMode}
-              className={`px-4 py-1.5 rounded-lg border text-xs font-montserrat font-medium transition-colors cursor-pointer ${
-                pushEnabled
-                  ? 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30 hover:text-salve-rose'
-                  : 'bg-salve-card border-salve-border text-salve-textMid hover:border-salve-lav/30'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {pushLoading ? '...' : pushEnabled ? 'Disable' : 'Enable'}
-            </button>
-          </div>
-          {pushEnabled && !demoMode && (
-            <button
-              onClick={async () => { try { await sendTestPush(); } catch {} }}
-              className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
-            >
-              Send test notification
-            </button>
-          )}
+          {(() => {
+            const standalone = isStandalone();
+            const ios = isIOS();
+            const android = isAndroid();
+            const safari = isSafari();
+            // On iOS/macOS Safari outside standalone mode, the Push API doesn't exist.
+            // Show install guidance instead of the misleading "Not supported" message.
+            const needsInstall = !standalone && (ios || (safari && !android));
+            const canEnableNow = !needsInstall && pushPermission !== 'denied' && pushPermission !== 'unsupported';
+
+            return (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-montserrat font-medium text-salve-text">Push Notifications</p>
+                    <p className="text-[13px] text-salve-textFaint font-montserrat mt-0.5">
+                      {pushPermission === 'denied'
+                        ? 'Blocked by your browser — check site settings to allow'
+                        : needsInstall
+                          ? 'Available after installing Salve to your home screen'
+                          : pushEnabled
+                            ? 'Receiving reminders on this device'
+                            : 'Get reminders for medications, appointments, and more'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      setPushLoading(true);
+                      try {
+                        if (pushEnabled) {
+                          await unsubscribeFromPush();
+                          setPushEnabled(false);
+                        } else {
+                          await subscribeToPush();
+                          setPushEnabled(true);
+                          setPushPermission('granted');
+                        }
+                      } catch (err) {
+                        if (err.message?.includes('denied')) setPushPermission('denied');
+                      }
+                      setPushLoading(false);
+                    }}
+                    disabled={pushLoading || (!pushEnabled && !canEnableNow) || demoMode}
+                    className={`px-4 py-1.5 rounded-lg border text-xs font-montserrat font-medium transition-colors cursor-pointer ${
+                      pushEnabled
+                        ? 'bg-salve-card border-salve-border text-salve-textFaint hover:border-salve-rose/30 hover:text-salve-rose'
+                        : 'bg-salve-card border-salve-border text-salve-textMid hover:border-salve-lav/30'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {pushLoading ? '...' : pushEnabled ? 'Disable' : 'Enable'}
+                  </button>
+                </div>
+
+                {/* Platform-specific install guidance */}
+                {needsInstall && (
+                  <div className="flex gap-2 items-start mt-1 mb-2 px-2.5 py-2 rounded-lg bg-salve-lav/5">
+                    <Smartphone size={14} className="text-salve-lav mt-0.5 shrink-0" aria-hidden="true" />
+                    <p className="text-xs text-salve-textMid font-montserrat leading-relaxed">
+                      {ios
+                        ? 'On iPhone and iPad, notifications require Salve to be installed. In Safari, tap the Share button then "Add to Home Screen."'
+                        : 'In Safari, notifications work after adding Salve to your Dock. Go to File \u2192 Add to Dock.'}
+                    </p>
+                  </div>
+                )}
+                {!standalone && !needsInstall && !pushEnabled && pushPermission !== 'denied' && pushPermission !== 'unsupported' && (
+                  <div className="flex gap-2 items-start mt-1 mb-2 px-2.5 py-2 rounded-lg bg-salve-lav/5">
+                    <Info size={14} className="text-salve-lav mt-0.5 shrink-0" aria-hidden="true" />
+                    <p className="text-xs text-salve-textMid font-montserrat leading-relaxed">
+                      {android
+                        ? 'For the most reliable notifications, install Salve \u2014 tap \u22EE then "Install app" or "Add to Home Screen."'
+                        : 'For notifications even when the browser is closed, install Salve as an app via the install icon in the address bar.'}
+                    </p>
+                  </div>
+                )}
+
+                {/* What you'll receive */}
+                {pushEnabled && !demoMode && (
+                  <div className="mt-2 mb-1">
+                    <p className="text-xs text-salve-textFaint font-montserrat mb-1.5">What you\u2019ll receive:</p>
+                    <ul className="text-xs text-salve-textMid font-montserrat space-y-0.5 pl-4 list-disc">
+                      <li>Medication reminders at your scheduled times</li>
+                      <li>Appointment reminders the day before</li>
+                      <li>Refill alerts 3 days before they\u2019re due</li>
+                      <li>Overdue to-do nudges</li>
+                    </ul>
+                    <button
+                      onClick={async () => { try { await sendTestPush(); } catch {} }}
+                      className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 mt-2 hover:underline"
+                    >
+                      Send test notification
+                    </button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </Card>
 
       {/* ══════════════ 3. Sage ══════════════ */}

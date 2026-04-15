@@ -21,27 +21,10 @@
 import { useEffect, useState } from 'react';
 import { Download, X, Share, Plus } from 'lucide-react';
 import { C } from '../../constants/colors';
+import { isStandalone, isIOS } from '../../utils/platform';
 
 const INSTALL_DISMISSED_KEY = 'salve:install-dismissed';
 const INSTALL_SEEN_KEY = 'salve:install-seen';
-
-function isStandalone() {
-  try {
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
-    if (window.navigator.standalone === true) return true;
-  } catch { /* */ }
-  return false;
-}
-
-function isIOS() {
-  try {
-    const ua = window.navigator.userAgent || '';
-    const isIDevice = /iPad|iPhone|iPod/.test(ua);
-    // iPadOS 13+ reports as Mac; detect via touch points
-    const isIPadOS = ua.includes('Mac') && navigator.maxTouchPoints > 1;
-    return isIDevice || isIPadOS;
-  } catch { return false; }
-}
 
 function hasBeenDismissed() {
   try { return localStorage.getItem(INSTALL_DISMISSED_KEY) === 'true'; } catch { return false; }
