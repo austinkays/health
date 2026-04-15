@@ -3,6 +3,7 @@ import { ChevronDown, User, Brain, Users, Coffee, Heart } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import { SageIntroButton } from '../ui/SageIntro';
+import { clearBarometricCache } from '../../services/barometric';
 
 const CATEGORIES = [
   {
@@ -130,6 +131,7 @@ export default function AboutMe({ data, updateSettings, onSageIntro }) {
       // Top-level profile field (e.g. name) — write to settings directly so
       // it stays canonical and existing consumers (Header greeting, etc.) keep
       // working without a migration.
+      if (field.key === 'location') clearBarometricCache();
       updateSettings({ [field.key]: value });
       return;
     }

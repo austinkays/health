@@ -4,9 +4,38 @@
 const CACHE_KEY = 'salve:baro-cache';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
+async function geocodeZip(zip) {
+  // US zip code lookup via Zippopotam.us (free, no API key, HTTPS)
+  try {
+    const res = await fetch(
+      `https://api.zippopotam.us/us/${zip}`,
+      { signal: AbortSignal.timeout(5000) }
+    );
+    if (!res.ok) return null;
+    const json = await res.json();
+    const place = json.places?.[0];
+    if (!place) return null;
+    return {
+      lat: parseFloat(place.latitude),
+      lon: parseFloat(place.longitude),
+      name: `${place['place name']}, ${place['state abbreviation']}`,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function geocodeLocation(locationStr) {
   if (!locationStr) return null;
-  const q = encodeURIComponent(locationStr.split(',')[0].trim());
+  const trimmed = locationStr.trim();
+
+  // If it looks like a US zip code (5 digits, optionally followed by -4 digits),
+  // use the zip geocoder instead of the city-name geocoder.
+  if (/^\d{5}(-\d{4})?$/.test(trimmed)) {
+    return geocodeZip(trimmed.slice(0, 5));
+  }
+
+  const q = encodeURIComponent(trimmed.split(',')[0].trim());
   try {
     const res = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${q}&count=1&language=en&format=json`,
