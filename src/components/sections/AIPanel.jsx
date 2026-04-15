@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from 'react';
-import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Lock, Stethoscope, Shield, FileText } from 'lucide-react';
+import { Sparkles, Link, Newspaper, HelpCircle, Send, Loader2, ChevronDown, ExternalLink, Copy, Check, Info, BadgeDollarSign, Plus, Bookmark, CheckCircle2, XCircle, AlertTriangle, Heart, Leaf, Stethoscope, Shield, FileText, ArrowRight } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import AIMarkdown from '../ui/AIMarkdown';
 import Card from '../ui/Card';
@@ -23,6 +23,13 @@ import { detectCrisis } from '../../utils/crisis';
 
 // Feature ID → ai.js feature name for lock checking
 const FEATURE_TO_AI = { connections: 'connections', resources: 'resources', costs: 'costOptimization', cycle_patterns: 'cyclePatterns', monthly_summary: 'monthlySummary', house: 'houseConsultation' };
+
+// Per-feature benefit descriptions for styled premium gate cards
+const PREMIUM_BENEFITS = {
+  connections: { title: 'Health Connections', desc: 'Discover hidden patterns across your medications, conditions, vitals, and journal entries — all analyzed together.', accent: 'sage' },
+  monthly_summary: { title: 'Monthly Summary', desc: 'A clinical-grade overview of your month you can hand directly to your specialist. Tracks trends, flags concerns, and highlights wins.', accent: 'sage' },
+  house: { title: 'House Consultation', desc: 'Claude and Gemini debate your health data together in a differential-diagnosis style consultation.', accent: 'amber' },
+};
 
 const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
@@ -153,6 +160,35 @@ function Disclaimer() {
       <p className="text-[12px] text-salve-textFaint italic m-0 font-montserrat">
         Sage's suggestions are not medical advice. Always consult your healthcare providers.
       </p>
+    </div>
+  );
+}
+
+function PremiumGateCard({ featureId }) {
+  const f = FEATURES.find(ft => ft.id === featureId);
+  const benefit = PREMIUM_BENEFITS[featureId];
+  if (!f || !benefit) return null;
+  const isAdmin = f.admin;
+  const bgClass = benefit.accent === 'sage' ? 'bg-salve-sage/15' : benefit.accent === 'amber' ? 'bg-salve-amber/15' : benefit.accent === 'rose' ? 'bg-salve-rose/15' : 'bg-salve-lav/15';
+  const textClass = benefit.accent === 'sage' ? 'text-salve-sage' : benefit.accent === 'amber' ? 'text-salve-amber' : benefit.accent === 'rose' ? 'text-salve-rose' : 'text-salve-lav';
+  return (
+    <div className="flex flex-col items-center py-6 px-4">
+      <div className={`w-14 h-14 rounded-2xl ${bgClass} flex items-center justify-center mb-4`}>
+        <f.icon size={28} className={textClass} strokeWidth={1.5} />
+      </div>
+      <h3 className="text-[18px] font-playfair font-semibold text-salve-text mb-2 text-center">{benefit.title}</h3>
+      <p className="text-[14px] text-salve-textMid text-center leading-relaxed max-w-[320px] mb-5">{benefit.desc}</p>
+      {!isAdmin && BILLING_ENABLED && (
+        <span className="inline-flex items-center gap-1.5 text-[13px] font-montserrat font-medium text-salve-lav bg-salve-lav/10 hover:bg-salve-lav/15 rounded-full px-4 py-2 transition-colors">
+          Upgrade in Settings <ArrowRight size={13} />
+        </span>
+      )}
+      {!isAdmin && !BILLING_ENABLED && (
+        <p className="text-[13px] text-salve-textFaint text-center italic font-montserrat">Available with Premium — coming soon.</p>
+      )}
+      {isAdmin && (
+        <p className="text-[13px] text-salve-textFaint text-center italic font-montserrat">Requires admin tier.</p>
+      )}
     </div>
   );
 }
@@ -1160,9 +1196,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       const isPremium = e.message?.includes('Premium feature');
       const isAdmin = e.message?.includes('Admin feature') || e.message?.includes('admin tier');
       const msg = isDailyLimit
-        ? (BILLING_ENABLED
-            ? '⏳ **Daily Limit Reached**\n\nYou\'ve used your AI calls for today. Resets at midnight PT.\n\nUpgrade to **Claude Premium** in Settings for more headroom.'
-            : '⏳ **Daily Sage Limit Reached**\n\nYou\'ve used your AI calls for today. During the beta we cap daily usage so Sage stays free for everyone. Your allowance resets at midnight Pacific.\n\nThanks for understanding while we figure out costs.')
+        ? '⏳ **You\'re all caught up for today**\n\nYour daily Sage calls refresh at midnight Pacific. Come back tomorrow — Sage will be here.'
         : isAdmin
           ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style consultation.'
           : isPremium
@@ -1245,8 +1279,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       <ChatMessageList messages={chatMessages} toolExecutions={toolExecutions} loading={loading} confirmPending={confirmPending} chatEndRef={chatEndRef} />
       {usage.remaining <= 3 && (
         <div className="text-center mb-2">
-          <span className="text-[12px] font-montserrat text-salve-rose">
-            {usage.remaining === 0 ? 'Daily limit reached, resets at midnight PT' : `${usage.remaining}/${usage.limit} calls remaining today`}
+          <span className="text-[12px] font-montserrat text-salve-amber">
+            {usage.remaining === 0 ? 'Daily calls refresh at midnight PT' : `${usage.remaining} of ${usage.limit} remaining today`}
           </span>
         </div>
       )}
@@ -1286,6 +1320,8 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
         />
       ) : (loading || (result && !revealed)) ? (
         <FeatureLoading ready={!loading && !!result} onReveal={() => setRevealed(true)} />
+      ) : result?._premiumGate ? (
+        <PremiumGateCard featureId={result.featureId} />
       ) : result && revealed ? (
         mode === 'insight' ? <InsightResult result={result} savedInsights={savedInsights} insightRatings={insightRatings} /> :
         mode === 'connections' ? <ConnectionsResult result={result} savedInsights={savedInsights} insightRatings={insightRatings} /> :
@@ -1336,31 +1372,25 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
       {FEATURES.map(f => {
           const locked = (f.premium || f.admin) && isFeatureLocked(FEATURE_TO_AI[f.id] || f.id);
           const badgeLabel = f.admin ? 'Admin' : 'Premium';
-          const badgeColor = f.admin ? 'amber' : 'lav';
           return (
             <button
               key={f.id}
               onClick={() => {
                 if (locked) {
-                  const msg = f.admin
-                    ? '🔒 **Admin Feature**\n\nHouse Consultation requires admin tier. Both Claude and Gemini analyze your health data together in a debate-style differential diagnosis.'
-                    : (BILLING_ENABLED
-                        ? '🔒 **Premium Feature**\n\nUpgrade to Claude for advanced analysis including health connections, cost savings, cycle patterns, and more.\n\nGo to **Settings → AI Provider** to upgrade.'
-                        : '🔒 **Premium Feature**\n\nThis is part of the Premium tier. Premium isn\'t open yet. We\'ll let you know when it is.');
-                  setResult({ text: msg });
+                  setResult({ _premiumGate: true, featureId: f.id });
                   setMode(f.id);
                   setRevealed(true);
                   return;
                 }
                 runFeature(f.id);
               }}
-              className={`bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer transition-colors ${locked ? 'opacity-50' : 'hover:border-salve-border2'}`}
+              className={`bg-salve-card border border-salve-border rounded-xl p-4 text-left cursor-pointer transition-colors hover:border-salve-border2`}
             >
               <div className="flex items-center justify-between">
-                <f.icon size={22} color={locked ? C.textFaint : f.color} strokeWidth={1.5} />
+                <f.icon size={22} color={f.color} strokeWidth={1.5} />
                 {locked && (
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded-full bg-salve-${badgeColor}/15 text-salve-${badgeColor} font-medium font-montserrat flex items-center gap-0.5`}>
-                    <Lock size={8} /> {badgeLabel}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${f.admin ? 'bg-salve-amber/15 text-salve-amber' : 'bg-salve-lav/15 text-salve-lav'} font-medium font-montserrat`}>
+                    ✦ {badgeLabel}
                   </span>
                 )}
               </div>
