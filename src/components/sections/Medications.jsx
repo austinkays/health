@@ -518,6 +518,76 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     </FormWrap>
   );
 
+  const DiscontinuedToggle = ({ count, open, onToggle, renderCards }) => (
+    <div className="mt-3">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 text-[13px] font-montserrat text-salve-textFaint hover:text-salve-textMid bg-transparent border-none cursor-pointer py-1.5 px-1"
+      >
+        <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-0' : '-rotate-90'}`} />
+        {count} discontinued {count === 1 ? 'med' : 'meds'}
+      </button>
+      {open && <div className="opacity-60">{renderCards()}</div>}
+    </div>
+  );
+
+  const renderMedCardBody = (m, isExpanded) => (
+    <div className="flex justify-between items-start">
+      <div className="flex-1 min-w-0">
+        <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
+          {m.display_name || m.name}
+        </div>
+        {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5 truncate">{m.name}</div>}
+        <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
+        {/* Card-surface reminder row — filled in by Task 8. Placeholder for now. */}
+        {null}
+        {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
+        {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
+        {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
+          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+            {m.fda_data.pharm_class?.length > 0 && (
+              <span className="inline-flex items-center py-0.5 px-1.5 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[9px] text-salve-sage font-medium truncate max-w-[200px]">
+                {m.fda_data.pharm_class[0].replace(/ \[.*\]$/, '')}
+              </span>
+            )}
+            {m.fda_data.boxed_warning?.length > 0 && (
+              <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
+                <AlertTriangle size={8} /> Boxed Warning
+              </span>
+            )}
+          </div>
+        )}
+        {!isExpanded && (() => {
+          const cycleLabel = getCycleRelatedLabel(m);
+          const pgxMatches = findPgxMatches(m.display_name || m.name, data.genetic_results);
+          if (!cycleLabel && pgxMatches.length === 0) return null;
+          return (
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              {cycleLabel && (
+                <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
+                  <Heart size={8} /> {cycleLabel}
+                </span>
+              )}
+              {pgxMatches.map((pm, i) => (
+                <span key={i} className={`inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full text-[9px] font-medium ${
+                  pm.severity === 'danger' ? 'bg-salve-rose/10 border border-salve-rose/20 text-salve-rose'
+                    : pm.severity === 'caution' ? 'bg-salve-amber/10 border border-salve-amber/20 text-salve-amber'
+                    : 'bg-salve-lav/10 border border-salve-lav/20 text-salve-lav'
+                }`}>
+                  <Zap size={8} /> {pm.gene} {pm.phenotype.split(' ')[0]}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
+      </div>
+      <div className="flex items-center gap-1 ml-2">
+        {m.refill_date && !isExpanded && <span className="text-[13px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
+        <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+      </div>
+    </div>
+  );
+
   /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
   const renderMedDetail = (m) => (
     <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
@@ -786,18 +856,35 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
       </div>
 
-      <div className="flex gap-1.5 mb-3.5">
-        {['active', 'inactive', 'all'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`py-1.5 px-4 rounded-full text-xs font-medium border cursor-pointer font-montserrat capitalize ${
-              filter === f ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
-            }`}
+      <div className="flex items-center justify-between gap-2 mb-3.5">
+        <div className="flex gap-1.5">
+          {['active', 'inactive', 'all'].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`py-1.5 px-4 rounded-full text-xs font-medium border cursor-pointer font-montserrat capitalize ${
+                filter === f ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+        <label className="flex items-center gap-1.5 text-[12px] text-salve-textFaint font-montserrat">
+          <span className="sr-only">Sort medications by</span>
+          <span aria-hidden="true">Sort:</span>
+          <select
+            value={sortMode}
+            onChange={e => setSortMode(e.target.value)}
+            className="bg-salve-card2 border border-salve-border rounded-lg text-xs text-salve-text font-montserrat py-1 px-2 cursor-pointer appearance-none pr-6 truncate max-w-[150px]"
+            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236e6a80' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center' }}
           >
-            {f}
-          </button>
-        ))}
+            <option value="alpha">A–Z</option>
+            <option value="schedule">Schedule</option>
+            <option value="refill">Refill date</option>
+            <option value="category">Category</option>
+          </select>
+        </label>
       </div>
 
       {/* ── Monthly cost estimate ── */}
@@ -943,74 +1030,70 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
           actionLabel="Add your first medication"
           onAction={() => setSubView('form')}
         />
-      ) :
-        fl.map(m => {
+      ) : (() => {
+        const renderCard = (m) => {
           const isExpanded = expandedId === m.id;
           return (
-          <Card key={m.id} id={`record-${m.id}`} onClick={() => setExpandedId(isExpanded ? null : m.id)} className={`cursor-pointer transition-all${highlightId === m.id ? ' highlight-ring' : ''}${isDesktop && expandedId === m.id ? ' ring-2 ring-salve-lav/30' : ''}`}>
-            <div className="flex justify-between items-start">
-              <div className="flex-1 min-w-0">
-                <div className="text-[15px] font-semibold text-salve-text mb-0.5 flex items-center gap-1.5">
-                  {m.display_name || m.name}
-                </div>
-                {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5 truncate">{m.name}</div>}
-                <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
-                {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
-                {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
-                {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {m.fda_data.pharm_class?.length > 0 && (
-                      <span className="inline-flex items-center py-0.5 px-1.5 rounded-full bg-salve-sage/10 border border-salve-sage/20 text-[9px] text-salve-sage font-medium truncate max-w-[200px]">
-                        {m.fda_data.pharm_class[0].replace(/ \[.*\]$/, '')}
-                      </span>
-                    )}
-                    {m.fda_data.boxed_warning?.length > 0 && (
-                      <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
-                        <AlertTriangle size={8} /> Boxed Warning
-                      </span>
-                    )}
-                  </div>
-                )}
-                {!isExpanded && (() => {
-                  const cycleLabel = getCycleRelatedLabel(m);
-                  const pgxMatches = findPgxMatches(m.display_name || m.name, data.genetic_results);
-                  if (!cycleLabel && pgxMatches.length === 0) return null;
-                  return (
-                    <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                      {cycleLabel && (
-                        <span className="inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full bg-salve-rose/10 border border-salve-rose/20 text-[9px] text-salve-rose font-medium">
-                          <Heart size={8} /> {cycleLabel}
-                        </span>
-                      )}
-                      {pgxMatches.map((pm, i) => (
-                        <span key={i} className={`inline-flex items-center gap-0.5 py-0.5 px-1.5 rounded-full text-[9px] font-medium ${
-                          pm.severity === 'danger' ? 'bg-salve-rose/10 border border-salve-rose/20 text-salve-rose'
-                            : pm.severity === 'caution' ? 'bg-salve-amber/10 border border-salve-amber/20 text-salve-amber'
-                            : 'bg-salve-lav/10 border border-salve-lav/20 text-salve-lav'
-                        }`}>
-                          <Zap size={8} /> {pm.gene} {pm.phenotype.split(' ')[0]}
-                        </span>
-                      ))}
-                    </div>
-                  );
-                })()}
-              </div>
-              <div className="flex items-center gap-1 ml-2">
-                {m.refill_date && !isExpanded && <span className="text-[13px] text-salve-amber font-medium">{daysUntil(m.refill_date)}</span>}
-                <ChevronDown size={14} className={`text-salve-textFaint transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-              </div>
-            </div>
-            {/* Mobile: inline expand. Desktop: detail goes to side pane */}
-            {!isDesktop && (
-              <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
-                {isExpanded && renderMedDetail(m)}
-              </div></div>
-            )}
-          <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
-          </Card>
+            <Card
+              key={m.id}
+              id={`record-${m.id}`}
+              onClick={() => setExpandedId(isExpanded ? null : m.id)}
+              className={`cursor-pointer transition-all${highlightId === m.id ? ' highlight-ring' : ''}${isDesktop && expandedId === m.id ? ' ring-2 ring-salve-lav/30' : ''}`}
+            >
+              {renderMedCardBody(m, isExpanded)}
+              {!isDesktop && (
+                <div className={`expand-section ${isExpanded ? 'open' : ''}`}><div>
+                  {isExpanded && renderMedDetail(m)}
+                </div></div>
+              )}
+              <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('medications', id))} onCancel={del.cancel} itemId={m.id} />
+            </Card>
           );
-        })
-      }
+        };
+
+        if (sortMode === 'category' && groupedMeds.active.length > 0) {
+          const byCat = groupedMeds.active.reduce((acc, m) => {
+            const key = m.category || 'medication';
+            (acc[key] = acc[key] || []).push(m);
+            return acc;
+          }, {});
+          const catLabel = (k) => MED_CATEGORIES.find(c => c.value === k)?.label || k;
+          return (
+            <>
+              {Object.entries(byCat).map(([k, meds]) => (
+                <div key={k}>
+                  <div className="text-[11px] font-semibold font-montserrat text-salve-textFaint uppercase tracking-wider mt-3 mb-1.5 px-1">
+                    {catLabel(k)}
+                  </div>
+                  {meds.map(renderCard)}
+                </div>
+              ))}
+              {groupedMeds.discontinued.length > 0 && (
+                <DiscontinuedToggle
+                  count={groupedMeds.discontinued.length}
+                  open={showDiscontinued}
+                  onToggle={() => setShowDiscontinued(o => !o)}
+                  renderCards={() => groupedMeds.discontinued.map(renderCard)}
+                />
+              )}
+            </>
+          );
+        }
+
+        return (
+          <>
+            {groupedMeds.active.map(renderCard)}
+            {groupedMeds.discontinued.length > 0 && (
+              <DiscontinuedToggle
+                count={groupedMeds.discontinued.length}
+                open={showDiscontinued}
+                onToggle={() => setShowDiscontinued(o => !o)}
+                renderCards={() => groupedMeds.discontinued.map(renderCard)}
+              />
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 
