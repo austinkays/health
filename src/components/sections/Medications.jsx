@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart, Zap } from 'lucide-react';
+import { Plus, Check, Edit, Trash2, Pill, AlertTriangle, Sparkles, Loader, ChevronDown, Search, MapPin, ExternalLink, Unlink, Download, RefreshCw, Info, DollarSign, Heart, Zap, Clock } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -22,6 +22,7 @@ import { mapsUrl } from '../../utils/maps';
 import { dailyMedUrl, providerLookupUrl, goodRxUrl } from '../../utils/links';
 import { validateMedication } from '../../utils/validate';
 import { checkInteractions } from '../../utils/interactions';
+import { formatTime, getNextDoseIn } from '../../utils/reminders';
 import SplitView, { useIsDesktop } from '../layout/SplitView';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
@@ -63,6 +64,11 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const acRef = useRef(null);
   const acTimerRef = useRef(null);
   const del = useConfirmDelete();
+  const [nowTick, setNowTick] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNowTick(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
   const [errors, setErrors] = useState({});
   const sf = (k, v) => { setForm(p => ({ ...p, [k]: v })); setErrors(e => { const n = { ...e }; delete n[k]; return n; }); };
 
@@ -531,8 +537,38 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </div>
         {m.display_name && m.display_name !== m.name && <div className="text-[13px] text-salve-textFaint -mt-0.5 mb-0.5 truncate">{m.name}</div>}
         <div className="text-[15px] text-salve-textMid">{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>
-        {/* Card-surface reminder row — filled in by Task 8. Placeholder for now. */}
-        {null}
+        {/* Card-surface reminder row */}
+        {(() => {
+          if (m.active === false) return null;
+          const reminders = (data.medication_reminders || [])
+            .filter(r => r.medication_id === m.id)
+            .sort((a, b) => (a.reminder_time || '').localeCompare(b.reminder_time || ''));
+          const enabled = reminders.filter(r => r.enabled);
+          if (enabled.length === 0) {
+            return (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); setExpandedId(m.id); setReminderAddId(m.id); setReminderTime('08:00'); }}
+                className="inline-flex items-center gap-1 mt-1 text-[12px] text-salve-lav bg-transparent border-none cursor-pointer p-0 hover:underline font-montserrat"
+                aria-label={`Set a reminder for ${m.display_name || m.name}`}
+              >
+                <Clock size={11} aria-hidden="true" /> Set reminder
+              </button>
+            );
+          }
+          const timeLabels = enabled.map(r => formatTime(r.reminder_time)).join(' · ');
+          const nextIn = getNextDoseIn(enabled, nowTick);
+          const aria = nextIn
+            ? `Scheduled at ${timeLabels}, next dose in ${nextIn}`
+            : `Scheduled at ${timeLabels}`;
+          return (
+            <div className="flex items-center gap-2 mt-1 text-[12px] text-salve-textMid" aria-label={aria}>
+              <Clock size={11} className="text-salve-lav flex-shrink-0" aria-hidden="true" />
+              <span className="font-montserrat">{timeLabels}</span>
+              {nextIn && <span className="text-salve-textFaint font-montserrat">· Next in {nextIn}</span>}
+            </div>
+          );
+        })()}
         {m.category && m.category !== 'medication' && <Badge label={MED_CATEGORIES.find(c => c.value === m.category)?.label || m.category} color={C.lav} bg={`${C.lav}15`} className="mt-1" />}
         {m.active === false && <Badge label="Discontinued" color={C.textFaint} bg="rgba(110,106,128,0.15)" className="mt-1" />}
         {!isExpanded && (m.fda_data?.pharm_class?.length > 0 || m.fda_data?.boxed_warning?.length > 0) && (
