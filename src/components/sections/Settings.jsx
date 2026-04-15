@@ -1101,7 +1101,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         {isOnTrial && (
           <div className="mt-2 space-y-2">
             <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
-              You're on a free Premium trial with full access to every feature. No payment needed.
+              You're on a free Premium trial with full access to every feature.
             </p>
             {BILLING_ENABLED && (
               <>
@@ -1136,11 +1136,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </button>
                 {checkoutError && <p className="text-[13px] text-salve-rose font-montserrat">{checkoutError}</p>}
               </>
-            ) : (
-              <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
-                Premium upgrades aren't open yet. We'll let you know when they are.
-              </p>
-            )}
+            ) : null}
           </div>
         )}
         {/* Beta code redemption — visible to free users and trial-expired users */}
@@ -1153,7 +1149,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 type="text"
                 value={betaCode}
                 onChange={e => { setBetaCode(e.target.value.toUpperCase()); setBetaStatus(null); }}
-                placeholder="SPOONIE-XXXX"
+                placeholder="Enter code"
                 className="flex-1 px-3 py-1.5 rounded-lg text-[13px] font-montserrat bg-salve-card border border-salve-border text-salve-text placeholder:text-salve-textFaint/50 focus:outline-none focus:border-salve-lav/50 focus:ring-1 focus:ring-salve-lav/20"
                 disabled={betaStatus === 'loading' || betaStatus === 'success'}
               />
@@ -1201,25 +1197,21 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 </button>
                 {checkoutError && <p className="text-[13px] text-salve-rose font-montserrat">{checkoutError}</p>}
               </>
-            ) : (
-              <p className="text-[13px] text-salve-textFaint font-montserrat italic leading-relaxed">
-                Premium upgrades aren't open yet. We'll let you know when they are.
-              </p>
-            )}
+            ) : null}
             <div className="flex gap-2">
               <button
                 onClick={() => setSelectedPlan('monthly')}
                 className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-medium font-montserrat border transition-colors cursor-pointer ${selectedPlan === 'monthly' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border bg-salve-card text-salve-textMid'}`}
               >
-                <div className="font-semibold">$9.99/mo</div>
+                <div className="font-semibold">$7.99/mo</div>
                 <div className="text-[10px] opacity-70 mt-0.5">Monthly</div>
               </button>
               <button
                 onClick={() => setSelectedPlan('annual')}
                 className={`flex-1 py-2 px-2 rounded-xl text-[11px] font-medium font-montserrat border transition-colors cursor-pointer relative ${selectedPlan === 'annual' ? 'border-salve-lav/50 bg-salve-lav/10 text-salve-lav' : 'border-salve-border bg-salve-card text-salve-textMid'}`}
               >
-                <div className="font-semibold">$79.99/yr</div>
-                <div className="text-[10px] opacity-70 mt-0.5">Save 33%</div>
+                <div className="font-semibold">$72/yr</div>
+                <div className="text-[10px] opacity-70 mt-0.5">Save 25%</div>
               </button>
             </div>
             <button
