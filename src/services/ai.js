@@ -438,8 +438,18 @@ export async function fetchInsight(profileText) {
 }
 
 export async function fetchConnections(profileText) {
+  const today = new Date().toISOString().split('T')[0];
+  const angles = [
+    'Focus especially on how medications might be silently worsening or triggering underlying conditions — look for iatrogenic effects that could be mistaken for disease progression.',
+    'Focus especially on overlapping side effects across multiple medications that may be compounding and masquerading as symptoms.',
+    'Focus especially on temporal patterns in vitals and journal entries — what reliably precedes or follows symptom flares.',
+    'Focus especially on nutritional, sleep, hormonal, or lifestyle factors that might be linking or amplifying multiple conditions.',
+    'Focus especially on internal consistency of the medication regimen — are any medications counteracting each other or working at cross-purposes?',
+    'Focus especially on less-obvious comorbidity connections — conditions that share root causes, affect the same systems, or commonly co-occur in ways the patient may not realize.',
+  ];
+  const angle = angles[Math.floor(Math.random() * angles.length)];
   return callAPI(
-    [{ role: 'user', content: 'Analyze my health profile for connections and patterns.' }],
+    [{ role: 'user', content: `Analyze my health profile for connections and patterns. Today is ${today}. ${angle} Prioritize insights I may not have considered.` }],
     'connections', profileText,
     2000, false, 'connections'
   );
