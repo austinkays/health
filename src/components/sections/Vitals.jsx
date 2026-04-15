@@ -19,6 +19,7 @@ import { fetchVitalsTrend } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
+import BarometricCard from '../ui/BarometricCard';
 
 function getVitalFlag(type, value, value2) {
   const t = VITAL_TYPES.find(x => x.id === type);
@@ -53,6 +54,12 @@ const SOURCE_COLOR = { oura: C.sage, apple_health: C.lav, manual: C.textFaint };
 export default function Vitals({ data, addItem, removeItem }) {
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState({ ...EMPTY_VITAL });
+
+  // Pre-fill the log form with auto-fetched pressure data from BarometricCard
+  const handleLogPressure = (prefill) => {
+    setForm({ ...EMPTY_VITAL, date: todayISO(), ...prefill });
+    setSubView('form');
+  };
   const [ct, setCt] = useState(() => {
     if (!data?.vitals?.length) return 'pain';
     const counts = {};
@@ -229,6 +236,12 @@ export default function Vitals({ data, addItem, removeItem }) {
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
       </div>
+
+      {/* Barometric pressure auto-fetch card */}
+      <BarometricCard
+        locationStr={data?.settings?.location || ''}
+        onLogPressure={handleLogPressure}
+      />
 
       <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
         <button

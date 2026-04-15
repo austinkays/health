@@ -45,6 +45,7 @@ const VITAL_LIMITS = {
   active_energy: { min: 0, max: 20000 },
   hydration:     { min: 1, max: 4 },
   activity_level:{ min: 1, max: 4 },
+  pressure:      { min: 850, max: 1084 },
 };
 
 /* ── Vital validation ─────────────────────────────────────── */

@@ -7,7 +7,7 @@ import {
   Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
   Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
-  PenLine, UserCircle, Newspaper,
+  PenLine, UserCircle, Newspaper, Wind, TrendingDown, Minus,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -28,6 +28,7 @@ import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { matchResources } from '../../constants/resources/index.js';
+import { readCachedBarometric } from '../../services/barometric';
 import { fetchDiscoverArticles } from '../../services/discover';
 import { getDailyQuote } from '../../constants/quotes';
 import ThumbsRating from '../ui/ThumbsRating';
@@ -855,6 +856,25 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     setShowDismissMenu(false);
   };
 
+  /* ── Barometric pressure chip (reads from cache set by Vitals page) ── */
+  const [baroChip, setBaroChip] = useState(() => {
+    const cached = readCachedBarometric();
+    if (!cached?.current) return null;
+    return cached;
+  });
+
+  // Re-read cache whenever the tab becomes visible (user may have visited Vitals)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        const cached = readCachedBarometric();
+        setBaroChip(cached?.current ? cached : null);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   /* ── Discover (matched resources + dynamic RSS articles) ─────────── */
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
   const [dynamicArticles, setDynamicArticles] = useState([]);
@@ -999,7 +1019,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       </section>
 
       {/* ── Today at a Glance chips ────────────── */}
-      {todayChips.length > 0 && (
+      {(todayChips.length > 0 || baroChip) && (
         <section aria-label="Today at a glance" className="dash-stagger dash-stagger-2 mb-4 -mt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {todayChips.map(chip => {
@@ -1017,6 +1037,23 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </button>
               );
             })}
+            {/* Barometric pressure chip — only visible once Vitals has fetched & cached data */}
+            {baroChip && (() => {
+              const baroColor = baroChip.trend === 'falling' ? C.rose : baroChip.trend === 'rising' ? C.amber : C.sage;
+              const BaroIcon = baroChip.trend === 'falling' ? TrendingDown : baroChip.trend === 'rising' ? TrendingUp : Minus;
+              return (
+                <button
+                  onClick={() => onNav('vitals')}
+                  aria-label={`Barometric pressure ${baroChip.current} hPa, ${baroChip.trend}. View in Vitals.`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
+                  style={{ background: `${baroColor}12`, outline: `1px solid ${baroColor}28` }}
+                >
+                  <Wind size={11} style={{ color: baroColor }} aria-hidden="true" />
+                  <span className="text-[11.5px] font-medium" style={{ color: baroColor }}>{baroChip.current} hPa</span>
+                  <BaroIcon size={10} style={{ color: baroColor, opacity: 0.8 }} aria-hidden="true" />
+                </button>
+              );
+            })()}
           </div>
         </section>
       )}
