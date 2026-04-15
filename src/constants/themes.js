@@ -311,7 +311,7 @@ export const themes = {
     experimental: true,
     colors: {
       bg:        '#fdf5f6',
-      card:      '#ffffff',
+      card:      '#fef8f6',
       card2:     '#fbe8ec',
       border:    '#f2cfd6',
       border2:   '#e0adb8',

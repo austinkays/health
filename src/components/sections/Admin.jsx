@@ -964,6 +964,11 @@ function BetaInvitesPanel() {
   const [newCode, setNewCode]   = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [copiedCode, setCopiedCode] = useState(null);
+  const [expanded, setExpanded] = useState(false);
+  const [showAllClaimed, setShowAllClaimed] = useState(false);
+  const [editingNotes, setEditingNotes] = useState(null); // code being edited
+  const [editNotesValue, setEditNotesValue] = useState('');
+  const [savingNotes, setSavingNotes] = useState(null);
   const del = useConfirmDelete();
 
   const load = useCallback(async () => {
@@ -1035,6 +1040,38 @@ function BetaInvitesPanel() {
     }
   }
 
+  function startEditNotes(inv) {
+    setEditingNotes(inv.code);
+    setEditNotesValue(inv.notes || '');
+  }
+
+  function cancelEditNotes() {
+    setEditingNotes(null);
+    setEditNotesValue('');
+  }
+
+  async function saveNotes(code) {
+    const text = editNotesValue.trim() || null;
+    setSavingNotes(code);
+    // Optimistic
+    setInvites(curr => (curr || []).map(i => i.code === code ? { ...i, notes: text } : i));
+    try {
+      const { error: rpcErr } = await supabase
+        .from('beta_invites')
+        .update({ notes: text })
+        .eq('code', code);
+      if (rpcErr) throw rpcErr;
+      setEditingNotes(null);
+      setEditNotesValue('');
+    } catch (err) {
+      console.error('Failed to update notes:', err);
+      await load();
+      setError(err?.message || 'Failed to update notes');
+    } finally {
+      setSavingNotes(null);
+    }
+  }
+
   async function copyCode(code) {
     try {
       await navigator.clipboard.writeText(code);
@@ -1055,37 +1092,60 @@ function BetaInvitesPanel() {
     };
   }, [invites]);
 
+  const CLAIMED_PREVIEW = 5;
+  const claimedVisible = showAllClaimed ? claimed : claimed.slice(0, CLAIMED_PREVIEW);
+  const claimedHidden = claimed.length - CLAIMED_PREVIEW;
+
   return (
     <Card>
-      <div className="flex items-center gap-2 mb-3">
+      {/* Collapsed header — always visible */}
+      <button
+        onClick={() => setExpanded(e => !e)}
+        className="w-full flex items-center gap-2 bg-transparent border-none cursor-pointer p-0 text-left"
+        aria-expanded={expanded}
+      >
         <Ticket size={14} className="text-salve-lav" />
         <h3 className="text-[13px] font-semibold text-salve-text font-montserrat m-0">
           Beta invite codes
         </h3>
-        <button
-          onClick={openForm}
-          disabled={showForm}
-          className="ml-auto flex items-center gap-1 text-[11px] text-salve-lav hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat disabled:opacity-50"
-        >
-          <Plus size={11} />
-          New code
-        </button>
-        <button
-          onClick={load}
-          disabled={loading}
-          aria-label="Refresh beta invites"
-          className="flex items-center gap-1 text-[11px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat disabled:opacity-50"
-        >
-          <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
-        </button>
-      </div>
+        {!expanded && invites && (
+          <span className="text-[11px] text-salve-textFaint font-montserrat">
+            {unclaimed.length} available · {claimed.length} claimed
+          </span>
+        )}
+        <ChevronDown
+          size={13}
+          className={`ml-auto text-salve-textFaint transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {expanded && (
+        <div className="mt-3">
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={openForm}
+              disabled={showForm}
+              className="flex items-center gap-1 text-[11px] text-salve-lav hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat disabled:opacity-50"
+            >
+              <Plus size={11} />
+              New code
+            </button>
+            <button
+              onClick={load}
+              disabled={loading}
+              aria-label="Refresh beta invites"
+              className="ml-auto flex items-center gap-1 text-[11px] text-salve-textFaint hover:text-salve-text bg-transparent border-none cursor-pointer font-montserrat disabled:opacity-50"
+            >
+              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+            </button>
+          </div>
 
       {error && (
         <p className="text-[12px] text-salve-rose font-montserrat m-0 mb-2">{error}</p>
       )}
 
       {/* Inline "new code" form */}
-      {showForm && (
+      {expanded && showForm && (
         <div className="mb-3 p-3 rounded-lg border border-salve-lav/30 bg-salve-lav/5">
           <div className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat mb-1">
             Code
@@ -1135,17 +1195,17 @@ function BetaInvitesPanel() {
         </div>
       )}
 
-      {loading && !invites && (
+      {expanded && loading && !invites && (
         <div className="text-[12px] text-salve-textFaint font-montserrat">Loading beta invites…</div>
       )}
 
-      {!loading && invites && invites.length === 0 && (
+      {expanded && !loading && invites && invites.length === 0 && (
         <div className="text-[12px] text-salve-textFaint font-montserrat">
           No beta codes yet. Tap "New code" to generate your first one.
         </div>
       )}
 
-      {invites && invites.length > 0 && (
+      {expanded && invites && invites.length > 0 && (
         <div className="space-y-4">
           {/* Unclaimed — actionable codes to hand out */}
           {unclaimed.length > 0 && (
@@ -1173,10 +1233,38 @@ function BetaInvitesPanel() {
                           <span className="text-[9px] text-salve-sage font-montserrat">copied</span>
                         )}
                       </div>
-                      {inv.notes && (
-                        <div className="text-[10px] text-salve-textFaint font-montserrat mt-0.5 truncate">
-                          {inv.notes}
+                      {editingNotes === inv.code ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <input
+                            type="text"
+                            value={editNotesValue}
+                            onChange={e => setEditNotesValue(e.target.value)}
+                            placeholder="Add a note…"
+                            autoFocus
+                            onKeyDown={e => { if (e.key === 'Enter') saveNotes(inv.code); if (e.key === 'Escape') cancelEditNotes(); }}
+                            className="flex-1 text-[11px] text-salve-text font-montserrat rounded-md border border-salve-lav/30 bg-salve-card2/40 px-2 py-1 focus:outline-none focus:border-salve-lav/50"
+                          />
+                          <button
+                            onClick={() => saveNotes(inv.code)}
+                            disabled={savingNotes === inv.code}
+                            className="text-[10px] text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline disabled:opacity-50"
+                          >
+                            {savingNotes === inv.code ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={cancelEditNotes}
+                            className="text-[10px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+                          >
+                            Cancel
+                          </button>
                         </div>
+                      ) : (
+                        <button
+                          onClick={() => startEditNotes(inv)}
+                          className="text-[10px] text-salve-textFaint font-montserrat mt-0.5 truncate bg-transparent border-none cursor-pointer p-0 text-left hover:text-salve-lav"
+                        >
+                          {inv.notes || '+ add note'}
+                        </button>
                       )}
                     </div>
                     <button
@@ -1198,14 +1286,14 @@ function BetaInvitesPanel() {
             </div>
           )}
 
-          {/* Claimed — audit trail, read-only */}
+          {/* Claimed — audit trail */}
           {claimed.length > 0 && (
             <div>
               <div className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat mb-2">
                 Claimed ({claimed.length})
               </div>
               <div className="space-y-1.5">
-                {claimed.map(inv => {
+                {claimedVisible.map(inv => {
                   const { days: trialDays, urgency } = trialStatus(inv.claimed_user_trial_expires_at);
                   const trialColor =
                     urgency === 'expired' ? C.rose :
@@ -1234,21 +1322,67 @@ function BetaInvitesPanel() {
                             </span>
                           )}
                         </div>
-                        {(inv.notes || inv.claimed_at) && (
-                          <div className="text-[10px] text-salve-textFaint font-montserrat mt-0.5 truncate">
+                        {editingNotes === inv.code ? (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <input
+                              type="text"
+                              value={editNotesValue}
+                              onChange={e => setEditNotesValue(e.target.value)}
+                              placeholder="Add a note…"
+                              autoFocus
+                              onKeyDown={e => { if (e.key === 'Enter') saveNotes(inv.code); if (e.key === 'Escape') cancelEditNotes(); }}
+                              className="flex-1 text-[11px] text-salve-text font-montserrat rounded-md border border-salve-lav/30 bg-salve-card2/40 px-2 py-1 focus:outline-none focus:border-salve-lav/50"
+                            />
+                            <button
+                              onClick={() => saveNotes(inv.code)}
+                              disabled={savingNotes === inv.code}
+                              className="text-[10px] text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline disabled:opacity-50"
+                            >
+                              {savingNotes === inv.code ? 'Saving…' : 'Save'}
+                            </button>
+                            <button
+                              onClick={cancelEditNotes}
+                              className="text-[10px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => startEditNotes(inv)}
+                            className="text-[10px] text-salve-textFaint font-montserrat mt-0.5 truncate bg-transparent border-none cursor-pointer p-0 text-left hover:text-salve-lav w-full"
+                          >
                             {inv.claimed_at && `Claimed ${formatDate(inv.claimed_at)}`}
                             {inv.claimed_at && inv.notes && ' · '}
-                            {inv.notes}
-                          </div>
+                            {inv.notes || '+ add note'}
+                          </button>
                         )}
                       </div>
                     </div>
                   );
                 })}
               </div>
+              {claimedHidden > 0 && !showAllClaimed && (
+                <button
+                  onClick={() => setShowAllClaimed(true)}
+                  className="mt-2 text-[11px] text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline p-0"
+                >
+                  Show {claimedHidden} more…
+                </button>
+              )}
+              {showAllClaimed && claimed.length > CLAIMED_PREVIEW && (
+                <button
+                  onClick={() => setShowAllClaimed(false)}
+                  className="mt-2 text-[11px] text-salve-textFaint bg-transparent border-none cursor-pointer font-montserrat hover:underline p-0"
+                >
+                  Show less
+                </button>
+              )}
             </div>
           )}
         </div>
+      )}
+      </div>
       )}
     </Card>
   );
@@ -1467,8 +1601,6 @@ export default function Admin({ data, onNav }) {
         onViewUserFeedback={handleViewUserFeedback}
       />
 
-      <BetaInvitesPanel />
-
       <div className="flex items-center gap-2 mt-1">
         <Shield size={14} className="text-salve-lav" />
         <p className="text-sm text-salve-textFaint font-montserrat m-0">
@@ -1548,7 +1680,7 @@ export default function Admin({ data, onNav }) {
 
       {!loading && filtered.length > 0 && (
         <div className="space-y-2">
-          {filtered.map(item => {
+          {filtered.map((item) => {
             const meta = TYPE_META[item.type] || TYPE_META.feedback;
             const Icon = meta.icon;
             const isExpanded = expandedId === item.id;
@@ -1724,6 +1856,8 @@ export default function Admin({ data, onNav }) {
           })}
         </div>
       )}
+
+      <BetaInvitesPanel />
     </div>
   );
 }
