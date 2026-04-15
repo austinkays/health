@@ -18,6 +18,7 @@ import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
+import BarometricCard from '../ui/BarometricCard';
 import AIMarkdown from '../ui/AIMarkdown';
 
 function getVitalFlag(type, value, value2) {
@@ -102,6 +103,12 @@ export default function Vitals({ data, addItem, removeItem }) {
     setForm({ ...EMPTY_VITAL, date: todayISO() });
     setErrors({});
     setSubView(null);
+  };
+
+  // Pre-fill the log form with auto-fetched pressure data from BarometricCard
+  const handleLogPressure = (prefill) => {
+    setForm({ ...EMPTY_VITAL, date: todayISO(), ...prefill });
+    setSubView('form');
   };
 
   const vi = VITAL_TYPES.find(t => t.id === ct);
@@ -226,6 +233,11 @@ export default function Vitals({ data, addItem, removeItem }) {
 
   return (
     <div className="mt-2">
+      {/* Barometric pressure auto-fetch card */}
+      <BarometricCard
+        locationStr={data?.settings?.location || ''}
+        onLogPressure={handleLogPressure}
+      />
       <div className="flex justify-end mb-3">
         <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
       </div>

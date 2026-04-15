@@ -8,7 +8,9 @@ import {
   Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
   Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
   PenLine, UserCircle, Newspaper, Flame, ArrowLeftRight, Clock,
+  Wind, TrendingDown, Minus,
 } from 'lucide-react';
+import { readCachedBarometric } from '../../services/barometric';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -865,6 +867,23 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
 
+  /* Barometric pressure chip — reads cached data (no fetch here) */
+  const [baroChip, setBaroChip] = useState(() => {
+    const cached = readCachedBarometric();
+    if (!cached?.current) return null;
+    return cached;
+  });
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        const cached = readCachedBarometric();
+        setBaroChip(cached?.current ? cached : null);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
+
   /* Today chips, compact at-a-glance strip above search */
   const todayChips = useMemo(() => {
     const chips = [];
@@ -1061,7 +1080,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       </section>
 
       {/* ── Today at a Glance chips ────────────── */}
-      {todayChips.length > 0 && (
+      {(todayChips.length > 0 || baroChip) && (
         <section aria-label="Today at a glance" className="dash-stagger dash-stagger-2 mb-4 -mt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {todayChips.map(chip => {
@@ -1079,6 +1098,22 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </button>
               );
             })}
+            {baroChip && (() => {
+              const baroColor = baroChip.trend === 'falling' ? C.rose : baroChip.trend === 'rising' ? C.amber : C.sage;
+              const BaroIcon = baroChip.trend === 'falling' ? TrendingDown : baroChip.trend === 'rising' ? TrendingUp : Minus;
+              return (
+                <button
+                  onClick={() => onNav('vitals')}
+                  aria-label={`Barometric pressure ${baroChip.current} hPa, ${baroChip.trend}. View in Vitals.`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
+                  style={{ background: `${baroColor}12`, outline: `1px solid ${baroColor}28` }}
+                >
+                  <Wind size={11} style={{ color: baroColor }} aria-hidden="true" />
+                  <span className="text-[11.5px] font-medium" style={{ color: baroColor }}>{baroChip.current} hPa</span>
+                  <BaroIcon size={10} style={{ color: baroColor, opacity: 0.8 }} aria-hidden="true" />
+                </button>
+              );
+            })()}
           </div>
         </section>
       )}
