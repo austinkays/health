@@ -264,7 +264,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
-      await startCheckout(); // redirects, never returns on success
       await startCheckout(selectedPlan); // redirects — never returns on success
     } catch (err) {
       setCheckoutError(err.message || 'Could not start checkout. Try again.');
@@ -1226,8 +1225,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         )}
         {userTier === 'premium' && !isOnTrial && BILLING_ENABLED && (
           <button
-            onClick={openCustomerPortal}
-            className="mt-2 text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0"
             onClick={handleManageSub}
             disabled={portalLoading}
             className="mt-2 text-[11px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-textMid transition-colors p-0 disabled:opacity-60"
