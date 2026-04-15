@@ -129,7 +129,7 @@ export default async function handler(req, res) {
   // Worst-case theoretical: 10 × 20 × $0.05 = $10/day, but realistic average
   // is $0.05–0.10/user/day = $15–30/month total.
   // Bump back up once billing is live and the budget is larger.
-  const CLAUDE_DAILY_LIMIT = 20;
+  const CLAUDE_DAILY_LIMIT = 30;
   try {
     // Count calls made today (midnight PT, DST-safe via Intl)
     const now = Date.now();

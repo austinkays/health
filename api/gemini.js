@@ -26,7 +26,7 @@ setInterval(() => {
 }, 5 * 60_000);
 
 // ── Daily call limit (free tier) ──
-const DAILY_LIMIT = 10;
+const DAILY_LIMIT = 15;
 
 // Compute "now in PT" as a Date whose UTC fields are actually the PT wall-clock
 // fields, then zero out to midnight and convert back to a real UTC timestamp.
@@ -352,7 +352,7 @@ export default async function handler(req, res) {
     if (userId && userTier === 'free') {
       const dailyAllowed = await checkDailyLimit(userId, supabaseUrl, serviceKey);
       if (!dailyAllowed) {
-        return res.status(429).json({ error: 'Daily AI limit reached (10/day on free tier). Resets at midnight PT.', daily_limit: true });
+        return res.status(429).json({ error: 'Daily AI limit reached (15/day on free tier). Resets at midnight PT.', daily_limit: true });
       }
     }
   } catch {

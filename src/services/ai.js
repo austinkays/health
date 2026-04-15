@@ -17,7 +17,7 @@ export function setAIProvider(provider) {
 const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
 const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
 const ADMIN_FEATURES = new Set(['houseConsultation']);
-const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule', 'resources', 'houseConsultation', 'monthlySummary']);
+const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'appealDraft', 'immunizationSchedule', 'houseConsultation', 'monthlySummary']);
 
 export function isFeatureLocked(feature) {
   // Demo mode unlocks everything, all AI calls return canned responses
@@ -298,7 +298,7 @@ function capMessages(messages) {
 // Client-side counter so the UI can show "X/10 calls remaining today".
 // Authoritative limit enforcement stays server-side; this is purely for UX.
 const USAGE_KEY = 'salve:ai-usage-today';
-const DAILY_CAP = 10; // matches free-tier Gemini limit
+const DAILY_CAP = 15; // matches free-tier Gemini limit
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);

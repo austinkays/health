@@ -11,7 +11,7 @@ import FormWrap from '../ui/FormWrap';
 import { EMPTY_JOURNAL, MOODS, COMMON_SYMPTOMS } from '../../constants/defaults';
 import { fmtDate, todayISO } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { fetchJournalPatterns, extractJournalData, isFeatureLocked } from '../../services/ai';
+import { fetchJournalPatterns, extractJournalData } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -864,7 +864,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             disabled={patternsLoading}
             className="!text-xs w-full !justify-center"
           >
-            {patternsLoading ? <><Loader size={13} className="animate-spin" /> Finding patterns...</> : isFeatureLocked('journalPatterns') ? <><Sparkles size={13} /> Analyze Patterns (Premium)</> : <><Sparkles size={13} /> Analyze Patterns with Sage</>}
+            {patternsLoading ? <><Loader size={13} className="animate-spin" /> Finding patterns...</> : <><Sparkles size={13} /> Analyze Patterns with Sage</>}
           </Button>
           {patternsAI && (
             <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">

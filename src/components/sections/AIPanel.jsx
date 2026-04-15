@@ -28,9 +28,9 @@ const FEATURES = [
   { id: 'insight', label: 'Health Insight', desc: 'A fresh, personalized health tip', icon: Sparkles, color: C.lav },
   { id: 'connections', label: 'Health Connections', desc: 'Patterns across your health data', icon: Link, color: C.sage, premium: true },
   { id: 'news', label: 'Health News', desc: 'Recent news for your conditions', icon: Newspaper, color: C.amber },
-  { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose, premium: true },
-  { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage, premium: true },
-  { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose, premium: true },
+  { id: 'resources', label: 'Resources', desc: 'Benefits, programs & assistance', icon: HelpCircle, color: C.rose },
+  { id: 'costs', label: 'Cost Savings', desc: 'Ways to save on medications', icon: BadgeDollarSign, color: C.sage },
+  { id: 'cycle_patterns', label: 'Cycle Patterns', desc: 'Phase-correlated health trends', icon: Heart, color: C.rose },
   { id: 'monthly_summary', label: 'Monthly Summary', desc: 'Clinical overview for your provider', icon: FileText, color: C.sage, premium: true },
   { id: 'house', label: 'House Consultation', desc: 'Claude & Gemini debate your health', icon: Stethoscope, color: C.amber, admin: true },
 ];
