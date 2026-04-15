@@ -38,6 +38,11 @@ let cachedToken = null;
 let cachedSalt = null;
 let cachedIterations = null;
 
+// Track any in-flight derivation so prewarm() and the first decrypt() call
+// can race: the second caller reuses the same Promise instead of starting a
+// redundant parallel PBKDF2 computation.
+let pendingDerive = null;
+
 async function deriveKey(token, salt, iterations = ITERATIONS) {
   // Reuse cached key only if token AND salt AND iterations match
   if (cachedKey && cachedToken === token && cachedIterations === iterations &&
@@ -45,25 +50,43 @@ async function deriveKey(token, salt, iterations = ITERATIONS) {
     return cachedKey;
   }
 
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(token),
-    'PBKDF2',
-    false,
-    ['deriveKey']
-  );
+  // Reuse any in-flight derivation for the same parameters
+  if (pendingDerive &&
+      pendingDerive.token === token &&
+      pendingDerive.iterations === iterations &&
+      pendingDerive.salt.length === salt.length &&
+      pendingDerive.salt.every((v, i) => v === salt[i])) {
+    return pendingDerive.promise;
+  }
 
-  cachedKey = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
-    keyMaterial,
-    { name: 'AES-GCM', length: 256 },
-    false,
-    ['encrypt', 'decrypt']
-  );
-  cachedToken = token;
-  cachedSalt = salt;
-  cachedIterations = iterations;
-  return cachedKey;
+  const inflight = { token, salt, iterations, promise: null };
+
+  inflight.promise = (async () => {
+    const keyMaterial = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(token),
+      'PBKDF2',
+      false,
+      ['deriveKey']
+    );
+
+    const key = await crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['encrypt', 'decrypt']
+    );
+    cachedKey = key;
+    cachedToken = token;
+    cachedSalt = salt;
+    cachedIterations = iterations;
+    if (pendingDerive === inflight) pendingDerive = null;
+    return key;
+  })();
+
+  pendingDerive = inflight;
+  return inflight.promise;
 }
 
 export async function encrypt(plaintext, token) {

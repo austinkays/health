@@ -47,27 +47,43 @@ export default defineConfig({
         clientsClaim: true,
         importScripts: ['/push-handler.js'],
         // Only precache CSS — NOT JS chunks or HTML.
-        // JS: each deploy generates new content hashes causing a download storm.
-        // HTML: precaching index.html causes the SW to serve stale HTML that
-        //   references non-existent JS chunk filenames after a deploy. This is
-        //   the root cause of the "stuck on loading" bug — the old HTML tries
-        //   to load e.g. index-Xy774ywJ.js, Vercel 404s it as text/html, and
-        //   the browser refuses the non-JS MIME type.
-        // Instead, HTML is served NetworkFirst via runtimeCaching below (fresh
-        // from Vercel when online, cached fallback when offline).
+        // JS: runtime-cached below with CacheFirst (see static-assets rule).
+        // HTML: precaching index.html is dangerous because deploying new chunk
+        //   hashes leaves the precached HTML pointing at filenames that no longer
+        //   exist on the CDN (Vercel returns text/html for those 404s and browsers
+        //   refuse to execute HTML as a JS module). Runtime StaleWhileRevalidate
+        //   (below) is safe: old HTML + SW-cached old JS loads fine, and
+        //   lazyWithRetry() handles the edge case where an old chunk was evicted.
         globPatterns: ['**/*.css'],
-        // Navigation requests (HTML pages) go network-first so users always
-        // get the latest index.html with correct chunk references after a deploy.
         navigateFallback: null, // disable the default precache-based fallback
         runtimeCaching: [
-          // HTML navigation: always try network first so deploys take effect
-          // immediately. Falls back to cache when offline.
+          // HTML navigation: serve cached version immediately, revalidate in background.
+          // StaleWhileRevalidate paints the app shell instantly on PWA reopen instead
+          // of waiting for a network round-trip (typically 100–500 ms saved on a warm
+          // connection, up to 5 s on a slow one).
+          // Old JS chunks referenced by stale HTML stay available in 'static-assets'
+          // cache; lazyWithRetry() handles the rare case where they've been evicted.
           {
             urlPattern: ({ request }) => request.mode === 'navigate',
-            handler: 'NetworkFirst',
+            handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'html-pages',
-              networkTimeoutSeconds: 5,
+            },
+          },
+          // Content-hashed JS/CSS chunks — CacheFirst because the URL never
+          // changes (new deploys produce new hashes → new filenames). Storing them
+          // in the SW cache is far more persistent than the browser HTTP cache,
+          // which iOS Safari evicts aggressively. Old entries expire naturally;
+          // new filenames are fetched once and cached on first use.
+          {
+            urlPattern: /\/assets\/.*\.(js|css)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'static-assets',
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
             },
           },
           // Google Fonts: network with cache fallback (CacheFirst breaks
