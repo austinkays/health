@@ -17,7 +17,7 @@ export function setAIProvider(provider) {
 const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
 const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
 const ADMIN_FEATURES = new Set(['houseConsultation']);
-const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'appealDraft', 'immunizationSchedule', 'houseConsultation', 'monthlySummary']);
+const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'appealDraft', 'immunizationSchedule', 'houseConsultation', 'monthlySummary', 'toolUse']);
 
 export function isFeatureLocked(feature) {
   // Demo mode unlocks everything, all AI calls return canned responses

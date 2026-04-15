@@ -1225,7 +1225,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
     setLoading(true);
     setToolExecutions([]);
     try {
-      const hasCrud = addItem && updateItem && removeItem;
+      const hasCrud = addItem && updateItem && removeItem && !isFeatureLocked('toolUse');
       if (hasCrud) {
         const r = await sendChatWithTools(msgs, profile, onToolCall);
         const executions = toolExecutionsRef.current.length ? [...toolExecutionsRef.current] : undefined;
@@ -1298,6 +1298,11 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
           <Send size={16} />
         </Button>
       </div>
+      {isFeatureLocked('toolUse') && (
+        <p className="text-[11px] text-salve-lav/70 font-montserrat mt-1 text-center">
+          ✦ <span className="italic">Upgrade for data commands</span> — "add Lexapro 10mg", "log today's BP"
+        </p>
+      )}
     </div>
     </AIConsentGate>
   );
