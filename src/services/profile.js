@@ -14,22 +14,22 @@ function condenseFDA(fda) {
   if (!fda) return '';
   let out = '';
   if (fda.boxed_warning?.length) {
-    out += ' ⚠ BOXED WARNING: ' + san(fda.boxed_warning[0], 200);
+    out += ' ⚠ boxed warning: ' + san(fda.boxed_warning[0], 140);
   }
   if (fda.contraindications?.length) {
-    out += ' | contraindicated: ' + san(fda.contraindications[0], 150);
+    out += ' | contraindications: ' + san(fda.contraindications[0], 100);
   }
   if (fda.drug_interactions?.length) {
-    out += ' | interactions: ' + san(fda.drug_interactions[0], 150);
+    out += ' | interactions: ' + san(fda.drug_interactions[0], 100);
   }
   if (fda.adverse_reactions?.length) {
-    // Extract just the first sentence or 120 chars of side effects
-    const raw = san(fda.adverse_reactions[0], 200);
+    // Extract just the first sentence or 100 chars of side effects
+    const raw = san(fda.adverse_reactions[0], 120);
     const first = raw.split(/\.\s/)[0];
     out += ' | side effects: ' + (first.length < raw.length ? first + '.' : raw);
   }
   if (fda.pregnancy?.length) {
-    const raw = san(fda.pregnancy[0], 100);
+    const raw = san(fda.pregnancy[0], 80);
     out += ' | pregnancy: ' + raw;
   }
   return out;
@@ -116,6 +116,55 @@ function summarizeVitals(vitals) {
   return out;
 }
 
+function sortByDateDesc(items, field = 'date') {
+  return [...items].sort((a, b) => new Date(b?.[field] || 0) - new Date(a?.[field] || 0));
+}
+
+function isWithinDays(date, days) {
+  if (!date) return false;
+  const ts = new Date(date).getTime();
+  if (isNaN(ts)) return false;
+  return ts >= Date.now() - days * 86400000;
+}
+
+function firstSentence(text, limit = 140) {
+  const cleaned = san(text, limit);
+  if (!cleaned) return '';
+  const sentence = cleaned.split(/\.\s/)[0].trim();
+  return sentence && sentence.length < cleaned.length ? sentence + '.' : cleaned;
+}
+
+function summarizeJournalEntry(entry, data) {
+  let line = '- ' + entry.date;
+  if (entry.mood) line += ' ' + entry.mood;
+  if (entry.severity) line += ' [' + entry.severity + '/10]';
+
+  const headline = firstSentence(entry.title || entry.content || '', 140);
+  if (headline) line += ' ' + headline;
+
+  if ((entry.symptoms || []).length) {
+    line += ' | symptoms: ' + entry.symptoms
+      .slice(0, 4)
+      .map(s => san(s.name, 32) + (s.severity ? ' ' + s.severity + '/10' : ''))
+      .join(', ');
+  }
+  if (entry.triggers) line += ' | triggers: ' + san(entry.triggers, 90);
+  if (entry.interventions) line += ' | helped: ' + san(entry.interventions, 90);
+
+  if (entry.adherence && Object.keys(entry.adherence).length) {
+    const skipped = Object.entries(entry.adherence)
+      .filter(([, value]) => !value)
+      .map(([id]) => {
+        const med = (data.meds || []).find(m => m.id === id);
+        return med ? san(m.display_name || m.name, 32) : null;
+      })
+      .filter(Boolean);
+    if (skipped.length) line += ' | skipped: ' + skipped.slice(0, 3).join(', ');
+  }
+
+  return line + '\n';
+}
+
 export function buildProfile(data) {
   if (!data) return '(No health data available)';
   const s = data.settings || {};
@@ -125,7 +174,7 @@ export function buildProfile(data) {
   if (s.location) p += 'Location: ' + san(s.location) + '\n';
 
   // Sage Memory — persistent facts/preferences extracted from past conversations
-  if (s.sage_memory) p += '\n══ SAGE MEMORY ══\nThese are facts and preferences you learned from past conversations with this user. Reference them naturally when relevant:\n' + san(s.sage_memory, 2000) + '\n';
+  if (s.sage_memory) p += '\n══ SAGE MEMORY ══\nThese are facts and preferences you learned from past conversations with this user. Reference them naturally when relevant:\n' + san(s.sage_memory, 4000) + '\n';
 
   // About Me, personal context for form filling and AI
   const about = s.about_me || {};
@@ -150,8 +199,46 @@ export function buildProfile(data) {
       health_context: 'Health Context',
     };
     for (const [k, v] of aboutEntries) {
-      p += (labels[k] || k) + ': ' + san(String(v), 500) + '\n';
+      p += (labels[k] || k) + ': ' + san(String(v), 240) + '\n';
     }
+  }
+
+  // Conditions first so core diagnoses are never crowded out by verbose med context
+  p += '\n,  CONDITIONS & DIAGNOSES , \n';
+  const conds = data.conditions || [];
+  if (conds.length === 0) p += '(none)\n';
+  sortByDateDesc(conds, 'diagnosed_date').forEach(c => {
+    p += '- ' + c.name + ' (' + (c.status || 'active') + ')';
+    if (c.diagnosed_date) p += ', diagnosed ' + c.diagnosed_date;
+    if (c.provider) p += ', treated by ' + c.provider;
+    if (c.linked_meds) p += ', meds: ' + san(c.linked_meds, 120);
+    if (c.notes) p += ', ' + san(c.notes, 140);
+    p += '\n';
+  });
+
+  // Allergies near the top for safety-critical drug context
+  const allergies = data.allergies || [];
+  if (allergies.length) {
+    p += '\n,  ALLERGIES , \n';
+    allergies.forEach(a => {
+      p += '- ' + a.substance + ' (' + a.severity + ')';
+      if (a.type) p += ' [type: ' + a.type + ']';
+      if (a.reaction) p += ', reaction: ' + san(a.reaction, 80);
+      if (a.notes) p += ', ' + san(a.notes, 100);
+      p += '\n';
+    });
+  }
+
+  // Surface anesthesia flags early in a compact form instead of burying them later
+  const anesthesiaFlags = data.anesthesia_flags || [];
+  if (anesthesiaFlags.length) {
+    p += '\n,  ANESTHESIA FLAGS , \n';
+    anesthesiaFlags.forEach(f => {
+      p += '- ' + f.condition;
+      if (f.implication) p += ': ' + san(f.implication, 120);
+      if (f.action_required) p += ' -> ' + san(f.action_required, 100);
+      p += '\n';
+    });
   }
 
   // Active medications, condensed FDA data
@@ -170,40 +257,8 @@ export function buildProfile(data) {
     if (m.purpose) p += ', for: ' + m.purpose;
     if (m.prescriber) p += ' [prescribed by ' + m.prescriber + ']';
     p += condenseFDA(m.fda_data);
-    // Append price data if available
-    const medPrices = (data.drug_prices || []).filter(dp => dp.medication_id === m.id && dp.nadac_per_unit);
-    if (medPrices.length) {
-      const latest = medPrices.sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at))[0];
-      p += ' [NADAC: $' + Number(latest.nadac_per_unit).toFixed(4) + '/' + (latest.pricing_unit || 'unit') + ']';
-    }
     p += '\n';
   });
-
-  // Monthly medication cost summary
-  const priceEntries = data.drug_prices || [];
-  if (priceEntries.length && active.length) {
-    let monthlyTotal = 0;
-    let counted = 0;
-    active.forEach(m => {
-      const mp = priceEntries.filter(dp => dp.medication_id === m.id && dp.nadac_per_unit)
-        .sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at));
-      if (!mp.length) return;
-      const perUnit = Number(mp[0].nadac_per_unit);
-      let daily = 1;
-      const f = (m.frequency || '').toLowerCase();
-      if (/\b(qid|four\s+times|q6h)\b|4\s+times?\s+(a\s+)?day/i.test(f)) daily = 4;
-      else if (/\b(tid|three\s+times|q8h)\b|3\s+times?\s+(a\s+)?day/i.test(f)) daily = 3;
-      else if (/\b(bid|twice|q12h)\b|2\s+times?\s+(a\s+)?day/i.test(f)) daily = 2;
-      else if (/\b(biweekly|bi-weekly|every\s+2\s+weeks?)\b/i.test(f)) daily = 1 / 14;
-      else if (/\bweek(ly)?\b/i.test(f)) daily = 1 / 7;
-      else if (/\bmonth(ly)?\b/i.test(f)) daily = 1 / 30;
-      monthlyTotal += perUnit * daily * 30;
-      counted++;
-    });
-    if (counted > 0) {
-      p += 'Monthly medication costs (wholesale NADAC): ~$' + monthlyTotal.toFixed(2) + ' (' + counted + ' of ' + active.length + ' medications priced)\n';
-    }
-  }
 
   // Discontinued medications
   const disc = (data.meds || []).filter(m => m.active === false);
@@ -217,66 +272,45 @@ export function buildProfile(data) {
     });
   }
 
-  // Conditions
-  p += '\n,  CONDITIONS & DIAGNOSES , \n';
-  const conds = data.conditions || [];
-  if (conds.length === 0) p += '(none)\n';
-  conds.forEach(c => {
-    p += '- ' + c.name + ' (status: ' + c.status + ')';
-    if (c.diagnosed_date) p += ', diagnosed ' + c.diagnosed_date;
-    if (c.provider) p += ', treated by ' + c.provider;
-    if (c.linked_meds) p += ', meds: ' + c.linked_meds;
-    if (c.notes) p += ', ' + c.notes;
-    p += '\n';
-  });
-
-  // Allergies
-  const allergies = data.allergies || [];
-  if (allergies.length) {
-    p += '\n,  ALLERGIES , \n';
-    allergies.forEach(a => {
-      p += '- ' + a.substance + ' (' + a.severity + ')';
-      if (a.type) p += ' [type: ' + a.type + ']';
-      if (a.reaction) p += ', reaction: ' + a.reaction;
-      if (a.notes) p += ', ' + san(a.notes);
-      p += '\n';
-    });
-  }
-
   // Vitals, aggregated summary instead of individual readings
   const vitals = data.vitals || [];
   if (vitals.length) {
     p += summarizeVitals(vitals.slice(-30));
   }
 
-  // Recent journal entries (last 15) with symptoms + cross-references
+  // Labs earlier so abnormal results are available before long journal history
+  const labs = data.labs || [];
+  if (labs.length) {
+    const abnormal = sortByDateDesc(labs.filter(l => l.flag && l.flag !== 'normal'));
+    const recentNormal = sortByDateDesc(labs.filter(l => !l.flag || l.flag === 'normal')).slice(0, 5);
+    if (abnormal.length) {
+      p += '\n,  ABNORMAL LAB RESULTS , \n';
+      abnormal.slice(0, 12).forEach(l => {
+        p += '- ' + l.test_name + ': ' + l.result;
+        if (l.unit) p += ' ' + l.unit;
+        p += ' [' + l.flag + ']';
+        if (l.range) p += ' (ref: ' + san(l.range, 40) + ')';
+        if (l.date) p += ' on ' + l.date;
+        p += '\n';
+      });
+    }
+    if (recentNormal.length) {
+      p += '\n,  RECENT LAB RESULTS , \n';
+      recentNormal.forEach(l => {
+        p += '- ' + l.test_name + ': ' + l.result;
+        if (l.unit) p += ' ' + l.unit;
+        if (l.date) p += ' on ' + l.date;
+        p += '\n';
+      });
+    }
+  }
+
+  // Recent journal entries condensed to preserve patterns without spending the whole budget here
   const journal = data.journal || [];
   if (journal.length) {
     p += '\n,  RECENT JOURNAL ENTRIES (last 15) , \n';
-    journal.slice(-15).forEach(e => {
-      p += '- ' + e.date;
-      if (e.mood) p += ' [mood: ' + e.mood + ']';
-      if (e.severity) p += ' [severity: ' + e.severity + '/10]';
-      p += ': ' + san(e.content || e.title || '');
-      if ((e.symptoms || []).length) {
-        p += ' | Symptoms: ' + e.symptoms.map(s => san(s.name, 50) + ' ' + s.severity + '/10').join(', ');
-      }
-      if (e.tags) p += ' (tags: ' + san(e.tags) + ')';
-      if (e.triggers) p += ' | Triggers: ' + san(e.triggers, 300);
-      if (e.interventions) p += ' | What helped: ' + san(e.interventions, 300);
-      if (e.adherence && Object.keys(e.adherence).length) {
-        const taken = Object.entries(e.adherence).filter(([,v]) => v).map(([id]) => { const m = (data.meds || []).find(m => m.id === id); return m ? san(m.display_name || m.name, 60) : null; }).filter(Boolean);
-        const skipped = Object.entries(e.adherence).filter(([,v]) => !v).map(([id]) => { const m = (data.meds || []).find(m => m.id === id); return m ? san(m.display_name || m.name, 60) : null; }).filter(Boolean);
-        if (taken.length) p += ' [meds taken: ' + taken.join(', ') + ']';
-        if (skipped.length) p += ' [meds SKIPPED: ' + skipped.join(', ') + ']';
-      }
-      if (e.gratitude) p += ' ✨ ' + san(e.gratitude, 200);
-      // Cross-reference linked conditions/meds by name
-      const lc = (e.linked_conditions || []).map(id => (data.conditions || []).find(c => c.id === id)?.name).filter(Boolean);
-      const lm = (e.linked_meds || []).map(id => { const m = (data.meds || []).find(m => m.id === id); return m ? (m.display_name || m.name) : null; }).filter(Boolean);
-      if (lc.length) p += ' [conditions: ' + lc.map(n => san(n, 60)).join(', ') + ']';
-      if (lm.length) p += ' [meds: ' + lm.map(n => san(n, 60)).join(', ') + ']';
-      p += '\n';
+    sortByDateDesc(journal).slice(0, 15).forEach(e => {
+      p += summarizeJournalEntry(e, data);
     });
     // Symptom frequency summary (last 30 days)
     const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
@@ -306,56 +340,34 @@ export function buildProfile(data) {
 
   // Health background
   if (s.health_background) {
-    p += '\n,  ADDITIONAL HEALTH BACKGROUND , \n' + san(s.health_background) + '\n';
+    p += '\n,  ADDITIONAL HEALTH BACKGROUND , \n' + san(s.health_background, 300) + '\n';
   }
 
-  // Labs (highlight abnormal results, last 10)
-  const labs = data.labs || [];
-  if (labs.length) {
-    const abnormal = labs.filter(l => l.flag && l.flag !== 'normal');
-    const recent = labs.slice(0, 10);
-    if (abnormal.length) {
-      p += '\n,  ABNORMAL LAB RESULTS , \n';
-      abnormal.forEach(l => {
-        p += '- ' + l.test_name + ': ' + l.result;
-        if (l.unit) p += ' ' + l.unit;
-        p += ' [' + l.flag + ']';
-        if (l.range) p += ' (ref: ' + l.range + ')';
-        if (l.date) p += ' on ' + l.date;
-        p += '\n';
-      });
-    }
-    const normal = recent.filter(l => !l.flag || l.flag === 'normal');
-    if (normal.length) {
-      p += '\n,  RECENT LAB RESULTS (normal) , \n';
-      normal.slice(0, 10).forEach(l => {
-        p += '- ' + l.test_name + ': ' + l.result;
-        if (l.unit) p += ' ' + l.unit;
-        if (l.date) p += ' on ' + l.date;
-        p += '\n';
-      });
-    }
-  }
-
-  // Procedures (last 5)
+  // Procedures: keep clinically relevant recent history, not every old procedure
   const procedures = data.procedures || [];
   if (procedures.length) {
     p += '\n,  PROCEDURES , \n';
-    procedures.slice(0, 10).forEach(pr => {
+    sortByDateDesc(procedures)
+      .filter(pr => isWithinDays(pr.date, 730) || pr.outcome || pr.notes)
+      .slice(0, 5)
+      .forEach(pr => {
       p += '- ' + pr.name;
       if (pr.date) p += ' on ' + pr.date;
       if (pr.provider) p += ' by ' + pr.provider;
-      if (pr.outcome) p += ', outcome: ' + pr.outcome;
-      if (pr.notes) p += ', ' + pr.notes;
+      if (pr.outcome) p += ', outcome: ' + san(pr.outcome, 100);
+      if (pr.notes) p += ', ' + san(pr.notes, 100);
       p += '\n';
     });
   }
 
-  // Immunizations
+  // Immunizations: recent history only in the general profile
   const immunizations = data.immunizations || [];
   if (immunizations.length) {
     p += '\n,  IMMUNIZATIONS , \n';
-    immunizations.forEach(i => {
+    sortByDateDesc(immunizations)
+      .filter(i => !i.date || isWithinDays(i.date, 365 * 3))
+      .slice(0, 8)
+      .forEach(i => {
       p += '- ' + i.name;
       if (i.date) p += ' on ' + i.date;
       if (i.dose) p += ' (dose ' + i.dose + ')';
@@ -379,48 +391,6 @@ export function buildProfile(data) {
     });
   }
 
-  // Anesthesia flags
-  const anesthesiaFlags = data.anesthesia_flags || [];
-  if (anesthesiaFlags.length) {
-    p += '\n,  ANESTHESIA FLAGS (safety-critical) , \n';
-    anesthesiaFlags.forEach(f => {
-      p += '- ' + f.condition;
-      if (f.implication) p += ': ' + f.implication;
-      if (f.action_required) p += ' → ' + f.action_required;
-      p += '\n';
-    });
-  }
-
-  // Surgical planning
-  const surgical = data.surgical_planning || [];
-  if (surgical.length) {
-    p += '\n,  SURGICAL PLANNING , \n';
-    surgical.forEach(sp => {
-      const procs = Array.isArray(sp.procedures) ? sp.procedures.join(', ') : '';
-      p += '- ' + (procs || 'Surgical plan');
-      if (sp.target_date) p += ' scheduled ' + sp.target_date;
-      if (sp.surgeon) p += ' with ' + sp.surgeon;
-      if (sp.facility) p += ' at ' + sp.facility;
-      if (sp.status) p += ' (' + sp.status + ')';
-      if (sp.accommodation) p += ' | accommodations: ' + sp.accommodation;
-      p += '\n';
-    });
-  }
-
-  // Appeals & disputes
-  const appeals = data.appeals_and_disputes || [];
-  if (appeals.length) {
-    p += '\n,  INSURANCE APPEALS & DISPUTES , \n';
-    appeals.forEach(a => {
-      p += '- ' + a.subject;
-      if (a.status) p += ' (' + a.status + ')';
-      if (a.date_filed) p += ' filed ' + a.date_filed;
-      if (a.deadline) p += ' deadline ' + a.deadline;
-      if (a.notes) p += ', ' + a.notes;
-      p += '\n';
-    });
-  }
-
   // Providers
   const providers = data.providers || [];
   if (providers.length) {
@@ -439,52 +409,25 @@ export function buildProfile(data) {
   const upcoming = appts.filter(a => new Date(a.date) >= new Date(new Date().toDateString())).sort((a, b) => new Date(a.date) - new Date(b.date));
   if (upcoming.length) {
     p += '\n,  UPCOMING APPOINTMENTS , \n';
-    upcoming.slice(0, 10).forEach(a => {
+    upcoming.slice(0, 8).forEach(a => {
       p += '- ' + a.date;
       if (a.time) p += ' ' + a.time;
       if (a.provider) p += ' with ' + a.provider;
       if (a.location) p += ' at ' + a.location;
       if (a.reason) p += ', ' + san(a.reason);
-      if (a.questions) p += ' [questions: ' + san(a.questions) + ']';
+      if (a.questions) p += ' [questions: ' + san(a.questions, 120) + ']';
       p += '\n';
     });
   }
 
-  // Past appointments (last 5 with notes)
+  // Past appointments: keep only a compact outcome line from recent visits
   const past = appts.filter(a => new Date(a.date) < new Date(new Date().toDateString()) && a.post_notes).sort((a, b) => new Date(b.date) - new Date(a.date));
   if (past.length) {
-    p += '\n,  RECENT APPOINTMENT NOTES , \n';
-    past.slice(0, 5).forEach(a => {
+    p += '\n,  RECENT APPOINTMENT OUTCOMES , \n';
+    past.slice(0, 3).forEach(a => {
       p += '- ' + a.date;
       if (a.provider) p += ' with ' + a.provider;
-      p += ': ' + san(a.post_notes);
-      p += '\n';
-    });
-  }
-
-  // Pharmacies
-  const pharmacies = data.pharmacies || [];
-  if (pharmacies.length) {
-    p += '\n,  PHARMACIES , \n';
-    pharmacies.forEach(ph => {
-      p += '- ' + ph.name;
-      if (ph.is_preferred) p += ' (preferred)';
-      if (ph.address) p += ', ' + ph.address;
-      if (ph.notes) p += ', ' + san(ph.notes);
-      p += '\n';
-    });
-  }
-
-  // Insurance claims
-  const claims = data.insurance_claims || [];
-  if (claims.length) {
-    p += '\n,  INSURANCE CLAIMS , \n';
-    claims.slice(0, 10).forEach(c => {
-      p += '- ' + c.date + ': ' + c.description;
-      if (c.provider) p += ' (' + c.provider + ')';
-      if (c.status) p += ' [' + c.status + ']';
-      if (c.billed_amount) p += ' billed $' + c.billed_amount;
-      if (c.patient_responsibility) p += ', owed $' + c.patient_responsibility;
+      p += ': ' + firstSentence(a.post_notes, 140);
       p += '\n';
     });
   }
@@ -560,38 +503,6 @@ export function buildProfile(data) {
     }
   }
 
-  // Wearable summaries (Oura Ring)
-  const ouraVitals = (data.vitals || []).filter(v => v.source === 'oura');
-  if (ouraVitals.length) {
-    p += '\n,  WEARABLE DATA (Oura Ring) , \n';
-    const recent = ouraVitals.filter(v => {
-      const d = new Date(v.date + 'T00:00:00');
-      return d >= new Date(Date.now() - 7 * 86400000);
-    });
-
-    const sleepVals = recent.filter(v => v.type === 'sleep').map(v => Number(v.value)).filter(n => !isNaN(n));
-    if (sleepVals.length) p += `Sleep: avg ${(sleepVals.reduce((a, b) => a + b, 0) / sleepVals.length).toFixed(1)} hrs/night (7-day)\n`;
-
-    const hrVals = recent.filter(v => v.type === 'hr').map(v => Number(v.value)).filter(n => !isNaN(n));
-    if (hrVals.length) p += `Resting HR: avg ${Math.round(hrVals.reduce((a, b) => a + b, 0) / hrVals.length)} bpm (7-day)\n`;
-
-    const hrvNotes = recent.filter(v => v.notes?.includes('HRV'));
-    if (hrvNotes.length) {
-      const hrvVals = hrvNotes.map(v => { const m = v.notes.match(/HRV[:\s]*(\d+)/); return m ? Number(m[1]) : NaN; }).filter(n => !isNaN(n));
-      if (hrvVals.length) p += `HRV: avg ${Math.round(hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length)} ms (7-day)\n`;
-    }
-
-    const spo2Vals = recent.filter(v => v.type === 'spo2').map(v => Number(v.value)).filter(n => !isNaN(n));
-    if (spo2Vals.length) p += `SpO2: avg ${(spo2Vals.reduce((a, b) => a + b, 0) / spo2Vals.length).toFixed(1)}% (7-day)\n`;
-
-    // Readiness from notes (synced as energy type with readiness in notes)
-    const readinessNotes = recent.filter(v => v.notes?.includes('Readiness'));
-    if (readinessNotes.length) {
-      const scores = readinessNotes.map(v => { const m = v.notes.match(/Readiness[:\s]*(\d+)/); return m ? Number(m[1]) : NaN; }).filter(n => !isNaN(n));
-      if (scores.length) p += `Readiness: avg ${Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)}/100 (7-day)\n`;
-    }
-  }
-
   // Recent activities / workouts (exclude passive tracking like "Daily Activity")
   const PASSIVE_TYPES = new Set(['Daily Activity', 'daily_activity']);
   const activities = (data.activities || []).filter(a => {
@@ -616,28 +527,10 @@ export function buildProfile(data) {
     if (totalCal > 0) p += `Total calories burned: ${Math.round(totalCal)}\n`;
   }
 
-  // Apple Health summary (non-Oura)
-  const appleVitals = (data.vitals || []).filter(v => v.source === 'apple_health' || v.source === 'Apple Health' || (v.notes?.includes('Apple Health') && v.source !== 'oura'));
-  if (appleVitals.length) {
-    const recent = appleVitals.filter(v => {
-      const d = new Date(v.date + 'T00:00:00');
-      return d >= new Date(Date.now() - 7 * 86400000);
-    });
-    if (recent.length) {
-      p += '\n,  APPLE HEALTH DATA (7-day) , \n';
-      const steps = recent.filter(v => v.type === 'steps').map(v => Number(v.value)).filter(n => !isNaN(n));
-      if (steps.length) p += `Avg daily steps: ${Math.round(steps.reduce((a, b) => a + b, 0) / steps.length).toLocaleString()}\n`;
-      const energy = recent.filter(v => v.type === 'active_energy').map(v => Number(v.value)).filter(n => !isNaN(n));
-      if (energy.length) p += `Avg daily active energy: ${Math.round(energy.reduce((a, b) => a + b, 0) / energy.length)} cal\n`;
-      const weight = recent.filter(v => v.type === 'weight').map(v => Number(v.value)).filter(n => !isNaN(n));
-      if (weight.length) p += `Recent weight: ${weight[weight.length - 1]} lbs\n`;
-    }
-  }
-
   // Active to-dos
-  const todos = (data.todos || []).filter(t => !t.completed);
+  const todos = (data.todos || []).filter(t => !t.completed && (t.priority === 'high' || t.priority === 'urgent'));
   if (todos.length) {
-    p += '\n,  ACTIVE TO-DO ITEMS , \n';
+    p += '\n,  HIGH-PRIORITY TO-DO ITEMS , \n';
     todos.forEach(t => {
       p += '- ' + san(t.title);
       if (t.priority && t.priority !== 'low') p += ' [' + t.priority + ']';

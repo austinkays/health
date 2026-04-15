@@ -308,6 +308,7 @@ function capMessages(messages) {
 // Authoritative limit enforcement stays server-side; this is purely for UX.
 const USAGE_KEY = 'salve:ai-usage-today';
 const DAILY_CAP = 15; // matches free-tier Gemini limit
+const PROFILE_WARN_THRESHOLD = 35000;
 
 function getTodayKey() {
   return new Date().toISOString().slice(0, 10);
@@ -334,6 +335,18 @@ export function getDailyUsage() {
   return { used, limit: DAILY_CAP, remaining: Math.max(0, DAILY_CAP - used) };
 }
 
+function logProfileSize(feature, profileText) {
+  const size = profileText?.length || 0;
+  if (!size) return;
+  if (size >= PROFILE_WARN_THRESHOLD) {
+    console.warn(`[AI] Large profile payload for ${feature}: ${size} chars`);
+    return;
+  }
+  if (import.meta.env.DEV) {
+    console.info(`[AI] Profile payload for ${feature}: ${size} chars`);
+  }
+}
+
 async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWebSearch = false, feature = 'chat', promptOpts = {}) {
   if (_demoMode) return demoResponseFor(feature, messages);
 
@@ -355,6 +368,7 @@ async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWe
   }
 
   const { endpoint, model } = getModel(feature);
+  logProfileSize(feature, profileText);
   const body = {
     messages: capMessages(messages),
     prompt_key: promptKey,
@@ -598,14 +612,14 @@ export async function extractMemoryUpdate(messages, existingMemory = '') {
     const cleaned = raw.replace(/\n\n---\n\n\*.+\*$/s, '').trim();
     if (!cleaned || cleaned === 'NONE' || cleaned.length < 5) return;
 
-    // Merge new bullets with existing memory, cap at 2000 chars
+    // Merge new bullets with existing memory, cap at 4000 chars
     let merged = existingMemory
       ? existingMemory.trim() + '\n' + cleaned
       : cleaned;
-    if (merged.length > 2000) {
+    if (merged.length > 4000) {
       // Keep most recent lines, trim from top
       const lines = merged.split('\n').filter(l => l.trim());
-      while (lines.join('\n').length > 2000 && lines.length > 1) lines.shift();
+      while (lines.join('\n').length > 4000 && lines.length > 1) lines.shift();
       merged = lines.join('\n');
     }
 

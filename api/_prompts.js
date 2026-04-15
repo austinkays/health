@@ -1,10 +1,20 @@
 // Server-side prompt allowlist — system prompts are constructed here,
 // NOT accepted from the client. Client sends (prompt_key, profile_text).
 
+const FREE_PROFILE_CHAR_LIMIT = 40000;
+const PREMIUM_PROFILE_CHAR_LIMIT = 100000;
+const ADMIN_PROFILE_CHAR_LIMIT = 150000;
+
 // Sanitize user-provided profile text: strip angle brackets / braces, cap length
-function sanProfile(text, limit = 12000) {
+function sanProfile(text, limit = FREE_PROFILE_CHAR_LIMIT) {
   if (!text) return '';
   return String(text).replace(/[<>{}]/g, '').slice(0, limit);
+}
+
+function getProfileCharLimit(tier) {
+  if (tier === 'admin') return ADMIN_PROFILE_CHAR_LIMIT;
+  if (tier === 'premium') return PREMIUM_PROFILE_CHAR_LIMIT;
+  return FREE_PROFILE_CHAR_LIMIT;
 }
 
 const PROMPTS = {
@@ -274,6 +284,7 @@ const PROMPT_KEYS = new Set(Object.keys(PROMPTS));
  * @param {string} [opts.providerTag] — e.g. "You are 'Claude' on this team."
  * @param {boolean} [opts.useToolsAddendum] — append data-control tool instructions
  * @param {string} [opts.extra] — extra instructions to append (sanitized, max 500 chars)
+ * @param {string} [opts.userTier] — free, premium, or admin
  * @returns {string|null} — assembled system prompt, or null if key is invalid
  */
 export function buildSystemPrompt(promptKey, profileText, opts = {}) {
@@ -303,7 +314,7 @@ export function buildSystemPrompt(promptKey, profileText, opts = {}) {
 
   // Append sanitized profile text
   if (profileText) {
-    prompt += '\n\n' + sanProfile(profileText);
+    prompt += '\n\n' + sanProfile(profileText, getProfileCharLimit(opts.userTier));
   }
 
   return prompt;

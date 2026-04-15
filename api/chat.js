@@ -198,7 +198,10 @@ export default async function handler(req, res) {
     if (!isValidPromptKey(prompt_key)) {
       return res.status(400).json({ error: 'Invalid prompt_key' });
     }
-    system = buildSystemPrompt(prompt_key, profile_text || '', prompt_opts || {});
+    system = buildSystemPrompt(prompt_key, profile_text || '', {
+      ...(prompt_opts || {}),
+      userTier: profile?.tier || 'free',
+    });
   } else if (rawSystem && profile?.tier === 'admin') {
     // Admin escape hatch: allow raw system prompt for House Consultation
     system = typeof rawSystem === 'string' ? rawSystem.slice(0, 15000) : null;

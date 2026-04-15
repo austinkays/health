@@ -374,7 +374,10 @@ export default async function handler(req, res) {
     if (!isValidPromptKey(prompt_key)) {
       return res.status(400).json({ error: 'Invalid prompt_key' });
     }
-    system = buildSystemPrompt(prompt_key, profile_text || '', prompt_opts || {});
+    system = buildSystemPrompt(prompt_key, profile_text || '', {
+      ...(prompt_opts || {}),
+      userTier,
+    });
   } else if (rawSystem && userTier === 'admin') {
     system = typeof rawSystem === 'string' ? rawSystem.slice(0, 15000) : null;
   }
