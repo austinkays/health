@@ -30,11 +30,6 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Prevent iOS Safari auto-zoom on input focus (triggers at <16px) */
-  @media screen and (max-width: 767px) {
-    input, textarea, select { font-size: 16px; }
-  }
-
   /* Smart text wrapping: headings balance line lengths, body text prefers
      sentence-boundary breaks + avoids orphan words. Fixes awkward mid-
      sentence wraps throughout the app. Falls back to normal wrap in
@@ -49,6 +44,16 @@
   * {
     box-sizing: border-box;
   }
+}
+
+/* ── Prevent iOS Safari auto-zoom on input focus ──────────────── */
+/* iOS Safari zooms the viewport when a focused input has font-size  */
+/* < 16px. This rule must live OUTSIDE any @layer block — unlayered  */
+/* CSS beats all named layers (base/components/utilities) in the CSS  */
+/* cascade, ensuring it overrides Tailwind utility classes like        */
+/* text-xs / text-sm that are declared inside @layer utilities.        */
+@media screen and (max-width: 767px) {
+  input, textarea, select { font-size: 16px !important; }
 }
 
 /* ── Theme transition ──────────────────────────── */
