@@ -1,4 +1,4 @@
-import { VITAL_TYPES, getCycleRelatedLabel } from '../constants/defaults';
+import { VITAL_TYPES, getCycleRelatedLabel } from '../constants/defaults.js';
 
 // Sanitize user-provided text to prevent prompt injection
 // Higher limit for FDA data which is system-sourced, not user-authored
@@ -134,6 +134,56 @@ function firstSentence(text, limit = 140) {
   return sentence && sentence.length < cleaned.length ? sentence + '.' : cleaned;
 }
 
+// Strip FDA label section headers ("1 INDICATIONS AND USAGE", "ADVERSE REACTIONS:",
+// etc.) before extracting a first-sentence bullet. Used for indications / dosage /
+// precautions fields where the raw FDA label starts with an all-caps section
+// heading we don't want to feed to Sage or show the user.
+// The regex requires the all-caps block to be at least 9 characters long so it
+// doesn't accidentally strip short acronyms like "MRI" or "HIV" in legitimate prose.
+function fdaBullet(text, limit = 180) {
+  if (!text) return '';
+  const raw = String(text);
+  const headerRegex = /^\s*\d*\.?\d*\s*[A-Z][A-Z &/,()-]{8,}(?::\s*|\s+)/;
+  let unheaded = raw;
+  if (headerRegex.test(raw)) {
+    // Case 1: colon-terminated header — split on first colon before any lowercase
+    const colonIdx = raw.indexOf(':');
+    if (colonIdx !== -1 && !/[a-z]/.test(raw.slice(0, colonIdx))) {
+      unheaded = raw.slice(colonIdx + 1).trim();
+    } else {
+      // Case 2: space-terminated header — find first token with lowercase
+      const tokens = raw.trim().split(/\s+/);
+      let start = 0;
+      if (/^\d/.test(tokens[0])) start++;
+      let lowerIdx = -1;
+      for (let j = start; j < tokens.length; j++) {
+        if (/[a-z]/.test(tokens[j])) { lowerIdx = j; break; }
+      }
+      if (lowerIdx !== -1) {
+        // If the first lowercase-containing token STARTS with lowercase (not Title Case),
+        // walk back up to 2 all-caps tokens to include any preceding proper-noun phrase.
+        let contentStart = lowerIdx;
+        if (/^[a-z]/.test(tokens[lowerIdx])) {
+          let walked = 0;
+          while (walked < 2 && contentStart > start && !/[a-z]/.test(tokens[contentStart - 1])) {
+            contentStart--;
+            walked++;
+          }
+        }
+        if (contentStart > start) {
+          unheaded = tokens.slice(contentStart).join(' ').trim();
+        }
+      }
+    }
+  }
+  const result = firstSentence(unheaded, limit);
+  // Add ellipsis if result was hard-truncated at the limit with no natural sentence end
+  if (result.length === limit && !result.endsWith('.')) {
+    return result.slice(0, limit - 1) + '\u2026';
+  }
+  return result;
+}
+
 function summarizeJournalEntry(entry, data) {
   let line = '- ' + entry.date;
   if (entry.mood) line += ' ' + entry.mood;
@@ -164,6 +214,10 @@ function summarizeJournalEntry(entry, data) {
 
   return line + '\n';
 }
+
+// Exported so Medications.jsx can use fdaBullet in the At a glance block, and
+// scripts/verify-condense-fda.mjs can verify condenseFDA output directly.
+export { firstSentence, fdaBullet, condenseFDA };
 
 export function buildProfile(data) {
   if (!data) return '(No health data available)';
