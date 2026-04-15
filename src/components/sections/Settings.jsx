@@ -2520,10 +2520,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               </span>
             </div>
           </button>
-          <div className="flex items-center gap-2.5 text-sm text-salve-textFaint font-montserrat">
-            <Info size={14} />
-            Auto-opens only when you change the active update notice.
-          </div>
+
         </div>
       </Card>
 
