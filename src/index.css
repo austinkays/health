@@ -30,6 +30,11 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Prevent iOS Safari auto-zoom on input focus (triggers at <16px) */
+  @media screen and (max-width: 767px) {
+    input, textarea, select { font-size: 16px; }
+  }
+
   /* Smart text wrapping: headings balance line lengths, body text prefers
      sentence-boundary breaks + avoids orphan words. Fixes awkward mid-
      sentence wraps throughout the app. Falls back to normal wrap in
