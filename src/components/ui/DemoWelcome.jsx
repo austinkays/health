@@ -9,7 +9,7 @@
 //     useTheme().setTheme (which previews only, no localStorage write), so
 //     the background and cards behind the modal update instantly. Pair is
 //     Cherry Blossom (light) vs Aurora (dark) by default, falling back to
-//     Dawnlight vs Midnight for prefers-reduced-motion users so they don't
+//     Seafoam vs Midnight for prefers-reduced-motion users so they don't
 //     get a heavy animated backdrop on first run.
 //
 //   Screen 1: "Try these 4 things"
@@ -25,7 +25,7 @@
 // Shown once per browser via localStorage key `salve:demo-welcome-seen`.
 // Dismissible from any screen via X button or backdrop tap. If the user
 // dismisses from step 0 without picking, we apply the default light theme
-// (Cherry Blossom, or Dawnlight under reduced motion) so they still get
+// (Cherry Blossom, or Seafoam under reduced motion) so they still get
 // a polished first impression instead of plain Lilac.
 //
 // Theme restoration on demo exit is handled in App.jsx: `exitDemo` calls
@@ -61,7 +61,7 @@ function detectReducedMotion() {
 function getThemePair(reducedMotion) {
   if (reducedMotion) {
     return {
-      light: { id: 'dawnlight', label: 'Soft daylight', blurb: 'Warm cream, lavender, berry' },
+      light: { id: 'seafoam', label: 'Calm coastline', blurb: 'Cool teal on soft cream' },
       dark:  { id: 'midnight',  label: 'Starlit night', blurb: 'Navy, lavender, sage, amber' },
     };
   }

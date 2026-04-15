@@ -748,7 +748,8 @@ html.theme-crystal .card-hover:hover::before {
 
 /* Soft romantic, Fraunces with soft axis, lighter weight */
 html.theme-lilac .font-playfair,
-html.theme-dawnlight .font-playfair,
+html.theme-meadow .font-playfair,
+html.theme-seafoam .font-playfair,
 html.theme-sunrise .font-playfair {
   font-family: 'Fraunces', 'Playfair Display', serif !important;
   font-variation-settings: 'SOFT' 100, 'opsz' 48;
