@@ -39,7 +39,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [reminderTime, setReminderTime] = useState('08:00');
 
   useEffect(() => {
-    if (highlightId && data.meds.some(m => m.id === highlightId)) {
+    if (highlightId && (data.meds || []).some(m => m.id === highlightId)) {
       setExpandedId(highlightId);
       setTimeout(() => document.getElementById(`record-${highlightId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
     }
@@ -155,7 +155,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const formInteractionWarnings = useMemo(() => {
     const name = form.name.trim();
     if (!name) return [];
-    const otherMeds = data.meds.filter(m => m.active !== false && m.id !== editId);
+    const otherMeds = (data.meds || []).filter(m => m.active !== false && m.id !== editId);
     if (!otherMeds.length) return [];
     const fakeMed = { name, active: true };
     const all = checkInteractions([...otherMeds, fakeMed]);
@@ -178,7 +178,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
   /* ── Bulk enrich linked meds missing FDA data ── */
   const bulkEnrichMeds = async () => {
-    const unenriched = data.meds.filter(m => m.rxcui && (!m.fda_data || !m.fda_data.spl_set_id));
+    const unenriched = (data.meds || []).filter(m => m.rxcui && (!m.fda_data || !m.fda_data.spl_set_id));
     if (unenriched.length === 0) return;
     cancelledRef.current = false;
     setEnriching(true);
@@ -200,7 +200,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
   /* ── Bulk link unlinked meds to RxNorm ── */
   const bulkLinkMeds = async () => {
-    const unlinked = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim());
+    const unlinked = (data.meds || []).filter(m => m.active !== false && !m.rxcui && m.name.trim());
     if (unlinked.length === 0) return;
     cancelledRef.current = false;
     setBulkLinking(true);
@@ -794,8 +794,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
       {/* ── Consolidated maintenance banner ── */}
       {(() => {
-        const unenrichedCount = data.meds.filter(m => m.rxcui && (!m.fda_data || !m.fda_data.spl_set_id)).length;
-        const unlinkedCount = data.meds.filter(m => m.active !== false && !m.rxcui && m.name.trim()).length;
+        const unenrichedCount = (data.meds || []).filter(m => m.rxcui && (!m.fda_data || !m.fda_data.spl_set_id)).length;
+        const unlinkedCount = (data.meds || []).filter(m => m.active !== false && !m.rxcui && m.name.trim()).length;
         const hasAnyResult = enrichResult || bulkResult;
         const hasAnyProgress = enrichProgress || bulkProgress;
         const tasks = [

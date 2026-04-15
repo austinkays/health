@@ -1,5 +1,5 @@
 import { Component } from 'react';
-import { AlertTriangle, RotateCcw, Home } from 'lucide-react';
+import { AlertTriangle, RotateCcw, Home, Bug } from 'lucide-react';
 import Card from './Card';
 import Button from './Button';
 import { captureError } from '../../services/sentry';
@@ -14,6 +14,8 @@ import { captureError } from '../../services/sentry';
  *     a previously-crashed view (otherwise the error persists across every
  *     subsequent navigation since the boundary itself stays mounted).
  *   - onReset: optional callback fired when user taps "Go home".
+ *   - onReport: optional callback fired when user taps "Report this bug".
+ *               Called with { error, resetKey }.
  */
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -49,6 +51,15 @@ export default class ErrorBoundary extends Component {
     this.props.onReset?.();
   };
 
+  handleReport = () => {
+    const { error } = this.state;
+    this.setState({ hasError: false, error: null });
+    this.props.onReport?.({
+      error: error?.message || 'Unknown error',
+      resetKey: this.props.resetKey,
+    });
+  };
+
   render() {
     if (this.state.hasError) {
       return (
@@ -74,6 +85,15 @@ export default class ErrorBoundary extends Component {
               >
                 <Home size={13} /> Go home
               </Button>
+              {this.props.onReport && (
+                <Button
+                  variant="ghost"
+                  onClick={this.handleReport}
+                  className="!text-xs"
+                >
+                  <Bug size={13} /> Report this bug
+                </Button>
+              )}
             </div>
           </Card>
         </div>

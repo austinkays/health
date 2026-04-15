@@ -25,14 +25,17 @@ const STATUS_META = {
   wont_fix:    { label: 'Noted',       color: C.textFaint },
 };
 
-export default function Feedback({ data, addItem, removeItem }) {
-  const [type, setType] = useState('feedback');
-  const [message, setMessage] = useState('');
+export default function Feedback({ data, addItem, removeItem, prefill, onPrefillConsumed }) {
+  const [type, setType] = useState(prefill?.type || 'feedback');
+  const [message, setMessage] = useState(prefill?.message || '');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
   const del = useConfirmDelete();
+
+  // Consume prefill once on mount so it doesn't re-apply on re-navigation
+  useState(() => { if (prefill) onPrefillConsumed?.(); });
 
   const items = data.feedback || [];
 

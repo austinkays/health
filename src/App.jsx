@@ -182,6 +182,7 @@ function AppContent() {
   const [navHistory, setNavHistory] = useState([]);
   const [sageOpen, setSageOpen] = useState(false);
   const [sageIntroOpen, setSageIntroOpen] = useState(false);
+  const [feedbackPrefill, setFeedbackPrefill] = useState(null);
   const [showWhatsNew, setShowWhatsNew] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   // Demo-mode walkthrough modal. Gated on !hasSeenDemoWelcome() so it only
@@ -629,7 +630,7 @@ function AppContent() {
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;
       case 'legal':      return <Legal onNav={onNav} />;
-      case 'feedback':   return <Feedback {...shared} />;
+      case 'feedback':   return <Feedback {...shared} prefill={feedbackPrefill} onPrefillConsumed={() => setFeedbackPrefill(null)} />;
       case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
       case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} onSageIntro={() => setSageIntroOpen(true)} />;
       case 'admin':      return <Admin data={data} onNav={onNav} />;
@@ -658,7 +659,10 @@ function AppContent() {
         <div className="max-w-[480px] mx-auto pb-24 relative md:max-w-[820px] lg:max-w-[1060px] xl:max-w-[1280px]">
           <Header tab={tab} name={data.settings.name} onBack={onBack} onSearch={openSearch} onSage={openSage} topBannerActive={needRefresh || demoMode || isOffline} />
           <main className="px-fluid-page">
-            <ErrorBoundary resetKey={tab} onReset={() => { setNavHistory([]); onNav('dash'); }}>
+            <ErrorBoundary resetKey={tab} onReset={() => { setNavHistory([]); onNav('dash'); }} onReport={({ error, resetKey }) => {
+              setFeedbackPrefill({ type: 'bug', message: `[Auto] Crash in "${resetKey}" section: ${error}` });
+              onNav('feedback');
+            }}>
               <Suspense fallback={<SkeletonList count={3} />}>
                 {notFound ? (
                   <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
