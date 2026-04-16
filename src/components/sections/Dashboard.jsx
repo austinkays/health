@@ -13,6 +13,7 @@ import {
 import { readCachedBarometric, PRESSURE_SENSITIVE } from '../../services/barometric';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
+import BarometricCard from '../ui/BarometricCard';
 import Button from '../ui/Button';
 import Motif, { Divider } from '../ui/Motif';
 import { SageIntroButton, shouldShowIntro } from '../ui/SageIntro';
@@ -1026,8 +1027,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     const hasAITeaser = aiConsent && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0;
     const hasAIInsight = aiConsent && (insight || insightLoading);
     const hasDiscover = displayedDiscover.length > 0;
-    return hasAlerts || hasPatterns || hasAITeaser || hasAIInsight || hasDiscover;
-  }, [alerts, alertsDismissed, topInsights.length, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length]);
+    const hasBaro = !!data.settings.location;
+    return hasAlerts || hasPatterns || hasAITeaser || hasAIInsight || hasDiscover || hasBaro;
+  }, [alerts, alertsDismissed, topInsights.length, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length, data.settings.location]);
 
   const dismissResource = useCallback((resourceId) => {
     setSeenResources(prev => {
@@ -1123,7 +1125,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       </section>
 
       {/* ── Today at a Glance chips ────────────── */}
-      {(todayChips.length > 0 || baroChip) && (
+      {todayChips.length > 0 && (
         <section aria-label="Today at a glance" className="dash-stagger dash-stagger-2 mb-4 -mt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {todayChips.map(chip => {
@@ -1141,22 +1143,6 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </button>
               );
             })}
-            {baroChip && (() => {
-              const baroColor = baroChip.trend === 'falling' ? C.rose : baroChip.trend === 'rising' ? C.amber : C.sage;
-              const BaroIcon = baroChip.trend === 'falling' ? TrendingDown : baroChip.trend === 'rising' ? TrendingUp : Minus;
-              return (
-                <button
-                  onClick={() => onNav('vitals')}
-                  aria-label={`Barometric pressure ${baroChip.current} hPa, ${baroChip.trend}. View in Vitals.`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
-                  style={{ background: `${baroColor}${themeId === 'cherry' ? '40' : '12'}`, outline: `1px solid ${baroColor}${themeId === 'cherry' ? '70' : '28'}` }}
-                >
-                  <Wind size={11} style={{ color: baroColor }} aria-hidden="true" />
-                  <span className="text-[11.5px] font-medium" style={{ color: baroColor }}>{baroChip.current} hPa</span>
-                  <BaroIcon size={10} style={{ color: baroColor, opacity: 0.8 }} aria-hidden="true" />
-                </button>
-              );
-            })()}
           </div>
         </section>
       )}
@@ -1430,6 +1416,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </div>
               </Card>
             </section>
+          )}
+
+          {/* Barometric pressure card */}
+          {data.settings.location && (
+            <Reveal as="section" aria-label="Barometric pressure" className="dash-stagger dash-stagger-3">
+              <BarometricCard
+                locationStr={data.settings.location}
+                onLogPressure={() => onNav('vitals')}
+                onNav={onNav}
+              />
+            </Reveal>
           )}
 
           {/* Health patterns */}
