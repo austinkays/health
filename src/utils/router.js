@@ -49,7 +49,7 @@ const TAB_TO_PATH = {
   legal: '/legal',
   insights: '/insights',
   sleep: '/sleep',
-  import: '/import',
+  import: '/connections',
 };
 
 // Reverse map: path → tab

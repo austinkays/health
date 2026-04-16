@@ -854,6 +854,12 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <LogOut size={12} /> {demoMode ? 'Exit demo' : 'Sign out'}
           </button>
         </div>
+        {/* Quick profile links */}
+        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-salve-border/50">
+          <button onClick={() => onNav('aboutme')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
+          <button onClick={() => onNav('pharmacies')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
+          <button onClick={() => onNav('insurance')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
+        </div>
       </Card>
 
       {/* ══════════════ 2. Appearance ══════════════ */}
@@ -1068,8 +1074,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         </Card>
       )}
 
-      {/* ══════════════ 4. Premium ══════════════ */}
-      <SectionTitle>Premium</SectionTitle>
+      {/* ══════════════ 4. Premium (merged into Account) ══════════════ */}
       <Card>
         <div className="flex items-center gap-2.5 mb-2">
           <Crown size={16} className={userTier === 'admin' ? 'text-salve-amber' : userTier === 'premium' ? 'text-salve-amber' : 'text-salve-textFaint'} />
@@ -1267,15 +1272,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       </div>
       {/* ── Right Column ── */}
       <div>
-      {/* ══════════════ 5. Profile ══════════════ */}
-      <SectionTitle>Profile</SectionTitle>
-      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 mb-1">
-        <button onClick={() => onNav('aboutme')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
-        <button onClick={() => onNav('pharmacies')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
-        <button onClick={() => onNav('insurance')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
-      </div>
-
-      {/* ══════════════ 6. Connected Devices ══════════════ */}
+      {/* ══════════════ 5. Connected Devices ══════════════ */}
       <SectionTitle>Connected Devices</SectionTitle>
 
       <div className="space-y-2 mb-4">
@@ -1768,7 +1765,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
       </div>
 
-      {/* ══════════════ 6b. Import Data link ══════════════ */}
+      {/* ══════════════ 6b. Connections link ══════════════ */}
       <Card>
         <button
           onClick={() => onNav('import')}
@@ -1779,8 +1776,8 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <Upload size={16} className="text-salve-lav" />
             </div>
             <div className="text-left">
-              <span className="text-[15px] text-salve-text font-medium block">Import Data</span>
-              <span className="text-[12px] text-salve-textFaint">Apple Health, MyChart, and 15+ apps</span>
+              <span className="text-[15px] text-salve-text font-medium block">Connections</span>
+              <span className="text-[12px] text-salve-textFaint">Claude Sync, Apple Health, MyChart, and 15+ apps</span>
             </div>
           </div>
           <ChevronDown size={14} className="text-salve-textFaint -rotate-90" />
