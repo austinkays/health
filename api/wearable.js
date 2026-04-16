@@ -51,6 +51,66 @@ function basicAuthHeader(clientId, clientSecret) {
   return 'Basic ' + Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 }
 
+// ── Supabase service-role helpers for wearable_connections ─────────────
+// Tokens live in Supabase so webhook handlers (which run without a user
+// session) can act on the user's behalf. Writes use service-role REST
+// calls to bypass RLS — the table has no INSERT/UPDATE policies for
+// anon/authed roles, so this path is the only way rows get written.
+
+function supabaseConfig() {
+  return {
+    url: process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  };
+}
+
+async function upsertWearableConnection(row) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) throw new Error('Supabase service role not configured');
+  const res = await fetch(`${url}/rest/v1/wearable_connections?on_conflict=user_id,provider`, {
+    method: 'POST',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=representation',
+    },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`wearable_connections upsert failed (${res.status}): ${err}`);
+  }
+  const rows = await res.json();
+  return rows[0];
+}
+
+async function getWearableConnection(userId, provider) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return null;
+  const res = await fetch(
+    `${url}/rest/v1/wearable_connections?user_id=eq.${encodeURIComponent(userId)}&provider=eq.${encodeURIComponent(provider)}&limit=1`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
+async function deleteWearableConnection(userId, provider) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return;
+  await fetch(
+    `${url}/rest/v1/wearable_connections?user_id=eq.${encodeURIComponent(userId)}&provider=eq.${encodeURIComponent(provider)}`,
+    {
+      method: 'DELETE',
+      headers: {
+        apikey: key, Authorization: `Bearer ${key}`,
+        Prefer: 'return=minimal',
+      },
+    }
+  );
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ── Oura ────────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════
@@ -457,12 +517,153 @@ async function fitbitHandle(action, req, res, userId) {
     }
     const tokens = await tokenRes.json();
     logUsage(userId, 'fitbit');
+
+    // Persist tokens in Supabase so the webhook handler can act on the
+    // user's behalf when Fitbit pushes updates. Falls through to the
+    // client return below even if Supabase write fails — the localStorage
+    // flow still works for manual sync in that case, so connect isn't
+    // fully blocked by a transient DB hiccup. Phase 4 will make Supabase
+    // the authoritative source and drop localStorage.
+    const expiresInRaw = Number(tokens.expires_in);
+    const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? expiresInRaw : 28800;
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    let conn = null;
+    try {
+      conn = await upsertWearableConnection({
+        user_id: userId,
+        provider: 'fitbit',
+        provider_user_id: tokens.user_id,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        expires_at: expiresAt,
+        scope: tokens.scope || null,
+        status: 'connected',
+        subscription_ids: [],
+        last_error: null,
+      });
+    } catch (e) {
+      console.error('[fitbit:token] wearable_connections upsert failed', e);
+    }
+
+    // Register 3 Fitbit webhook subscriptions (activities, sleep, body)
+    // using the connection row id as the subscriptionId path param. We
+    // do this best-effort — any subscription that fails gets logged and
+    // the rest proceed. If the row write above failed, skip subs entirely.
+    if (conn?.id) {
+      const collections = ['activities', 'sleep', 'body'];
+      const registered = [];
+      for (const collection of collections) {
+        try {
+          const subRes = await fetchWithTimeout(
+            `${FITBIT_API_BASE}/1/user/-/${collection}/apiSubscriptions/${conn.id}.json`,
+            {
+              method: 'POST',
+              headers: { Authorization: `Bearer ${tokens.access_token}` },
+            }
+          );
+          if (subRes.ok) {
+            registered.push({ collection, id: conn.id });
+          } else {
+            const body = await subRes.text().catch(() => '');
+            console.warn(`[fitbit:subscribe] ${collection} failed (${subRes.status}):`, body);
+          }
+        } catch (e) {
+          console.warn(`[fitbit:subscribe] ${collection} threw`, e);
+        }
+      }
+      if (registered.length > 0) {
+        try {
+          await upsertWearableConnection({
+            user_id: userId,
+            provider: 'fitbit',
+            provider_user_id: tokens.user_id,
+            access_token: tokens.access_token,
+            refresh_token: tokens.refresh_token,
+            expires_at: expiresAt,
+            scope: tokens.scope || null,
+            status: 'connected',
+            subscription_ids: registered,
+            last_error: null,
+          });
+        } catch (e) {
+          console.warn('[fitbit:subscribe] sub-id persist failed', e);
+        }
+      }
+    }
+
+    // Still return tokens to the client — the browser needs them for
+    // its own /api/wearable?action=data calls until Phase 4 moves sync
+    // server-side. Server write above is the canonical copy; client
+    // mirror in localStorage is temporary.
     return res.json({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_in: tokens.expires_in,
       user_id: tokens.user_id,
     });
+  }
+
+  if (action === 'status') {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'GET required' });
+    const conn = await getWearableConnection(userId, 'fitbit');
+    if (!conn) return res.json({ connected: false });
+    return res.json({
+      connected: conn.status === 'connected',
+      status: conn.status,
+      last_webhook_at: conn.last_webhook_at,
+      last_sync_at: conn.last_sync_at,
+      expires_at: conn.expires_at,
+      subscription_count: Array.isArray(conn.subscription_ids) ? conn.subscription_ids.length : 0,
+      last_error: conn.last_error,
+    });
+  }
+
+  if (action === 'disconnect') {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+    const conn = await getWearableConnection(userId, 'fitbit');
+    if (!conn) return res.json({ ok: true, already_disconnected: true });
+
+    // Delete each subscription from Fitbit's side. Best-effort — a
+    // Fitbit-side error shouldn't block the local cleanup, otherwise
+    // users get permanently stuck. Log failures for operator visibility.
+    const subs = Array.isArray(conn.subscription_ids) ? conn.subscription_ids : [];
+    for (const s of subs) {
+      if (!s?.collection || !s?.id) continue;
+      try {
+        const delRes = await fetchWithTimeout(
+          `${FITBIT_API_BASE}/1/user/-/${s.collection}/apiSubscriptions/${s.id}.json`,
+          {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${conn.access_token}` },
+          }
+        );
+        if (!delRes.ok && delRes.status !== 404) {
+          const body = await delRes.text().catch(() => '');
+          console.warn(`[fitbit:disconnect] sub delete ${s.collection} (${delRes.status}):`, body);
+        }
+      } catch (e) {
+        console.warn(`[fitbit:disconnect] sub delete ${s.collection} threw`, e);
+      }
+    }
+
+    // Revoke the access token so Fitbit invalidates it server-side.
+    // Also best-effort — if it fails the token will still expire on
+    // its own (8h), and the row is already gone from our DB.
+    try {
+      await fetchWithTimeout(`${FITBIT_API_BASE}/oauth2/revoke`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: basicAuthHeader(clientId, clientSecret),
+        },
+        body: new URLSearchParams({ token: conn.access_token }),
+      });
+    } catch (e) {
+      console.warn('[fitbit:disconnect] revoke threw', e);
+    }
+
+    await deleteWearableConnection(userId, 'fitbit');
+    return res.json({ ok: true });
   }
 
   if (action === 'refresh') {

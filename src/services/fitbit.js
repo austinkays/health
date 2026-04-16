@@ -38,6 +38,29 @@ export function clearFitbitTokens() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+// Full disconnect: tells the server to delete Fitbit webhook subscriptions,
+// revoke the access token, and remove the wearable_connections row. Then
+// clears the localStorage mirror. Use this from the UI Disconnect button.
+// `clearFitbitTokens()` by itself only clears the client mirror — use that
+// from sign-out paths where the user is already gone and we shouldn't
+// make authed server calls.
+export async function disconnectFitbit() {
+  const token = await getAuthToken();
+  if (token) {
+    try {
+      await fetch('/api/wearable?provider=fitbit&action=disconnect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // Server-side cleanup is best-effort — even if it fails, clear
+      // the local mirror so the UI reflects disconnected state. Server
+      // row will orphan until next reconnect overwrites it.
+    }
+  }
+  clearFitbitTokens();
+}
+
 export function isFitbitConnected() {
   return !!getFitbitTokens()?.access_token;
 }

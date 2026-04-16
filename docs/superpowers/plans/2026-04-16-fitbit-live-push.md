@@ -132,7 +132,7 @@ Oura is out of scope for this plan — flagged here so the table design accommod
 - [CLAUDE.md](CLAUDE.md) — update the Fitbit section of the architecture table, env-var table (`FITBIT_SUBSCRIBER_ID` added — the header value Fitbit sends back with notifications), and migration list
 
 ### Env vars (new)
-- `FITBIT_SUBSCRIBER_ID` — a stable identifier we send as `X-Fitbit-Subscriber-Id` on subscription registration. Must match the Subscriber ID configured in the Fitbit dev dashboard. Can be any stable string; pick something like `salve-prod-01`.
+- **None required for Phase 2.** The earlier plan mentioned `FITBIT_SUBSCRIBER_ID` but it turned out not to be needed — Fitbit's subscription POST uses the default subscriber endpoint when no `X-Fitbit-Subscriber-Id` header is sent, which is correct since we have exactly one subscriber endpoint configured. Add this header + env var later if we ever configure multiple subscriber endpoints.
 
 ### Fitbit dev dashboard (manual, one-time)
 1. Add subscriber at `dev.fitbit.com → your app → Subscriber Endpoints`.

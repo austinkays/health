@@ -6,7 +6,7 @@ import { OuraIcon } from '../ui/OuraIcon';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
-import { isFitbitConnected, getFitbitAuthUrl, exchangeFitbitCode, clearFitbitTokens, syncFitbitData, FITBIT_ENABLED } from '../../services/fitbit';
+import { isFitbitConnected, getFitbitAuthUrl, exchangeFitbitCode, disconnectFitbit as disconnectFitbitServer, syncFitbitData, FITBIT_ENABLED } from '../../services/fitbit';
 import { isWhoopConnected, getWhoopAuthUrl, exchangeWhoopCode, clearWhoopTokens, syncWhoopData, WHOOP_ENABLED } from '../../services/whoop';
 import { getHiddenSources, hideSource } from '../../utils/hiddenSources';
 
@@ -277,11 +277,11 @@ export default function Wearables({
     }
   }
 
-  function disconnectFitbit() {
-    clearFitbitTokens();
+  async function disconnectFitbit() {
     setFitbitConnected(false);
     setFitbitSuccess(null);
     setFitbitError(null);
+    await disconnectFitbitServer();
   }
 
   async function handleFitbitSync() {
