@@ -16,12 +16,14 @@ const SOURCE_FILTERS = [
 const SOURCE_ICONS = {
   'NIH News in Health': Globe,
   'FDA Drug Safety': Shield,
+  'MedlinePlus': Globe,
   'Sage': Leaf,
 };
 
 const SOURCE_COLORS = {
   'NIH News in Health': C.lav,
   'FDA Drug Safety': C.amber,
+  'MedlinePlus': C.sage,
   'Sage': C.sage,
 };
 
