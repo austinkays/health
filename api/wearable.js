@@ -545,30 +545,34 @@ async function fitbitHandle(action, req, res, userId) {
       console.error('[fitbit:token] wearable_connections upsert failed', e);
     }
 
-    // Register 3 Fitbit webhook subscriptions (activities, sleep, body)
-    // using the connection row id as the subscriptionId path param. We
-    // do this best-effort — any subscription that fails gets logged and
-    // the rest proceed. If the row write above failed, skip subs entirely.
+    // Register 3 Fitbit webhook subscriptions (activities, sleep, body).
+    // Subscription IDs must be unique across ALL of a user's subscriptions
+    // (not just per-collection), so we suffix the connection uuid with
+    // the collection name rather than reusing the bare uuid. Best-effort
+    // on individual failures — log the response body so Vercel runtime
+    // logs show the exact Fitbit error if a subscription is rejected.
     if (conn?.id) {
       const collections = ['activities', 'sleep', 'body'];
       const registered = [];
       for (const collection of collections) {
+        const subId = `${conn.id}-${collection}`;
         try {
           const subRes = await fetchWithTimeout(
-            `${FITBIT_API_BASE}/1/user/-/${collection}/apiSubscriptions/${conn.id}.json`,
+            `${FITBIT_API_BASE}/1/user/-/${collection}/apiSubscriptions/${subId}.json`,
             {
               method: 'POST',
               headers: { Authorization: `Bearer ${tokens.access_token}` },
             }
           );
           if (subRes.ok) {
-            registered.push({ collection, id: conn.id });
+            registered.push({ collection, id: subId });
+            console.log(`[fitbit:subscribe] ${collection} registered (${subRes.status}) id=${subId}`);
           } else {
             const body = await subRes.text().catch(() => '');
-            console.warn(`[fitbit:subscribe] ${collection} failed (${subRes.status}):`, body);
+            console.warn(`[fitbit:subscribe] ${collection} failed (${subRes.status}) id=${subId}:`, body);
           }
         } catch (e) {
-          console.warn(`[fitbit:subscribe] ${collection} threw`, e);
+          console.warn(`[fitbit:subscribe] ${collection} threw id=${subId}`, e);
         }
       }
       if (registered.length > 0) {
