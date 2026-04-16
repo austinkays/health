@@ -30,6 +30,11 @@ const FEEDS = [
     source: 'FDA Drug Safety',
     sourceShort: 'FDA',
   },
+  {
+    url: 'https://medlineplus.gov/feeds/topic.xml',
+    source: 'MedlinePlus',
+    sourceShort: 'MedlinePlus',
+  },
 ];
 
 // ── Simple XML tag extractor (no dependency needed for RSS) ──
@@ -60,10 +65,20 @@ function parseDate(dateStr) {
   }
 }
 
+// Government .gov sites commonly block requests without a User-Agent header.
+// Send a recognizable UA so WAFs don't treat us as a headless bot.
+const RSS_FETCH_HEADERS = {
+  'User-Agent': 'SalveHealthApp/1.0 (+https://salve.today)',
+  'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+};
+
 async function fetchFeed(feed) {
   try {
-    const res = await fetchWithTimeout(feed.url);
-    if (!res.ok) return [];
+    const res = await fetchWithTimeout(feed.url, { headers: RSS_FETCH_HEADERS });
+    if (!res.ok) {
+      console.warn(`[Discover] ${feed.sourceShort} returned ${res.status}`);
+      return [];
+    }
     const xml = await res.text();
     const items = extractAllItems(xml);
 
@@ -111,7 +126,11 @@ async function fetchAllFeeds() {
     .flatMap(r => r.value)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-  feedCache = { articles, expiry: now + CACHE_TTL };
+  // Only cache non-empty results — caching [] for 24h poisons the cache
+  // and prevents retries after a transient upstream failure.
+  if (articles.length > 0) {
+    feedCache = { articles, expiry: now + CACHE_TTL };
+  }
   return articles;
 }
 
