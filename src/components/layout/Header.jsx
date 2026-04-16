@@ -95,6 +95,7 @@ const TAB_LABELS = {
   hub_plans: 'Plans',
   hub_devices: 'Devices',
   oura: 'Oura Ring',
+  fitbit: 'Fitbit',
   apple_health: 'Apple Health',
   summary: 'Health Summary',
   legal: 'Legal',

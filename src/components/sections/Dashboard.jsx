@@ -271,6 +271,7 @@ const STARRED_META = {
   todos:         { label: "To-Do's",      icon: CheckSquare },
   surgical:      { label: 'Surgery',      icon: PlaneTakeoff },
   oura:          { label: 'Oura',         icon: OuraIcon },
+  fitbit:        { label: 'Fitbit',      icon: Watch },
   apple_health:  { label: 'Apple Health', icon: Apple },
   meds:          { label: 'Meds',         icon: Pill },
   journal:       { label: 'Journal',      icon: BookOpen },

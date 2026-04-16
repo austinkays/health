@@ -3,7 +3,7 @@ import {
   ChevronRight, ClipboardList, User, UserCircle, Activity, Shield, CheckSquare, Link2, Star,
   Stethoscope, ShieldAlert, Calendar, FlaskConical, Syringe, ShieldCheck, Dna,
   Building2, BadgeDollarSign, Scale, Heart, Moon, TrendingUp, AlertTriangle,
-  AlertOctagon, PlaneTakeoff, Apple, Thermometer,
+  AlertOctagon, PlaneTakeoff, Apple, Thermometer, Watch,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
@@ -48,7 +48,7 @@ export const HUBS = {
     label: 'Devices',
     description: 'Connected wearables',
     icon: Link2,
-    sections: ['oura', 'apple_health'],
+    sections: ['oura', 'fitbit', 'apple_health'],
   },
 };
 
@@ -77,6 +77,7 @@ const SECTIONS = {
   todos:        { label: "To-Do's",       icon: CheckSquare },
   surgical:     { label: 'Surgery Plan',  icon: PlaneTakeoff },
   oura:         { label: 'Oura Ring',     icon: OuraIcon },
+  fitbit:       { label: 'Fitbit',        icon: Watch },
   apple_health: { label: 'Apple Health',  icon: Apple },
 };
 

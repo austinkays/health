@@ -30,6 +30,7 @@ const TAB_TO_PATH = {
   cycle: '/cycle',
   activities: '/activities',
   oura: '/oura',
+  fitbit: '/fitbit',
   genetics: '/genetics',
   todos: '/todos',
   summary: '/summary',

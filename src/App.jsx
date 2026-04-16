@@ -94,6 +94,7 @@ const Activities = lazyWithRetry(() => import('./components/sections/Activities'
 const Sleep = lazyWithRetry(() => import('./components/sections/Sleep'));
 const Hub = lazyWithRetry(() => import('./components/sections/Hub'));
 const OuraRing = lazyWithRetry(() => import('./components/sections/OuraRing'));
+const FitbitPage = lazyWithRetry(() => import('./components/sections/FitbitPage'));
 const AppleHealthPage = lazyWithRetry(() => import('./components/sections/AppleHealthPage'));
 const Legal = lazyWithRetry(() => import('./components/sections/Legal'));
 const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
@@ -629,6 +630,7 @@ function AppContent() {
       case 'hub_plans':    return <Hub hubId="plans" data={data} onNav={onNav} />;
       case 'hub_devices':  return <Hub hubId="devices" data={data} onNav={onNav} />;
       case 'oura':         return <OuraRing data={data} addItem={addItem} onNav={onNav} />;
+      case 'fitbit':       return <FitbitPage data={data} addItem={addItem} onNav={onNav} />;
       case 'apple_health': return <AppleHealthPage data={data} onNav={onNav} />;
       case 'summary':    return <HealthSummary data={data} onNav={onNav} />;
       case 'search':     return <Search data={data} onNav={onNav} />;

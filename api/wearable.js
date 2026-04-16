@@ -532,6 +532,11 @@ async function fitbitHandle(action, req, res, userId) {
       '/1/user/-/body/',
       '/1/user/-/profile.json',
       '/1/user/-/devices.json',
+      '/1/user/-/spo2/',
+      '/1/user/-/br/',
+      '/1/user/-/temp/',
+      '/1/user/-/hrv/',
+      '/1/user/-/cardioscore/',
     ];
     const ok = allowedPrefixes.some(p => path.startsWith(p));
     if (!ok) return res.status(400).json({ error: 'Invalid path' });

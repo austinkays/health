@@ -491,9 +491,9 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     setFitbitError(null);
     setFitbitSuccess(null);
     try {
-      const { added } = await syncFitbitData(data.vitals || [], addItem, 30);
+      const { added } = await syncFitbitData(data.vitals || [], addItem, 30, data.activities || []);
       setFitbitSuccess(added > 0
-        ? `Imported ${added} new vital${added !== 1 ? 's' : ''} from Fitbit.`
+        ? `Imported ${added} new record${added !== 1 ? 's' : ''} from Fitbit.`
         : 'Already up to date — no new data.');
       reloadData?.();
     } catch (e) {
@@ -1641,7 +1641,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                 <div className="text-left">
                   <span className="text-ui-lg text-salve-text font-medium block">Fitbit</span>
                   <span className="text-ui-xs text-salve-textFaint">
-                    {fitbitConnected ? 'Connected · sleep, HR, steps, weight' : 'Sleep, resting HR, steps, weight'}
+                    {fitbitConnected ? 'Connected · sleep, HR, HRV, steps, SpO2, workouts' : 'Sleep, HR, HRV, steps, SpO2, workouts, temperature'}
                   </span>
                 </div>
               </div>
@@ -1653,26 +1653,34 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             {expandedSource === 'fitbit' && (
               <div className="mt-3 pt-3 border-t border-salve-border/50">
                 {fitbitConnected ? (
-                  <div className="flex gap-2">
+                  <div className="space-y-2">
                     <button
-                      onClick={handleFitbitSync}
-                      disabled={fitbitSyncing || demoMode}
-                      className="flex-1 py-2 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={() => onNav('fitbit')}
+                      className="w-full py-2 rounded-lg bg-salve-lav/10 border border-salve-lav/30 text-salve-lav text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-lav/20 transition-colors cursor-pointer"
                     >
-                      {fitbitSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-                      {fitbitSyncing ? 'Syncing…' : 'Sync last 30 days'}
+                      View Fitbit data →
                     </button>
-                    <button
-                      onClick={disconnectFitbit}
-                      className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
-                    >
-                      <Unlink size={12} /> Disconnect
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleFitbitSync}
+                        disabled={fitbitSyncing || demoMode}
+                        className="flex-1 py-2 rounded-lg bg-salve-sage/15 border border-salve-sage/30 text-salve-sage text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-sage/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {fitbitSyncing ? <Loader size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                        {fitbitSyncing ? 'Syncing…' : 'Sync last 30 days'}
+                      </button>
+                      <button
+                        onClick={disconnectFitbit}
+                        className="py-2 px-3 rounded-lg border border-salve-border text-salve-textFaint text-xs font-montserrat flex items-center gap-1.5 hover:border-salve-rose/40 hover:text-salve-rose transition-colors cursor-pointer"
+                      >
+                        <Unlink size={12} /> Disconnect
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <>
                     <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
-                      Connect your Fitbit to import sleep duration, resting heart rate, daily steps, and weight. Works with any Fitbit tracker or watch.
+                      Connect your Fitbit to import sleep, heart rate, HRV, steps, SpO2, breathing rate, skin temperature, workouts, Active Zone Minutes, and weight. Works with any Fitbit tracker or watch.
                     </p>
                     <button
                       onClick={connectFitbit}
