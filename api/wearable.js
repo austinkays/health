@@ -939,6 +939,98 @@ async function fitbitWebhookHandle(req, res) {
   return res.status(405).end();
 }
 
+// ── Oura Webhook ─────────────────────────────────────────────────────
+// Oura performs a synchronous reachability check during create-subscription:
+// it issues a GET to the callback URL with a verification challenge in
+// the query string, and rejects subscription creation unless we respond
+// 200 with a body that echoes the challenge.
+//
+// Once the subscription is active, Oura POSTs notifications when user
+// data changes. Phase 3 of the live-push migration wires the POST
+// branch up to fetch the actual record from Oura and upsert into
+// vitals/activities. For now (Phase 1) the POST branch logs and 204s
+// so we can observe what Oura actually sends and confirm subscriptions
+// are firing end-to-end before writing the ingest path.
+
+async function markOuraSubscriptionActive(verificationToken) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return;
+  await fetch(
+    `${url}/rest/v1/oura_app_subscriptions?verification_token=eq.${encodeURIComponent(verificationToken)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: key, Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ status: 'active', last_error: null }),
+    }
+  ).catch(() => { /* best-effort */ });
+}
+
+async function touchOuraSubscriptionWebhook(subscriptionId) {
+  // No-op for now — wearable_connections.last_webhook_at is updated
+  // when Phase 3 ingests data per-user. Tracking last-fired on the
+  // app-level subscription row would also be useful; deferred until
+  // the renewal path needs it.
+  return subscriptionId;
+}
+
+async function ouraWebhookHandle(req, res) {
+  // ── Verification challenge ────────────────────────────────────────
+  // Oura GETs the callback URL during create-subscription with the
+  // verification_token we provided in the create payload. We must
+  // respond 200 to confirm. Some webhook providers also expect us to
+  // echo a `challenge` value in the response body — Oura's exact
+  // shape isn't fully documented in the public API surface, so we
+  // log everything on the first hit and respond defensively:
+  // - 200 status (the bare minimum Oura requires per the create-subs error)
+  // - JSON body that includes any `challenge` query param verbatim,
+  //   plus the `verification_token` echoed back.
+  if (req.method === 'GET') {
+    const vt = req.query.verification_token;
+    const challenge = req.query.challenge;
+    console.log('[oura:webhook:verify] query=', JSON.stringify(req.query), 'headers=', JSON.stringify({
+      'user-agent': req.headers['user-agent'],
+      'content-type': req.headers['content-type'],
+    }));
+
+    if (vt) {
+      // Mark the matching subscription active. Best-effort — even if
+      // this fails the verification still passes; we just won't have
+      // the local status flipped. Renewal cron / next bootstrap will
+      // reconcile.
+      await markOuraSubscriptionActive(vt);
+    }
+
+    // Respond with 200 and a body that covers common echo patterns.
+    // If Oura's exact format turns out to be different, the runtime
+    // log above will show the request shape and we adapt.
+    return res.status(200).json({
+      verification_token: vt || null,
+      challenge: challenge || null,
+    });
+  }
+
+  // ── Notification (Phase 1: log only) ──────────────────────────────
+  if (req.method === 'POST') {
+    // Respond 204 fast so we never bump up against Oura's webhook
+    // timeout. Heavy work (when added in Phase 3) continues
+    // post-response within the function's maxDuration window.
+    let bodySummary = '';
+    try {
+      const body = req.body;
+      bodySummary = typeof body === 'string'
+        ? body.slice(0, 500)
+        : JSON.stringify(body).slice(0, 500);
+    } catch { bodySummary = '<unparseable>'; }
+    console.log('[oura:webhook] received POST:', bodySummary);
+    return res.status(204).end();
+  }
+
+  return res.status(405).end();
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ── Whoop ───────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════
@@ -1076,6 +1168,11 @@ export default async function handler(req, res) {
   // ── Fitbit webhook (no user auth — called by Fitbit's servers) ──
   if (provider === 'fitbit' && action === 'webhook') {
     return fitbitWebhookHandle(req, res);
+  }
+
+  // ── Oura webhook (no user auth — called by Oura's servers) ──
+  if (provider === 'oura' && action === 'webhook') {
+    return ouraWebhookHandle(req, res);
   }
 
   const handle = provider && PROVIDERS[provider];
