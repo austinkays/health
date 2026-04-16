@@ -112,7 +112,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   /* ── Hidden mode — auto-log still runs via useEffect above ── */
   if (displayMode === 'hidden') {
     return (
-      <div className="mb-3 flex items-center gap-1.5 px-0.5">
+      <div className="flex items-center gap-1.5 px-0.5 -mt-1 mb-1" style={{ height: 0, overflow: 'visible', position: 'relative', top: '-6px' }}>
         <Wind size={11} aria-hidden="true" style={{ color: C.textFaint, opacity: 0.35 }} />
         <span className="text-[11px] font-montserrat" style={{ color: C.textFaint, opacity: 0.45 }}>
           Barometric hidden
