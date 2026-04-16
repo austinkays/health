@@ -49,7 +49,9 @@ health/
 │       └── visual-regression.yml # CI: Playwright visual regression tests on PR
 ├── api/
 │   ├── _prompts.js               # Server-side prompt allowlist: PROMPTS object (19 prompt keys), buildSystemPrompt(key, profileText, opts), isValidPromptKey(), sanProfile() sanitizer, TOOLS_ADDENDUM constant — clients send prompt_key not raw system prompts
-│   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit) + usage logging (api_usage table)
+│   ├── _auth.js                  # Shared: verifyAuth(req) verifies Supabase Bearer tokens; returns user id or null. Used by discover / drug / provider / terra / wearable (chat.js + gemini.js still inline — their auth is tangled with tier + rate-limit checks)
+│   ├── _fetch.js                 # Shared: fetchWithTimeout(url, opts, timeoutMs = 15000) for external API calls; AbortController-based, timer cleared on settle
+│   ├── _rateLimit.js             # Shared: persistent rate limiting (Supabase check_rate_limit), daily limit with fail-closed PT-midnight counting (checkDailyLimit), midnightPTAsUTC() DST-safe helper, usage logging (api_usage table)
 │   ├── chat.js                   # Vercel serverless: auth-gated Anthropic API proxy (premium tier only — checks profiles.tier); server-side prompt construction via _prompts.js (raw system only for admin tier)
 │   ├── gemini.js                 # Vercel serverless: Gemini API proxy with full Anthropic↔Gemini format translation (free tier); server-side prompt construction via _prompts.js
 │   ├── stripe-checkout.js        # Vercel serverless: creates Stripe hosted checkout session (auth-gated, returns {url})
@@ -450,7 +452,7 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 - Translates Anthropic-format requests ↔ Gemini API format (messages, tools, responses, web search)
 - **Model routing:** `model` param from client selects: `gemini-2.0-flash-lite` (simple), `gemini-2.5-flash` (general), `gemini-2.5-pro-preview-06-05` (complex)
 - **Rate limited:** 15 req/min per user (in-memory + persistent via `_rateLimit.js`)
-- **Daily limit:** 15 calls/day per user (queries `api_usage` table, resets midnight PT — computed via `Intl.DateTimeFormat` parts, DST-safe)
+- **Daily limit:** 15 calls/day per user via shared `checkDailyLimit()` from `_rateLimit.js`. Resets midnight PT (DST-safe via `Intl.DateTimeFormat`). Fails CLOSED on Supabase errors / malformed responses — see Shared infrastructure below
 - **Upstream error passthrough:** non-2xx Gemini responses (or responses with `error` body) are surfaced to the client with the real status code instead of being translated into a 200 "no response" message
 - **API key transport:** Gemini key sent via `x-goog-api-key` header (not URL query string) to avoid exposure in server logs / CDN caches
 - **Feature gating:** Pro-tier features (connections, care gaps, etc.) blocked client-side via `isFeatureLocked()`
@@ -462,7 +464,7 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 - **Tier gate:** Checks `profiles.tier = 'premium'` before allowing requests; returns 403 for free users
 - **Model routing:** `model` param selects: `claude-haiku-4-5-20251001` (simple), `claude-sonnet-4-6` (general), `claude-opus-4-6` (complex)
 - **Rate limited:** 20 req/min per user (in-memory + persistent)
-- **Daily limit:** 30 calls/day per user
+- **Daily limit:** 30 calls/day per user via shared `checkDailyLimit()` from `_rateLimit.js` (same fail-closed semantics as Gemini)
 - Forwards to `https://api.anthropic.com/v1/messages`
 
 **Smart model routing** (client-side in `ai.js`):
@@ -472,11 +474,16 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 | Flash | chat, news, appointmentPrep, resources, costOptimization, journalPatterns, cyclePatterns, everything else | Flash | Sonnet |
 | Pro | connections, careGapDetect, appealDraft, immunizationSchedule, monthlySummary, houseConsultation | Pro | Opus |
 
-**Shared infrastructure** (`api/_rateLimit.js`):
-- `checkPersistentRateLimit(userId, endpoint, max, windowSec)` — cross-instance rate limiting via Supabase `check_rate_limit()` SQL function
-- `logUsage(userId, endpoint, { tokens_in, tokens_out })` — fire-and-forget usage tracking to `api_usage` table
-- Both endpoints verify Supabase auth token, enforce CORS, and log usage
-- **Fail-closed on upstream errors:** returns `false` (deny) when Supabase responds 5xx or the network call throws, so attackers can't bypass rate limits during Supabase outages. Only 4xx responses (e.g., RPC missing during a migration) are treated as fail-open with the in-memory bucket as backstop.
+**Shared infrastructure:**
+- `api/_auth.js` — `verifyAuth(req)` verifies a Bearer token against Supabase Auth and returns the user id or null. Used by discover / drug / provider / terra / wearable. (chat.js and gemini.js have auth tangled with rate-limit + tier checks and still inline their verifier.)
+- `api/_fetch.js` — `fetchWithTimeout(url, opts, timeoutMs = 15000)` with overridable per-call timeout for external API requests. Aborts via `AbortController` and clears the timer on settle.
+- `api/_rateLimit.js`:
+  - `checkPersistentRateLimit(userId, endpoint, max, windowSec)` — cross-instance rate limiting via Supabase `check_rate_limit()` SQL function
+  - `checkDailyLimit(userId, endpoint, dailyLimit)` — per-user daily cap via `api_usage` table count with DST-safe PT-midnight window. **Fails CLOSED** on non-2xx responses, missing/malformed `content-range` headers, unparseable totals, and network errors — every failure path logs a `console.warn`. Shared by chat.js (`chat` endpoint) and gemini.js (`gemini` endpoint). Premium/admin users bypass this check before it runs.
+  - `midnightPTAsUTC()` — DST-safe PT midnight via `Intl.DateTimeFormat`
+  - `logUsage(userId, endpoint, { tokens_in, tokens_out })` — fire-and-forget usage tracking to `api_usage` table
+- All endpoints verify Supabase auth token, enforce CORS, and log usage
+- **Fail-closed on upstream errors:** rate limiters return `false` (deny) when Supabase responds 5xx or the network call throws, so attackers can't bypass rate limits during Supabase outages. Only 4xx responses (e.g., RPC missing during a migration) are treated as fail-open with the in-memory bucket as backstop.
 
 **Provider selection** (client-side):
 - `getAIProvider()` / `setAIProvider()` — reads/writes `localStorage` key `salve:ai-provider` (default: `'gemini'`)
@@ -486,7 +493,7 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 
 ### Medical API Proxies
 
-Two additional Vercel serverless functions proxy free government medical APIs. Both follow the same auth + rate-limit + cache pattern as `api/chat.js`. Both use `fetchWithTimeout()` (15-second AbortController) for external API calls.
+Two additional Vercel serverless functions proxy free government medical APIs. Both use the shared `verifyAuth()` from `api/_auth.js` for user token verification and the shared `fetchWithTimeout()` from `api/_fetch.js` (15-second AbortController default) for external API calls.
 
 **`api/drug.js`** — RxNorm + OpenFDA + NADAC proxy:
 - **Actions:** `autocomplete` (RxNorm approximateTerm search), `details` (OpenFDA drug label lookup; searches by RxCUI first, falls back to 3-tier name search: `extractIngredient()` strips dosage/form from RxNorm names, then tries exact-quoted brand/generic match → unquoted flexible match → substance_name search; logs `[FDA]` for genuinely missing drugs; `formatLabel()` captures 22+ fields including spl_set_id, pharm_class_moa, pharm_class_pe, dosage_form, precautions, overdosage, storage, effective_time), `interactions` (RxNorm interaction list for multiple RxCUIs), `price` (RxCUI → NDCs via RxNorm → NADAC DKAN API lookup for cheapest per-unit price)
@@ -633,8 +640,11 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 | Layer | Mechanism |
 |-------|----------|
 | **Database** | Row Level Security on all tables, scoped to `auth.uid()` |
-| **API** | Auth token verified server-side; CORS restricted to allowlisted origins; rate limited 20 req/min per user; persistent rate limiter fails **closed** on Supabase 5xx / network errors so outages can't be exploited to bypass limits |
-| **Input validation** | `api/chat.js` validates client-provided tools: max 30 tools, ≤64 char names, ≤10KB per `input_schema` (DoS guard). `content-range` header parsing guarded against malformed values. |
+| **API** | Auth token verified server-side (shared `api/_auth.js` helper for 5 endpoints; chat.js / gemini.js inline their verifier due to tier-check entanglement); CORS restricted to strict allowlists (no `*.vercel.app` wildcards — preview URLs must be listed explicitly in `ALLOWED_ORIGIN`, comma-separated supported on terra.js); rate limited 20 req/min per user; persistent rate limiter fails **closed** on Supabase 5xx / network errors so outages can't be exploited to bypass limits |
+| **Daily AI limits** | `checkDailyLimit()` in `api/_rateLimit.js` (shared by chat.js + gemini.js). Counts `api_usage` rows since PT midnight via PostgREST `content-range`. **Fails CLOSED** on non-2xx, missing/malformed headers, unparseable totals, and network errors — every failure path logs `console.warn`. Previously per-endpoint copies were fail-open, letting transient Supabase issues silently allow free-tier bypass |
+| **Push notifications** | `/api/push-send` uses a dedicated `PUSH_INTERNAL_SECRET` for internal callers (cron-reminders), NOT the Supabase service role key. Decouples push authority from DB authority — a leaked `SUPABASE_SERVICE_ROLE_KEY` can no longer be used to send arbitrary notifications. Cron fails closed with 500 if `PUSH_INTERNAL_SECRET` is unset. `logNotification()` failures are caught so a bad insert doesn't take down a successful push response |
+| **Tier gating** | Server-side enforced on all gated endpoints (profile.tier check in chat.js, admin RPCs). Client-side `salve:tier-override` dev flag only honored when `import.meta.env.DEV` — ignored in production so DevTools tampering can't fake premium/admin UI |
+| **Input validation** | `api/chat.js` validates client-provided tools: max 30 tools, ≤64 char names, ≤10KB per `input_schema` (DoS guard). `content-range` header parsing guarded against malformed values via shared `checkDailyLimit`. |
 | **Trial expiry** | Both server (`api/chat.js`) and client (`ai.js`) guard against `NaN` from invalid `trial_expires_at`, so a malformed date never silently extends a trial |
 | **API Timeouts** | `chat.js`: 115s AbortController timeout; `drug.js`/`provider.js`: 15s `fetchWithTimeout()` for external calls |
 | **Client → Server** | HTTPS via Vercel; Bearer token required (fails early if missing); shared token cache with concurrent-call dedup (`token.js`) |
