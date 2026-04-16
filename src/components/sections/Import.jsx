@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { ChevronDown, ChevronUp, Apple, FileText, Heart, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna, X, Smartphone, Upload, Sparkles, ClipboardCopy } from 'lucide-react';
 import Card from '../ui/Card';
 import { SectionTitle } from '../ui/FormWrap';
@@ -6,6 +6,7 @@ import UniversalImport from '../ui/UniversalImport';
 import AppleHealthImport from '../ui/AppleHealthImport';
 import MyChartImport from '../ui/MyChartImport';
 import ImportWizard from '../ui/ImportWizard';
+import Wearables from '../settings/Wearables';
 import * as clueParser from '../../services/import_clue';
 import * as naturalCyclesParser from '../../services/import_natural_cycles';
 import * as daylioParser from '../../services/import_daylio';
@@ -22,7 +23,6 @@ import * as visibleParser from '../../services/import_visible';
 import * as prometheaseParser from '../../services/import_promethease';
 import * as twentyThreeMeParser from '../../services/import_23andme';
 import { startTerraConnect, listTerraConnections, disconnectTerraConnection, providerLabel, TERRA_ENABLED } from '../../services/terra';
-import { isFitbitConnected, FITBIT_ENABLED } from '../../services/fitbit';
 import { getHiddenSources, hideSource, unhideAllSources } from '../../utils/hiddenSources';
 import { trackEvent, EVENTS } from '../../services/analytics';
 
@@ -57,10 +57,28 @@ const IMPORT_CATEGORIES = [
 const TINT_BG = { rose: 'bg-salve-rose/15', amber: 'bg-salve-amber/15', lav: 'bg-salve-lav/15', sage: 'bg-salve-sage/15' };
 const TINT_FG = { rose: 'text-salve-rose', amber: 'text-salve-amber', lav: 'text-salve-lav', sage: 'text-salve-sage' };
 
-export default function Import({ data, reloadData, onNav, demoMode }) {
+export default function Import({ data, addItem, addItemSilent, reloadData, onNav, demoMode }) {
   const [expandedSource, setExpandedSource] = useState(null);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [hiddenSources, setHiddenSources] = useState(() => getHiddenSources());
+
+  // Source detection + counts for Wearables (Oura/Dexcom/Withings/Fitbit/Whoop) badges
+  const wearableSourceCounts = useMemo(() => {
+    const counts = { oura: 0, apple_health: 0, manual: 0, mcp: 0 };
+    const all = [
+      ...(data.vitals || []),
+      ...(data.activities || []),
+      ...(data.cycles || []),
+    ];
+    for (const r of all) {
+      const s = (r.source || '').toLowerCase();
+      if (s === 'oura') counts.oura++;
+      else if (s === 'apple_health' || s === 'apple health' || s.includes('apple')) counts.apple_health++;
+      else if (s === 'mcp' || s === 'mcp-sync') counts.mcp++;
+      else counts.manual++;
+    }
+    return counts;
+  }, [data.vitals, data.activities, data.cycles]);
 
   // Terra state
   const [terraConnections, setTerraConnections] = useState([]);
@@ -383,60 +401,22 @@ Dependencies available in the Claude artifacts runtime: react and lucide-react. 
         );
       })}
 
-      {/* ── Direct Wearable Connections ── */}
-      {FITBIT_ENABLED && (
-        <HideableSource id="fitbit-connect" label="Fitbit">
-          <Card>
-            <button onClick={() => toggleSource('fitbit-connect')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isFitbitConnected() ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
-                  <Watch size={14} className={isFitbitConnected() ? 'text-salve-sage' : 'text-salve-textFaint'} />
-                </div>
-                <div className="text-left">
-                  <span className="text-ui-lg text-salve-text font-medium block">Fitbit</span>
-                  <span className="text-ui-xs text-salve-textFaint">
-                    {isFitbitConnected() ? 'Connected · sleep, HR, HRV, steps, SpO2, workouts' : 'Sleep, HR, HRV, steps, SpO2, workouts, temperature'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {isFitbitConnected() && <span className="w-2 h-2 rounded-full bg-salve-sage" />}
-                {expandedSource === 'fitbit-connect' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-              </div>
-            </button>
-            {expandedSource === 'fitbit-connect' && (
-              <div className="mt-3 pt-3 border-t border-salve-border/50">
-                {isFitbitConnected() ? (
-                  <button
-                    onClick={() => onNav('fitbit')}
-                    className="w-full py-2 rounded-lg bg-salve-lav/10 border border-salve-lav/30 text-salve-lav text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-lav/20 transition-colors cursor-pointer"
-                  >
-                    View Fitbit data →
-                  </button>
-                ) : (
-                  <>
-                    <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
-                      Connect your Fitbit to import sleep, heart rate, HRV, steps, SpO2, breathing rate, skin temperature, workouts, and weight.
-                    </p>
-                    <button
-                      onClick={() => onNav('settings')}
-                      className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-sage font-medium text-sm font-montserrat hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Watch size={16} />
-                      Connect in Settings →
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </Card>
-        </HideableSource>
-      )}
-
-      {/* ── Connected Devices (Terra) ── */}
+      {/* ── Connected Devices (direct OAuth wearables + Terra) ── */}
+      <SectionTitle>Connected Devices</SectionTitle>
+      <Wearables
+        data={data}
+        addItem={addItem}
+        addItemSilent={addItemSilent}
+        reloadData={reloadData}
+        onNav={onNav}
+        demoMode={demoMode}
+        expandedSource={expandedSource}
+        setExpandedSource={setExpandedSource}
+        toggleSource={toggleSource}
+        sourceCounts={wearableSourceCounts}
+      />
       {TERRA_ENABLED && (
         <>
-          <SectionTitle>Connected Devices</SectionTitle>
           <HideableSource id="terra" label="Connect a device">
             <Card>
               <button onClick={() => toggleSource('terra')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">

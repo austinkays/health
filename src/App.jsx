@@ -659,7 +659,7 @@ function AppContent() {
       case 'feedback':   return <Feedback {...shared} prefill={feedbackPrefill} onPrefillConsumed={() => setFeedbackPrefill(null)} />;
       case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
       case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} onSageIntro={() => setSageIntroOpen(true)} />;
-      case 'import':     return <ImportPage data={data} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
+      case 'import':     return <ImportPage {...shared} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
       case 'admin':      return <Admin data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }
