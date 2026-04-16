@@ -102,13 +102,14 @@ export function ThemeProvider({ children }) {
   const saveTheme = useCallback((id) => {
     const target = id || themeId;
     try { localStorage.setItem(THEME_STORAGE_KEY, target); } catch { /* ignore */ }
-    setCommittedThemeId(prev => {
-      // Only log when the persisted theme actually changes (not re-saves of the same theme)
-      if (target !== prev) trackEvent(EVENTS.THEME_CHANGED + ':' + target);
-      return target;
-    });
+    // Track BEFORE setState so the event fires exactly once (not inside a state
+    // updater, which React Strict Mode double-invokes in development).
+    if (target !== committedThemeId) {
+      trackEvent(EVENTS.THEME_CHANGED + ':' + target);
+    }
+    setCommittedThemeId(target);
     if (target !== themeId) setThemeIdInternal(target);
-  }, [themeId]);
+  }, [themeId, committedThemeId]);
 
   const revertTheme = useCallback(() => {
     setThemeIdInternal(committedThemeId);

@@ -53,7 +53,8 @@ export const EVENTS = {
   OURA_SYNCED: 'oura_synced',
 
   // Settings engagement — power-user signals
-  THEME_CHANGED: 'theme_changed',
+  THEME_ACTIVE: 'theme_active',   // user's current theme on login (for distribution chart)
+  THEME_CHANGED: 'theme_changed', // user explicitly saved a new theme
   DASHBOARD_CUSTOMIZED: 'dashboard_customized',
   FEEDBACK_SUBMITTED: 'feedback_submitted',
 
@@ -85,6 +86,11 @@ const SUFFIX_ALLOWLIST = {
     'formHelper', 'monthlySummary', 'insuranceCard',
   ]),
   import_completed: new Set(['apple_health', 'flo', 'backup', 'sync', 'mychart']),
+  theme_active: new Set([
+    'lilac', 'noir', 'midnight', 'forest', 'meadow', 'seafoam', 'sunrise',
+    'aurora', 'neon', 'cherry', 'sunbeam', 'blaze', 'ember', 'galactic',
+    'prismatic', 'crystal',
+  ]),
   theme_changed: new Set([
     'lilac', 'noir', 'midnight', 'forest', 'meadow', 'seafoam', 'sunrise',
     'aurora', 'neon', 'cherry', 'sunbeam', 'blaze', 'ember', 'galactic',

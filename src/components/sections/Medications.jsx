@@ -750,7 +750,6 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   /* ── Shared detail renderer (used both inline on mobile and in side pane on desktop) ── */
   const renderMedDetail = (m) => (
     <div className="mt-2.5 pt-2.5 border-t border-salve-border/50" onClick={e => e.stopPropagation()}>
-      {renderScheduleBlock(m)}
       {/* Desktop: show med name as title in detail pane */}
       {isDesktop && (
         <div className="mb-3">
@@ -893,6 +892,8 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         );
       })()}
 
+
+      {renderScheduleBlock(m)}
 
       <div className="flex gap-2.5 mt-2.5 flex-wrap">
         <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>

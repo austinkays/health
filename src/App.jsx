@@ -508,6 +508,12 @@ function AppContent() {
         // Enable analytics for this (real, non-demo) user. Log first-time
         // sign-in exactly once per browser via a guard key.
         enableAnalytics();
+        // Track the user's current theme so the admin panel's theme
+        // distribution chart reflects actual usage (not just change frequency).
+        try {
+          const activeTheme = localStorage.getItem('salve:theme') || 'lilac';
+          trackEvent(EVENTS.THEME_ACTIVE + ':' + activeTheme);
+        } catch { /* ignore */ }
         try {
           const FIRST_KEY = `salve:first-signin:${s.user.id}`;
           if (!localStorage.getItem(FIRST_KEY)) {
