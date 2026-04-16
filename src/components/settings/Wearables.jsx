@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart, Loader, RefreshCw, Unlink, ChevronDown, ChevronUp, X } from 'lucide-react';
 import Card from '../ui/Card';
+import { useToast } from '../ui/Toast';
 import { OuraIcon } from '../ui/OuraIcon';
 import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
@@ -21,6 +22,7 @@ export default function Wearables({
   toggleSource,
   sourceCounts,
 }) {
+  const showToast = useToast();
   const [hiddenSources, setHiddenSources] = useState(() => getHiddenSources());
   const handleHideSource = (id) => {
     hideSource(id);
@@ -91,7 +93,9 @@ export default function Wearables({
       }
 
       if (parts.length > 0) {
+        const total = Object.values(results).reduce((n, v) => n + (v.added || 0), 0);
         setOuraSuccess(`Synced ${parts.join(', ')} from Oura.${errors.length ? '\nFailed: ' + errors.join('; ') : ''}`);
+        showToast(`${total} new from Oura ✓`);
         await reloadData?.();
       } else {
         setOuraSuccess(`Nothing new to sync.${errors.length ? '\nFailed: ' + errors.join('; ') : ''}`);
@@ -161,6 +165,7 @@ export default function Wearables({
       setDexcomSuccess(added > 0
         ? `Synced ${added} day${added !== 1 ? 's' : ''} of glucose data${skipped > 0 ? ` (${skipped} already had readings)` : ''}.`
         : 'No new readings to sync.');
+      if (added > 0) showToast(`${added} new from Dexcom ✓`);
       reloadData?.();
     } catch (e) {
       setDexcomError(e.message);
@@ -224,6 +229,7 @@ export default function Wearables({
       setWithingsSuccess(added > 0
         ? `Imported ${added} new measurement${added !== 1 ? 's' : ''}.`
         : 'Already up to date — no new measurements.');
+      if (added > 0) showToast(`${added} new from Withings ✓`);
       reloadData?.();
     } catch (e) {
       setWithingsError(e.message);
@@ -287,6 +293,7 @@ export default function Wearables({
       setFitbitSuccess(added > 0
         ? `Imported ${added} new record${added !== 1 ? 's' : ''} from Fitbit.`
         : 'Already up to date — no new data.');
+      if (added > 0) showToast(`${added} new from Fitbit ✓`);
       reloadData?.();
     } catch (e) {
       setFitbitError(e.message);
@@ -350,6 +357,7 @@ export default function Wearables({
       setWhoopSuccess(added > 0
         ? `Imported ${added} new vital${added !== 1 ? 's' : ''} from Whoop.`
         : 'Already up to date — no new data.');
+      if (added > 0) showToast(`${added} new from Whoop ✓`);
       reloadData?.();
     } catch (e) {
       setWhoopError(e.message);
