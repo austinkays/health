@@ -5,14 +5,8 @@
 // Client-side cache: 14 days (per user in localStorage).
 
 import { logUsage } from './_rateLimit.js';
-
-const EXTERNAL_TIMEOUT_MS = 15_000;
-
-function fetchWithTimeout(url, opts = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), EXTERNAL_TIMEOUT_MS);
-  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
-}
+import { verifyAuth } from './_auth.js';
+import { fetchWithTimeout } from './_fetch.js';
 
 // ── Server-side cache (24hr, shared per serverless instance) ──
 let feedCache = { articles: null, expiry: 0 };
@@ -113,26 +107,6 @@ async function fetchAllFeeds() {
 
   feedCache = { articles, expiry: now + CACHE_TTL };
   return articles;
-}
-
-// ── Auth verification ──
-async function verifyAuth(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) return null;
-  try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey },
-    });
-    if (!res.ok) return null;
-    const user = await res.json();
-    return user.id;
-  } catch {
-    return null;
-  }
 }
 
 // ── In-memory rate limiter ──

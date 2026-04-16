@@ -53,6 +53,93 @@ export async function checkPersistentRateLimit(userId, endpoint, maxRequests, wi
 }
 
 /**
+ * Compute "now in PT" → a UTC Date at midnight PT of today's PT wall-clock.
+ * DST-safe via Intl.DateTimeFormat parts. Falls back to a rolling 24h window
+ * if parsing fails (should never happen in supported runtimes).
+ */
+export function midnightPTAsUTC() {
+  const now = Date.now();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date(now));
+  const get = (t) => parts.find(p => p.type === t)?.value;
+  let h = Number(get('hour'));
+  const mi = Number(get('minute'));
+  const s = Number(get('second'));
+  if (h === 24) h = 0;
+  if ([h, mi, s].some(v => Number.isNaN(v))) {
+    return new Date(now - 24 * 60 * 60 * 1000);
+  }
+  const msSinceMidnightPT = ((h * 60 + mi) * 60 + s) * 1000;
+  return new Date(now - msSinceMidnightPT);
+}
+
+/**
+ * Check a per-user daily call limit against the api_usage table.
+ * Returns true if under the limit (allowed), false to deny.
+ *
+ * Fails CLOSED (denies) on any ambiguity — non-2xx responses, missing or
+ * malformed content-range headers, network errors. This prevents a transient
+ * Supabase issue or a PostgREST response-format change from silently letting
+ * users bypass the daily cap. The per-minute in-memory + persistent limits
+ * above this check are the appropriate backstop during outages.
+ *
+ * @param {string} userId
+ * @param {string} endpoint - 'chat' | 'gemini' | ...
+ * @param {number} dailyLimit - max calls per user per day
+ */
+export async function checkDailyLimit(userId, endpoint, dailyLimit) {
+  const config = getSupabaseConfig();
+  if (!config) {
+    console.warn(`[rateLimit] checkDailyLimit(${endpoint}): Supabase not configured; denying to be safe`);
+    return false;
+  }
+
+  try {
+    const utcMidnightPT = midnightPTAsUTC().toISOString();
+    const res = await fetch(
+      `${config.url}/rest/v1/api_usage?select=id&user_id=eq.${userId}&endpoint=eq.${endpoint}&created_at=gte.${encodeURIComponent(utcMidnightPT)}`,
+      {
+        headers: {
+          apikey: config.key,
+          Authorization: `Bearer ${config.key}`,
+          Prefer: 'count=exact',
+          'Range-Unit': 'items',
+          Range: '0-0',
+        },
+      }
+    );
+
+    if (!res.ok) {
+      console.warn(`[rateLimit] checkDailyLimit(${endpoint}): Supabase returned ${res.status}; denying to be safe`);
+      return false;
+    }
+
+    // Parse "0-0/42" or "*/42" → total = 42. PostgREST may emit "*/*" when
+    // count is unknown — treat as unverifiable.
+    const range = res.headers.get('content-range') || '';
+    const slashIdx = range.indexOf('/');
+    if (slashIdx === -1) {
+      console.warn(`[rateLimit] checkDailyLimit(${endpoint}): missing content-range header; denying to be safe`);
+      return false;
+    }
+    const total = parseInt(range.slice(slashIdx + 1).trim(), 10);
+    if (!Number.isFinite(total) || total < 0) {
+      console.warn(`[rateLimit] checkDailyLimit(${endpoint}): unparseable content-range "${range}"; denying to be safe`);
+      return false;
+    }
+
+    return total < dailyLimit;
+  } catch (err) {
+    console.warn(`[rateLimit] checkDailyLimit(${endpoint}) network error; denying to be safe:`, err?.message || err);
+    return false;
+  }
+}
+
+/**
  * Log a request to api_usage table. Fire-and-forget (no await needed).
  * @param {string} userId
  * @param {string} endpoint - 'chat', 'drug', 'provider', 'oura'

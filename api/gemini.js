@@ -1,4 +1,4 @@
-import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+import { checkPersistentRateLimit, checkDailyLimit, logUsage } from './_rateLimit.js';
 import { buildSystemPrompt, isValidPromptKey } from './_prompts.js';
 
 // ── In-memory rate limiter ──
@@ -27,64 +27,6 @@ setInterval(() => {
 
 // ── Daily call limit (free tier) ──
 const DAILY_LIMIT = 15;
-
-// Compute "now in PT" as a Date whose UTC fields are actually the PT wall-clock
-// fields, then zero out to midnight and convert back to a real UTC timestamp.
-function midnightPTAsUTC() {
-  const now = Date.now();
-  // en-CA gives ISO-ish "YYYY-MM-DD, HH:mm:ss" which Date can reliably parse
-  // after a simple normalization. Using Intl parts directly to avoid locale parsing.
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Los_Angeles',
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-    hour12: false,
-  }).formatToParts(new Date(now));
-  const get = (t) => parts.find(p => p.type === t)?.value;
-  const y = Number(get('year'));
-  const mo = Number(get('month'));
-  const d = Number(get('day'));
-  let h = Number(get('hour'));
-  const mi = Number(get('minute'));
-  const s = Number(get('second'));
-  if (h === 24) h = 0; // Intl sometimes emits 24 for midnight
-  if ([y, mo, d, h, mi, s].some(v => Number.isNaN(v))) {
-    // Fallback: 24h window ending now
-    return new Date(now - 24 * 60 * 60 * 1000);
-  }
-  // Milliseconds between "PT wall-clock now" and "PT wall-clock midnight today"
-  const msSinceMidnightPT = ((h * 60 + mi) * 60 + s) * 1000;
-  return new Date(now - msSinceMidnightPT);
-}
-
-async function checkDailyLimit(userId, supabaseUrl, serviceKey) {
-  try {
-    const utcMidnightPT = midnightPTAsUTC().toISOString();
-
-    const res = await fetch(
-      `${supabaseUrl}/rest/v1/api_usage?select=id&user_id=eq.${userId}&endpoint=eq.gemini&created_at=gte.${encodeURIComponent(utcMidnightPT)}`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          Prefer: 'count=exact',
-          'Range-Unit': 'items',
-          Range: '0-0',
-        },
-      }
-    );
-    // Count from content-range header: "0-0/42" → 42
-    const range = res.headers.get('content-range') || '';
-    const parts = range.split('/');
-    if (parts.length >= 2) {
-      const total = parseInt(parts[1], 10);
-      if (!isNaN(total) && total >= DAILY_LIMIT) return false;
-    }
-    return true;
-  } catch {
-    return true; // fail-open
-  }
-}
 
 // ── Allowed Gemini models ──
 const ALLOWED_MODELS = new Set([
@@ -350,9 +292,9 @@ export default async function handler(req, res) {
     // Daily call limit for free tier only (10 calls/day, resets midnight PT)
     // Premium and admin users bypass the daily limit.
     if (userId && userTier === 'free') {
-      const dailyAllowed = await checkDailyLimit(userId, supabaseUrl, serviceKey);
+      const dailyAllowed = await checkDailyLimit(userId, 'gemini', DAILY_LIMIT);
       if (!dailyAllowed) {
-        return res.status(429).json({ error: 'Daily AI limit reached (15/day on free tier). Resets at midnight PT.', daily_limit: true });
+        return res.status(429).json({ error: `Daily AI limit reached (${DAILY_LIMIT}/day on free tier). Resets at midnight PT.`, daily_limit: true });
       }
     }
   } catch {

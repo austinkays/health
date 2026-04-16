@@ -6,17 +6,12 @@
 //   lookup — get full details by NPI number
 
 import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+import { verifyAuth } from './_auth.js';
+import { fetchWithTimeout } from './_fetch.js';
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 30;
 const rateBuckets = new Map();
-const EXTERNAL_TIMEOUT_MS = 15_000;
-
-function fetchWithTimeout(url, opts = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), EXTERNAL_TIMEOUT_MS);
-  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
-}
 
 function checkMemoryRateLimit(userId) {
   const now = Date.now();
@@ -53,25 +48,6 @@ function cached(key, fetcher) {
     }
     return data;
   });
-}
-
-async function verifyAuth(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) return null;
-  try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey },
-    });
-    if (!res.ok) return null;
-    const user = await res.json();
-    return user.id;
-  } catch {
-    return null;
-  }
 }
 
 const NPI_BASE = 'https://npiregistry.cms.hhs.gov/api';

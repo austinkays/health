@@ -8,18 +8,13 @@
 //   price        — NADAC wholesale price via RxCUI → NDC → CMS DKAN
 
 import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+import { verifyAuth } from './_auth.js';
+import { fetchWithTimeout } from './_fetch.js';
 
 // ── In-memory rate limiter (fast first-pass, per serverless instance) ──
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 40; // higher than chat — these are lightweight lookups
 const rateBuckets = new Map();
-const EXTERNAL_TIMEOUT_MS = 15_000; // 15s timeout for external API calls
-
-function fetchWithTimeout(url, opts = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), EXTERNAL_TIMEOUT_MS);
-  return fetch(url, { ...opts, signal: controller.signal }).finally(() => clearTimeout(timer));
-}
 
 function checkMemoryRateLimit(userId) {
   const now = Date.now();
@@ -58,26 +53,6 @@ function cached(key, fetcher) {
     }
     return data;
   });
-}
-
-// ── Auth verification (same as chat.js) ──
-async function verifyAuth(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const token = authHeader.slice(7);
-  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !serviceKey) return null;
-  try {
-    const res = await fetch(`${supabaseUrl}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: serviceKey },
-    });
-    if (!res.ok) return null;
-    const user = await res.json();
-    return user.id;
-  } catch {
-    return null;
-  }
 }
 
 // ── RxNorm helpers ──

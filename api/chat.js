@@ -1,4 +1,4 @@
-import { checkPersistentRateLimit, logUsage } from './_rateLimit.js';
+import { checkPersistentRateLimit, checkDailyLimit, logUsage } from './_rateLimit.js';
 import { buildSystemPrompt, isValidPromptKey } from './_prompts.js';
 
 // ── In-memory rate limiter (fast first-pass, per serverless instance) ──
@@ -130,50 +130,16 @@ export default async function handler(req, res) {
   // is $0.05–0.10/user/day = $15–30/month total.
   // Bump back up once billing is live and the budget is larger.
   const CLAUDE_DAILY_LIMIT = 30;
-  try {
-    // Count calls made today (midnight PT, DST-safe via Intl)
-    const now = Date.now();
-    const parts = new Intl.DateTimeFormat('en-US', {
-      timeZone: 'America/Los_Angeles',
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false,
-    }).formatToParts(new Date(now));
-    const get = (t) => parts.find(p => p.type === t)?.value;
-    let h = Number(get('hour'));
-    if (h === 24) h = 0;
-    const mi = Number(get('minute'));
-    const s = Number(get('second'));
-    const msSinceMidnightPT = ((h * 60 + mi) * 60 + s) * 1000;
-    const todayStartUtc = new Date(now - msSinceMidnightPT);
-    if ([h, mi, s].some(v => Number.isNaN(v))) {
-      // Fallback: 24h window ending now
-      todayStartUtc.setTime(now - 24 * 60 * 60 * 1000);
-    }
-    const countRes = await fetch(
-      `${supabaseUrl}/rest/v1/api_usage?user_id=eq.${userId}&endpoint=eq.chat&created_at=gte.${todayStartUtc.toISOString()}&select=id`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          Prefer: 'count=exact',
-        },
-      }
-    );
-    if (countRes.ok) {
-      const range = countRes.headers.get('content-range') || '';
-      const parts = range.split('/');
-      const total = parts.length >= 2 ? parseInt(parts[1], 10) : NaN;
-      if (!isNaN(total) && total >= CLAUDE_DAILY_LIMIT) {
-        return res.status(429).json({
-          error: `Daily Sage limit reached (${CLAUDE_DAILY_LIMIT}/day). During the beta we cap usage to keep Sage free for everyone — resets at midnight PT.`,
-          daily_limit: true,
-          limit: CLAUDE_DAILY_LIMIT,
-        });
-      }
-    }
-  } catch {
-    // Fail-open on daily-limit check error
+  // Uses shared checkDailyLimit which fails-CLOSED on Supabase errors or
+  // unparseable responses. Previously this inline check was fail-open, which
+  // meant a transient Supabase 5xx or a PostgREST format change could silently
+  // let users bypass the daily cap.
+  if (!(await checkDailyLimit(userId, 'chat', CLAUDE_DAILY_LIMIT))) {
+    return res.status(429).json({
+      error: `Daily Sage limit reached (${CLAUDE_DAILY_LIMIT}/day). During the beta we cap usage to keep Sage free for everyone — resets at midnight PT.`,
+      daily_limit: true,
+      limit: CLAUDE_DAILY_LIMIT,
+    });
   }
 
   // Proxy to Anthropic
