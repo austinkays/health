@@ -790,6 +790,40 @@ export async function fillFormQuestions(questionsText, profileText, imageDataArr
   );
 }
 
+export async function extractInsuranceCard(imageData) {
+  const content = [
+    {
+      type: 'image',
+      source: { type: 'base64', media_type: imageData.mediaType, data: imageData.data },
+    },
+    {
+      type: 'text',
+      text: 'Extract all insurance information from this card photo and return it as JSON.',
+    },
+  ];
+
+  trackEvent(`${EVENTS.AI_FEATURE_RUN}:insuranceCard`);
+
+  const raw = await callAPI(
+    [{ role: 'user', content }],
+    'insuranceCard', '',
+    1000, false, 'chat'
+  );
+
+  // Strip the disclaimer Sage appends and any markdown fences
+  const cleaned = raw
+    .replace(/---\s*\n\*Sage's suggestions.*$/s, '')
+    .replace(/```json\s*/g, '')
+    .replace(/```\s*/g, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error('Could not read the card. Please try a clearer photo.');
+  }
+}
+
 export async function fetchCyclePatterns(cycleProfileText) {
   return callAPI(
     [{ role: 'user', content: 'Analyze my cycle-correlated health patterns from the data below.' }],

@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Plus, Check, Edit, Trash2, BadgeDollarSign, ChevronDown, Phone, Receipt } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { Plus, Check, Edit, Trash2, BadgeDollarSign, ChevronDown, Phone, Receipt, Camera, Loader2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
+import useWellnessMessage from '../../hooks/useWellnessMessage';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import Field from '../ui/Field';
@@ -8,8 +9,10 @@ import Badge from '../ui/Badge';
 import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
+import { hasAIConsent } from '../ui/AIConsentGate';
 import { fmtDate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { extractInsuranceCard } from '../../services/ai';
 
 const EMPTY = { name: '', type: '', member_id: '', group: '', phone: '', notes: '' };
 const TYPES = ['', 'Medicaid', 'Medicare', 'Private', 'Hospital charity care'];
@@ -19,6 +22,7 @@ const CLAIM_EMPTY = {
   status: 'submitted', claim_number: '', insurance_plan: '', notes: '',
 };
 const CLAIM_STATUSES = ['submitted', 'processing', 'paid', 'denied', 'appealed'];
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 const typeStyle = (t) => {
   if (t === 'Medicaid' || t === 'Medicare') return { color: C.sage, bg: 'rgba(143,191,160,0.15)' };
@@ -40,6 +44,20 @@ const fmtMoney = (v) => {
   return isNaN(n) ? null : `$${n.toFixed(2)}`;
 };
 
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result;
+      const [header, data] = dataUrl.split(',');
+      const mediaType = header.match(/data:(.+);/)?.[1] || 'image/png';
+      resolve({ data, mediaType, preview: dataUrl });
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Insurance({ data, addItem, updateItem, removeItem, highlightId }) {
   const [tab, setTab] = useState('plans');
   const [subView, setSubView] = useState(null);
@@ -47,7 +65,12 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
   const [claimForm, setClaimForm] = useState(CLAIM_EMPTY);
   const [editId, setEditId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState('');
+  const [scanPreview, setScanPreview] = useState(null);
+  const fileInputRef = useRef(null);
   const del = useConfirmDelete();
+  const wellness = useWellnessMessage(10000);
   const sf = (k, v) => setForm(p => ({ ...p, [k]: v }));
   const scf = (k, v) => setClaimForm(p => ({ ...p, [k]: v }));
 
@@ -89,6 +112,106 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
     else await addItem('insurance_claims', claimForm);
     setClaimForm(CLAIM_EMPTY); setEditId(null); setSubView(null);
   };
+
+  // ── Photo scan ──
+  const handleCardPhoto = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setScanError('Please select an image file.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE) {
+      setScanError('Image is too large. Please use a photo under 5MB.');
+      return;
+    }
+    setScanError('');
+    setScanning(true);
+
+    try {
+      const imageData = await readFileAsBase64(file);
+      setScanPreview(imageData.preview);
+      const extracted = await extractInsuranceCard(imageData);
+      // Pre-fill the form with extracted data (only non-empty fields)
+      setForm({
+        name: extracted.name || '',
+        type: TYPES.includes(extracted.type) ? extracted.type : '',
+        member_id: extracted.member_id || '',
+        group: extracted.group || '',
+        phone: extracted.phone || '',
+        notes: extracted.notes || '',
+      });
+      setEditId(null);
+      setSubView('form');
+    } catch (err) {
+      setScanError(err.message || 'Could not read the card. Please try again.');
+    } finally {
+      setScanning(false);
+      setScanPreview(null);
+    }
+  };
+
+  // ── Scan card view ──
+  if (subView === 'scanCard') return (
+    <FormWrap title="Scan Insurance Card" onBack={() => { setSubView(null); setScanError(''); setScanPreview(null); setScanning(false); }}>
+      <Card>
+        {!hasAIConsent() ? (
+          <div className="text-center py-4">
+            <p className="text-sm text-salve-textMid mb-2">Scanning requires AI features to be enabled.</p>
+            <p className="text-xs text-salve-textFaint">Go to the AI section and enable Sage first, then come back here.</p>
+          </div>
+        ) : scanning ? (
+          <div className="text-center py-8">
+            {scanPreview && (
+              <div className="mb-4 mx-auto max-w-[200px] rounded-lg overflow-hidden border border-salve-border/50 opacity-60">
+                <img src={scanPreview} alt="Card being scanned" className="w-full" />
+              </div>
+            )}
+            <Loader2 size={24} className="animate-spin text-salve-lav mx-auto mb-3" />
+            <p className="text-sm text-salve-textMid mb-1">Reading your insurance card...</p>
+            <p className="text-xs text-salve-textFaint italic">{wellness}</p>
+          </div>
+        ) : (
+          <>
+            <p className="text-sm text-salve-textMid mb-4">
+              Take a photo or upload a picture of your insurance card. Sage will read it and fill in your plan details.
+            </p>
+
+            <div className="space-y-2">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-8 px-4 rounded-xl border-2 border-dashed border-salve-lav/30 bg-salve-lav/5 hover:bg-salve-lav/10 hover:border-salve-lav/50 transition-colors cursor-pointer flex flex-col items-center gap-2"
+              >
+                <Camera size={28} className="text-salve-lav" />
+                <span className="text-sm font-medium text-salve-text">Take Photo or Choose Image</span>
+                <span className="text-xs text-salve-textFaint">JPG, PNG, or HEIC</span>
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleCardPhoto(file);
+                  e.target.value = '';
+                }}
+              />
+            </div>
+
+            {scanError && (
+              <p className="text-xs text-salve-rose mt-3" role="alert">{scanError}</p>
+            )}
+
+            <p className="text-[11px] text-salve-textFaint mt-4 leading-relaxed">
+              Your card photo is sent to Sage (AI) to extract the text. The image is not stored.
+            </p>
+          </>
+        )}
+      </Card>
+    </FormWrap>
+  );
 
   // ── Plan form ──
   if (subView === 'form') return (
@@ -149,7 +272,8 @@ export default function Insurance({ data, addItem, updateItem, removeItem, highl
 
       {/* ── Plans Tab ── */}
       {tab === 'plans' && <>
-        <div className="flex justify-end mb-3">
+        <div className="flex justify-end gap-2 mb-3">
+          <Button variant="secondary" onClick={() => setSubView('scanCard')} className="!py-1.5 !px-4 !text-xs"><Camera size={14} /> Scan Card</Button>
           <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Add</Button>
         </div>
 
