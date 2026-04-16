@@ -3,6 +3,10 @@ import { logUsage } from './_rateLimit.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Dedicated secret for internal service→push-send calls (cron-reminders, etc.).
+// Kept separate from SUPABASE_SERVICE_ROLE_KEY so a leak of one doesn't expose the other.
+// If unset, service-role callers are rejected (fail-closed).
+const PUSH_INTERNAL_SECRET = process.env.PUSH_INTERNAL_SECRET;
 const VAPID_PUBLIC_KEY = process.env.VITE_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
 const VAPID_EMAIL = process.env.VAPID_EMAIL;
@@ -20,8 +24,11 @@ const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://salve.health';
 async function verifyToken(token) {
   if (!token) return null;
 
-  // Service role caller (cron job or internal server call)
-  if (token === SERVICE_ROLE_KEY) {
+  // Internal service caller (cron-reminders, etc.) uses a dedicated secret —
+  // NOT the Supabase service role key. This way push authority is decoupled
+  // from DB admin authority: a leaked SERVICE_ROLE_KEY can't be used to push
+  // arbitrary notifications, and vice versa.
+  if (PUSH_INTERNAL_SECRET && token === PUSH_INTERNAL_SECRET) {
     return { id: null, role: 'service' };
   }
 
@@ -87,23 +94,32 @@ async function logNotification(userId, { type, referenceId, status, error }) {
   const VALID_TYPES = ['medication', 'appointment', 'refill', 'journal', 'todo'];
   const resolvedType = VALID_TYPES.includes(type) ? type : 'medication';
 
-  await fetch(`${SUPABASE_URL}/rest/v1/notification_log`, {
-    method: 'POST',
-    headers: {
-      apikey: SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=minimal',
-    },
-    body: JSON.stringify({
-      user_id: userId,
-      type: resolvedType,
-      reference_id: referenceId || null,
-      sent_at: new Date().toISOString(),
-      status: status || 'sent',
-      error: error || null,
-    }),
-  });
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/notification_log`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        type: resolvedType,
+        reference_id: referenceId || null,
+        sent_at: new Date().toISOString(),
+        status: status || 'sent',
+        error: error || null,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.warn(`[push-send] notification_log insert failed (${res.status}): ${text}`);
+    }
+  } catch (err) {
+    // Non-fatal — logging failure shouldn't take down a successful push.
+    console.warn('[push-send] notification_log error:', err?.message || err);
+  }
 }
 
 export default async function handler(req, res) {

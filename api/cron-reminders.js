@@ -4,6 +4,9 @@
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Dedicated secret for authenticating with /api/push-send. Kept separate from
+// SUPABASE_SERVICE_ROLE_KEY so push authority is decoupled from DB authority.
+const PUSH_INTERNAL_SECRET = process.env.PUSH_INTERNAL_SECRET;
 
 /**
  * Makes an authenticated Supabase REST API request.
@@ -45,7 +48,7 @@ async function sendPush(userId, { title, body, tag, url, referenceId }) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        Authorization: `Bearer ${PUSH_INTERNAL_SECRET}`,
       },
       body: JSON.stringify({ user_id: userId, title, body, tag, url, reference_id: referenceId }),
     });
@@ -73,6 +76,11 @@ export default async function handler(req, res) {
 
   if (!isAuthorized) {
     return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  if (!PUSH_INTERNAL_SECRET) {
+    console.error('[cron-reminders] PUSH_INTERNAL_SECRET not configured — cannot call push-send');
+    return res.status(500).json({ error: 'PUSH_INTERNAL_SECRET not configured' });
   }
 
   const today = todayUTC();

@@ -35,7 +35,10 @@ export function isFeatureLocked(feature) {
 // Returns true when the user has active premium access, either permanent
 // premium/admin (trial_expires_at IS NULL) or a trial that hasn't yet expired.
 // `settings` is data.settings from useHealthData (the profile row).
-// Respects a localStorage dev override at 'salve:tier-override' ('free', 'premium', or 'admin').
+// Respects a localStorage dev override at 'salve:tier-override' ('free', 'premium', or 'admin')
+// ONLY in dev builds — in production the override is ignored so tampering
+// via DevTools can't fake premium/admin client-side. (Server still enforces
+// tier on all gated endpoints, but this keeps the UI honest.)
 export function isPremiumActive(settings) {
   // Demo mode: honor the demo profile's tier directly (Jordan is premium).
   // Skip the localStorage dev override so leftover testing state doesn't
@@ -46,11 +49,13 @@ export function isPremiumActive(settings) {
     const ts = new Date(settings.trial_expires_at).getTime();
     return !isNaN(ts) && ts > Date.now();
   }
-  try {
-    const override = localStorage.getItem('salve:tier-override');
-    if (override === 'free') return false;
-    if (override === 'premium' || override === 'admin') return true;
-  } catch { /* ignore */ }
+  if (import.meta.env.DEV) {
+    try {
+      const override = localStorage.getItem('salve:tier-override');
+      if (override === 'free') return false;
+      if (override === 'premium' || override === 'admin') return true;
+    } catch { /* ignore */ }
+  }
   if (!settings || (settings.tier !== 'premium' && settings.tier !== 'admin')) return false;
   if (settings.trial_expires_at == null) return true;
   const ts = new Date(settings.trial_expires_at).getTime();
@@ -63,11 +68,14 @@ export function isAdminActive(settings) {
   if (_demoMode) {
     return settings?.tier === 'admin';
   }
-  try {
-    const override = localStorage.getItem('salve:tier-override');
-    if (override === 'free' || override === 'premium') return false;
-    if (override === 'admin') return true;
-  } catch { /* ignore */ }
+  // Dev-only override — ignored in production builds. See isPremiumActive() comment.
+  if (import.meta.env.DEV) {
+    try {
+      const override = localStorage.getItem('salve:tier-override');
+      if (override === 'free' || override === 'premium') return false;
+      if (override === 'admin') return true;
+    } catch { /* ignore */ }
+  }
   if (!settings || settings.tier !== 'admin') return false;
   if (settings.trial_expires_at == null) return true;
   const ts = new Date(settings.trial_expires_at).getTime();
