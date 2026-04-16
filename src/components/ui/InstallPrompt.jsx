@@ -64,6 +64,7 @@ export default function InstallPrompt({ preAuth = false }) {
     const onBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      markSeen(); // Write immediately — prompt will show regardless of reload timing
       // Show after a short delay so the dashboard renders first
       setTimeout(() => setVisible(true), 1200);
     };
@@ -76,6 +77,7 @@ export default function InstallPrompt({ preAuth = false }) {
     let iosTimer = null;
     if (ios) {
       setIosMode(true);
+      markSeen(); // Write immediately — prompt will show regardless of reload timing
       // Pre-auth shows sooner (the auth screen is the whole experience until
       // they sign in, so no need to wait for a dashboard to render).
       iosTimer = setTimeout(() => setVisible(true), preAuth ? 600 : 1500);

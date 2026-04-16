@@ -40,6 +40,9 @@ export default function WhatsNewModal({ onClose }) {
   const historyEntries = CHANGELOG.filter(entry => entry.id !== latestEntry.id);
 
   useEffect(() => {
+    // Mark as seen immediately on mount — the user is looking at this modal
+    // regardless of how the session ends (SW silent reload, tab close, etc.).
+    markChangesSeen();
     requestAnimationFrame(() => setVisible(true));
   }, []);
 
