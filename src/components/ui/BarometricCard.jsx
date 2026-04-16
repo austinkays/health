@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Wind, ChevronDown, Plus, Loader, MapPin,
   TrendingUp, TrendingDown, Minus, Zap,
+  Minimize2, Maximize2, EyeOff,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
@@ -53,6 +54,14 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   const [logged, setLogged] = useState(false);
   const [autoLog, setAutoLog] = useState(() => localStorage.getItem('salve:baro-autolog') === 'true');
   const [autoLogged, setAutoLogged] = useState(false);
+  const [displayMode, setDisplayMode] = useState(
+    () => localStorage.getItem('salve:baro-view') || 'full'
+  );
+
+  const setMode = (mode) => {
+    setDisplayMode(mode);
+    localStorage.setItem('salve:baro-view', mode);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +108,26 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
     localStorage.setItem('salve:baro-autolog', String(next));
     if (!next) setAutoLogged(false);
   };
+
+  /* ── Hidden mode — auto-log still runs via useEffect above ── */
+  if (displayMode === 'hidden') {
+    return (
+      <div className="mb-3 flex items-center gap-1.5 px-0.5">
+        <Wind size={11} aria-hidden="true" style={{ color: C.textFaint, opacity: 0.35 }} />
+        <span className="text-[11px] font-montserrat" style={{ color: C.textFaint, opacity: 0.45 }}>
+          Barometric hidden
+        </span>
+        <button
+          onClick={() => setMode('compact')}
+          aria-label="Restore barometric pressure card"
+          className="text-[11px] font-montserrat bg-transparent border-0 p-0 cursor-pointer underline"
+          style={{ color: C.lav, opacity: 0.65 }}
+        >
+          Show
+        </button>
+      </div>
+    );
+  }
 
   /* ── Loading skeleton ──────────────────────────────────────── */
   if (loading) {
@@ -155,6 +184,64 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
     label: fmtDate(d.date).replace(/\d{4}/, '').trim().replace(/,$/, ''),
     value: d.value,
   }));
+
+  /* ── Compact mode ─────────────────────────────────────────── */
+  if (displayMode === 'compact') {
+    return (
+      <Card className="mb-4">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              style={{ background: `${color}18` }}
+            >
+              <Wind size={13} style={{ color }} aria-hidden="true" />
+            </div>
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-[18px] font-semibold font-montserrat leading-none" style={{ color }}>
+                  {baro.current ?? '—'}
+                </span>
+                <span className="text-[11px] font-montserrat" style={{ color: C.textFaint }}>hPa</span>
+                <span className="flex items-center gap-0.5 text-[12px] font-medium font-montserrat" style={{ color }}>
+                  <TrendIcon size={12} aria-hidden="true" />
+                  {t.label}
+                </span>
+              </div>
+              {baro.change24h != null && (
+                <div
+                  className="text-[11px] font-montserrat mt-0.5"
+                  style={{
+                    color: baro.change24h < -1 ? C.rose : baro.change24h > 1 ? C.amber : C.sage,
+                  }}
+                >
+                  {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa 24h
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-0.5 flex-shrink-0">
+            <button
+              onClick={() => setMode('full')}
+              aria-label="Expand barometric pressure card"
+              className="p-1.5 rounded-lg bg-transparent border-0 cursor-pointer hover:opacity-70 transition-opacity"
+              style={{ color: C.textFaint }}
+            >
+              <Maximize2 size={13} aria-hidden="true" />
+            </button>
+            <button
+              onClick={() => setMode('hidden')}
+              aria-label="Hide barometric pressure card"
+              className="p-1.5 rounded-lg bg-transparent border-0 cursor-pointer hover:opacity-70 transition-opacity"
+              style={{ color: C.textFaint }}
+            >
+              <EyeOff size={13} aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   const handleLog = () => {
     if (!baro.current || logged) return;
@@ -214,28 +301,38 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
           </div>
         </div>
 
-        {/* 24h delta badge */}
-        {baro.change24h != null && (
-          <div className="text-right flex-shrink-0">
-            <div
-              className="text-[10px] font-montserrat mb-0.5"
-              style={{ color: C.textFaint }}
-            >
-              24 h change
+        {/* 24h delta badge + minimize control */}
+        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+          <button
+            onClick={() => setMode('compact')}
+            aria-label="Collapse barometric pressure card"
+            className="p-1 rounded-lg bg-transparent border-0 cursor-pointer hover:opacity-70 transition-opacity -mt-0.5 -mr-0.5"
+            style={{ color: C.textFaint }}
+          >
+            <Minimize2 size={13} aria-hidden="true" />
+          </button>
+          {baro.change24h != null && (
+            <div className="text-right">
+              <div
+                className="text-[10px] font-montserrat mb-0.5"
+                style={{ color: C.textFaint }}
+              >
+                24 h change
+              </div>
+              <div
+                className="text-[15px] font-semibold font-montserrat"
+                style={{
+                  color:
+                    baro.change24h < -1 ? C.rose
+                    : baro.change24h > 1 ? C.amber
+                    : C.sage,
+                }}
+              >
+                {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa
+              </div>
             </div>
-            <div
-              className="text-[15px] font-semibold font-montserrat"
-              style={{
-                color:
-                  baro.change24h < -1 ? C.rose
-                  : baro.change24h > 1 ? C.amber
-                  : C.sage,
-              }}
-            >
-              {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* ── 7-day sparkline ── */}
