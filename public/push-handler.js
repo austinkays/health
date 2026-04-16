@@ -41,20 +41,36 @@ self.addEventListener('push', (event) => {
     actions = [],
   } = data;
 
+  // iOS Safari supports a limited subset of notification options.
+  // Unsupported options (requireInteraction, vibrate, actions) can
+  // cause showNotification() to silently fail on iOS PWAs.
   const notificationOptions = {
     body,
     icon: '/icon-192.png',
-    badge: '/favicon.svg',
+    badge: '/icon-192.png', // SVG not supported on iOS — use PNG
     tag,
     // Store the target URL in data so notificationclick can retrieve it
     data: { url },
-    // Cap at 2 actions (Web Notification spec limit on most platforms)
-    actions: actions.slice(0, 2),
-    requireInteraction: true,
-    vibrate: [200, 100, 200],
   };
 
-  event.waitUntil(self.registration.showNotification(title, notificationOptions));
+  // Only add platform-specific options that iOS doesn't support
+  // when we're NOT on an Apple device
+  const isApple = /iP(hone|ad|od)|Mac/.test(self.navigator?.userAgent || '');
+  if (!isApple) {
+    notificationOptions.requireInteraction = true;
+    notificationOptions.vibrate = [200, 100, 200];
+    if (actions.length > 0) {
+      notificationOptions.actions = actions.slice(0, 2);
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(title, notificationOptions).catch((err) => {
+      console.error('[push-handler] showNotification failed:', err);
+      // Fallback with minimal options if the full set was rejected
+      return self.registration.showNotification(title, { body, tag, data: { url } });
+    })
+  );
 });
 
 /**
