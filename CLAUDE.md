@@ -404,6 +404,44 @@ All writes go through `db.bulkAdd(table, rows)` in 500-row batches and are dedup
 - Supabase gotrue uses a storage lock; calling both `getSession()` and `onAuthStateChange` in React Strict Mode (double-mount) triggers a 5-second forced timeout
 - The `INITIAL_SESSION` event from `onAuthStateChange` is sufficient; `getSession()` was removed
 
+### localStorage Keys
+
+All keys are namespaced `salve:*`. None contain medical data — that's in the encrypted `hc:cache` blob owned by `cache.js`. Everything here is UI state, dev tooling, or non-PHI flags.
+
+| Key | Written by | Purpose |
+|-----|-----------|---------|
+| `salve:theme` | `useTheme.jsx` | Active theme id (default `lilac`) |
+| `salve:ai-provider` | `services/ai.js` | `'gemini'` or `'anthropic'` — selected AI provider |
+| `salve:ai-consent` | `AIConsentGate.jsx` | User has acknowledged AI data-sharing disclaimer |
+| `salve:tier-override` | `Settings.jsx` dev UI | **DEV-ONLY.** `'free'` \| `'premium'` \| `'admin'` for previewing tier states. Read by `ai.js` only when `import.meta.env.DEV` — ignored in production |
+| `salve:oura` | `services/oura.js` | Oura OAuth tokens + expiry |
+| `salve:oura-baseline` | `Settings.jsx` | User's BBT baseline °F for Oura temp-deviation → BBT conversion (default 97.7) |
+| `salve:dexcom` | `services/dexcom.js` | Dexcom OAuth tokens + expiry |
+| `salve:withings` / `salve:fitbit` / `salve:whoop` | wearable services | OAuth tokens for each provider |
+| `salve:pending-invite` | `Auth.jsx` | Beta invite code stashed pre-magic-link, claimed after sign-in completes |
+| `salve:dash-primary` | `Dashboard.jsx` | Array of 1–16 section ids in user's customized Quick Access grid |
+| `salve:dash-more` | `Dashboard.jsx` | "More sections" expanded/collapsed state |
+| `salve:starred` | `utils/starred.js` | Array of pinned section ids on Dashboard (cap 6) |
+| `salve:med-sort` | `Medications.jsx` | Sort mode: `'az'` / `'schedule'` / `'refill'` / `'category'` |
+| `salve:cycle-overlays` | `CycleTracker.jsx` | Which calendar overlays are toggled on (period/fertile/BBT/etc) |
+| `salve:flo-imported` | `CycleTracker.jsx` | `'1'` once a Flo GDPR export has been imported — hides the import CTA |
+| `salve:med-tracking` | `constants/journalPrompts.js` | JSON `{medId, medName, startDate, day}` — tracks a newly-started med for 14 days to surface contextual journal prompts ("Day 3 on Lexapro — any side effects?"). Auto-seeded when a med with `start_date` within 14 days is detected, auto-cleared when the window ends |
+| `salve:last-contextual-prompt-date` | `constants/journalPrompts.js` | Date string — daily throttle so contextual journal prompts show at most once per day |
+| `salve:saved-news` | `AIPanel.jsx` | Array of bookmarked Sage news stories |
+| `salve:saved-insights` | `AIPanel.jsx` + `useSavedInsights` | Array of saved AI insight/connections/resources/costs results |
+| `salve:dismissed-tips` | `Dashboard.jsx` | Array of `{id, permanent?, snoozedUntil?}` for Getting Started tips |
+| `salve:onboarded` | `OnboardingWizard.jsx` | `'1'` once onboarding wizard has been completed or skipped |
+| `salve:demo-welcome-seen` | `DemoWelcome.jsx` | `'1'` once the demo walkthrough has been shown |
+| `salve:install-dismissed` | `InstallPrompt.jsx` | `'1'` once the PWA install prompt has been dismissed |
+| `salve:last-seen-version` | `WhatsNewModal.jsx` | Last changelog version user has seen |
+| `salve:hidden-sources` | `utils/hiddenSources.js` | Array of import-source ids the user has hidden in Settings |
+| `salve:first-signin:<userId>` | `App.jsx` | `'1'` per-user flag so the `signed_in_first_time` analytics event fires exactly once per browser |
+| `hc:cache` | `cache.js` | AES-GCM encrypted health data cache (PHI) |
+| `hc:pending` | `cache.js` | Queued offline write operations (metadata only, no PHI) |
+| `hc:settings` | `cache.js` | Unencrypted plain JSON sidecar for non-PHI settings (name, ai_mode) — available synchronously before PBKDF2 completes |
+
+When adding a new localStorage key: use the `salve:` namespace (or `hc:` for encrypted cache internals), add a row to this table, and ensure `cache.clear()` or an explicit sign-out path removes it if it contains per-user state.
+
 ### AI API Proxies (Tiered Provider System)
 
 The app uses a **tiered AI provider system** with smart model routing per feature complexity:
@@ -1150,6 +1188,7 @@ Base-layer CSS rules in `index.css` apply `text-wrap: balance` to all headings (
 | `STRIPE_ANNUAL_PRICE_ID` | Vercel env vars only | Stripe Price ID for the annual Premium subscription plan |
 | `VITE_BILLING_ENABLED` | Vercel env vars | Set to `'true'` once Stripe is fully configured. While unset/false, every upgrade CTA is hidden so beta users aren't routed to a broken checkout. |
 | `CRON_SECRET` | Vercel env vars only | Shared secret to authenticate Vercel cron invocations (api/cron-reminders.js) |
+| `PUSH_INTERNAL_SECRET` | Vercel env vars only | Shared secret for authenticating internal service→`api/push-send.js` calls from `api/cron-reminders.js`. Kept separate from `SUPABASE_SERVICE_ROLE_KEY` so a leak of one doesn't expose push authority. Generate with `openssl rand -hex 32`. If unset, cron-reminders fails with a 500 "PUSH_INTERNAL_SECRET not configured" error — intentional fail-closed behavior. |
 | `VAPID_EMAIL` | Vercel env vars only | VAPID contact email for Web Push notifications (api/push-send.js) |
 | `VAPID_PRIVATE_KEY` | Vercel env vars only | VAPID private key for Web Push encryption (api/push-send.js) |
 | `VITE_VAPID_PUBLIC_KEY` | `.env.local` + Vercel env vars | VAPID public key for push subscription registration (client + server) |
