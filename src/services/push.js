@@ -26,15 +26,33 @@ export function getPermissionState() {
 }
 
 /**
- * Checks whether the current user already has an active push subscription.
- * Returns false if service workers or push manager are unavailable.
+ * Checks whether the current user already has an active push subscription
+ * that matches the current VAPID key. Returns false if the subscription
+ * is missing, the Push API is unavailable, or the VAPID key has changed
+ * since the subscription was created (stale subscription).
  */
 export async function isSubscribed() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    return subscription !== null;
+    if (!subscription) return false;
+
+    // Detect VAPID key mismatch — if the key changed, the subscription is invalid
+    const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+    if (vapidPublicKey && subscription.options?.applicationServerKey) {
+      const currentKey = urlBase64ToUint8Array(vapidPublicKey);
+      const subKey = new Uint8Array(subscription.options.applicationServerKey);
+      if (currentKey.length !== subKey.length || !currentKey.every((b, i) => b === subKey[i])) {
+        // VAPID key changed — old subscription is useless. Clean it up.
+        console.warn('[push] VAPID key mismatch — clearing stale subscription');
+        await subscription.unsubscribe();
+        await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+        return false;
+      }
+    }
+
+    return true;
   } catch {
     return false;
   }
@@ -61,6 +79,16 @@ export async function subscribeToPush() {
   }
 
   const registration = await navigator.serviceWorker.ready;
+
+  // Clear any existing subscription first — handles VAPID key rotation gracefully.
+  // If the old subscription was bound to a different key, pushManager.subscribe()
+  // would throw "Registration failed - A subscription with a different
+  // applicationServerKey already exists."
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) {
+    await existing.unsubscribe();
+  }
+
   const subscription = await registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
@@ -138,5 +166,15 @@ export async function sendTestPush() {
     throw new Error(data.error || `Push send failed (${res.status})`);
   }
 
-  return res.json();
+  const data = await res.json();
+
+  // Server returns 200 even when all sends fail — check the body
+  if (data.sent === 0 && data.failed > 0) {
+    throw new Error('Notification failed to deliver — try disabling and re-enabling push.');
+  }
+  if (data.sent === 0 && data.message) {
+    throw new Error(data.message); // "No subscriptions found"
+  }
+
+  return data;
 }

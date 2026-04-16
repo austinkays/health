@@ -269,6 +269,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const [pushPermission, setPushPermission] = useState(() => getPermissionState());
+  const [pushTestStatus, setPushTestStatus] = useState(null); // {type:'ok'|'err', msg}
 
   useEffect(() => {
     isSubscribed().then(setPushEnabled);
@@ -1055,11 +1056,24 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
                       <li>Overdue to-do nudges</li>
                     </ul>
                     <button
-                      onClick={async () => { try { await sendTestPush(); } catch {} }}
+                      onClick={async () => {
+                        setPushTestStatus(null);
+                        try {
+                          await sendTestPush();
+                          setPushTestStatus({ type: 'ok', msg: 'Notification sent — check your device.' });
+                        } catch (err) {
+                          setPushTestStatus({ type: 'err', msg: err.message || 'Failed to send test notification.' });
+                        }
+                      }}
                       className="text-[13px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 mt-2 hover:underline"
                     >
                       Send test notification
                     </button>
+                    {pushTestStatus && (
+                      <p className={`text-xs font-montserrat mt-1.5 ${pushTestStatus.type === 'ok' ? 'text-salve-sage' : 'text-salve-rose'}`}>
+                        {pushTestStatus.msg}
+                      </p>
+                    )}
                   </div>
                 )}
               </>

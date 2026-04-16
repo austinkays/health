@@ -77,8 +77,16 @@ async function deleteSubscription(endpoint) {
 
 /**
  * Logs a sent notification to the notification_log table (service-role only).
+ *
+ * Table schema (migration 028):
+ *   user_id, type (medication|appointment|refill|journal|todo),
+ *   reference_id, sent_at, status (sent|failed), error
  */
-async function logNotification(userId, { title, body, tag, referenceId }) {
+async function logNotification(userId, { type, referenceId, status, error }) {
+  // Derive a valid type from the tag, falling back to 'medication'
+  const VALID_TYPES = ['medication', 'appointment', 'refill', 'journal', 'todo'];
+  const resolvedType = VALID_TYPES.includes(type) ? type : 'medication';
+
   await fetch(`${SUPABASE_URL}/rest/v1/notification_log`, {
     method: 'POST',
     headers: {
@@ -89,11 +97,11 @@ async function logNotification(userId, { title, body, tag, referenceId }) {
     },
     body: JSON.stringify({
       user_id: userId,
-      title,
-      body,
-      tag: tag || null,
+      type: resolvedType,
       reference_id: referenceId || null,
       sent_at: new Date().toISOString(),
+      status: status || 'sent',
+      error: error || null,
     }),
   });
 }
@@ -170,7 +178,12 @@ export default async function handler(req, res) {
 
   // Log when called by service role (cron scheduler) so cron-reminders can dedup
   if (caller.role === 'service' && sent > 0) {
-    await logNotification(targetUserId, { title, body, tag, referenceId: req.body?.reference_id });
+    // Derive notification type from tag (e.g. 'refill-xxx' → 'refill', 'appointment-xxx' → 'appointment')
+    const typeFromTag = (tag || '').split('-')[0];
+    await logNotification(targetUserId, {
+      type: typeFromTag,
+      referenceId: req.body?.reference_id,
+    });
   }
 
   // Only log user-initiated calls to api_usage — cron-reminders already writes
