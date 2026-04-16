@@ -7,6 +7,7 @@ import { buildProfile } from '../../services/profile';
 import { fillFormQuestions } from '../../services/ai';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { FORM_TEMPLATES } from '../../constants/formTemplates';
+import { todayISO } from '../../utils/dates';
 
 // ── Parse AI response into structured Q&A pairs ──
 
@@ -345,7 +346,7 @@ function AppointmentPicker({ appointments, selected, onSelect }) {
   const [expanded, setExpanded] = useState(false);
   const upcoming = useMemo(() => {
     if (!appointments?.length) return [];
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayISO();
     return appointments
       .filter(a => a.date >= today)
       .sort((a, b) => a.date.localeCompare(b.date))

@@ -18,7 +18,7 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { DESTRUCTIVE_TOOLS } from '../../constants/tools';
 import { createToolExecutor } from '../../services/toolExecutor';
 import { computeCycleStats, getCyclePhaseForDate } from '../../utils/cycles';
-import { fmtDateRelative } from '../../utils/dates';
+import { fmtDateRelative, localISODate } from '../../utils/dates';
 import CrisisModal from '../ui/CrisisModal';
 import { detectCrisis } from '../../utils/crisis';
 
@@ -1205,7 +1205,7 @@ export default function AIPanel({ data, addItem, updateItem, removeItem, updateS
 
         const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        const cutoff = threeMonthsAgo.toISOString().slice(0, 10);
+        const cutoff = localISODate(threeMonthsAgo);
 
         const recentVitals = (data.vitals || [])
           .filter(v => v.date >= cutoff && ['pain', 'mood', 'energy', 'sleep'].includes(v.type))

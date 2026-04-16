@@ -4,6 +4,7 @@
 
 import { getAuthToken } from './token';
 import { trackEvent, EVENTS } from './analytics';
+import { todayISO, localISODate } from '../utils/dates';
 
 const STORAGE_KEY = 'salve:oura';
 
@@ -268,8 +269,8 @@ export function ouraTemperatureToCycleEntries(ouraTemps, existingCycles, baselin
  * Returns { added: number, skipped: number, entries: Array }
  */
 export async function syncOuraTemperature(existingCycles, addItem, days = 30, baselineF = 97.7) {
-  const endDate = new Date().toISOString().slice(0, 10);
-  const startDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const endDate = todayISO();
+  const startDate = localISODate(new Date(Date.now() - days * 86400000));
 
   let ouraTemps;
   try {
@@ -297,8 +298,8 @@ export async function syncOuraTemperature(existingCycles, addItem, days = 30, ba
 // ── Full sync: all Oura data types → vitals + activities ──
 
 function dateRange(days) {
-  const endDate = new Date().toISOString().slice(0, 10);
-  const startDate = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+  const endDate = todayISO();
+  const startDate = localISODate(new Date(Date.now() - days * 86400000));
   return { startDate, endDate };
 }
 

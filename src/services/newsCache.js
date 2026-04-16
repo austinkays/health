@@ -4,6 +4,8 @@
 // Article shape:
 // { id, title, blurb, url, source, sourceShort, date, type ('rss'|'sage'|'saved'), savedAt? }
 
+import { todayISO } from '../utils/dates';
+
 const SAGE_CACHE_KEY = 'salve:news-sage-cache';
 const SAVED_KEY = 'salve:saved-news';
 
@@ -43,7 +45,7 @@ export function cacheSageNewsFromResult(result) {
       url: sourceUrl,
       source: 'Sage',
       sourceShort: 'Sage',
-      date: new Date().toISOString().slice(0, 10),
+      date: todayISO(),
       type: 'sage',
       originalSource: sourceName,
     };

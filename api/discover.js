@@ -15,14 +15,19 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 // ── RSS feed sources ──
 const FEEDS = [
   {
-    url: 'https://newsinhealth.nih.gov/rss/NIHNiH.xml',
+    url: 'https://newsinhealth.nih.gov/rss',
     source: 'NIH News in Health',
     sourceShort: 'NIH',
   },
   {
-    url: 'https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/drug-safety-and-availability/rss.xml',
+    url: 'https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/disco/rss.xml',
     source: 'FDA Drug Safety',
     sourceShort: 'FDA',
+  },
+  {
+    url: 'https://medlineplus.gov/groupfeeds/new.xml',
+    source: 'MedlinePlus',
+    sourceShort: 'MedlinePlus',
   },
 ];
 
@@ -45,6 +50,52 @@ function extractAllItems(xml) {
   return items;
 }
 
+function extractAllEntries(xml) {
+  const entries = [];
+  const re = /<entry\b[^>]*>([\s\S]*?)<\/entry>/gi;
+  let match;
+  while ((match = re.exec(xml)) !== null) {
+    entries.push(match[1]);
+  }
+  return entries;
+}
+
+function decodeEntities(text = '') {
+  return text
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8211;/g, '-')
+    .replace(/&#8212;/g, '-')
+    .replace(/&#8230;/g, '...')
+    .replace(/&#(\d+);/g, (_, code) => {
+      const num = Number(code);
+      return Number.isFinite(num) ? String.fromCharCode(num) : _;
+    })
+    .trim();
+}
+
+function stripHtml(text = '') {
+  let decoded = String(text || '');
+  for (let i = 0; i < 3; i++) {
+    const next = decodeEntities(decoded);
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function extractLink(xml) {
+  const atomHref = xml.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*\/?\s*>/i);
+  if (atomHref?.[1]) return atomHref[1].trim();
+  return decodeEntities(extractTag(xml, 'link'));
+}
+
 function parseDate(dateStr) {
   try {
     const d = new Date(dateStr);
@@ -54,25 +105,44 @@ function parseDate(dateStr) {
   }
 }
 
+// Government .gov sites commonly block requests without a User-Agent header.
+// Send a recognizable UA so WAFs don't treat us as a headless bot.
+const RSS_FETCH_HEADERS = {
+  'User-Agent': 'SalveHealthApp/1.0 (+https://salve.today)',
+  'Accept': 'application/rss+xml, application/xml, text/xml, */*',
+};
+
 async function fetchFeed(feed) {
   try {
-    const res = await fetchWithTimeout(feed.url);
-    if (!res.ok) return [];
+    const res = await fetchWithTimeout(feed.url, { headers: RSS_FETCH_HEADERS });
+    if (!res.ok) {
+      console.warn(`[Discover] ${feed.sourceShort} returned ${res.status}`);
+      return [];
+    }
     const xml = await res.text();
     const items = extractAllItems(xml);
+    const entries = items.length === 0 ? extractAllEntries(xml) : [];
+    const records = items.length > 0 ? items : entries;
 
-    return items.slice(0, 15).map(item => {
-      const title = extractTag(item, 'title');
-      const link = extractTag(item, 'link');
-      const description = extractTag(item, 'description')
-        .replace(/<[^>]+>/g, '') // strip HTML
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .slice(0, 300);
-      const pubDate = parseDate(extractTag(item, 'pubDate'));
+    if (records.length === 0) {
+      console.warn(`[Discover] ${feed.sourceShort} returned no parseable entries`);
+      return [];
+    }
+
+    return records.slice(0, 15).map(item => {
+      const title = decodeEntities(extractTag(item, 'title'));
+      const link = extractLink(item);
+      const description = stripHtml(
+        extractTag(item, 'description') ||
+        extractTag(item, 'summary') ||
+        extractTag(item, 'content:encoded') ||
+        extractTag(item, 'content')
+      ).slice(0, 300);
+      const pubDate = parseDate(
+        extractTag(item, 'pubDate') ||
+        extractTag(item, 'updated') ||
+        extractTag(item, 'published')
+      );
 
       if (!title || !link) return null;
 
@@ -105,7 +175,11 @@ async function fetchAllFeeds() {
     .flatMap(r => r.value)
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 
-  feedCache = { articles, expiry: now + CACHE_TTL };
+  // Only cache non-empty results — caching [] for 24h poisons the cache
+  // and prevents retries after a transient upstream failure.
+  if (articles.length > 0) {
+    feedCache = { articles, expiry: now + CACHE_TTL };
+  }
   return articles;
 }
 

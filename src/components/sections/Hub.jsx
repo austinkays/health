@@ -3,12 +3,12 @@ import {
   ChevronRight, ClipboardList, User, UserCircle, Activity, Shield, CheckSquare, Link2, Star,
   Stethoscope, ShieldAlert, Calendar, FlaskConical, Syringe, ShieldCheck, Dna,
   Building2, BadgeDollarSign, Scale, Heart, Moon, TrendingUp, AlertTriangle,
-  AlertOctagon, PlaneTakeoff, Apple, Thermometer,
+  AlertOctagon, PlaneTakeoff, Apple, Thermometer, Watch,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
 import { C } from '../../constants/colors';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, todayISO, localISODate } from '../../utils/dates';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred, toggleStar, STAR_MAX } from '../../utils/starred';
 
@@ -48,7 +48,7 @@ export const HUBS = {
     label: 'Devices',
     description: 'Connected wearables',
     icon: Link2,
-    sections: ['oura', 'apple_health'],
+    sections: ['oura', 'fitbit', 'apple_health'],
   },
 };
 
@@ -77,6 +77,7 @@ const SECTIONS = {
   todos:        { label: "To-Do's",       icon: CheckSquare },
   surgical:     { label: 'Surgery Plan',  icon: PlaneTakeoff },
   oura:         { label: 'Oura Ring',     icon: OuraIcon },
+  fitbit:       { label: 'Fitbit',        icon: Watch },
   apple_health: { label: 'Apple Health',  icon: Apple },
 };
 
@@ -119,7 +120,7 @@ function getStat(id, data) {
       return n ? `${n} provider${n !== 1 ? 's' : ''}` : 'None yet';
     }
     case 'appts': {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = todayISO();
       const upcoming = (data.appts || []).filter(a => a.date >= today).length;
       return upcoming ? `${upcoming} upcoming` : 'None scheduled';
     }
@@ -147,7 +148,7 @@ function getStat(id, data) {
       return `${s[0].value} hrs · ${fmtDate(s[0].date)}`;
     }
     case 'activities': {
-      const cutoff = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+      const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
       const n = (data.activities || []).filter(a => a.date >= cutoff).length;
       return n ? `${n} this week` : 'Nothing this week';
     }

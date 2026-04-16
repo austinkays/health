@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronLeft, Search, Leaf } from 'lucide-react';
+import { ChevronLeft, Search, Leaf, Bell } from 'lucide-react';
 
 function SplitGreeting({ name }) {
   const words = ['Hello,', name || 'there'];
@@ -95,6 +95,7 @@ const TAB_LABELS = {
   hub_plans: 'Plans',
   hub_devices: 'Devices',
   oura: 'Oura Ring',
+  fitbit: 'Fitbit',
   apple_health: 'Apple Health',
   summary: 'Health Summary',
   legal: 'Legal',
@@ -103,10 +104,10 @@ const TAB_LABELS = {
   formhelper: 'Scribe',
   news: 'News',
   aboutme: 'About Me',
-  import: 'Import',
+  import: 'Connections',
 };
 
-export default function Header({ tab, name, onBack, onSearch, onSage, action, topBannerActive = false }) {
+export default function Header({ tab, name, onBack, onSearch, onSage, onNotifications, pushEnabled, action, topBannerActive = false }) {
   const isDash = tab === 'dash';
   const isSearch = tab === 'search';
   const isSage = tab === 'ai';
@@ -138,6 +139,19 @@ export default function Header({ tab, name, onBack, onSearch, onSage, action, to
           {isDash && <CyclingTagline />}
         </div>
         {action}
+        {/* Notifications bell — top-right on all views */}
+        {onNotifications && (
+          <button
+            onClick={onNotifications}
+            aria-label="Notifications"
+            className="relative bg-transparent border-none text-salve-textMid hover:text-salve-lav cursor-pointer p-1.5 flex transition-colors"
+          >
+            <Bell size={18} />
+            {pushEnabled && (
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-salve-sage" aria-hidden="true" />
+            )}
+          </button>
+        )}
         {!isSage && onSage && (
           <button onClick={onSage} aria-label="Open Sage" className="bg-transparent border-none text-salve-textMid hover:text-salve-sage cursor-pointer p-1.5 flex transition-colors md:hidden">
             <Leaf size={18} />

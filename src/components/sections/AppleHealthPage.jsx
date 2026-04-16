@@ -4,7 +4,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import { C } from '../../constants/colors';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, localISODate } from '../../utils/dates';
 
 /* ── Helpers ────────────────────────────────────────── */
 
@@ -89,7 +89,7 @@ export default function AppleHealthPage({ data, onNav }) {
   }, [ahVitals]);
 
   // 7-day aggregates
-  const weekAgo = useMemo(() => new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10), []);
+  const weekAgo = useMemo(() => localISODate(new Date(Date.now() - 7 * 86400000)), []);
   const recentVitals = useMemo(() => ahVitals.filter(v => v.date >= weekAgo), [ahVitals, weekAgo]);
   const recentActivities = useMemo(() => ahActivities.filter(a => a.date >= weekAgo), [ahActivities, weekAgo]);
 

@@ -16,10 +16,14 @@ const INSIGHT_FOCUS_AREAS = [
   'research — recent medical progress or clinical trial relevant to their conditions or medications',
 ];
 
-// Sanitize user-provided profile text: strip angle brackets / braces, cap length
+// Sanitize user-provided profile text: strip angle brackets / braces / newlines /
+// Unicode bidi override chars (prompt-injection surface), cap length. Must stay
+// in sync with src/services/profile.js `san()` on the client.
 function sanProfile(text, limit = FREE_PROFILE_CHAR_LIMIT) {
   if (!text) return '';
-  return String(text).replace(/[<>{}]/g, '').slice(0, limit);
+  return String(text)
+    .replace(/[<>{}\r\n\u202A-\u202E\u2066-\u2069\u200E\u200F]/g, ' ')
+    .slice(0, limit);
 }
 
 function getProfileCharLimit(tier) {
@@ -249,6 +253,27 @@ RULES:
 - If there is NOTHING new worth remembering, return exactly: NONE
 - Return 1-5 bullets max, one per line, each starting with "- ".
 - Do NOT include markdown code fences or any other formatting.`,
+
+  insuranceCard:
+    `You are an insurance card data extraction engine. Given a photo of an insurance card (front, back, or both), extract all visible information and return ONLY valid JSON — no markdown, no code fences, no explanation.
+
+Return this exact shape:
+{
+  "name": "plan name or insurer name (e.g. 'Blue Cross Blue Shield', 'CareOregon OHP')",
+  "type": "one of: Medicaid, Medicare, Private, Hospital charity care, or empty string if unclear",
+  "member_id": "member/subscriber ID number or empty string",
+  "group": "group number or empty string",
+  "phone": "member services phone number or empty string",
+  "notes": "any other useful info visible on the card (RxBin, RxPCN, copay amounts, PCP name, plan type like HMO/PPO, effective date, etc.) as a short summary, or empty string"
+}
+
+RULES:
+- Extract ONLY what is clearly visible on the card. Do NOT guess or fabricate.
+- For phone, prefer the "Member Services" number. If multiple numbers, pick the most relevant one for a member calling about their plan.
+- For type, infer from context: if it says Medicaid/OHP/state program → "Medicaid", if Medicare → "Medicare", if it looks like employer/marketplace coverage → "Private", if charity/financial assistance → "Hospital charity care". Leave empty if truly unclear.
+- For notes, include useful details like copay amounts, RxBin/RxPCN/RxGrp for pharmacy, effective dates, PCP name, plan network (HMO/PPO/EPO), but keep it brief.
+- If the image is blurry or unreadable, still extract what you can and leave unreadable fields as empty strings.
+- Return ONLY the JSON object. No other text.`,
 
   correlationNarrative:
     `You are a warm, supportive health pattern analyst. The user's health tracking data shows these statistical patterns. Rewrite them as 3-5 short, clear insight cards.

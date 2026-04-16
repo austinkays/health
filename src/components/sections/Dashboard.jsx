@@ -13,12 +13,14 @@ import {
 import { readCachedBarometric, PRESSURE_SENSITIVE } from '../../services/barometric';
 import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
+import BarometricCard from '../ui/BarometricCard';
 import Button from '../ui/Button';
 import Motif, { Divider } from '../ui/Motif';
 import { SageIntroButton, shouldShowIntro } from '../ui/SageIntro';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 import { VITAL_TYPES } from '../../constants/defaults';
 import { fetchInsight, isPremiumActive } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -30,8 +32,8 @@ import useWellnessMessage from '../../hooks/useWellnessMessage';
 import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
-import { matchResources } from '../../constants/resources/index.js';
 import { fetchDiscoverArticles } from '../../services/discover';
+import { buildNewsFeed } from '../../services/newsCache';
 import { getDailyQuote } from '../../constants/quotes';
 import ThumbsRating from '../ui/ThumbsRating';
 import { useIsDesktop } from '../layout/SplitView';
@@ -269,6 +271,7 @@ const STARRED_META = {
   todos:         { label: "To-Do's",      icon: CheckSquare },
   surgical:      { label: 'Surgery',      icon: PlaneTakeoff },
   oura:          { label: 'Oura',         icon: OuraIcon },
+  fitbit:        { label: 'Fitbit',      icon: Watch },
   apple_health:  { label: 'Apple Health', icon: Apple },
   meds:          { label: 'Meds',         icon: Pill },
   journal:       { label: 'Journal',      icon: BookOpen },
@@ -294,6 +297,7 @@ const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
 export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro, dataLoading, insightRatings }) {
   const isDesktop = useIsDesktop();
+  const { themeId } = useTheme();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
@@ -722,7 +726,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       // years of historical labs doesn't bury the Dashboard in stale alerts.
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 90);
-      const cutoffISO = cutoff.toISOString().slice(0, 10);
+      const cutoffISO = localISODate(cutoff);
       return (data.labs || []).filter(l =>
         ['abnormal', 'high', 'low'].includes(l.flag) &&
         (!l.date || l.date >= cutoffISO)
@@ -733,7 +737,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
   /* Appointments within 48 hours for prep nudge */
   /* ── AI Insight ─────────────────────────────── */
-  const insightCacheKey = `salve:daily-insight-${new Date().toISOString().slice(0, 10)}`;
+  const insightCacheKey = `salve:daily-insight-${localISODate(new Date())}`;
 
   const loadInsight = async (forceRefresh = false) => {
     if (!forceRefresh) {
@@ -977,42 +981,35 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     setShowDismissMenu(false);
   };
 
-  /* ── Discover (matched resources + dynamic RSS articles) ─────────── */
+  /* ── Discover (personalized news only) ─────────── */
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
-  const [dynamicArticles, setDynamicArticles] = useState([]);
+  const [rssArticles, setRssArticles] = useState([]);
   const dailyQuote = useMemo(() => getDailyQuote(), []);
+  const discoverConditionNames = (data.conditions || []).map(c => c.name).filter(Boolean).join('|');
 
-  // Fetch dynamic articles from trusted RSS feeds (14-day client cache)
+  // Fetch trusted RSS articles, then let the shared news-ranking logic decide
+  // what is actually relevant enough to appear on Home.
   useEffect(() => {
     const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
     if (conditions.length === 0 && (data.meds || []).length === 0) return;
     fetchDiscoverArticles(conditions).then(articles => {
-      if (articles?.length) setDynamicArticles(articles);
+      setRssArticles(articles || []);
     });
-  }, [data.conditions?.length, data.meds?.length]);
+  }, [discoverConditionNames, data.meds?.length]);
 
   const discoverItems = useMemo(() => {
     const seenSet = new Set(seenResources);
-    const staticItems = matchResources({
+    const feed = buildNewsFeed({
+      rssArticles,
       conditions: data.conditions,
       medications: data.meds,
-      journal_entries: data.journal,
-      settings: data.settings,
-    }).filter(m => !seenSet.has(m.resource.id));
+    });
 
-    // Merge dynamic RSS articles (interleave: 1 static, 1 dynamic)
-    const dynamicItems = dynamicArticles
-      .filter(a => !seenSet.has(a.id))
-      .map(a => ({ resource: a, score: 0.5, dynamic: true }));
-
-    const merged = [];
-    let si = 0, di = 0;
-    while (si < staticItems.length || di < dynamicItems.length) {
-      if (si < staticItems.length) merged.push(staticItems[si++]);
-      if (di < dynamicItems.length) merged.push(dynamicItems[di++]);
-    }
-    return merged;
-  }, [data.conditions, data.meds, data.journal, data.settings, seenResources, dynamicArticles]);
+    return feed
+      .filter(article => !seenSet.has(article.id))
+      .filter(article => article.type !== 'rss' || article.relevance > 0)
+      .map(article => ({ resource: article, dynamic: article.type === 'rss' }));
+  }, [data.conditions, data.meds, seenResources, rssArticles]);
 
   const displayedDiscover = useMemo(() => discoverItems.slice(0, isDesktop ? 4 : 3), [discoverItems, isDesktop]);
 
@@ -1024,8 +1021,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     const hasAITeaser = aiConsent && !insight && !insightLoading && data.settings.ai_mode !== 'off' && activeMeds.length + data.conditions.length > 0;
     const hasAIInsight = aiConsent && (insight || insightLoading);
     const hasDiscover = displayedDiscover.length > 0;
-    return hasAlerts || hasPatterns || hasAITeaser || hasAIInsight || hasDiscover;
-  }, [alerts, alertsDismissed, topInsights.length, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length]);
+    const hasBaro = !!data.settings.location;
+    return hasAlerts || hasPatterns || hasAITeaser || hasAIInsight || hasDiscover || hasBaro;
+  }, [alerts, alertsDismissed, topInsights.length, insight, insightLoading, data.settings.ai_mode, activeMeds.length, data.conditions.length, displayedDiscover.length, data.settings.location]);
 
   const dismissResource = useCallback((resourceId) => {
     setSeenResources(prev => {
@@ -1121,7 +1119,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       </section>
 
       {/* ── Today at a Glance chips ────────────── */}
-      {(todayChips.length > 0 || baroChip) && (
+      {todayChips.length > 0 && (
         <section aria-label="Today at a glance" className="dash-stagger dash-stagger-2 mb-4 -mt-1">
           <div className="flex items-center gap-2 flex-wrap">
             {todayChips.map(chip => {
@@ -1139,22 +1137,6 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 </button>
               );
             })}
-            {baroChip && (() => {
-              const baroColor = baroChip.trend === 'falling' ? C.rose : baroChip.trend === 'rising' ? C.amber : C.sage;
-              const BaroIcon = baroChip.trend === 'falling' ? TrendingDown : baroChip.trend === 'rising' ? TrendingUp : Minus;
-              return (
-                <button
-                  onClick={() => onNav('vitals')}
-                  aria-label={`Barometric pressure ${baroChip.current} hPa, ${baroChip.trend}. View in Vitals.`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
-                  style={{ background: `${baroColor}12`, outline: `1px solid ${baroColor}28` }}
-                >
-                  <Wind size={11} style={{ color: baroColor }} aria-hidden="true" />
-                  <span className="text-[11.5px] font-medium" style={{ color: baroColor }}>{baroChip.current} hPa</span>
-                  <BaroIcon size={10} style={{ color: baroColor, opacity: 0.8 }} aria-hidden="true" />
-                </button>
-              );
-            })()}
           </div>
         </section>
       )}
@@ -1430,6 +1412,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             </section>
           )}
 
+          {/* Barometric pressure card */}
+          {data.settings.location && (
+            <Reveal as="section" aria-label="Barometric pressure" className="dash-stagger dash-stagger-3">
+              <BarometricCard
+                locationStr={data.settings.location}
+                onLogPressure={() => onNav('vitals')}
+                onNav={onNav}
+              />
+            </Reveal>
+          )}
+
           {/* Health patterns */}
           {topInsights.length > 0 && (
             <section aria-label="Health patterns" className="dash-stagger dash-stagger-3 mb-4">
@@ -1575,14 +1568,14 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             </section>
           )}
 
-          {/* Discover resources */}
+          {/* Discover news */}
           {displayedDiscover.length > 0 && (
-            <Reveal as="section" aria-label="Discover resources" className="mb-4">
+            <Reveal as="section" aria-label="Personalized health news" className="mb-4">
               <Card className="!p-0 overflow-hidden">
                 <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
                   <div className="flex items-center gap-2">
-                    <Compass size={13} className="text-salve-lav" />
-                    <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">Discover</span>
+                    <Newspaper size={13} className="text-salve-lav" />
+                    <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">For You</span>
                   </div>
                   <button
                     onClick={() => onNav('news')}
@@ -1594,7 +1587,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                 {displayedDiscover.map((d, i) => {
                   const src = d.resource.source;
                   const isDynamic = d.dynamic;
-                  const accentColor = src === 'EveryCure' ? C.sage : isDynamic ? C.lav : C.rose;
+                  const accentColor = src === 'FDA Drug Safety' ? C.amber : src === 'Sage' ? C.sage : C.lav;
                   return (
                     <div
                       key={d.resource.id}
@@ -1606,13 +1599,17 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-0.5">
-                          {src === 'EveryCure' && <span className="text-[12px]" aria-hidden="true">🔬</span>}
                           <span
                             className="text-ui-xs font-montserrat tracking-wider uppercase"
                             style={{ color: accentColor }}
                           >
                             {src}
                           </span>
+                          {d.resource.relevance > 0 && isDynamic && (
+                            <span className="text-[9px] text-salve-textFaint/60 font-montserrat tracking-wide uppercase">
+                              Matched
+                            </span>
+                          )}
                           {d.resource.date && <span className="text-[9px] text-salve-textFaint/50 font-montserrat">{d.resource.date}</span>}
                         </div>
                         <a

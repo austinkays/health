@@ -3,6 +3,8 @@
 // Aggregates high-frequency data (HR, SpO2, resp) to hourly buckets per day
 // Steps/energy → daily totals for activities table
 
+import { localISODate } from '../utils/dates';
+
 /* ── HealthKit type → Salve type mapping ──────────────── */
 
 const HK_TYPE_MAP = {
@@ -60,11 +62,13 @@ function convertTemp(value, unit) {
 }
 
 function parseDate(dateStr) {
-  // Apple Health: "2024-01-15 08:30:00 -0800" or ISO format
+  // Apple Health: "2024-01-15 08:30:00 -0800" or ISO format.
+  // Use local-calendar date so an 11pm PT reading stays on the PT date,
+  // rather than rolling into tomorrow's UTC date.
   if (!dateStr) return null;
   const d = new Date(dateStr);
   if (isNaN(d)) return null;
-  return d.toISOString().slice(0, 10); // YYYY-MM-DD
+  return localISODate(d);
 }
 
 function parseDuration(startStr, endStr) {
@@ -105,7 +109,7 @@ export function parseAppleHealthExport(input, { onProgress, monthsBack = 6 } = {
   // Compute cutoff date
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - monthsBack);
-  const cutoffStr = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
+  const cutoffStr = localISODate(cutoff); // YYYY-MM-DD (local)
 
   const CHUNK_SIZE = 2 * 1024 * 1024; // 2MB decoded text chunks
   const OVERLAP = 4096;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Apple, FileText, Heart, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna, X, Smartphone, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Apple, FileText, Heart, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna, X, Smartphone, Upload, Sparkles, ClipboardCopy } from 'lucide-react';
 import Card from '../ui/Card';
 import { SectionTitle } from '../ui/FormWrap';
 import UniversalImport from '../ui/UniversalImport';
@@ -22,6 +22,7 @@ import * as visibleParser from '../../services/import_visible';
 import * as prometheaseParser from '../../services/import_promethease';
 import * as twentyThreeMeParser from '../../services/import_23andme';
 import { startTerraConnect, listTerraConnections, disconnectTerraConnection, providerLabel, TERRA_ENABLED } from '../../services/terra';
+import { isFitbitConnected, FITBIT_ENABLED } from '../../services/fitbit';
 import { getHiddenSources, hideSource, unhideAllSources } from '../../utils/hiddenSources';
 import { trackEvent, EVENTS } from '../../services/analytics';
 
@@ -130,8 +131,98 @@ export default function Import({ data, reloadData, onNav, demoMode }) {
     );
   };
 
+  const [claudeExpanded, setClaudeExpanded] = useState(false);
+  const [copiedField, setCopiedField] = useState(null);
+  const copyText = (text, field) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    }).catch(() => {});
+  };
+
+  const PROJECT_INSTRUCTIONS = `This project is for syncing my health records into Salve (a personal health management app).
+
+The knowledge file salve-sync.jsx is the complete source code for a React artifact called "Salve Health Sync". It uses MCP connections to pull my medical records and export them as JSON that I import into Salve.
+
+Whenever I ask you to sync, pull records, start the sync artifact, or anything similar, do this immediately, no commentary, no questions first:
+
+1. Create a React artifact. Use identifier "salve-health-sync", type "application/vnd.ant.react", title "Salve Health Sync". Put the ENTIRE contents of salve-sync.jsx into the artifact, unchanged. Do not rewrite, refactor, summarize, shorten, or "fix" anything. The code is already complete and working.
+
+2. Do NOT analyze the code, describe what it does, or ask what I want before creating the artifact.
+
+3. After the artifact renders, tell me in one short sentence that it's ready. Then check whether I have any health-related MCP connectors enabled (like Healthex for patient portals, or Function Health for lab panels). If I'm missing connectors the artifact needs, help me set them up step by step: tell me to open Claude settings → Connectors, search for the connector, and complete the OAuth sign-in. Don't assume I know where "Connectors" lives, spell out the exact clicks. Once connected, tell me to click "Pull Health Records" in the artifact.
+
+Dependencies available in the Claude artifacts runtime: react and lucide-react. No other imports needed, no external API calls from the file itself.`;
+
   return (
     <div className="mt-2 space-y-4">
+      {/* ── Claude Health Sync ── */}
+      <Card>
+        <button onClick={() => setClaudeExpanded(v => !v)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-lav/15">
+              <Sparkles size={16} className="text-salve-lav" />
+            </div>
+            <div className="text-left">
+              <span className="text-[15px] text-salve-text font-medium block">Claude Health Sync</span>
+              <span className="text-[12px] text-salve-textFaint">Pull records from MCP providers</span>
+            </div>
+          </div>
+          {claudeExpanded ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+        </button>
+        {claudeExpanded && (
+          <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-4">
+            {/* Recommended: Claude Project */}
+            <div className="bg-salve-lav/5 border border-salve-lav/20 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[12px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Recommended · saves tokens</span>
+              </div>
+              <h4 className="text-[15px] text-salve-text font-medium font-montserrat mb-1">Create a Claude Project</h4>
+              <p className="text-[13px] text-salve-textFaint leading-relaxed mb-3">
+                A project stores the sync file once, so future syncs are just "sync my records" with no re-uploading.
+              </p>
+              <ol className="text-[13px] text-salve-textMid space-y-2.5 leading-relaxed list-decimal pl-5 mb-3">
+                <li>On Claude.ai, click <strong className="text-salve-text">Projects</strong> → <strong className="text-salve-text">New project</strong>. Name it "Salve Health Sync".</li>
+                <li>
+                  Paste the project instructions into the description field.
+                  <div className="mt-2">
+                    <button
+                      onClick={() => copyText(PROJECT_INSTRUCTIONS, 'instructions')}
+                      className={`w-full py-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-2 transition-colors border cursor-pointer font-montserrat ${
+                        copiedField === 'instructions'
+                          ? 'bg-salve-sage/15 border-salve-sage/30 text-salve-sage'
+                          : 'bg-salve-card2 border-salve-border text-salve-textMid hover:border-salve-lav/40 hover:text-salve-lav'
+                      }`}
+                    >
+                      <ClipboardCopy size={14} />
+                      {copiedField === 'instructions' ? 'Copied!' : 'Copy project instructions'}
+                    </button>
+                  </div>
+                </li>
+                <li>
+                  Upload <code className="text-salve-textMid text-[12px]">salve-sync.jsx</code> to the project's Files.
+                  <div className="mt-2">
+                    <a href="/salve-sync.jsx" download="salve-sync.jsx" className="w-full py-2.5 rounded-lg font-medium text-xs no-underline bg-gradient-to-r from-salve-lav/20 via-salve-sage/10 to-salve-lav/20 border border-salve-lav/30 text-salve-lav flex items-center justify-center gap-2 hover:border-salve-lav/50">
+                      <Sparkles size={14} className="animate-pulse" />
+                      Download salve-sync.jsx
+                    </a>
+                  </div>
+                </li>
+                <li>Start a new chat and say <em className="text-salve-textMid">"sync my health records"</em>.</li>
+                <li>Pull records, download the JSON, and import it below.</li>
+              </ol>
+            </div>
+            {/* MCP connectors info */}
+            <div className="bg-salve-card2 border border-salve-border rounded-xl p-3">
+              <h4 className="text-[13px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">MCP connectors</h4>
+              <p className="text-[12px] text-salve-textFaint leading-relaxed">
+                The sync artifact pulls records through MCP connectors like <strong className="text-salve-textMid">Healthex</strong> (patient portals), <strong className="text-salve-textMid">Function Health</strong> (lab panels), and <strong className="text-salve-textMid">Nori Health</strong> (Apple Health + wearables). Claude will detect which connectors you have and walk you through setup.
+              </p>
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* ── Universal Import (auto-detect drop zone) ── */}
       <div>
         <p className="text-ui-base text-salve-textMid font-montserrat mb-3 leading-relaxed">
@@ -291,6 +382,56 @@ export default function Import({ data, reloadData, onNav, demoMode }) {
           </div>
         );
       })}
+
+      {/* ── Direct Wearable Connections ── */}
+      {FITBIT_ENABLED && (
+        <HideableSource id="fitbit-connect" label="Fitbit">
+          <Card>
+            <button onClick={() => toggleSource('fitbit-connect')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isFitbitConnected() ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
+                  <Watch size={14} className={isFitbitConnected() ? 'text-salve-sage' : 'text-salve-textFaint'} />
+                </div>
+                <div className="text-left">
+                  <span className="text-ui-lg text-salve-text font-medium block">Fitbit</span>
+                  <span className="text-ui-xs text-salve-textFaint">
+                    {isFitbitConnected() ? 'Connected · sleep, HR, HRV, steps, SpO2, workouts' : 'Sleep, HR, HRV, steps, SpO2, workouts, temperature'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5">
+                {isFitbitConnected() && <span className="w-2 h-2 rounded-full bg-salve-sage" />}
+                {expandedSource === 'fitbit-connect' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+              </div>
+            </button>
+            {expandedSource === 'fitbit-connect' && (
+              <div className="mt-3 pt-3 border-t border-salve-border/50">
+                {isFitbitConnected() ? (
+                  <button
+                    onClick={() => onNav('fitbit')}
+                    className="w-full py-2 rounded-lg bg-salve-lav/10 border border-salve-lav/30 text-salve-lav text-xs font-medium font-montserrat flex items-center justify-center gap-1.5 hover:bg-salve-lav/20 transition-colors cursor-pointer"
+                  >
+                    View Fitbit data →
+                  </button>
+                ) : (
+                  <>
+                    <p className="text-ui-base text-salve-textMid leading-relaxed mb-3">
+                      Connect your Fitbit to import sleep, heart rate, HRV, steps, SpO2, breathing rate, skin temperature, workouts, and weight.
+                    </p>
+                    <button
+                      onClick={() => onNav('settings')}
+                      className="w-full py-2.5 rounded-xl bg-salve-card2 border border-salve-border text-salve-sage font-medium text-sm font-montserrat hover:bg-salve-border transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Watch size={16} />
+                      Connect in Settings →
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+          </Card>
+        </HideableSource>
+      )}
 
       {/* ── Connected Devices (Terra) ── */}
       {TERRA_ENABLED && (

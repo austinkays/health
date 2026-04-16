@@ -85,6 +85,10 @@ export const VITAL_TYPES = [
   { id: 'hydration', label: 'Hydration', unit: '/4', min: 1, max: 4, warnLow: 1 },
   { id: 'activity_level', label: 'Activity Level', unit: '/4', min: 1, max: 4 },
   { id: 'pressure', label: 'Barometric Pressure', unit: 'hPa', normalLow: 1000, normalHigh: 1020 },
+  { id: 'steps', label: 'Steps', unit: 'steps', min: 0 },
+  { id: 'hrv', label: 'HRV', unit: 'ms', normalLow: 20, normalHigh: 100 },
+  { id: 'vo2max', label: 'VO2 Max', unit: 'mL/kg/min', normalLow: 30, normalHigh: 60 },
+  { id: 'azm', label: 'Active Zone Min', unit: 'min', min: 0 },
 ];
 
 // Mood options for journal entries

@@ -4,7 +4,16 @@ import { cache } from '../services/cache';
 import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 import { buildDemoData } from '../constants/demoData';
 import { trackEvent, EVENTS } from '../services/analytics';
+import { getBrowserTimezone } from '../utils/dates';
 import useRealtimeSync from './useRealtimeSync';
+
+// localStorage flag: once the user has explicitly picked a timezone in Settings,
+// don't silently overwrite it with the browser's detection (common when
+// traveling — they want their home tz to stick).
+const TZ_USER_SET_KEY = 'salve:tz-user-set';
+// Migration 028 shipped this as the default column value. Treat it as "not yet
+// set" so we auto-detect over top of it on first load.
+const DEFAULT_TZ_FROM_MIGRATION = 'America/Los_Angeles';
 
 // Map of Supabase table name → analytics event for per-entity "thing added" tracking.
 // Tables NOT in this map don't fire a per-entity event (e.g. allergies, providers —
@@ -118,6 +127,27 @@ export default function useHealthData(session, demoMode = false) {
     return () => { cancelled = true; };
   }, [sessionUserId, demoMode]);
 
+  // Auto-detect timezone from the browser and sync to the profile row
+  // on first load — or any load where it's still the migration default or
+  // null — unless the user has explicitly picked one in Settings. Runs
+  // after data has been loaded so we can read the current value.
+  useEffect(() => {
+    if (demoMode || !sessionUserId) return;
+    if (!data.settings || loading) return;
+    let userSet = false;
+    try { userSet = localStorage.getItem(TZ_USER_SET_KEY) === '1'; } catch { /* ignore */ }
+    if (userSet) return;
+    const browserTz = getBrowserTimezone();
+    const storedTz = data.settings.timezone;
+    const stale = !storedTz || storedTz === DEFAULT_TZ_FROM_MIGRATION;
+    if (!stale && storedTz === browserTz) return;
+    if (storedTz === browserTz) return;
+    // Write through supabase; don't block or surface errors — this is best-effort.
+    db.profile.update({ timezone: browserTz })
+      .then(saved => setData(prev => ({ ...prev, settings: saved })))
+      .catch(() => { /* non-fatal */ });
+  }, [sessionUserId, demoMode, data.settings, loading]);
+
   // Generic updater
   const update = useCallback(async (key, val) => {
     setData(prev => ({ ...prev, [key]: val }));
@@ -170,6 +200,11 @@ export default function useHealthData(session, demoMode = false) {
   }, []);
 
   const updateSettings = useCallback(async (changes) => {
+    // Mark timezone as user-chosen so the auto-detect effect doesn't
+    // overwrite it next time the browser tz differs (e.g. while traveling).
+    if (Object.prototype.hasOwnProperty.call(changes, 'timezone')) {
+      try { localStorage.setItem(TZ_USER_SET_KEY, '1'); } catch { /* ignore */ }
+    }
     // Optimistic local update, instant UI response
     setData(prev => ({ ...prev, settings: { ...prev.settings, ...changes } }));
     // Optimistic local update — instant UI response

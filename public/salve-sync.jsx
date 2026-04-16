@@ -24,7 +24,7 @@
    before rendering):
    This is a health-data sync tool for the Salve app. It has two workflows:
    A) "Pull Health Records" — fetches records via MCP (healthex,
-      function-health). If MCP auth fails inside the artifact iframe, a
+      function-health, nori-health). If MCP auth fails inside the artifact iframe, a
       Chat Fallback panel appears with a copyable prompt the user can run
       in the parent Claude chat instead.
    B) "Import existing file" — uploads a previously saved salve-sync JSON.
@@ -115,7 +115,7 @@ function countRecords(records) {
 }
 
 
-const MCP_SYSTEM_PROMPT = `You are a health data retrieval assistant. Use the available MCP tools to fetch the patient's COMPLETE health records from all connected health services. Retrieve ALL historical data — go back as far as possible. Do not truncate or summarize.
+const MCP_SYSTEM_PROMPT = `You are a health data retrieval assistant. Use the available MCP tools to fetch the patient's COMPLETE health records from all connected health services (Healthex for patient portals, Function Health for lab panels, and Nori Health for Apple Health and wearable data if available). Retrieve ALL historical data — go back as far as possible. Do not truncate or summarize.
 
 After retrieving data, compile everything into a single JSON object with this EXACT structure:
 
@@ -150,7 +150,7 @@ RULES:
 - Identify care_gaps: labs never ordered, overdue immunizations, unaddressed diagnoses
 - Use null for missing numeric fields. Use "" for missing text. No markdown. No backticks. Raw JSON only.`;
 
-const CHAT_PROMPT = `Please fetch my complete health records using your MCP connections (healthex and function-health). Go back as far as possible — retrieve ALL historical data. Then respond with ONLY a JSON object in this exact shape (no markdown, no explanation):
+const CHAT_PROMPT = `Please fetch my complete health records using your MCP connections (healthex, function-health, and nori-health if available). Go back as far as possible — retrieve ALL historical data. Then respond with ONLY a JSON object in this exact shape (no markdown, no explanation):
 
 {
   "medications": [...],
@@ -190,6 +190,7 @@ async function fetchHealthRecords(setStatus) {
         mcp_servers: [
           { type: "url", url: "https://api.healthex.io/mcp", name: "healthex" },
           { type: "url", url: "https://services.functionhealth.com/ai-chat/mcp", name: "function-health" },
+          { type: "url", url: "https://nori.ai/health-mcp", name: "nori-health" },
         ],
       }),
     });
@@ -427,7 +428,7 @@ export default function SalveSync() {
               <AlertCircle size={16} color={C.rose} style={{ marginTop: 2, flexShrink: 0 }} />
               <div>
                 <div style={{ fontSize: 13, color: C.rose, lineHeight: 1.5 }}>{error}</div>
-                <div style={{ fontSize: 11, color: C.textFaint, marginTop: 6 }}>Make sure healthex and Function Health are connected in Claude's MCP settings.</div>
+                <div style={{ fontSize: 11, color: C.textFaint, marginTop: 6 }}>Make sure healthex, Function Health, or Nori Health are connected in Claude's MCP settings.</div>
               </div>
             </div>
           </div>

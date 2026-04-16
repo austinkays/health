@@ -6,13 +6,22 @@ import { getAuthToken } from './token';
 const CACHE_KEY = 'salve:discover-articles';
 const CACHE_TTL = 14 * 24 * 60 * 60 * 1000; // 14 days
 
+function conditionsKey(conditions = []) {
+  return conditions
+    .map(c => String(c || '').trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join('|');
+}
+
 /** Read cached articles (returns null if stale/missing). */
-function readCache() {
+function readCache(key) {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     if (!raw) return null;
-    const { articles, expiry } = JSON.parse(raw);
+    const { articles, expiry, conditions } = JSON.parse(raw);
     if (Date.now() > expiry) return null;
+    if ((conditions || '') !== key) return null;
     return articles;
   } catch {
     return null;
@@ -20,10 +29,11 @@ function readCache() {
 }
 
 /** Write articles to cache with 14-day TTL. */
-function writeCache(articles) {
+function writeCache(key, articles) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       articles,
+      conditions: key,
       expiry: Date.now() + CACHE_TTL,
     }));
   } catch { /* quota, ignore */ }
@@ -35,8 +45,9 @@ function writeCache(articles) {
  * @param {string[]} conditions - user's condition names for matching
  */
 export async function fetchDiscoverArticles(conditions = []) {
+  const key = conditionsKey(conditions);
   // Return cache if fresh
-  const cached = readCache();
+  const cached = readCache(key);
   if (cached) return cached;
 
   try {
@@ -64,7 +75,7 @@ export async function fetchDiscoverArticles(conditions = []) {
     const { articles } = await res.json();
     // Only cache non-empty results — an empty fetch (feed down, no matches)
     // shouldn't block fresh attempts for the full 14-day TTL.
-    if (articles?.length) writeCache(articles);
+    if (articles?.length) writeCache(key, articles);
     else console.warn('[Discover] API returned empty articles array');
     return articles || [];
   } catch (err) {

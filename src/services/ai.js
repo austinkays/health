@@ -2,6 +2,7 @@ import { getAuthToken } from './token';
 import { HEALTH_TOOLS } from '../constants/tools';
 import { trackEvent, EVENTS } from './analytics';
 import { db } from './db';
+import { todayISO } from '../utils/dates';
 
 // ── AI Provider + Model Routing ──
 
@@ -319,7 +320,7 @@ const DAILY_CAP = 15; // matches free-tier Gemini limit
 const PROFILE_WARN_THRESHOLD = 35000;
 
 function getTodayKey() {
-  return new Date().toISOString().slice(0, 10);
+  return todayISO();
 }
 
 function getUsageToday() {
@@ -796,6 +797,40 @@ export async function fillFormQuestions(questionsText, profileText, imageDataArr
     'formHelper', profileText,
     maxTokens, false, 'chat'
   );
+}
+
+export async function extractInsuranceCard(imageData) {
+  const content = [
+    {
+      type: 'image',
+      source: { type: 'base64', media_type: imageData.mediaType, data: imageData.data },
+    },
+    {
+      type: 'text',
+      text: 'Extract all insurance information from this card photo and return it as JSON.',
+    },
+  ];
+
+  trackEvent(`${EVENTS.AI_FEATURE_RUN}:insuranceCard`);
+
+  const raw = await callAPI(
+    [{ role: 'user', content }],
+    'insuranceCard', '',
+    1000, false, 'chat'
+  );
+
+  // Strip the disclaimer Sage appends and any markdown fences
+  const cleaned = raw
+    .replace(/---\s*\n\*Sage's suggestions.*$/s, '')
+    .replace(/```json\s*/g, '')
+    .replace(/```\s*/g, '')
+    .trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error('Could not read the card. Please try a clearer photo.');
+  }
 }
 
 export async function fetchCyclePatterns(cycleProfileText) {
