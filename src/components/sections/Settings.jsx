@@ -28,6 +28,7 @@ import { resetOnboarding } from '../ui/OnboardingWizard';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 import { getHiddenSources, hideSource } from '../../utils/hiddenSources';
 import { isStandalone, isIOS, isAndroid, isSafari } from '../../utils/platform';
+import { todayISO } from '../../utils/dates';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
 
@@ -772,7 +773,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `salve-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `salve-backup-${todayISO()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -792,7 +793,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `salve-backup-encrypted-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `salve-backup-encrypted-${todayISO()}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

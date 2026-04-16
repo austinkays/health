@@ -3,7 +3,7 @@ import { clearTokenCache } from './token';
 
 // Always redirect to the production app after magic link auth.
 // Using window.location.origin would send localhost links in local dev,
-// which breaks when Amber clicks the link on her phone or another device.
+// which breaks when the user opens the link on a phone or another device.
 const SITE_URL = import.meta.env.PROD
   ? 'https://salve-three.vercel.app'
   : window.location.origin;

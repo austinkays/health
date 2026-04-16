@@ -1,3 +1,5 @@
+import { localISODate } from '../utils/dates';
+
 /**
  * Flo GDPR Data Export Parser
  *
@@ -83,7 +85,7 @@ export function parseFloExport(data) {
     const last = new Date(end);
     while (d <= last) {
       records.push({
-        date: d.toISOString().slice(0, 10),
+        date: localISODate(d),
         type: 'period',
         value: flow || 'Medium',
         symptom: '',

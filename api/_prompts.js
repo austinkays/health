@@ -16,10 +16,14 @@ const INSIGHT_FOCUS_AREAS = [
   'research — recent medical progress or clinical trial relevant to their conditions or medications',
 ];
 
-// Sanitize user-provided profile text: strip angle brackets / braces, cap length
+// Sanitize user-provided profile text: strip angle brackets / braces / newlines /
+// Unicode bidi override chars (prompt-injection surface), cap length. Must stay
+// in sync with src/services/profile.js `san()` on the client.
 function sanProfile(text, limit = FREE_PROFILE_CHAR_LIMIT) {
   if (!text) return '';
-  return String(text).replace(/[<>{}]/g, '').slice(0, limit);
+  return String(text)
+    .replace(/[<>{}\r\n\u202A-\u202E\u2066-\u2069\u200E\u200F]/g, ' ')
+    .slice(0, limit);
 }
 
 function getProfileCharLimit(tier) {

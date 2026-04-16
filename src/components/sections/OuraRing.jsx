@@ -5,7 +5,7 @@ import { OuraIcon } from '../ui/OuraIcon';
 import Badge from '../ui/Badge';
 import EmptyState from '../ui/EmptyState';
 import { C } from '../../constants/colors';
-import { fmtDate } from '../../utils/dates';
+import { fmtDate, localISODate, todayISO } from '../../utils/dates';
 import { isOuraConnected, syncAllOuraData, fetchOuraSleepSessions, fetchOuraReadiness, fetchOuraTemperature, fetchOuraDailySleep, getIntradayHRToday } from '../../services/oura';
 
 const AUTO_SYNC_INTERVAL = 5 * 60_000; // 5 minutes
@@ -156,9 +156,9 @@ export default function OuraRing({ data, addItem, onNav }) {
   const fetchLiveData = useCallback(async () => {
     if (!connected) return;
     try {
-      const end = new Date().toISOString().slice(0, 10);
-      const start7 = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
-      const start1 = new Date(Date.now() - 1 * 86400000).toISOString().slice(0, 10);
+      const end = todayISO();
+      const start7 = localISODate(new Date(Date.now() - 7 * 86400000));
+      const start1 = localISODate(new Date(Date.now() - 1 * 86400000));
 
       const [sleepSessions, dailySleep, readiness, temperature] = await Promise.allSettled([
         fetchOuraSleepSessions(start7, end),

@@ -10,7 +10,7 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_TODO } from '../../constants/defaults';
-import { fmtDate, daysUntil } from '../../utils/dates';
+import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 
 /* ── Constants ──────────────────────────────────────────── */
 
@@ -133,7 +133,7 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
       if (t.recurring === 'daily') base.setDate(base.getDate() + 1);
       else if (t.recurring === 'weekly') base.setDate(base.getDate() + 7);
       else if (t.recurring === 'monthly') base.setMonth(base.getMonth() + 1);
-      const nextDue = base.toISOString().slice(0, 10);
+      const nextDue = localISODate(base);
       const { id, created_at, updated_at, completed, completed_at, ...rest } = t;
       await addItem('todos', { ...rest, due_date: nextDue, completed: false, completed_at: null });
     }

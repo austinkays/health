@@ -3,6 +3,8 @@
 // give permission to rest for exhaustion. Every prompt should feel safe for a
 // chronically ill user on their worst day.
 
+import { todayISO } from '../utils/dates';
+
 const PROMPTS = {
   positive: [
     'What made you smile today?',
@@ -109,7 +111,7 @@ export function isPositiveMood(mood) {
  */
 export function getContextualPrompt(data) {
   const KEY = 'salve:last-contextual-prompt-date';
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayISO();
   if (localStorage.getItem(KEY) === today) return null;
 
   const prompts = [];
