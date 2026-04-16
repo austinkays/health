@@ -100,6 +100,7 @@ const Feedback = lazyWithRetry(() => import('./components/sections/Feedback'));
 const FormHelper = lazyWithRetry(() => import('./components/sections/FormHelper'));
 const AboutMe = lazyWithRetry(() => import('./components/sections/AboutMe'));
 const Insights = lazyWithRetry(() => import('./components/sections/Insights'));
+const ImportPage = lazyWithRetry(() => import('./components/sections/Import'));
 const Admin = lazyWithRetry(() => import('./components/sections/Admin'));
 
 export default function App() {
@@ -379,7 +380,7 @@ function AppContent() {
 
   // Global keyboard shortcuts (desktop)
   useEffect(() => {
-    const NAV_KEYS = { '1': 'dash', '2': 'meds', '3': 'vitals', '4': 'ai', '5': 'news', '6': 'formhelper', '7': 'journal', '8': 'settings' };
+    const NAV_KEYS = { '1': 'dash', '2': 'meds', '3': 'vitals', '4': 'ai', '5': 'news', '6': 'formhelper', '7': 'journal', '8': 'import', '9': 'settings' };
     const handler = (e) => {
       // Cmd/Ctrl + K → open search
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -635,6 +636,7 @@ function AppContent() {
       case 'feedback':   return <Feedback {...shared} prefill={feedbackPrefill} onPrefillConsumed={() => setFeedbackPrefill(null)} />;
       case 'formhelper': return <FormHelper {...shared} onNav={onNav} />;
       case 'aboutme':    return <AboutMe {...shared} updateSettings={updateSettingsT} onSageIntro={() => setSageIntroOpen(true)} />;
+      case 'import':     return <ImportPage data={data} reloadData={reloadData} onNav={onNav} demoMode={demoMode} />;
       case 'admin':      return <Admin data={data} onNav={onNav} />;
       default:            return <Dashboard {...shared} interactions={interactions} onNav={onNav} onSage={() => setSageOpen(true)} />;
     }

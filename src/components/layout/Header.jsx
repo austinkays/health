@@ -103,6 +103,7 @@ const TAB_LABELS = {
   formhelper: 'Scribe',
   news: 'News',
   aboutme: 'About Me',
+  import: 'Import',
 };
 
 export default function Header({ tab, name, onBack, onSearch, onSage, action, topBannerActive = false }) {
