@@ -1346,7 +1346,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
               <div className="bg-salve-card2 border border-salve-border rounded-xl p-3">
                 <h4 className="text-[13px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">MCP connectors</h4>
                 <p className="text-[12px] text-salve-textFaint leading-relaxed mb-2">
-                  The sync artifact pulls records through MCP connectors like <strong className="text-salve-textMid">Healthex</strong> (patient portals) and <strong className="text-salve-textMid">Function Health</strong> (lab panels). Claude will detect which connectors you have and walk you through setting up any that are missing.
+                  The sync artifact pulls records through MCP connectors like <strong className="text-salve-textMid">Healthex</strong> (patient portals), <strong className="text-salve-textMid">Function Health</strong> (lab panels), and <strong className="text-salve-textMid">Nori Health</strong> (Apple Health + wearables). Claude will detect which connectors you have and walk you through setting up any that are missing.
                 </p>
                 <p className="text-[12px] text-salve-textFaint italic leading-relaxed">
                   Just start the artifact and follow the prompts. No manual URL configuration needed.
