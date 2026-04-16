@@ -1,4 +1,4 @@
-import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, PenLine, MessageCircle, Newspaper } from 'lucide-react';
+import { Home, Pill, Heart, Leaf, BookOpen, Settings as SettingsIcon, Search, Sparkles, PenLine, MessageCircle, Newspaper, Upload } from 'lucide-react';
 import { handleMagnet, resetMagnet } from '../../utils/fx';
 import UpdateBanner from '../ui/UpdateBanner';
 
@@ -10,7 +10,8 @@ const NAV_ITEMS = [
   { id: 'news', label: 'News', icon: Newspaper, key: '5' },
   { id: 'formhelper', label: 'Form Scribe', icon: PenLine, key: '6' },
   { id: 'journal', label: 'Journal', icon: BookOpen, key: '7' },
-  { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '8' },
+  { id: 'import', label: 'Import', icon: Upload, key: '8' },
+  { id: 'settings', label: 'Settings', icon: SettingsIcon, key: '9' },
 ];
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad|iPod/.test(navigator.platform);
