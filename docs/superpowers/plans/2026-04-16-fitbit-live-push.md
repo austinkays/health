@@ -1,5 +1,7 @@
 # Fitbit Live-Push — Webhook-Driven Sync
 
+**Status (2026-04-16):** Phase 1 + Phase 2 deployed to production. Phase 3 (webhook → data ingestion) is paused pending a Fitbit-owning tester. Phases 4–5 follow in order.
+
 ## Context
 
 Fitbit is "connected" in the current build but data only reaches Salve when the user clicks "Sync last 30 days". The manual-sync UX works but misses the real point of connecting a wearable: ambient, hands-off freshness. Sleep you logged overnight should be in Salve by breakfast — not only when you remember to tap a button.
