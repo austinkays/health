@@ -82,7 +82,7 @@ const SUFFIX_ALLOWLIST = {
     'vitalsTrend', 'appointmentPrep', 'careGapDetect', 'journalPatterns',
     'cyclePatterns', 'immunizationSchedule', 'appealDraft',
     'crossReactivity', 'costOptimization', 'geneticExplanation',
-    'formHelper', 'monthlySummary',
+    'formHelper', 'monthlySummary', 'insuranceCard',
   ]),
   import_completed: new Set(['apple_health', 'flo', 'backup', 'sync', 'mychart']),
   theme_changed: new Set([
