@@ -485,8 +485,23 @@ function AppContent() {
           const pending = localStorage.getItem('salve:pending-invite');
           if (pending) {
             supabase.rpc('claim_beta_invite', { code_in: pending })
-              .then(() => { localStorage.removeItem('salve:pending-invite'); })
-              .catch(() => { /* leave it for the next signin to retry */ });
+              .then(({ error }) => {
+                if (error) {
+                  // RPC rejected the code (invalid, already claimed, expired).
+                  // Drop it so we don't retry a dead code on every sign-in.
+                  // Log it so the issue is visible rather than silent.
+                  console.warn('[beta-invite] claim rejected:', error.message || error);
+                  localStorage.removeItem('salve:pending-invite');
+                } else {
+                  localStorage.removeItem('salve:pending-invite');
+                }
+              })
+              .catch((err) => {
+                // Network / transport failure — keep the pending code so the
+                // next sign-in retries. Surface the error so silent loss of
+                // trial grants is detectable.
+                console.warn('[beta-invite] claim network error, will retry next sign-in:', err?.message || err);
+              });
           }
         } catch { /* localStorage unavailable, nothing to claim */ }
         // Enable analytics for this (real, non-demo) user. Log first-time

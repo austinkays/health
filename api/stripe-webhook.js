@@ -73,6 +73,15 @@ export default async function handler(req, res) {
   const type = event.type;
   const obj = event.data?.object;
 
+  // Guard once here rather than sprinkling `obj?.` through every branch.
+  // Stripe normally always sends `data.object`, but a malformed or unknown
+  // event shouldn't take down the handler with a TypeError. 200-OK so Stripe
+  // doesn't redeliver indefinitely.
+  if (!obj) {
+    console.warn(`[stripe-webhook] ${type}: event.data.object missing; acknowledging to avoid retry storm`);
+    return res.status(200).json({ ok: true, note: 'malformed event' });
+  }
+
   // Helper: update profile by user_id
   async function updateProfile(userId, updates) {
     const updateRes = await fetch(
