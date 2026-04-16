@@ -19,6 +19,7 @@ import { SageIntroButton, shouldShowIntro } from '../ui/SageIntro';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
+import { useTheme } from '../../hooks/useTheme';
 import { VITAL_TYPES } from '../../constants/defaults';
 import { fetchInsight, isPremiumActive } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
@@ -294,6 +295,7 @@ const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
 
 export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro, dataLoading, insightRatings }) {
   const isDesktop = useIsDesktop();
+  const { themeId } = useTheme();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
@@ -1147,7 +1149,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                   onClick={() => onNav('vitals')}
                   aria-label={`Barometric pressure ${baroChip.current} hPa, ${baroChip.trend}. View in Vitals.`}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-full cursor-pointer font-montserrat transition-all hover:opacity-80 active:scale-[0.97]"
-                  style={{ background: `${baroColor}12`, outline: `1px solid ${baroColor}28` }}
+                  style={{ background: `${baroColor}${themeId === 'cherry' ? '40' : '12'}`, outline: `1px solid ${baroColor}${themeId === 'cherry' ? '70' : '28'}` }}
                 >
                   <Wind size={11} style={{ color: baroColor }} aria-hidden="true" />
                   <span className="text-[11.5px] font-medium" style={{ color: baroColor }}>{baroChip.current} hPa</span>
