@@ -36,14 +36,14 @@ export default function News({ data, demoMode = false }) {
 
   // Fetch RSS articles when conditions are available. Skip the network call
   // in demo mode and use pre-baked DEMO_NEWS so the page isn't empty.
-  const conditionCount = (data.conditions || []).length;
+  const conditionNames = (data.conditions || []).map(c => c.name).filter(Boolean).join('|');
   useEffect(() => {
     if (demoMode) { setRssArticles(DEMO_NEWS); return; }
     const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
     fetchDiscoverArticles(conditions).then(articles => {
-      if (articles?.length) setRssArticles(articles);
+      setRssArticles(articles || []);
     });
-  }, [conditionCount, demoMode]);
+  }, [conditionNames, demoMode]);
 
   const feed = useMemo(() => buildNewsFeed({
     rssArticles,

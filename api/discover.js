@@ -31,7 +31,7 @@ const FEEDS = [
     sourceShort: 'FDA',
   },
   {
-    url: 'https://medlineplus.gov/feeds/topic.xml',
+    url: 'https://medlineplus.gov/groupfeeds/new.xml',
     source: 'MedlinePlus',
     sourceShort: 'MedlinePlus',
   },
@@ -54,6 +54,46 @@ function extractAllItems(xml) {
     items.push(match[1]);
   }
   return items;
+}
+
+function extractAllEntries(xml) {
+  const entries = [];
+  const re = /<entry\b[^>]*>([\s\S]*?)<\/entry>/gi;
+  let match;
+  while ((match = re.exec(xml)) !== null) {
+    entries.push(match[1]);
+  }
+  return entries;
+}
+
+function decodeEntities(text = '') {
+  return text
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#8217;/g, "'")
+    .replace(/&#8211;/g, '-')
+    .replace(/&#8212;/g, '-')
+    .replace(/&#8230;/g, '...')
+    .replace(/&#(\d+);/g, (_, code) => {
+      const num = Number(code);
+      return Number.isFinite(num) ? String.fromCharCode(num) : _;
+    })
+    .trim();
+}
+
+function stripHtml(text = '') {
+  return decodeEntities(text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
+}
+
+function extractLink(xml) {
+  const atomHref = xml.match(/<link\b[^>]*href=["']([^"']+)["'][^>]*\/?\s*>/i);
+  if (atomHref?.[1]) return atomHref[1].trim();
+  return decodeEntities(extractTag(xml, 'link'));
 }
 
 function parseDate(dateStr) {
@@ -81,19 +121,28 @@ async function fetchFeed(feed) {
     }
     const xml = await res.text();
     const items = extractAllItems(xml);
+    const entries = items.length === 0 ? extractAllEntries(xml) : [];
+    const records = items.length > 0 ? items : entries;
 
-    return items.slice(0, 15).map(item => {
-      const title = extractTag(item, 'title');
-      const link = extractTag(item, 'link');
-      const description = extractTag(item, 'description')
-        .replace(/<[^>]+>/g, '') // strip HTML
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#039;/g, "'")
-        .slice(0, 300);
-      const pubDate = parseDate(extractTag(item, 'pubDate'));
+    if (records.length === 0) {
+      console.warn(`[Discover] ${feed.sourceShort} returned no parseable entries`);
+      return [];
+    }
+
+    return records.slice(0, 15).map(item => {
+      const title = decodeEntities(extractTag(item, 'title'));
+      const link = extractLink(item);
+      const description = stripHtml(
+        extractTag(item, 'description') ||
+        extractTag(item, 'summary') ||
+        extractTag(item, 'content:encoded') ||
+        extractTag(item, 'content')
+      ).slice(0, 300);
+      const pubDate = parseDate(
+        extractTag(item, 'pubDate') ||
+        extractTag(item, 'updated') ||
+        extractTag(item, 'published')
+      );
 
       if (!title || !link) return null;
 

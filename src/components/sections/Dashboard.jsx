@@ -984,15 +984,16 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
   const [dynamicArticles, setDynamicArticles] = useState([]);
   const dailyQuote = useMemo(() => getDailyQuote(), []);
+  const discoverConditionNames = (data.conditions || []).map(c => c.name).filter(Boolean).join('|');
 
   // Fetch dynamic articles from trusted RSS feeds (14-day client cache)
   useEffect(() => {
     const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
     if (conditions.length === 0 && (data.meds || []).length === 0) return;
     fetchDiscoverArticles(conditions).then(articles => {
-      if (articles?.length) setDynamicArticles(articles);
+      setDynamicArticles(articles || []);
     });
-  }, [data.conditions?.length, data.meds?.length]);
+  }, [discoverConditionNames, data.meds?.length]);
 
   const discoverItems = useMemo(() => {
     const seenSet = new Set(seenResources);
