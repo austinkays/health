@@ -558,6 +558,52 @@ async function fitbitHandle(action, req, res, userId) {
   return res.status(400).json({ error: 'Unknown action' });
 }
 
+// ── Fitbit Subscription Webhook ──────────────────────────────────────
+// Handles two request types from Fitbit's servers (no user auth):
+//
+// 1. GET  ?verify=<code> — Fitbit verifies your endpoint by sending your
+//    subscriber verification code. Respond 204 if it matches, 404 if not.
+//
+// 2. POST — Fitbit sends a JSON array of update notifications when user
+//    data changes. Respond 204 immediately. Each notification has:
+//    { collectionType, date, ownerId, ownerType, subscriptionId }
+//
+// Endpoint URL for the Fitbit dashboard:
+//   https://<your-domain>/api/wearable?provider=fitbit&action=webhook
+//
+// Env var: FITBIT_SUBSCRIBER_VERIFY — the verification code you set in
+// the Fitbit developer dashboard under your subscriber.
+
+async function fitbitWebhookHandle(req, res) {
+  const verifyCode = process.env.FITBIT_SUBSCRIBER_VERIFY;
+
+  // Verification challenge — Fitbit GET with ?verify=<code>
+  if (req.method === 'GET') {
+    const challenge = req.query.verify;
+    if (!challenge || !verifyCode) return res.status(404).end();
+    if (challenge === verifyCode) return res.status(204).end();
+    return res.status(404).end();
+  }
+
+  // Notification — Fitbit POST with JSON array of updates
+  if (req.method === 'POST') {
+    // Must respond 204 within 5 seconds — Fitbit retries on other codes.
+    // Log the notification for debugging but don't block the response.
+    const notifications = req.body;
+    if (Array.isArray(notifications) && notifications.length > 0) {
+      console.log(`[fitbit:webhook] Received ${notifications.length} notification(s):`,
+        notifications.map(n => `${n.collectionType}:${n.date}:${n.ownerId}`).join(', ')
+      );
+    }
+    // The app syncs data client-side on page load / auto-refresh, so we
+    // don't need server-side data fetching here. The webhook satisfies
+    // Fitbit's API requirements and logs events for monitoring.
+    return res.status(204).end();
+  }
+
+  return res.status(405).end();
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ── Whoop ───────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════
@@ -690,6 +736,13 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   const provider = req.query.provider;
+  const action = req.query.action || (req.method === 'GET' ? 'data' : '');
+
+  // ── Fitbit webhook (no user auth — called by Fitbit's servers) ──
+  if (provider === 'fitbit' && action === 'webhook') {
+    return fitbitWebhookHandle(req, res);
+  }
+
   const handle = provider && PROVIDERS[provider];
   if (!handle) return res.status(400).json({ error: 'Unknown or missing provider' });
 
@@ -702,8 +755,6 @@ export default async function handler(req, res) {
   if (!(await checkPersistentRateLimit(userId, provider, RATE_LIMIT_MAX, 60))) {
     return res.status(429).json({ error: 'Rate limit exceeded' });
   }
-
-  const action = req.query.action || (req.method === 'GET' ? 'data' : '');
 
   try {
     return await handle(action, req, res, userId);
