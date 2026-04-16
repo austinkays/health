@@ -1,27 +1,18 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import {
-  Sparkles, ChevronRight, ArrowRight, Calendar, AlertTriangle, AlertOctagon,
-  User, Shield, FlaskConical, Activity, Settings as SettingsIcon,
-  Sun, Moon, Sunrise, Sunset, ClipboardList, Search, X,
-  TrendingUp, ShieldAlert, Heart, Leaf, CheckSquare, Zap,
-  Copy, Bookmark, RefreshCw, Stethoscope, Syringe, ShieldCheck,
-  Building2, BadgeDollarSign, Scale, PlaneTakeoff, Dna, Apple, Pill, BookOpen,
-  Compass, ExternalLink, MessageCircle, Watch, Upload, PlusCircle, Lightbulb, Mail,
-  PenLine, UserCircle, Newspaper, Flame, ArrowLeftRight, Clock,
-  Wind, TrendingDown, Minus,
+  Sparkles, ChevronRight, ArrowRight, AlertTriangle,
+  Search, X, Heart, Leaf, Copy, Bookmark, RefreshCw, Pill,
+  ExternalLink, Mail, PenLine, Newspaper, Wind,
+  Moon, Activity, TrendingUp, Calendar, Flame, ArrowLeftRight, Clock,
 } from 'lucide-react';
 import { readCachedBarometric, PRESSURE_SENSITIVE } from '../../services/barometric';
-import { OuraIcon } from '../ui/OuraIcon';
 import Card from '../ui/Card';
 import BarometricCard from '../ui/BarometricCard';
-import Button from '../ui/Button';
-import Motif, { Divider } from '../ui/Motif';
+import Motif from '../ui/Motif';
 import { SageIntroButton, shouldShowIntro } from '../ui/SageIntro';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { useTheme } from '../../hooks/useTheme';
-import { VITAL_TYPES } from '../../constants/defaults';
 import { fetchInsight, isPremiumActive } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
 import { trackEvent, EVENTS } from '../../services/analytics';
@@ -29,7 +20,6 @@ import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
 import { searchEntities, highlightMatch } from '../../utils/search.jsx';
 import useWellnessMessage from '../../hooks/useWellnessMessage';
-import { findPgxMatches } from '../../constants/pgx';
 import { isOuraConnected } from '../../services/oura';
 import { getStarred } from '../../utils/starred';
 import { fetchDiscoverArticles } from '../../services/discover';
@@ -42,262 +32,22 @@ import { getCyclePhaseForDate } from '../../utils/cycles';
 import { handleSpotlight } from '../../utils/fx';
 import Reveal from '../ui/Reveal';
 
-/* Vital direction: which way is "good" for color-coded trend signal */
-const VITAL_POLARITY = {
-  sleep: 'up', hr: 'down', bp: 'down', steps: 'up',
-  energy: 'up', pain: 'down', mood: 'up',
-  spo2: 'up', resp: null,
-  weight: null, temp: null, glucose: null,
-};
-
-/* ── Rotating placeholder phrases ────────────────────────── */
-const SEARCH_PLACEHOLDERS = [
-  'Search medications, providers, labs\u2026',
-  'Find a doctor or specialist\u2026',
-  'Look up lab results\u2026',
-  'Check conditions & allergies\u2026',
-];
-
-/* ── Helpers ─────────────────────────────────────────────── */
-
-function getTimeGreeting() {
-  const h = new Date().getHours();
-  if (h < 5)  return { text: 'Good evening', icon: Moon, motif: 'moon' };
-  if (h < 12) return { text: 'Good morning', icon: Sunrise, motif: 'leaf' };
-  if (h < 17) return { text: 'Good afternoon', icon: Sun, motif: 'sparkle' };
-  if (h < 21) return { text: 'Good evening', icon: Sunset, motif: 'star' };
-  return { text: 'Good evening', icon: Moon, motif: 'moon' };
-}
-
-function getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabCount, alertsHidden) {
-  // Priority: critical alerts → upcoming events → rotating encouragement
-  if (!alertsHidden) {
-    const now = new Date(); now.setHours(0, 0, 0, 0);
-    const overdueTodoCount = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now).length;
-    const totalAlerts = (interactions?.length || 0) + urgentGaps + (anesthesiaCount > 0 ? 1 : 0) + abnormalLabCount + (overdueTodoCount > 0 ? 1 : 0);
-    if (totalAlerts > 0) return `${totalAlerts} item${totalAlerts > 1 ? 's' : ''} need${totalAlerts === 1 ? 's' : ''} your attention`;
-  }
-
-  const soon = data.appts.filter(a => {
-    const d = Math.ceil((new Date(a.date) - new Date(new Date().toDateString())) / 86400000);
-    return d >= 0 && d <= 7;
-  });
-  if (soon.length > 0) return `${soon.length} appointment${soon.length > 1 ? 's' : ''} this week`;
-
-  const refills = data.meds.filter(m => m.active !== false && m.refill_date).filter(m => {
-    const d = Math.ceil((new Date(m.refill_date) - new Date(new Date().toDateString())) / 86400000);
-    return d >= 0 && d <= 7;
-  });
-  if (refills.length > 0) return `${refills.length} refill${refills.length > 1 ? 's' : ''} coming up soon`;
-
-  // Rotate encouragement so it doesn't feel static
-  const encouragements = [
-    'All caught up, take care of yourself today',
-    'Everything looks good, you\'re on top of it',
-    'No action items right now, enjoy the calm',
-    'You\'re all set, make today a good one',
-    'Nothing urgent, a great day to focus on you',
-  ];
-  const h = new Date().getHours();
-  return encouragements[h % encouragements.length];
-}
-
-/* ── Alert dismissal ──────────────────────────────────── */
-
-const ALERT_DISMISS_KEY = 'salve:alerts-dismissed';
-const SEEN_RESOURCES_KEY = 'salve:seen-resources';
-const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
-const BARO_ALERT_DISMISS_KEY = 'salve:baro-alert-dismissed';
-
-// dismissBehavior:
-//   'auto'     , hidden by data check (no dismiss needed); snoozes 7d if dismissed before data exists
-//   'snooze'   , first X snoozes for snoozeDays, second X is permanent
-//   'permanent', one X and it's gone for good (optional integrations user may not want)
-const STARTER_TIPS = [
-  {
-    id: 'add-meds',
-    icon: Pill,
-    color: 'lav',
-    title: 'Add your medications',
-    body: 'Start by adding your current meds to get drug interaction checks, refill tracking, and AI-powered insights.',
-    action: 'meds',
-    actionLabel: 'Add medications',
-    dismissBehavior: 'auto',
-    snoozeDays: 7,
-  },
-  {
-    id: 'chat-sage',
-    icon: Leaf,
-    color: 'sage',
-    title: 'Meet Sage, your health companion',
-    body: 'Tap the leaf icon to chat with Sage. Ask health questions, add records by voice, or get personalized insights.',
-    action: 'ai',
-    actionLabel: 'Open Sage',
-    dismissBehavior: 'snooze',
-    snoozeDays: 3,
-  },
-  {
-    id: 'connect-oura',
-    icon: Watch,
-    color: 'amber',
-    title: 'Connect a wearable',
-    body: 'Link your Oura Ring to automatically sync sleep, heart rate, temperature, and readiness data.',
-    action: 'settings',
-    actionLabel: 'Connect in Settings',
-    dismissBehavior: 'permanent',
-  },
-  {
-    id: 'import-data',
-    icon: Upload,
-    color: 'lav',
-    title: 'Import existing health data',
-    body: 'Bring in data from Apple Health exports, Flo period tracker, or a previous Salve backup file.',
-    action: 'settings',
-    actionLabel: 'Import in Settings',
-    dismissBehavior: 'snooze',
-    snoozeDays: 7,
-  },
-  {
-    id: 'claude-sync',
-    icon: Sparkles,
-    color: 'sage',
-    title: 'Sync from Claude AI',
-    body: 'Use the Salve Sync artifact in Claude.ai to push health data directly into your account. Grab it from Settings → Claude Sync.',
-    action: 'settings',
-    actionLabel: 'Get artifact',
-    dismissBehavior: 'permanent',
-  },
-  {
-    id: 'add-providers',
-    icon: User,
-    color: 'lav',
-    title: 'Add your care team',
-    body: 'Add doctors and providers to cross-reference medications, auto-fill appointments, and look up NPI registry info.',
-    action: 'providers',
-    actionLabel: 'Add providers',
-    dismissBehavior: 'auto',
-    snoozeDays: 7,
-  },
-  {
-    id: 'explore-news',
-    icon: Newspaper,
-    color: 'lav',
-    title: 'Your personalized news feed',
-    body: 'Health articles from NIH and FDA, matched to your conditions. The more you use Sage, the more personalized your feed becomes.',
-    action: 'news',
-    actionLabel: 'Browse news',
-    dismissBehavior: 'snooze',
-    snoozeDays: 14,
-  },
-  {
-    id: 'install-app',
-    icon: Compass,
-    color: 'sage',
-    title: 'Install Salve on your phone',
-    body: 'Add to your home screen for faster access, offline support, and a full-screen app experience. Instructions in Settings.',
-    action: 'settings',
-    actionLabel: 'See how',
-    dismissBehavior: 'snooze',
-    snoozeDays: 14,
-  },
-  {
-    id: 'try-a-theme',
-    icon: Sparkles,
-    color: 'lav',
-    title: 'Make it feel like yours',
-    body: "Salve has 16 themes, from soft pastels to dark cozy to animated cherry blossoms. Tap Settings, then Appearance to try one on.",
-    action: 'settings',
-    actionLabel: 'Pick a theme',
-    dismissBehavior: 'snooze',
-    snoozeDays: 7,
-  },
-  // feedback is not a card, it renders as a persistent footer line in the section
-];
-
-function getDismissedTips() {
-  try {
-    const raw = JSON.parse(localStorage.getItem(DISMISSED_TIPS_KEY) || '[]');
-    // Migrate from old format (array of strings → array of record objects)
-    if (raw.length > 0 && typeof raw[0] === 'string') {
-      return raw.map(id => ({ id, permanent: true }));
-    }
-    return raw;
-  } catch { return []; }
-}
-
-function getSeenResources() {
-  try {
-    return JSON.parse(localStorage.getItem(SEEN_RESOURCES_KEY) || '[]');
-  } catch { return []; }
-}
-
-function getAlertDismissal() {
-  try {
-    const raw = localStorage.getItem(ALERT_DISMISS_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (data.until === 'forever') return data;
-    if (typeof data.until === 'number' && Date.now() < data.until) return data;
-    localStorage.removeItem(ALERT_DISMISS_KEY);
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/* ── Quick Access config (static, outside component) ──── */
-
-// Icon + label lookup for starred section tiles
-const STARRED_META = {
-  summary:       { label: 'Summary',      icon: ClipboardList },
-  conditions:    { label: 'Conditions',   icon: Stethoscope },
-  allergies:     { label: 'Allergies',    icon: ShieldAlert },
-  labs:          { label: 'Labs',         icon: FlaskConical },
-  procedures:    { label: 'Procedures',   icon: Syringe },
-  immunizations: { label: 'Vaccines',     icon: ShieldCheck },
-  genetics:      { label: 'Genetics',     icon: Dna },
-  providers:     { label: 'Providers',    icon: User },
-  appts:         { label: 'Visits',       icon: Calendar },
-  pharmacies:    { label: 'Pharmacies',   icon: Building2 },
-  insurance:     { label: 'Insurance',    icon: BadgeDollarSign },
-  appeals:       { label: 'Appeals',      icon: Scale },
-  vitals:        { label: 'Vitals',       icon: TrendingUp },
-  sleep:         { label: 'Sleep',        icon: Moon },
-  activities:    { label: 'Activities',   icon: Activity },
-  cycles:        { label: 'Cycles',       icon: Heart },
-  interactions:  { label: 'Interactions', icon: AlertTriangle },
-  care_gaps:     { label: 'Care Gaps',    icon: AlertTriangle },
-  anesthesia:    { label: 'Anesthesia',   icon: AlertOctagon },
-  todos:         { label: "To-Do's",      icon: CheckSquare },
-  surgical:      { label: 'Surgery',      icon: PlaneTakeoff },
-  oura:          { label: 'Oura',         icon: OuraIcon },
-  fitbit:        { label: 'Fitbit',      icon: Watch },
-  apple_health:  { label: 'Apple Health', icon: Apple },
-  meds:          { label: 'Meds',         icon: Pill },
-  journal:       { label: 'Journal',      icon: BookOpen },
-  formhelper:    { label: 'Form Scribe', icon: PenLine },
-  aboutme:       { label: 'About Me',   icon: UserCircle },
-  insights:      { label: 'Insights',   icon: Sparkles },
-  news:          { label: 'News',       icon: Newspaper },
-};
-
-// Hub tiles, always 6 (or 5 when no devices). Tappable → category page.
-const HUB_TILES = [
-  { id: 'records',  navId: 'hub_records',  label: 'Records',   icon: ClipboardList },
-  { id: 'care',     navId: 'hub_care',     label: 'Care Team', icon: User },
-  { id: 'tracking', navId: 'hub_tracking', label: 'Tracking',  icon: Activity },
-  { id: 'safety',   navId: 'hub_safety',   label: 'Safety',    icon: Shield },
-  { id: 'plans',    navId: 'hub_plans',    label: 'Plans',     icon: CheckSquare },
-  { id: 'devices',  navId: 'hub_devices',  label: 'Devices',   icon: Zap, conditional: true },
-];
-
-/* ── Component ───────────────────────────────────────────── */
-
-const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
+import {
+  SEARCH_PLACEHOLDERS, STARTER_TIPS, STARRED_META, HUB_TILES,
+  ALERT_DISMISS_KEY, SEEN_RESOURCES_KEY, DISMISSED_TIPS_KEY, BARO_ALERT_DISMISS_KEY,
+} from '../dashboard/constants';
+import { getTimeGreeting, getContextLine, getDismissedTips, getSeenResources, getAlertDismissal } from '../dashboard/helpers';
+import { useVitalsSnapshot, useActivitySnapshot, useMoodSnapshot } from '../dashboard/useSnapshots';
+import { useSleepTrend, useHrTrend, useSpo2Trend } from '../dashboard/useTrendData';
+import { useAbnormalLabs, usePriceAlertMeds, useAlerts } from '../dashboard/useAlerts';
+import AlertsCard from '../dashboard/AlertsCard';
+import VitalsSnapshot from '../dashboard/VitalsSnapshot';
+import { MoodSnapshot, ActivitySnapshot } from '../dashboard/MoodActivity';
+import HealthTrends from '../dashboard/HealthTrends';
+import GettingStartedTips from '../dashboard/GettingStartedTips';
 
 export default function Dashboard({ data, interactions, onNav, onSage, onSageIntro, dataLoading, insightRatings }) {
   const isDesktop = useIsDesktop();
-  const { themeId } = useTheme();
   const [insight, setInsight] = useState(null);
   const [insightLoading, setInsightLoading] = useState(false);
 
@@ -332,7 +82,6 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   }, [isDesktop]);
   const wellness = useWellnessMessage();
   const [alertDismissal, setAlertDismissal] = useState(getAlertDismissal);
-  const [showDismissMenu, setShowDismissMenu] = useState(false);
   const alertsDismissed = alertDismissal !== null;
 
   /* ── Conditional tile visibility (connected OR has existing data) ── */
@@ -515,195 +264,15 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       .sort((a, b) => new Date(a._sortDate) - new Date(b._sortDate));
   }, [data.appts, activeMeds, data.cycles, data.todos]);
 
-  const latestJournal = useMemo(
-    () => data.journal.length > 0 ? data.journal[0] : null,
-    [data.journal]
-  );
+  /* ── Snapshots (vitals + activity + mood) ── */
+  const vitalsSnapshot = useVitalsSnapshot(data.vitals);
+  const activitySnapshot = useActivitySnapshot(data.activities);
+  const moodSnapshot = useMoodSnapshot(data.journal);
 
-  /* Vitals snapshot, one featured vital (with 14-day chart) + compact supporting chips */
-  const vitalsSnapshot = useMemo(() => {
-    const today = Date.now();
-    const recentCutoff = localISODate(new Date(today - 7 * 86400000));
-    const sparkCutoff = localISODate(new Date(today - 7 * 86400000));
-    const vitals = data.vitals || [];
-    if (!vitals.length) return null;
-    const recent = vitals.filter(v => v.date >= recentCutoff);
-    if (!recent.length) return null;
-    const byType = {};
-    for (const v of recent) {
-      if (!byType[v.type] || v.date > byType[v.type].date) byType[v.type] = v;
-    }
-    const priority = ['sleep', 'hr', 'bp', 'weight', 'steps', 'energy', 'pain', 'mood', 'spo2', 'resp', 'temp', 'glucose'];
-    const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-    const buildItem = (type) => {
-      const latest = byType[type];
-      if (!latest) return null;
-      // Aggregate to daily averages so high-frequency wearable data doesn't make a blob
-      const byDateMap = new Map();
-      for (const v of vitals.filter(v2 => v2.type === type && v2.date >= sparkCutoff)) {
-        const n = Number(v.value);
-        if (!Number.isFinite(n)) continue;
-        if (!byDateMap.has(v.date)) byDateMap.set(v.date, []);
-        byDateMap.get(v.date).push(n);
-      }
-      const series = [...byDateMap.entries()]
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([date, vals]) => ({
-          date,
-          value: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length * 10) / 10,
-        }));
-      const recent7 = series.filter(p => p.date >= recentCutoff).map(p => p.value);
-      const recentAvg = mean(recent7);
-      const latestNum = Number(latest.value);
-      let delta = null, direction = 'flat', signal = 'neutral';
-      // Compare the LATEST reading to the 7-day average
-      if (recentAvg !== null && Number.isFinite(latestNum)) {
-        delta = latestNum - recentAvg;
-        const relThresh = Math.max(Math.abs(recentAvg) * 0.03, 0.1);
-        direction = delta > relThresh ? 'up' : delta < -relThresh ? 'down' : 'flat';
-        const polarity = VITAL_POLARITY[type];
-        if (polarity && direction !== 'flat') {
-          signal = (polarity === direction) ? 'good' : 'watch';
-        }
-      }
-      return { ...latest, series, recentAvg, delta, direction, signal };
-    };
-    const available = priority.filter(t => byType[t]);
-    if (!available.length) return null;
-    // Featured: top priority vital that also has at least 2 readings for a chart
-    const featuredType = available.find(t => {
-      const s = vitals.filter(v => v.type === t && v.date >= sparkCutoff);
-      return s.length >= 2;
-    }) || available[0];
-    const featured = buildItem(featuredType);
-    const chips = available
-      .filter(t => t !== featuredType)
-      .map(buildItem)
-      .filter(Boolean);
-    return { featured, chips };
-  }, [data.vitals]);
-
-  /* Activity snapshot, last 7 days summary + per-day bar data */
-  const activitySnapshot = useMemo(() => {
-    const activities = data.activities || [];
-    if (!activities.length) return null;
-    const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
-    const recent = activities.filter(a => a.date >= cutoff);
-    if (!recent.length) return null;
-    const totalMinutes = recent.reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
-    const totalCalories = recent.reduce((s, a) => s + (Number(a.calories) || 0), 0);
-    const dayBars = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const dateStr = localISODate(d);
-      const dayMins = activities.filter(a => a.date === dateStr).reduce((s, a) => s + (Number(a.duration_minutes) || 0), 0);
-      dayBars.push({ date: dateStr, mins: dayMins, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
-    }
-    const lastActivity = [...activities].sort((a, b) => (b.date || '').localeCompare(a.date || ''))[0];
-    return { count: recent.length, totalMinutes, totalCalories, dayBars, lastActivity };
-  }, [data.activities]);
-
-  /* Mood snapshot, 7-day mood dots from journal entries (no Recharts, pure CSS) */
-  const moodSnapshot = useMemo(() => {
-    const journal = data.journal || [];
-    if (!journal.length) return null;
-    const MOOD_SCORE = { '😀 Great': 5, '😊 Good': 4, '😐 Okay': 3, '😔 Low': 2, '😢 Sad': 1, '😠 Frustrated': 2, '😰 Anxious': 2, '😴 Exhausted': 1 };
-    const MOOD_COLOR = { '😀 Great': 'sage', '😊 Good': 'sage', '😐 Okay': 'textMid', '😔 Low': 'amber', '😢 Sad': 'rose', '😠 Frustrated': 'amber', '😰 Anxious': 'amber', '😴 Exhausted': 'rose' };
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const dateStr = localISODate(d);
-      const entry = journal.find(j => j.date === dateStr && j.mood);
-      days.push({
-        date: dateStr,
-        label: d.toLocaleDateString('en', { weekday: 'short' })[0],
-        mood: entry?.mood || null,
-        emoji: entry?.mood ? entry.mood.split(' ')[0] : null,
-        score: entry?.mood ? (MOOD_SCORE[entry.mood] || 3) : null,
-        color: entry?.mood ? (MOOD_COLOR[entry.mood] || 'textMid') : null,
-      });
-    }
-    const withMood = days.filter(d => d.mood);
-    if (withMood.length < 2) return null;
-    const latest = withMood[withMood.length - 1];
-    const avgScore = Math.round(withMood.reduce((s, d) => s + d.score, 0) / withMood.length * 10) / 10;
-    const avgLabel = avgScore >= 4.5 ? 'Great' : avgScore >= 3.5 ? 'Good' : avgScore >= 2.5 ? 'Okay' : 'Low';
-    return { days, latest, avgScore, avgLabel, count: withMood.length };
-  }, [data.journal]);
-
-  /* ── Health Trend Cards ─────────────────── */
-  // Sleep: 7-night bar chart
-  const sleepTrend = useMemo(() => {
-    const sleepVitals = (data.vitals || []).filter(v => v.type === 'sleep');
-    if (sleepVitals.length < 4) return null;
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000);
-      const dateStr = localISODate(d);
-      const recs = sleepVitals.filter(v => v.date === dateStr);
-      const val = recs.length ? recs.reduce((s, v) => s + Number(v.value), 0) / recs.length : null;
-      days.push({ dateStr, label: d.toLocaleDateString('en', { weekday: 'short' }).slice(0, 2), value: val !== null ? Math.round(val * 10) / 10 : null });
-    }
-    const withData = days.filter(d => d.value !== null);
-    if (withData.length < 4) return null;
-    const avg = Math.round(withData.reduce((s, d) => s + d.value, 0) / withData.length * 10) / 10;
-    const last = withData[withData.length - 1];
-    return { days, avg, last };
-  }, [data.vitals]);
-
-  // Heart Rate: 7-day daily min/avg/max band chart
-  const hrTrend = useMemo(() => {
-    const hrVitals = (data.vitals || []).filter(v => v.type === 'hr');
-    if (hrVitals.length < 4) return null;
-    const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
-    const recent = hrVitals.filter(v => v.date >= cutoff);
-    if (recent.length < 4) return null;
-    const byDate = new Map();
-    for (const v of recent) {
-      if (!byDate.has(v.date)) byDate.set(v.date, []);
-      byDate.get(v.date).push(Number(v.value));
-    }
-    const days = [...byDate.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, vals]) => {
-        const min = Math.round(Math.min(...vals));
-        const max = Math.round(Math.max(...vals));
-        const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length);
-        return { date, min, band: max - min, avg, label: new Date(date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' }).slice(0, 2) };
-      });
-    if (days.length < 4) return null;
-    const avg = Math.round(days.reduce((s, d) => s + d.avg, 0) / days.length);
-    const min = Math.min(...days.map(d => d.min));
-    const max = Math.max(...days.map(d => d.min + d.band));
-    return { days, avg, min, max };
-  }, [data.vitals]);
-
-  // Blood Oxygen: 7-day daily min/avg/max band chart
-  const spo2Trend = useMemo(() => {
-    const spo2Vitals = (data.vitals || []).filter(v => v.type === 'spo2');
-    if (spo2Vitals.length < 4) return null;
-    const cutoff = localISODate(new Date(Date.now() - 7 * 86400000));
-    const recent = spo2Vitals.filter(v => v.date >= cutoff);
-    if (recent.length < 4) return null;
-    const byDate = new Map();
-    for (const v of recent) {
-      if (!byDate.has(v.date)) byDate.set(v.date, []);
-      byDate.get(v.date).push(Number(v.value));
-    }
-    const days = [...byDate.entries()]
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([date, vals]) => {
-        const min = Math.round(Math.min(...vals) * 10) / 10;
-        const max = Math.round(Math.max(...vals) * 10) / 10;
-        const avg = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 10) / 10;
-        return { date, min, band: Math.round((max - min) * 10) / 10, avg };
-      });
-    if (days.length < 4) return null;
-    const avg = Math.round(days.reduce((s, d) => s + d.avg, 0) / days.length * 10) / 10;
-    const lowNights = days.filter(d => d.min < 95).length;
-    const minVal = Math.min(...days.map(d => d.min));
-    return { days, avg, lowNights, minVal };
-  }, [data.vitals]);
+  /* ── Health trend cards ── */
+  const sleepTrend = useSleepTrend(data.vitals);
+  const hrTrend = useHrTrend(data.vitals);
+  const spo2Trend = useSpo2Trend(data.vitals);
 
   // Lab highlights, recent 6 labs sorted by date
   const labHighlights = useMemo(() => {
@@ -712,6 +281,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     return [...labs].sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 6);
   }, [data.labs]);
 
+  /* ── Alert inputs + aggregation ── */
   const urgentGaps = useMemo(
     () => (data.care_gaps || []).filter(g => g.urgency === 'urgent').length,
     [data.care_gaps]
@@ -720,22 +290,9 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     () => (data.anesthesia_flags || []).length,
     [data.anesthesia_flags]
   );
-  const abnormalLabs = useMemo(
-    () => {
-      // Only count recent abnormal labs (last 90 days) so a one-time import of
-      // years of historical labs doesn't bury the Dashboard in stale alerts.
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 90);
-      const cutoffISO = localISODate(cutoff);
-      return (data.labs || []).filter(l =>
-        ['abnormal', 'high', 'low'].includes(l.flag) &&
-        (!l.date || l.date >= cutoffISO)
-      );
-    },
-    [data.labs]
-  );
+  const abnormalLabs = useAbnormalLabs(data.labs);
+  const priceAlertMeds = usePriceAlertMeds(activeMeds, data.drug_prices);
 
-  /* Appointments within 48 hours for prep nudge */
   /* ── AI Insight ─────────────────────────────── */
   const insightCacheKey = `salve:daily-insight-${localISODate(new Date())}`;
 
@@ -766,109 +323,10 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     }
   }, [data.settings.ai_mode, activeMeds.length, data.conditions.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* ── Price increase detection ─────────────────── */
-  const priceAlertMeds = useMemo(() => {
-    const prices = data.drug_prices || [];
-    if (prices.length < 2) return [];
-    const now = Date.now();
-    const thirtyDaysAgo = now - 30 * 86400000;
-    const increased = [];
-    for (const med of activeMeds) {
-      const medPrices = prices
-        .filter(p => p.medication_id === med.id && p.nadac_per_unit)
-        .sort((a, b) => new Date(b.fetched_at || b.created_at) - new Date(a.fetched_at || a.created_at));
-      if (medPrices.length < 2) continue;
-      const latest = medPrices[0];
-      const older = medPrices.find(p => new Date(p.fetched_at || p.created_at).getTime() < thirtyDaysAgo);
-      if (!older) continue;
-      const pct = ((latest.nadac_per_unit - older.nadac_per_unit) / older.nadac_per_unit) * 100;
-      if (pct > 15) increased.push(med.display_name || med.name);
-    }
-    return increased;
-  }, [activeMeds, data.drug_prices]);
-
-  /* ── Severe allergy count ───────────────────── */
-  const severeAllergyCount = useMemo(
-    () => (data.allergies || []).filter(a => a.severity === 'severe').length,
-    [data.allergies]
-  );
-
-  /* ── Alerts aggregation ─────────────────────── */
-  const alerts = useMemo(() => {
-    const items = [];
-    if (anesthesiaCount > 0) {
-      items.push({ id: 'anesthesia', icon: AlertOctagon, color: C.rose, text: `${anesthesiaCount} Anesthesia Flag${anesthesiaCount > 1 ? 's' : ''}, review before procedures`, nav: 'anesthesia' });
-    }
-    if (interactions.length > 0) {
-      items.push({ id: 'interactions', icon: AlertTriangle, color: C.rose, text: `${interactions.length} Drug Interaction${interactions.length > 1 ? 's' : ''} detected`, nav: 'interactions' });
-    }
-    if (abnormalLabs.length > 0) {
-      items.push({ id: 'labs', icon: FlaskConical, color: C.rose, text: `${abnormalLabs.length} Abnormal Lab Result${abnormalLabs.length > 1 ? 's' : ''}`, nav: 'labs' });
-    }
-    if (priceAlertMeds.length > 0) {
-      const names = priceAlertMeds.length <= 2 ? priceAlertMeds.join(' & ') : `${priceAlertMeds.length} medications`;
-      items.push({ id: 'prices', icon: TrendingUp, color: C.amber, text: `Price increase detected for ${names}`, nav: 'meds' });
-    }
-    if (urgentGaps > 0) {
-      items.push({ id: 'care_gaps', icon: AlertTriangle, color: C.amber, text: `${urgentGaps} Urgent Care Gap${urgentGaps > 1 ? 's' : ''}`, nav: 'care_gaps' });
-    }
-    // Overdue or urgent to-dos
-    const now = new Date(); now.setHours(0, 0, 0, 0);
-    const overdueTodos = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.due_date && new Date(t.due_date + 'T00:00:00') < now);
-    const urgentTodos = (data.todos || []).filter(t => !t.completed && !t.dismissed && t.priority === 'urgent');
-    const todoAlertCount = new Set([...overdueTodos.map(t => t.id), ...urgentTodos.map(t => t.id)]).size;
-    if (todoAlertCount > 0) {
-      items.push({ id: 'todos', icon: CheckSquare, color: C.amber, text: `${todoAlertCount} To-do${todoAlertCount > 1 ? 's' : ''} need${todoAlertCount === 1 ? 's' : ''} attention`, nav: 'todos' });
-    }
-    // Drug-gene conflicts
-    const pgxConflicts = (data.genetic_results || []).length > 0
-      ? activeMeds.filter(m => findPgxMatches(m.display_name || m.name, data.genetic_results).some(p => p.severity === 'danger' || p.severity === 'caution')).length
-      : 0;
-    if (pgxConflicts > 0) {
-      items.push({ id: 'pgx', icon: Zap, color: C.amber, text: `${pgxConflicts} medication${pgxConflicts > 1 ? 's' : ''} with gene interaction${pgxConflicts > 1 ? 's' : ''}`, nav: 'genetics' });
-    }
-    // Late period alert from cycle data
-    const cyclePeriods = (data.cycles || []).filter(c => c.type === 'period').map(c => c.date).sort();
-    if (cyclePeriods.length >= 2) {
-      const starts = [];
-      let prev = null;
-      for (const d of cyclePeriods) {
-        const dt = new Date(d + 'T00:00:00');
-        if (!prev || (dt - prev) > 2 * 86400000) starts.push(d);
-        prev = dt;
-      }
-      if (starts.length >= 2) {
-        const lengths = [];
-        for (let i = 1; i < starts.length; i++) {
-          const diff = Math.round((new Date(starts[i] + 'T00:00:00') - new Date(starts[i - 1] + 'T00:00:00')) / 86400000);
-          if (diff >= 18 && diff <= 45) lengths.push(diff);
-        }
-        const avg = lengths.length > 0 ? Math.round(lengths.reduce((a, b) => a + b, 0) / lengths.length) : 28;
-        const lastStart = starts[starts.length - 1];
-        const expected = new Date(lastStart + 'T00:00:00');
-        expected.setDate(expected.getDate() + avg);
-        const today = new Date(); today.setHours(0, 0, 0, 0);
-        const daysLate = Math.floor((today - expected) / 86400000);
-        if (daysLate >= 3) {
-          items.push({ id: 'late_period', icon: Heart, color: C.rose, text: `Period is ${daysLate} day${daysLate > 1 ? 's' : ''} late`, nav: 'cycles' });
-        }
-      }
-    }
-    // Upcoming appointments within 48hr
-    const nowTime = new Date();
-    const cutoff = new Date(nowTime.getTime() + 48 * 60 * 60 * 1000);
-    const prep = (data.appts || []).filter(a => {
-      const d = new Date(a.date + (a.time ? `T${a.time}` : ''));
-      return d >= nowTime && d <= cutoff;
-    });
-    for (const a of prep) {
-      const when = new Date(a.date + (a.time ? `T${a.time}` : ''));
-      const hrs = Math.round((when - nowTime) / 3600000);
-      const timeLabel = hrs < 24 ? `in ${hrs}h` : 'tomorrow';
-      items.push({ id: `appt-${a.id}`, icon: Calendar, color: C.rose, text: `Appointment with ${a.provider || 'provider'} ${timeLabel}`, nav: 'appts', highlightId: a.id });
-    }
-    return items;
-  }, [anesthesiaCount, interactions, abnormalLabs, priceAlertMeds, urgentGaps, data.cycles, data.todos, data.genetic_results, data.appts, activeMeds]);
+  const alerts = useAlerts({
+    anesthesiaCount, interactions, abnormalLabs, priceAlertMeds, urgentGaps,
+    data, activeMeds,
+  });
 
   const displayedTimeline = useMemo(() => timeline.slice(0, isDesktop ? 6 : 4), [timeline, isDesktop]);
 
@@ -905,7 +363,6 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     const change24h = baroChip.change24h ?? 0;
     const change3h = baroChip.change3h ?? 0;
     if (Math.abs(change24h) < 5 && Math.abs(change3h) < 3) return null;
-    const userConds = (data.conditions || []).map(c => c.name?.toLowerCase() || '');
     const matchedConditions = (data.conditions || [])
       .filter(c => PRESSURE_SENSITIVE.some(ps => c.name?.toLowerCase().includes(ps)))
       .map(c => c.name);
@@ -963,7 +420,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     );
     if (overdueTodos.length > 0) {
       chips.push({
-        id: 'todos', icon: CheckSquare, color: C.rose,
+        id: 'todos', icon: AlertTriangle, color: C.rose,
         label: `${overdueTodos.length} overdue`,
         sub: `to-do${overdueTodos.length > 1 ? 's' : ''}`, nav: 'todos',
       });
@@ -974,12 +431,11 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const greeting = getTimeGreeting();
   const contextLine = getContextLine(data, interactions, urgentGaps, anesthesiaCount, abnormalLabs.length, alertsDismissed);
 
-  const dismissAlerts = (duration) => {
+  const dismissAlerts = useCallback((duration) => {
     const val = { until: duration === 'forever' ? 'forever' : Date.now() + duration };
     localStorage.setItem(ALERT_DISMISS_KEY, JSON.stringify(val));
     setAlertDismissal(val);
-    setShowDismissMenu(false);
-  };
+  }, []);
 
   /* ── Discover (personalized news only) ─────────── */
   const [seenResources, setSeenResources] = useState(() => getSeenResources());
@@ -1329,41 +785,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         {/* ── Left column ── */}
         {hasLeftContent && <div>
           {/* Alerts */}
-          {alerts.length > 0 && !alertsDismissed && (
-            <section aria-label="Needs attention" className="dash-stagger dash-stagger-3 mb-4 md:mb-6">
-              <Card className="!p-0 overflow-hidden">
-                <div className="flex items-center justify-between px-4 md:px-5 py-2.5 border-b border-salve-border/50">
-                  <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">Needs attention</span>
-                  <button
-                    onClick={() => setShowDismissMenu(!showDismissMenu)}
-                    className="p-1 -mr-1 rounded-md hover:bg-salve-card2 text-salve-textFaint transition-colors"
-                    aria-label="Dismiss alerts"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-                {showDismissMenu && (
-                  <div className="flex items-center gap-1.5 px-4 py-2 bg-salve-card2/50 border-b border-salve-border/50">
-                    <span className="text-[10.5px] text-salve-textFaint mr-auto">Hide for:</span>
-                    <button onClick={() => dismissAlerts(86400000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 day</button>
-                    <button onClick={() => dismissAlerts(604800000)} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">1 week</button>
-                    <button onClick={() => dismissAlerts('forever')} className="text-[10.5px] px-2 py-1 rounded-md bg-salve-card text-salve-textMid border border-salve-border hover:border-salve-lav/30 transition-colors">Always</button>
-                  </div>
-                )}
-                {alerts.map((a, i) => (
-                  <button
-                    key={a.id}
-                    onClick={() => onNav(a.nav, a.highlightId ? { highlightId: a.highlightId } : undefined)}
-                    className={`w-full flex items-center gap-fluid-sm px-4 md:px-5 py-3 md:py-3.5 bg-transparent border-0 cursor-pointer alert-row transition-colors ${i < alerts.length - 1 ? 'border-b border-salve-border' : ''}`}
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: a.color }} />
-                    <a.icon size={14} color={a.color} className="flex-shrink-0" />
-                    <span className="text-ui-md text-salve-textMid text-left flex-1">{a.text}</span>
-                    <ChevronRight size={13} className="text-salve-textFaint flex-shrink-0" />
-                  </button>
-                ))}
-              </Card>
-            </section>
+          {!alertsDismissed && (
+            <AlertsCard alerts={alerts} onDismiss={dismissAlerts} onNav={onNav} />
           )}
 
           {/* Barometric pressure advisory */}
@@ -1696,226 +1119,13 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             </Reveal>
           )}
 
-          {/* Vitals (full width), then Mood + Activity side-by-side at lg+ */}
-          {/* Vitals Snapshot */}
-          {vitalsSnapshot && vitalsSnapshot.featured && (() => {
-            const f = vitalsSnapshot.featured;
-            const fType = VITAL_TYPES.find(t => t.id === f.type);
-            const fLabel = fType?.label || f.type;
-            const fUnit = fType?.unit || f.unit || '';
-            const fDisplay = f.type === 'bp' && f.value2 ? `${f.value}/${f.value2}` : f.value;
-            const fHasChart = f.series && f.series.length >= 2;
-            const fmtNum = (n) => {
-              if (n === null || n === undefined) return ', ';
-              return Math.abs(n) >= 10 ? Math.round(n).toString() : n.toFixed(1);
-            };
-            const captionText = (() => {
-              if (f.delta === null || f.recentAvg === null) return null;
-              if (f.direction === 'flat') return 'In line with your 7-day average';
-              const absDelta = Math.abs(f.delta);
-              const dir = f.direction === 'up' ? 'above' : 'below';
-              return `${fmtNum(absDelta)}${fUnit ? ` ${fUnit}` : ''} ${dir} your 7-day average`;
-            })();
-            const fSignalColor = f.signal === 'good' ? C.sage : f.signal === 'watch' ? C.amber : C.textMid;
-            const fArrow = f.direction === 'up' ? '↑' : f.direction === 'down' ? '↓' : '→';
-            return (
-              <Reveal as="section" aria-label="Recent vitals" className="mb-2">
-                <Card className="!p-4 md:!p-6 cursor-pointer" onClick={() => onNav('vitals')}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-ui-sm text-salve-textMid font-montserrat tracking-wider uppercase">Recent Vitals</span>
-                      <span className="text-ui-xs text-salve-textFaint font-montserrat">last 14 days</span>
-                    </div>
-                    <ChevronRight size={12} className="text-salve-textFaint" />
-                  </div>
-                  <div className="mb-3">
-                    <div className="text-ui-xs text-salve-textFaint font-montserrat uppercase tracking-wider mb-1">{fLabel}</div>
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <div className="text-display-hero font-medium text-salve-text font-montserrat">{fDisplay}</div>
-                      <div className="text-ui-md text-salve-textMid font-montserrat">{fUnit}</div>
-                    </div>
-                    {fHasChart && chartsReady && (() => {
-                      const { AreaChart, Area, ResponsiveContainer, Tooltip } = chartsRef.current;
-                      return (
-                      <div className="w-full h-[64px] -mx-1">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={f.series} margin={{ top: 4, right: 4, bottom: 2, left: 4 }}>
-                            <defs>
-                              <linearGradient id="vitals-hero-grad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={C.lav} stopOpacity={0.22} />
-                                <stop offset="100%" stopColor={C.lav} stopOpacity={0} />
-                              </linearGradient>
-                            </defs>
-                            <Tooltip
-                              content={({ active, payload }) => active && payload?.[0] ? (
-                                <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[13px] font-montserrat text-salve-text shadow-sm">
-                                  {payload[0].value}{fUnit}
-                                </div>
-                              ) : null}
-                              cursor={{ stroke: C.lav, strokeWidth: 1, strokeOpacity: 0.4 }}
-                            />
-                            <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} strokeOpacity={0.7} fill="url(#vitals-hero-grad)" dot={{ r: 3, fill: C.lav, strokeWidth: 0, fillOpacity: 0.8 }} activeDot={{ r: 4, fill: C.lav }} isAnimationActive={false} />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                      );
-                    })()}
-                    {captionText && (
-                      <div className="flex items-center gap-1.5 text-[13px] md:text-xs font-montserrat mt-1" style={{ color: fSignalColor }}>
-                        <span className="text-[14px]" aria-hidden="true">{fArrow}</span>
-                        <span>{captionText}</span>
-                      </div>
-                    )}
-                  </div>
-                  {vitalsSnapshot.chips.length > 0 && (
-                    <div className={`pt-3 border-t border-salve-border ${vitalsSnapshot.chips.length >= 2 ? 'grid grid-cols-2 gap-x-3 gap-y-2.5' : 'flex items-center gap-3'}`}>
-                      {vitalsSnapshot.chips.map(c => {
-                        const cType = VITAL_TYPES.find(t => t.id === c.type);
-                        const cLabel = cType?.label || c.type;
-                        const cUnit = cType?.unit || c.unit || '';
-                        const cDisplay = c.type === 'bp' && c.value2 ? `${c.value}/${c.value2}` : c.value;
-                        const cSignalColor = c.signal === 'good' ? C.sage : c.signal === 'watch' ? C.amber : C.textFaint;
-                        const cArrow = c.direction === 'up' ? '↑' : c.direction === 'down' ? '↓' : '→';
-                        const hasSparkline = c.series && c.series.length >= 2;
-                        return (
-                          <div key={c.type} className="flex items-center justify-between gap-1.5 min-w-0">
-                            <div className="min-w-0">
-                              <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider leading-none mb-0.5">{cLabel}</div>
-                              <div className="flex items-baseline gap-1">
-                                <span className="text-[14px] font-medium text-salve-text font-montserrat leading-none">{cDisplay}</span>
-                                <span className="text-[9px] text-salve-textFaint font-montserrat">{cUnit}</span>
-                                {c.delta !== null && (
-                                  <span className="text-[13px] font-montserrat" style={{ color: cSignalColor }} aria-hidden="true">{cArrow}</span>
-                                )}
-                              </div>
-                            </div>
-                            {hasSparkline && chartsReady && (() => {
-                              const { AreaChart, Area } = chartsRef.current;
-                              return (
-                              <AreaChart width={52} height={24} data={c.series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-                                <defs>
-                                  <linearGradient id={`chip-grad-${c.type}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor={cSignalColor} stopOpacity={0.25} />
-                                    <stop offset="100%" stopColor={cSignalColor} stopOpacity={0} />
-                                  </linearGradient>
-                                </defs>
-                                <Area type="monotone" dataKey="value" stroke={cSignalColor} strokeWidth={1.5} strokeOpacity={0.65} fill={`url(#chip-grad-${c.type})`} dot={false} isAnimationActive={false} />
-                              </AreaChart>
-                              );
-                            })()}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </Card>
-              </Reveal>
-            );
-          })()}
+          <VitalsSnapshot snapshot={vitalsSnapshot} chartsReady={chartsReady} chartsRef={chartsRef} onNav={onNav} />
+
           {/* Mood + Activity, side-by-side at lg+ only when both exist */}
           <div className={moodSnapshot && activitySnapshot ? 'lg:grid lg:grid-cols-2 lg:gap-4' : ''}>
-          {/* Mood snapshot */}
-          {moodSnapshot && (
-            <Reveal as="section" aria-label="Mood this week" className="mb-2">
-              <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('journal')}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-ui-sm text-salve-textMid font-montserrat tracking-wider uppercase">Mood</span>
-                    <span className="text-ui-xs text-salve-textFaint font-montserrat">last 7 days</span>
-                  </div>
-                  <ChevronRight size={12} className="text-salve-textFaint" />
-                </div>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-[22px] leading-none">{moodSnapshot.latest.emoji}</span>
-                  <span className="text-[15px] text-salve-textMid font-montserrat">{moodSnapshot.latest.mood.split(' ').slice(1).join(' ')}</span>
-                  <span className="text-[13px] text-salve-textFaint font-montserrat ml-auto">{moodSnapshot.avgLabel} avg</span>
-                </div>
-                <div className="flex items-end gap-1 h-10 mb-1">
-                  {moodSnapshot.days.map((d, i) => {
-                    const isToday = i === 6;
-                    const barH = d.score ? Math.round((d.score / 5) * 32) : 2;
-                    const barColor = d.color === 'sage' ? C.sage : d.color === 'amber' ? C.amber : d.color === 'rose' ? C.rose : C.textFaint;
-                    return (
-                      <div key={d.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                        <div
-                          className="w-full rounded-sm"
-                          style={{
-                            height: `${barH}px`,
-                            background: d.score ? (isToday ? barColor : `${barColor}55`) : C.border,
-                          }}
-                        />
-                        <span className="text-[8px] font-montserrat" style={{ color: isToday ? barColor : C.textFaint }}>
-                          {d.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {moodSnapshot.count >= 3 && (
-                  <div className="mt-2 pt-2 border-t border-salve-border">
-                    <span className="text-[13px] text-salve-textFaint font-montserrat">{moodSnapshot.count} entries this week</span>
-                  </div>
-                )}
-              </Card>
-            </Reveal>
-          )}
-          {/* Activity snapshot */}
-          {activitySnapshot && (
-            <Reveal as="section" aria-label="Recent activity" className="mb-2">
-              <Card className="!p-4 md:!p-5 cursor-pointer" onClick={() => onNav('activities')}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-ui-sm text-salve-textMid font-montserrat tracking-wider uppercase">Activity</span>
-                    <span className="text-ui-xs text-salve-textFaint font-montserrat">last 7 days</span>
-                  </div>
-                  <ChevronRight size={12} className="text-salve-textFaint" />
-                </div>
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-display-hero font-medium text-salve-text font-montserrat">{activitySnapshot.count}</span>
-                  <span className="text-[15px] text-salve-textMid font-montserrat">session{activitySnapshot.count !== 1 ? 's' : ''}</span>
-                  {activitySnapshot.totalMinutes > 0 && (
-                    <>
-                      <span className="text-salve-textFaint/40 text-[15px]">·</span>
-                      <span className="text-[15px] text-salve-textMid font-montserrat">
-                        {activitySnapshot.totalMinutes >= 60
-                          ? `${Math.floor(activitySnapshot.totalMinutes / 60)}h ${activitySnapshot.totalMinutes % 60}m`
-                          : `${activitySnapshot.totalMinutes}m`}
-                      </span>
-                    </>
-                  )}
-                </div>
-                {/* 7-day bar chart */}
-                <div className="flex items-end gap-1 h-10 mb-1">
-                  {activitySnapshot.dayBars.map((bar, i) => {
-                    const maxMins = Math.max(...activitySnapshot.dayBars.map(b => b.mins), 1);
-                    const pct = bar.mins > 0 ? Math.max(bar.mins / maxMins, 0.12) : 0;
-                    const isToday = i === 6;
-                    return (
-                      <div key={bar.date} className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                        <div
-                          className="w-full rounded-sm"
-                          style={{
-                            height: bar.mins > 0 ? `${Math.round(pct * 32)}px` : '2px',
-                            background: bar.mins > 0 ? (isToday ? C.sage : `${C.sage}55`) : `${C.border}`,
-                          }}
-                        />
-                        <span className="text-[8px] font-montserrat" style={{ color: isToday ? C.sage : C.textFaint }}>
-                          {bar.label}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                {activitySnapshot.totalCalories > 0 && (
-                  <div className="mt-2 pt-2 border-t border-salve-border flex items-center gap-1.5">
-                    <Zap size={11} className="text-salve-amber" />
-                    <span className="text-[13px] text-salve-textFaint font-montserrat">{Math.round(activitySnapshot.totalCalories).toLocaleString()} cal active</span>
-                  </div>
-                )}
-              </Card>
-            </Reveal>
-          )}
-          </div>{/* end mood+activity grid */}
+            <MoodSnapshot snapshot={moodSnapshot} onNav={onNav} />
+            <ActivitySnapshot snapshot={activitySnapshot} onNav={onNav} />
+          </div>
         </div>
       </div>
 
@@ -1947,295 +1157,22 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         </Reveal>
       )}
 
-      {/* ── Health Trends grid ─────────────────── */}
-      {(sleepTrend || hrTrend || spo2Trend || labHighlights.length > 0) && (
-        <Reveal as="section" aria-label="Health trends" className="mb-5 md:mb-6">
-          <SectionTitle>Health Trends</SectionTitle>
-          <div className="bg-salve-card/50 border border-salve-border/60 rounded-2xl p-2.5 md:p-3">
-          <div className="grid grid-cols-2 gap-2.5 md:gap-3">
+      <HealthTrends
+        sleepTrend={sleepTrend}
+        hrTrend={hrTrend}
+        spo2Trend={spo2Trend}
+        labHighlights={labHighlights}
+        chartsReady={chartsReady}
+        chartsRef={chartsRef}
+        onNav={onNav}
+      />
 
-            {/* Sleep 14-night bar chart */}
-            {sleepTrend && (
-              <button
-                onClick={() => onNav('vitals')}
-                className="col-span-2 bg-salve-card border border-salve-border/40 rounded-xl p-4 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div>
-                    <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Sleep</span>
-                    <span className="text-[9px] text-salve-textFaint/60 font-montserrat ml-1.5">7 nights</span>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-[22px] font-medium text-salve-text font-montserrat leading-none">{sleepTrend.avg}</span>
-                    <span className="text-[13px] text-salve-textFaint font-montserrat">hrs avg</span>
-                  </div>
-                </div>
-                <div className="relative flex items-end gap-[3px] h-12 mt-2">
-                  {(() => {
-                    const maxVal = Math.max(...sleepTrend.days.filter(x => x.value).map(x => x.value), 1);
-                    // Goal line at 7h, positioned proportionally within the 36px bar area (10px label offset)
-                    const goalBottom = Math.round((7 / maxVal) * 36) + 10;
-                    return (<>
-                      <div
-                        className="absolute left-0 right-0 pointer-events-none z-10 flex items-center"
-                        style={{ bottom: `${goalBottom}px` }}
-                        aria-hidden="true"
-                      >
-                        <div className="flex-1 border-t border-dashed" style={{ borderColor: `${C.sage}70` }} />
-                        <span className="text-[7px] font-montserrat pl-1 leading-none" style={{ color: `${C.sage}90` }}>7h</span>
-                      </div>
-                      {sleepTrend.days.map((d, i) => {
-                        const barColor = !d.value ? `${C.border}` : d.value >= 7 ? C.sage : d.value >= 5 ? C.amber : C.rose;
-                        const pct = d.value ? Math.max(d.value / maxVal, 0.1) : 0;
-                        const isLast = i === sleepTrend.days.length - 1;
-                        return (
-                          <div key={d.dateStr} className="flex-1 flex flex-col items-center justify-end gap-[2px]">
-                            <div className="w-full rounded-sm transition-all" style={{ height: d.value ? `${Math.round(pct * 36)}px` : '2px', background: barColor, opacity: isLast ? 1 : 0.7 }} />
-                            {(i % 2 === 0) && <span className="text-[7px] font-montserrat" style={{ color: isLast ? C.sage : C.textFaint }}>{d.label}</span>}
-                          </div>
-                        );
-                      })}
-                    </>);
-                  })()}
-                </div>
-                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-salve-border/50">
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.sage }} /><span className="text-[9px] text-salve-textFaint font-montserrat">≥7h goal</span></div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.amber }} /><span className="text-[9px] text-salve-textFaint font-montserrat">5–7h</span></div>
-                  <div className="flex items-center gap-1"><div className="w-2 h-2 rounded-sm" style={{ background: C.rose }} /><span className="text-[9px] text-salve-textFaint font-montserrat">&lt;5h</span></div>
-                  {sleepTrend.last && (
-                    <div className="ml-auto text-[12px] font-montserrat" style={{ color: sleepTrend.last.value >= 7 ? C.sage : sleepTrend.last.value >= 5 ? C.amber : C.rose }}>
-                      Last night: {sleepTrend.last.value}h
-                    </div>
-                  )}
-                </div>
-              </button>
-            )}
-
-            {/* Heart Rate 7-day band chart */}
-            {hrTrend && chartsReady && (() => {
-              const { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } = chartsRef.current;
-              return (
-              <button
-                onClick={() => onNav('vitals')}
-                className="bg-salve-card border border-salve-border/40 rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Heart Rate</div>
-                  <div className="text-[9px] text-salve-textFaint font-montserrat">7 days</div>
-                </div>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{hrTrend.avg}</span>
-                  <span className="text-[13px] text-salve-textFaint font-montserrat">bpm avg</span>
-                  <span className="text-[12px] font-montserrat ml-auto" style={{ color: hrTrend.avg >= 60 && hrTrend.avg <= 100 ? C.sage : C.amber }}>
-                    {hrTrend.avg >= 60 && hrTrend.avg <= 100 ? 'Normal' : 'Attention'}
-                  </span>
-                </div>
-                <div className="h-[80px] -mx-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={hrTrend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
-                      <defs>
-                        <linearGradient id="hr-band-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.rose} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={C.rose} stopOpacity={0.06} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="label" tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                      <YAxis domain={[Math.max(40, hrTrend.min - 8), hrTrend.max + 8]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          return (
-                            <div style={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}>
-                              <p style={{ margin: 0, color: C.text }}>{d.label}</p>
-                              <p style={{ margin: 0, color: C.rose }}>{d.avg} bpm avg</p>
-                              {d.band > 0 && <p style={{ margin: '2px 0 0', color: C.textFaint, fontSize: 10 }}>{d.min}–{d.min + d.band} range</p>}
-                            </div>
-                          );
-                        }}
-                      />
-                      <ReferenceLine y={60} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
-                      <ReferenceLine y={100} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.4} />
-                      <Area type="monotone" dataKey="min" stackId="hr" fill="transparent" stroke="none" isAnimationActive={false} legendType="none" />
-                      <Area type="monotone" dataKey="band" stackId="hr" fill="url(#hr-band-grad)" stroke="none" isAnimationActive={false} legendType="none" />
-                      <Line type="monotone" dataKey="avg" stroke={C.rose} strokeWidth={1.5} dot={{ r: 2, fill: C.rose, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[9px] text-salve-textFaint font-montserrat">Range: {hrTrend.min}–{hrTrend.max} bpm</span>
-                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: 60–100</span>
-                </div>
-              </button>
-              );
-            })()}
-
-            {/* Blood Oxygen 7-day band chart */}
-            {spo2Trend && chartsReady && (() => {
-              const { ComposedChart, Area, Line, ResponsiveContainer, XAxis, YAxis, Tooltip, ReferenceLine } = chartsRef.current;
-              return (
-              <button
-                onClick={() => onNav('vitals')}
-                className="bg-salve-card border border-salve-border/40 rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-0.5">
-                  <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Blood Oxygen</div>
-                  <div className="text-[9px] text-salve-textFaint font-montserrat">7 days</div>
-                </div>
-                <div className="flex items-baseline gap-1 mb-1">
-                  <span className="text-[24px] font-medium text-salve-text font-montserrat leading-none">{spo2Trend.avg}</span>
-                  <span className="text-[13px] text-salve-textFaint font-montserrat">% avg</span>
-                  <span className="text-[12px] font-montserrat ml-auto" style={{ color: spo2Trend.lowNights === 0 ? C.sage : C.amber }}>
-                    {spo2Trend.lowNights === 0 ? 'Normal' : `${spo2Trend.lowNights} low`}
-                  </span>
-                </div>
-                <div className="h-[80px] -mx-1">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={spo2Trend.days} margin={{ top: 4, right: 8, bottom: 16, left: 24 }}>
-                      <defs>
-                        <linearGradient id="spo2-band-grad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={C.lav} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={C.lav} stopOpacity={0.06} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="date" tickFormatter={(d) => new Date(d + 'T12:00:00').toLocaleDateString('en', { month: 'numeric', day: 'numeric' })} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                      <YAxis domain={[Math.min(90, spo2Trend.minVal - 2), 100]} tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }} tickLine={false} axisLine={false} tickCount={3} width={20} />
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0]?.payload;
-                          return (
-                            <div style={{ fontFamily: 'Montserrat', fontSize: 11, borderRadius: 8, border: `1px solid ${C.border}`, background: C.card, padding: '4px 8px' }}>
-                              <p style={{ margin: 0, color: C.text }}>{d.date ? new Date(d.date + 'T12:00:00').toLocaleDateString('en', { month: 'short', day: 'numeric' }) : ''}</p>
-                              <p style={{ margin: 0, color: C.lav }}>{d.avg}% avg</p>
-                              {d.band > 0 && <p style={{ margin: '2px 0 0', color: C.textFaint, fontSize: 10 }}>{d.min}–{Math.round((d.min + d.band) * 10) / 10}% range</p>}
-                            </div>
-                          );
-                        }}
-                      />
-                      <ReferenceLine y={95} stroke={C.amber} strokeDasharray="3 3" strokeOpacity={0.5} label={{ value: '95%', position: 'right', fontSize: 8, fill: C.amber, fontFamily: 'Montserrat' }} />
-                      <Area type="monotone" dataKey="min" stackId="spo2" fill="transparent" stroke="none" isAnimationActive={false} legendType="none" />
-                      <Area type="monotone" dataKey="band" stackId="spo2" fill="url(#spo2-band-grad)" stroke="none" isAnimationActive={false} legendType="none" />
-                      <Line type="monotone" dataKey="avg" stroke={C.lav} strokeWidth={1.5} dot={{ r: 2, fill: C.lav, strokeWidth: 0 }} activeDot={{ r: 4 }} isAnimationActive={false} />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex items-center justify-between mt-0.5">
-                  <span className="text-[9px] font-montserrat" style={{ color: spo2Trend.lowNights > 0 ? C.amber : C.textFaint }}>
-                    {spo2Trend.lowNights > 0 ? `${spo2Trend.lowNights} night${spo2Trend.lowNights > 1 ? 's' : ''} below 95%` : 'All readings ≥95%'}
-                  </span>
-                  <span className="text-[9px] text-salve-textFaint font-montserrat opacity-60">Normal: ≥95%</span>
-                </div>
-              </button>
-              );
-            })()}
-
-            {/* Lab highlights */}
-            {labHighlights.length > 0 && (
-              <button
-                onClick={() => onNav('labs')}
-                className="col-span-2 bg-salve-card border border-salve-border/40 rounded-xl p-3.5 text-left cursor-pointer hover:border-salve-lav/30 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Recent Labs</span>
-                  <ChevronRight size={11} className="text-salve-textFaint/50" />
-                </div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2 [&>*]:min-w-0">
-                  {labHighlights.map(lab => {
-                    const flag = lab.flag;
-                    const hasFlag = ['abnormal', 'high', 'low', 'critical'].includes(flag);
-                    const flagColor = hasFlag ? C.rose : flag === 'normal' || flag === 'completed' ? C.sage : C.textFaint;
-                    const flagLabel = flag === 'high' ? '↑ High' : flag === 'low' ? '↓ Low' : flag === 'critical' ? '‼ Critical' : flag === 'abnormal' ? '! Abnormal' : '✓ Normal';
-                    return (
-                      <div key={lab.id} className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-[13px] text-salve-textMid font-montserrat font-medium truncate">{lab.test_name || 'Lab result'}</div>
-                          <div className="text-[12px] text-salve-textFaint font-montserrat">{lab.date ? fmtDate(lab.date) : ''}</div>
-                        </div>
-                        <div className="flex-shrink-0 text-right min-w-0 max-w-[45%]">
-                          {lab.result && <div className="text-[13px] font-semibold font-montserrat truncate" style={{ color: hasFlag ? flagColor : C.textMid }}>{lab.result}{lab.unit ? ` ${lab.unit}` : ''}</div>}
-                          <div className="text-[9px] font-montserrat" style={{ color: flagColor }}>{flagLabel}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="mt-2.5 pt-2 border-t border-salve-border/50 text-[9px] text-salve-textFaint font-montserrat">
-                  {labHighlights.length} recent result{labHighlights.length !== 1 ? 's' : ''} · Last: {fmtDate(labHighlights[0].date)}
-                </div>
-              </button>
-            )}
-          </div>
-          </div>
-        </Reveal>
-      )}
-
-      {/* ── Getting Started tips (onboarding, dismissible) ── */}
-      {visibleTips.length > 0 && (
-        <Reveal as="section" aria-label="Getting started" className="mb-5 md:mb-6">
-          <div className="flex items-center justify-between mb-2 px-1">
-            <div className="flex items-center gap-2">
-              <Lightbulb size={13} className="text-salve-amber" />
-              <span className="text-ui-sm text-salve-textFaint font-montserrat tracking-widest uppercase">Getting Started</span>
-            </div>
-            <button
-              onClick={dismissAllTips}
-              className="text-[12px] text-salve-textFaint/60 hover:text-salve-textMid font-montserrat bg-transparent border-none cursor-pointer transition-colors px-1"
-              aria-label="Dismiss all tips"
-            >
-              Hide all
-            </button>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-fluid-md">
-            {visibleTips.map((tip, i) => {
-              const TipIcon = tip.icon;
-              const colorVar = tip.color === 'sage' ? C.sage : tip.color === 'amber' ? C.amber : C.lav;
-              const isLastOdd = visibleTips.length % 2 !== 0 && i === visibleTips.length - 1;
-              return (
-                <div
-                  key={tip.id}
-                  className={`bg-salve-card border border-salve-border/50 rounded-xl p-fluid-lg flex flex-col relative${isLastOdd ? ' col-span-2' : ''}`}
-                >
-                  <button
-                    onClick={() => dismissTip(tip.id)}
-                    className="absolute top-2 right-2 p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint/30 hover:text-salve-textFaint hover:bg-salve-card2 transition-colors"
-                    aria-label={`Dismiss ${tip.title}`}
-                  >
-                    <X size={11} />
-                  </button>
-                  <div
-                    className="w-7 h-7 md:w-9 md:h-9 rounded-lg flex items-center justify-center mb-2"
-                    style={{ background: `${colorVar}15` }}
-                  >
-                    <TipIcon size={14} color={colorVar} strokeWidth={1.5} />
-                  </div>
-                  <div className="text-[14px] md:text-sm text-salve-text font-medium mb-1 pr-5">{tip.title}</div>
-                  <p className="text-ui-base text-salve-textFaint leading-relaxed m-0 mb-2 flex-1">{tip.body}</p>
-                  {tip.href ? (
-                    <a
-                      href={tip.href}
-                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat no-underline transition-colors mt-auto"
-                      style={{ color: colorVar }}
-                    >
-                      {tip.actionLabel}
-                      <ExternalLink size={9} />
-                    </a>
-                  ) : (
-                    <button
-                      onClick={() => onNav(tip.action)}
-                      className="inline-flex items-center gap-1 text-[10.5px] md:text-xs font-medium font-montserrat bg-transparent border-none cursor-pointer p-0 transition-colors mt-auto"
-                      style={{ color: colorVar }}
-                    >
-                      {tip.actionLabel}
-                      <ChevronRight size={10} />
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </Reveal>
-      )}
+      <GettingStartedTips
+        tips={visibleTips}
+        onDismiss={dismissTip}
+        onDismissAll={dismissAllTips}
+        onNav={onNav}
+      />
 
       {/* ── Beta feedback card (prominent, always visible during beta) ── */}
       <Reveal as="section" aria-label="Beta feedback" className="dash-stagger mb-5 md:mb-6">
