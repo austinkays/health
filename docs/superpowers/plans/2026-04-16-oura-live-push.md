@@ -1,6 +1,6 @@
 # Oura Ring Live-Push — Webhook-Driven Sync
 
-**Status (2026-04-16):** Draft, not started. Depends on migration 050 (already deployed) for the shared `wearable_connections` table.
+**Status (2026-04-16):** Phase 1 deployed (migration 051 + `bootstrap_subscriptions` admin action in `api/wearable.js`). Phases 2–4 pending.
 
 ## Context
 
@@ -26,14 +26,16 @@ Four phases. Two of them (1 and 2) have no dependency on a tester — they're en
 
 Oura subscriptions aren't tied to a user token, so we can't create them as a side effect of OAuth connect (like we do for Fitbit). Instead, an admin-gated bootstrap endpoint registers them once per event type we care about:
 
-- **New action in [api/wearable.js](api/wearable.js) Oura handler: `bootstrap_subscriptions`** (POST, admin-only gate via `isAdminActive()`-equivalent check on the caller's `profiles.tier`).
-  - For each event type in `['sleep', 'daily_sleep', 'daily_readiness', 'daily_activity', 'daily_spo2', 'workout', 'daily_stress', 'tag']`:
-    - Check whether we already have a stored subscription ID for this event in `oura_app_subscriptions` (new lightweight table — one row per event type, app-level not user-level).
-    - If no, POST `https://api.ouraring.com/v2/webhook/subscription` with `client_id` + `client_secret` + `callback_url` + `event_type` + `data_type` + randomly generated `verification_token` (stored on the row).
-    - On success, store the returned `id` + `expiration_time` + `verification_token` on the row. Status `pending_verification`.
-  - Oura sends a verification challenge to our webhook — we echo back the `verification_token`. That's covered in Phase 3.
+**Important correction from the original plan:** Oura's `event_type` is `create | update | delete` (CRUD operation), **not** the data category. The data category is a separate `data_type` field (`sleep`, `daily_readiness`, `workout`, etc.). Subscriptions index on `(event_type, data_type)` pairs. v1 subscribes to `event_type='create'` only across 7 data types; `update` subscriptions can be added later.
 
-- **New migration: `051_oura_app_subscriptions.sql`**. Single table, no RLS (admin-only via service-role REST), columns: `id text PRIMARY KEY` (Oura's subscription id), `event_type text UNIQUE`, `callback_url text`, `verification_token text`, `expiration_time timestamptz`, `status text` (pending_verification/active/expired/error), `created_at`, `updated_at`.
+- **New action in [api/wearable.js](api/wearable.js) Oura handler: `bootstrap_subscriptions`** (POST, admin-only gate via new server-side `isAdminUser(userId)` helper that checks `profiles.tier = 'admin'` via service-role).
+  - For each `(event_type, data_type)` pair in `OURA_SUBSCRIBE_MATRIX` (create × 7 data types in v1):
+    - Check whether we already have a non-expired, non-errored row in `oura_app_subscriptions` for this pair → skip if so.
+    - POST `https://api.ouraring.com/v2/webhook/subscription` with headers `x-client-id` + `x-client-secret` (NOT OAuth bearer — subscription management is app-scoped) and body `{callback_url, verification_token, event_type, data_type}`. Verification token is a random UUID we generate and store.
+    - On success, upsert the returned `id` + `expiration_time` + `verification_token` on the registry row. Status `pending_verification` until Phase 3 wires the verification handler.
+  - Oura sends a verification challenge to our webhook URL — we echo back the `verification_token`. That's covered in Phase 3 of this plan.
+
+- **New migration: `051_oura_app_subscriptions.sql`**. Single app-level table with RLS enabled but no policies (defense-in-depth; only service-role can touch). Columns: `id text PRIMARY KEY` (Oura's subscription id), `event_type text CHECK IN ('create','update','delete')`, `data_type text`, `callback_url text`, `verification_token text`, `expiration_time timestamptz`, `status text`, `last_error text`, `created_at`, `updated_at`. UNIQUE index on `(event_type, data_type)` — one active subscription per pair. Trigger for `updated_at`.
 
 - **Renewal cron: `api/cron-oura-renew-subscriptions.js`** (new, runs weekly per `vercel.json` schedule). Reads `oura_app_subscriptions`, for each row where `expiration_time < now() + 7 days` issues the renewal API call, updates `expiration_time` in place. CRON_SECRET-gated like other cron endpoints.
 

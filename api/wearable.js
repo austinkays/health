@@ -111,12 +111,93 @@ async function deleteWearableConnection(userId, provider) {
   );
 }
 
+// Server-side admin gate. Used by bootstrap endpoints that should only
+// be callable by us (e.g. one-time Oura subscription setup). Mirrors
+// the client-side isAdminActive() check but verified against Supabase
+// with the service role — client-side localStorage tier overrides
+// can't bypass this.
+async function isAdminUser(userId) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key || !userId) return false;
+  const res = await fetch(
+    `${url}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=tier&limit=1`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  if (!res.ok) return false;
+  const rows = await res.json();
+  return rows[0]?.tier === 'admin';
+}
+
+// ── Oura app subscription registry helpers ─────────────────────────────
+// Unlike per-user wearable_connections, these rows are app-level — one
+// per (event_type, data_type) pair. The bootstrap endpoint creates them
+// once against Oura's API; the weekly renewal path refreshes them.
+
+async function upsertOuraSubscription(row) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) throw new Error('Supabase service role not configured');
+  const res = await fetch(`${url}/rest/v1/oura_app_subscriptions?on_conflict=event_type,data_type`, {
+    method: 'POST',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=representation',
+    },
+    body: JSON.stringify(row),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    throw new Error(`oura_app_subscriptions upsert failed (${res.status}): ${err}`);
+  }
+  const rows = await res.json();
+  return rows[0];
+}
+
+async function getOuraSubscriptionByEventData(eventType, dataType) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return null;
+  const res = await fetch(
+    `${url}/rest/v1/oura_app_subscriptions?event_type=eq.${encodeURIComponent(eventType)}&data_type=eq.${encodeURIComponent(dataType)}&limit=1`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ── Oura ────────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════
 
 const OURA_TOKEN_URL = 'https://api.ouraring.com/oauth/token';
 const OURA_API_BASE = 'https://api.ouraring.com/v2/usercollection';
+const OURA_WEBHOOK_API_BASE = 'https://api.ouraring.com/v2/webhook';
+
+// Data types we subscribe to. event_type is always 'create' in v1 —
+// we want to know when NEW data arrives. Add 'update' subscriptions
+// later if we find Oura backfills/updates existing records often
+// enough to matter for our timeline display.
+const OURA_SUBSCRIBE_MATRIX = [
+  { event_type: 'create', data_type: 'sleep' },
+  { event_type: 'create', data_type: 'daily_sleep' },
+  { event_type: 'create', data_type: 'daily_readiness' },
+  { event_type: 'create', data_type: 'daily_activity' },
+  { event_type: 'create', data_type: 'daily_spo2' },
+  { event_type: 'create', data_type: 'workout' },
+  { event_type: 'create', data_type: 'daily_stress' },
+];
+
+function ouraWebhookCallbackUrl(req) {
+  // Explicit env wins — set OURA_WEBHOOK_CALLBACK_URL in prod to lock the
+  // callback to the production domain even if we run a preview deploy.
+  if (process.env.OURA_WEBHOOK_CALLBACK_URL) {
+    return process.env.OURA_WEBHOOK_CALLBACK_URL;
+  }
+  // Fallback: derive from request host. Works in prod (host = salve.today).
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  return `${proto}://${host}/api/wearable?provider=oura&action=webhook`;
+}
 
 async function ouraHandle(action, req, res, userId) {
   const clientId = process.env.OURA_CLIENT_ID;
@@ -205,6 +286,79 @@ async function ouraHandle(action, req, res, userId) {
     const data = await dataRes.json();
     logUsage(userId, 'oura');
     return res.json(data);
+  }
+
+  if (action === 'bootstrap_subscriptions') {
+    // Admin-gated one-time setup. Idempotent — re-running skips pairs
+    // that already have an active registry row. Use to initially
+    // register the full subscription matrix, or to add a new entry
+    // after OURA_SUBSCRIBE_MATRIX grows.
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+    if (!clientId || !clientSecret) return res.status(500).json({ error: 'Oura not configured' });
+
+    const isAdmin = await isAdminUser(userId);
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    const callbackUrl = ouraWebhookCallbackUrl(req);
+    const results = { callback_url: callbackUrl, created: [], skipped: [], failed: [] };
+
+    for (const pair of OURA_SUBSCRIBE_MATRIX) {
+      const existing = await getOuraSubscriptionByEventData(pair.event_type, pair.data_type);
+      if (existing && existing.status !== 'expired' && existing.status !== 'error') {
+        results.skipped.push({ ...pair, id: existing.id, status: existing.status });
+        continue;
+      }
+
+      // Verification token: random opaque string we generate. Oura echoes
+      // it back on the verify challenge, and ongoing notifications may
+      // include it as a signature-equivalent. Crypto.randomUUID gives
+      // us a non-guessable value without extra dependencies.
+      const verification_token = (globalThis.crypto?.randomUUID?.() || `oura-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+      try {
+        const subRes = await fetchWithTimeout(`${OURA_WEBHOOK_API_BASE}/subscription`, {
+          method: 'POST',
+          headers: {
+            'x-client-id': clientId,
+            'x-client-secret': clientSecret,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            callback_url: callbackUrl,
+            verification_token,
+            event_type: pair.event_type,
+            data_type: pair.data_type,
+          }),
+        });
+
+        if (!subRes.ok) {
+          const body = await subRes.text().catch(() => '');
+          console.warn(`[oura:bootstrap] ${pair.event_type}:${pair.data_type} failed (${subRes.status}):`, body);
+          results.failed.push({ ...pair, status: subRes.status, detail: body });
+          continue;
+        }
+
+        const sub = await subRes.json();
+        const row = await upsertOuraSubscription({
+          id: sub.id,
+          event_type: pair.event_type,
+          data_type: pair.data_type,
+          callback_url: callbackUrl,
+          verification_token,
+          expiration_time: sub.expiration_time || null,
+          status: 'pending_verification',
+          last_error: null,
+        });
+        console.log(`[oura:bootstrap] ${pair.event_type}:${pair.data_type} registered id=${sub.id} expires=${sub.expiration_time}`);
+        results.created.push({ ...pair, id: row.id, expiration_time: row.expiration_time });
+      } catch (e) {
+        console.warn(`[oura:bootstrap] ${pair.event_type}:${pair.data_type} threw`, e);
+        results.failed.push({ ...pair, error: String(e?.message || e) });
+      }
+    }
+
+    logUsage(userId, 'oura_bootstrap');
+    return res.json(results);
   }
 
   return res.status(400).json({ error: 'Unknown action' });
