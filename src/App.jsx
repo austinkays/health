@@ -37,6 +37,7 @@ import { clearDexcomTokens } from './services/dexcom';
 import { clearWithingsTokens } from './services/withings';
 import { clearFitbitTokens } from './services/fitbit';
 import { clearWhoopTokens } from './services/whoop';
+import { SYNCED_KEYS } from './services/preferences';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -465,7 +466,8 @@ function AppContent() {
         clearWithingsTokens();
         clearFitbitTokens();
         clearWhoopTokens();
-        localStorage.removeItem('salve:oura-baseline');
+        // Clear all cloud-synced preferences to prevent cross-user contamination
+        SYNCED_KEYS.forEach(key => { try { localStorage.removeItem(key); } catch {} });
       } else if (event === 'TOKEN_REFRESHED' && !s) {
         // Transient null during token refresh, do NOT flash auth screen.
         // The next event will have the refreshed session.

@@ -1,5 +1,7 @@
 // Starred sections, user-chosen shortcuts that appear on the Dashboard.
-// Stored as an array of section IDs in localStorage.
+// Stored as an array of section IDs in localStorage + synced to cloud.
+
+import { savePref } from '../services/preferences';
 
 const KEY = 'salve:starred';
 const MAX = 6;
@@ -19,7 +21,7 @@ export function getStarred() {
 export function setStarred(ids) {
   try {
     const capped = ids.slice(0, MAX);
-    localStorage.setItem(KEY, JSON.stringify(capped));
+    savePref(KEY, capped);
     window.dispatchEvent(new CustomEvent('salve:starred-change'));
   } catch { /* ignore */ }
 }

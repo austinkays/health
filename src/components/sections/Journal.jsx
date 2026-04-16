@@ -21,6 +21,7 @@ import { readCachedBarometric, PRESSURE_SENSITIVE } from '../../services/baromet
 import { getReflectionPrompt, isPositiveMood, getContextualPrompt } from '../../constants/journalPrompts';
 import { detectCrisis } from '../../utils/crisis';
 import useVoiceInput from '../../hooks/useVoiceInput';
+import { savePref } from '../../services/preferences';
 
 function VoiceInputBlock({ onTranscript }) {
   const { isListening, transcript, error, start, stop, isSupported } = useVoiceInput();
@@ -926,7 +927,7 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
             onClick={() => {
               const next = !moodPhaseOpen;
               setMoodPhaseOpen(next);
-              localStorage.setItem('salve:journal-mood-phase', String(next));
+              savePref('salve:journal-mood-phase', String(next));
             }}
             className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0"
           >

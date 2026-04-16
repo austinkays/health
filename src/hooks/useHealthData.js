@@ -4,6 +4,7 @@ import { cache } from '../services/cache';
 import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 import { buildDemoData } from '../constants/demoData';
 import { trackEvent, EVENTS } from '../services/analytics';
+import { hydrateFromCloud, snapshotLocal, SYNCED_KEYS } from '../services/preferences';
 import useRealtimeSync from './useRealtimeSync';
 
 // Map of Supabase table name → analytics event for per-entity "thing added" tracking.
@@ -85,6 +86,10 @@ export default function useHealthData(session, demoMode = false) {
         if (cached && !cancelled) {
           setData(cached);
           setLoading(false);
+          // Early hydration from cached preferences (instant, before network)
+          if (cached.settings?.preferences) {
+            hydrateFromCloud(cached.settings.preferences);
+          }
         }
       } catch { /* cache miss is fine */ }
 
@@ -95,6 +100,23 @@ export default function useHealthData(session, demoMode = false) {
           setData(fresh);
           // Defer cache write off the critical path, don't block rendering
           setTimeout(() => cache.write(fresh).catch(() => {}), 100);
+          // ── Preference sync: cloud → localStorage ──
+          // If the cloud has preferences, hydrate localStorage so this device
+          // picks up settings saved on other devices (theme, starred, etc.).
+          // If the cloud is empty (first sync / new column), seed it from
+          // whatever this device already has in localStorage.
+          try {
+            const cloudPrefs = fresh.settings?.preferences;
+            if (cloudPrefs && Object.keys(cloudPrefs).length > 0) {
+              hydrateFromCloud(cloudPrefs);
+            } else {
+              // First sync: push existing localStorage prefs to cloud
+              const local = snapshotLocal();
+              if (Object.keys(local).length > 0) {
+                db.profile.update({ preferences: local }).catch(() => {});
+              }
+            }
+          } catch { /* preference sync is non-fatal */ }
           // If premium is no longer active (trial expired / free tier) but the
           // client still has anthropic selected, force-switch to gemini so
           // requests don't hit /api/chat and 403. Keeps client + server in sync.

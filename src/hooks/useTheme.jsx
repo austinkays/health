@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { themes, DEFAULT_THEME, THEME_STORAGE_KEY, hexToRgbTriplet } from '../constants/themes';
 import { trackEvent, EVENTS } from '../services/analytics';
+import { savePref } from '../services/preferences';
 
 const ThemeContext = createContext();
 
@@ -101,7 +102,8 @@ export function ThemeProvider({ children }) {
 
   const saveTheme = useCallback((id) => {
     const target = id || themeId;
-    try { localStorage.setItem(THEME_STORAGE_KEY, target); } catch { /* ignore */ }
+    // Sync to both localStorage (fast) and cloud (roaming across devices)
+    savePref(THEME_STORAGE_KEY, target);
     setCommittedThemeId(prev => {
       // Only log when the persisted theme actually changes (not re-saves of the same theme)
       if (target !== prev) trackEvent(EVENTS.THEME_CHANGED + ':' + target);

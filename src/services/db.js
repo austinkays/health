@@ -325,6 +325,7 @@ export const db = {
         name: '', location: '', pharmacy: '',
         insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '',
         health_background: '', ai_mode: 'onDemand', sage_memory: '',
+        preferences: {},
       }).eq('id', uid);
     } catch (err) {
       errors.push({ table: 'profiles', error: err.message });

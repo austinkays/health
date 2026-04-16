@@ -20,6 +20,7 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import BarometricCard from '../ui/BarometricCard';
 import AIMarkdown from '../ui/AIMarkdown';
+import { savePref } from '../../services/preferences';
 
 function getVitalFlag(type, value, value2) {
   const t = VITAL_TYPES.find(x => x.id === type);
@@ -316,7 +317,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
             onClick={() => {
               const next = !cycleOverlay;
               setCycleOverlay(next);
-              localStorage.setItem('salve:vitals-cycle-overlay', String(next));
+              savePref('salve:vitals-cycle-overlay', String(next));
             }}
             className={`py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
               cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-salve-border bg-transparent text-salve-textFaint'

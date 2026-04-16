@@ -28,6 +28,7 @@ import { resetOnboarding } from '../ui/OnboardingWizard';
 import { subscribeToPush, unsubscribeFromPush, isSubscribed, getPermissionState, sendTestPush } from '../../services/push';
 import { getHiddenSources, hideSource } from '../../utils/hiddenSources';
 import { isStandalone, isIOS, isAndroid, isSafari } from '../../utils/platform';
+import { savePref } from '../../services/preferences';
 
 const PREP_PROMPT = `I'm going to send you a file called salve-sync.jsx in my next message. It's the complete source code for a React artifact called "Salve Health Sync", a health-data sync tool that uses MCP connections to pull my medical records and export them as JSON for import into the Salve app.
 
@@ -640,7 +641,7 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
 
   function saveOuraBaseline(v) {
     setOuraBaseline(v);
-    localStorage.setItem('salve:oura-baseline', v);
+    savePref('salve:oura-baseline', v);
   }
 
   // Import state

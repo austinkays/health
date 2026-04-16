@@ -7,6 +7,7 @@ import EmptyState from '../ui/EmptyState';
 import { C } from '../../constants/colors';
 import { fmtDate } from '../../utils/dates';
 import { isOuraConnected, syncAllOuraData, fetchOuraSleepSessions, fetchOuraReadiness, fetchOuraTemperature, fetchOuraDailySleep, getIntradayHRToday } from '../../services/oura';
+import { savePref } from '../../services/preferences';
 
 const AUTO_SYNC_INTERVAL = 5 * 60_000; // 5 minutes
 
@@ -428,7 +429,7 @@ export default function OuraRing({ data, addItem, onNav }) {
             value={parseFloat(localStorage.getItem('salve:oura-baseline')) || 97.7}
             onChange={e => {
               const v = parseFloat(e.target.value);
-              if (v && v > 90 && v < 105) localStorage.setItem('salve:oura-baseline', String(v));
+              if (v && v > 90 && v < 105) savePref('salve:oura-baseline', String(v));
             }}
             className="w-20 bg-salve-card2 border border-salve-border rounded-lg px-2 py-1.5 text-sm text-salve-text font-montserrat outline-none focus:border-salve-lav text-center"
           />

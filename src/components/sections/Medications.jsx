@@ -25,6 +25,7 @@ import { validateMedication } from '../../utils/validate';
 import { checkInteractions } from '../../utils/interactions';
 import { formatTime, getNextDoseIn } from '../../utils/reminders';
 import SplitView, { useIsDesktop } from '../layout/SplitView';
+import { savePref } from '../../services/preferences';
 
 const FREQ = ['Once daily','Twice daily (BID)','Three times daily (TID)','Four times daily (QID)','Every morning','Every evening/bedtime (QHS)','As needed (PRN)','Weekly','Biweekly','Monthly','Other'];
 const ROUTES = ['Oral','Topical','Injection (SC)','Injection (IM)','IV','Inhaled','Sublingual','Transdermal patch','Rectal','Ophthalmic','Otic','Nasal','Other'];
@@ -268,7 +269,7 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
   const [showDiscontinued, setShowDiscontinued] = useState(false);
 
   useEffect(() => {
-    try { localStorage.setItem('salve:med-sort', sortMode); } catch {}
+    savePref('salve:med-sort', sortMode);
   }, [sortMode]);
 
   // Check if any meds have non-default categories (show filter pills only when relevant)

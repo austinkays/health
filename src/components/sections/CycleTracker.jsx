@@ -18,6 +18,7 @@ import { computeCycleStats, getCyclePhase, predictNextPeriod, getDayOfCycle, est
 import { isOuraConnected, syncAllOuraData } from '../../services/oura';
 import { trackEvent, EVENTS } from '../../services/analytics';
 import { isSourceHidden } from '../../utils/hiddenSources';
+import { savePref } from '../../services/preferences';
 
 /* ── Calendar helpers ────────────────────────────────────── */
 
@@ -52,7 +53,7 @@ export default function CycleTracker({ data, addItem, addItemSilent, updateItem,
   const [overlays, setOverlays] = useState(loadOverlays);
   const toggleOverlay = (key) => setOverlays(prev => {
     const next = { ...prev, [key]: !prev[key] };
-    localStorage.setItem(OVERLAY_KEY, JSON.stringify(next));
+    savePref(OVERLAY_KEY, next);
     return next;
   });
   const [ouraSyncing, setOuraSyncing] = useState(false);

@@ -11,6 +11,7 @@ import Card from './Card';
 import { fmtDate, todayISO } from '../../utils/dates';
 import { fetchBarometricData, BARO_SCIENCE } from '../../services/barometric';
 import { C } from '../../constants/colors';
+import { savePref } from '../../services/preferences';
 
 /* ── Trend config ──────────────────────────────────────────── */
 
@@ -96,7 +97,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   const toggleAutoLog = () => {
     const next = !autoLog;
     setAutoLog(next);
-    localStorage.setItem('salve:baro-autolog', String(next));
+    savePref('salve:baro-autolog', String(next));
     if (!next) setAutoLogged(false);
   };
 
