@@ -21,12 +21,12 @@ const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 // ── RSS feed sources ──
 const FEEDS = [
   {
-    url: 'https://newsinhealth.nih.gov/rss/NIHNiH.xml',
+    url: 'https://newsinhealth.nih.gov/rss',
     source: 'NIH News in Health',
     sourceShort: 'NIH',
   },
   {
-    url: 'https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/drug-safety-and-availability/rss.xml',
+    url: 'https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/disco/rss.xml',
     source: 'FDA Drug Safety',
     sourceShort: 'FDA',
   },
