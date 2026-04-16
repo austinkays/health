@@ -45,7 +45,7 @@ export function isOuraConnected() {
 // ── OAuth2 helpers ──
 
 export function getOuraRedirectUri() {
-  return `${window.location.origin}/settings`;
+  return `${window.location.origin}/connections`;
 }
 
 export async function getOuraAuthUrl() {

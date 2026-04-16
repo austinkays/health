@@ -45,7 +45,7 @@ export function isFitbitConnected() {
 // ── OAuth2 helpers ──
 
 export function getFitbitRedirectUri() {
-  return `${window.location.origin}/settings`;
+  return `${window.location.origin}/connections`;
 }
 
 export async function getFitbitAuthUrl() {

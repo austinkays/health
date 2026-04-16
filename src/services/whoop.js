@@ -53,7 +53,7 @@ export function isWhoopConnected() {
 // ── OAuth2 helpers ──
 
 export function getWhoopRedirectUri() {
-  return `${window.location.origin}/settings`;
+  return `${window.location.origin}/connections`;
 }
 
 export async function getWhoopAuthUrl() {

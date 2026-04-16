@@ -80,7 +80,7 @@ export function isWithingsConnected() {
 // ── OAuth2 helpers ──
 
 export function getWithingsRedirectUri() {
-  return `${window.location.origin}/settings`;
+  return `${window.location.origin}/connections`;
 }
 
 export async function getWithingsAuthUrl() {

@@ -50,7 +50,7 @@ export function isDexcomConnected() {
 // ── OAuth2 helpers ──
 
 export function getDexcomRedirectUri() {
-  return `${window.location.origin}/settings`;
+  return `${window.location.origin}/connections`;
 }
 
 export async function getDexcomAuthUrl() {

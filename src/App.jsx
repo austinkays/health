@@ -433,9 +433,9 @@ function AppContent() {
       }
     }
     if (window.__ouraCode) {
-      // Oura OAuth callback, navigate to settings; session arrives via INITIAL_SESSION below
-      setTab('settings');
-      pushTabUrl('settings', null, true);
+      // Oura OAuth callback, navigate to Connections; session arrives via INITIAL_SESSION below
+      setTab('import');
+      pushTabUrl('import', null, true);
     }
 
     if (code) {
