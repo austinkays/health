@@ -63,6 +63,9 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
     localStorage.setItem('salve:baro-view', mode);
   };
 
+  const deltaColor =
+    baro?.change24h < -1 ? C.rose : baro?.change24h > 1 ? C.amber : C.sage;
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -114,13 +117,13 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
     return (
       <div className="flex items-center gap-1.5 px-0.5 -mt-1 mb-1" style={{ height: 0, overflow: 'visible', position: 'relative', top: '-6px' }}>
         <Wind size={11} aria-hidden="true" style={{ color: C.textFaint, opacity: 0.35 }} />
-        <span className="text-[11px] font-montserrat" style={{ color: C.textFaint, opacity: 0.45 }}>
+        <span className="text-ui-sm font-montserrat" style={{ color: C.textFaint, opacity: 0.45 }}>
           Barometric hidden
         </span>
         <button
           onClick={() => setMode('compact')}
           aria-label="Restore barometric pressure card"
-          className="text-[11px] font-montserrat bg-transparent border-0 p-0 cursor-pointer underline"
+          className="text-ui-sm font-montserrat bg-transparent border-0 p-0 cursor-pointer underline"
           style={{ color: C.lav, opacity: 0.65 }}
         >
           Show
@@ -135,7 +138,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
       <Card className="mb-4 !bg-transparent !border-salve-border/40">
         <div className="flex items-center gap-2.5 py-1">
           <Loader size={14} className="animate-spin flex-shrink-0" style={{ color: C.textFaint }} />
-          <span className="text-[13px] font-montserrat" style={{ color: C.textFaint }}>
+          <span className="text-ui-base font-montserrat" style={{ color: C.textFaint }}>
             Fetching local barometric pressure…
           </span>
         </div>
@@ -149,22 +152,22 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
       <Card className="mb-4 !bg-transparent !border-salve-border/40">
         <div className="flex items-start gap-2.5">
           <Wind size={14} className="flex-shrink-0 mt-0.5" style={{ color: C.textFaint }} />
-          <div>
-            <p className="text-[13px] font-montserrat" style={{ color: C.textFaint }}>
+          <div className="min-w-0">
+            <p className="text-ui-base font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
               {error
                 ? 'Could not load barometric pressure data.'
                 : <>
                     Enable location access or{' '}
                     <button
                       onClick={() => onNav?.('aboutme')}
-                      className="underline bg-transparent border-none p-0 font-montserrat text-[13px] cursor-pointer"
+                      className="underline bg-transparent border-none p-0 font-montserrat text-ui-base cursor-pointer"
                       style={{ color: C.textFaint }}
                     >add your zip code in About Me</button>
                     {' '}to see local barometric pressure.
                   </>}
             </p>
             {error && (
-              <p className="text-[11px] font-montserrat mt-0.5" style={{ color: C.textFaint, opacity: 0.6 }}>
+              <p className="text-ui-sm font-montserrat mt-0.5 break-words" style={{ color: C.textFaint, opacity: 0.6 }}>
                 {error}
               </p>
             )}
@@ -189,31 +192,29 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   if (displayMode === 'compact') {
     return (
       <Card className="mb-4">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-start justify-between gap-2.5 sm:items-center">
+          <div className="flex items-start gap-2 min-w-0 flex-1">
             <div
-              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+              className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
               style={{ background: `${color}18` }}
             >
               <Wind size={13} style={{ color }} aria-hidden="true" />
             </div>
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="text-[18px] font-semibold font-montserrat leading-none" style={{ color }}>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline gap-x-1 gap-y-1 flex-wrap min-w-0">
+                <span className="text-display-md font-semibold font-montserrat leading-none" style={{ color }}>
                   {baro.current ?? '—'}
                 </span>
-                <span className="text-[11px] font-montserrat" style={{ color: C.textFaint }}>hPa</span>
-                <span className="flex items-center gap-0.5 text-[12px] font-medium font-montserrat" style={{ color }}>
+                <span className="text-ui-sm font-montserrat flex-shrink-0" style={{ color: C.textFaint }}>hPa</span>
+                <span className="flex items-center gap-0.5 text-ui-base font-medium font-montserrat min-w-0" style={{ color }}>
                   <TrendIcon size={12} aria-hidden="true" />
-                  {t.label}
+                  <span className="truncate">{t.label}</span>
                 </span>
               </div>
               {baro.change24h != null && (
                 <div
-                  className="text-[11px] font-montserrat mt-0.5"
-                  style={{
-                    color: baro.change24h < -1 ? C.rose : baro.change24h > 1 ? C.amber : C.sage,
-                  }}
+                  className="text-ui-sm font-montserrat mt-0.5 truncate"
+                  style={{ color: deltaColor }}
                 >
                   {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa 24h
                 </div>
@@ -259,8 +260,8 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   return (
     <Card className="mb-4">
       {/* ── Header: reading + trend ── */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2.5">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-2.5 min-w-0 flex-1">
           {/* Icon orb */}
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
@@ -269,40 +270,60 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
             <Wind size={15} style={{ color }} />
           </div>
 
-          <div>
-            <div
-              className="text-[10px] uppercase tracking-widest font-montserrat font-semibold mb-0.5"
-              style={{ color: C.textFaint }}
-            >
-              Barometric Pressure
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-col gap-1 min-w-0">
+              <div
+                className="text-ui-xs uppercase tracking-[0.22em] font-montserrat font-semibold"
+                style={{ color: C.textFaint }}
+              >
+                Barometric Pressure
+              </div>
               {baro.locationName && (
-                <span className="ml-1.5 font-normal normal-case tracking-normal">
-                  <MapPin size={8} className="inline -mt-px mr-0.5" />
-                  {baro.locationName}
-                </span>
+                <div className="flex items-center gap-1 min-w-0" style={{ color: C.textFaint }}>
+                  <MapPin size={11} className="flex-shrink-0" aria-hidden="true" />
+                  <span className="text-ui-sm font-montserrat truncate">
+                    {baro.locationName}
+                  </span>
+                </div>
               )}
             </div>
-            <div className="flex items-baseline gap-1.5">
+            <div className="mt-1.5 flex items-baseline gap-x-1.5 gap-y-1.5 flex-wrap min-w-0">
               <span
-                className="text-[28px] font-semibold font-montserrat leading-none"
+                className="text-display-lg font-semibold font-montserrat leading-none"
                 style={{ color }}
               >
                 {baro.current ?? '—'}
               </span>
-              <span className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>hPa</span>
+              <span className="text-ui-base font-montserrat flex-shrink-0" style={{ color: C.textFaint }}>hPa</span>
               <span
-                className="flex items-center gap-0.5 text-[12px] font-medium font-montserrat ml-0.5"
+                className="flex items-center gap-0.5 text-ui-base font-medium font-montserrat min-w-0"
                 style={{ color }}
               >
                 <TrendIcon size={13} aria-hidden="true" />
-                {t.label}
+                <span className="truncate">{t.label}</span>
               </span>
             </div>
           </div>
         </div>
 
         {/* 24h delta badge + minimize control */}
-        <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+        <div className="flex items-start justify-between gap-3 sm:flex-col sm:items-end sm:justify-start flex-shrink-0">
+          {baro.change24h != null ? (
+            <div className="text-left sm:text-right min-w-0">
+              <div
+                className="text-ui-xs font-montserrat mb-0.5 uppercase tracking-[0.18em]"
+                style={{ color: C.textFaint }}
+              >
+                24 h change
+              </div>
+              <div
+                className="text-ui-xl font-semibold font-montserrat"
+                style={{ color: deltaColor }}
+              >
+                {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa
+              </div>
+            </div>
+          ) : <div className="hidden sm:block" />}
           <button
             onClick={() => setMode('compact')}
             aria-label="Collapse barometric pressure card"
@@ -311,33 +332,12 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
           >
             <Minimize2 size={13} aria-hidden="true" />
           </button>
-          {baro.change24h != null && (
-            <div className="text-right">
-              <div
-                className="text-[10px] font-montserrat mb-0.5"
-                style={{ color: C.textFaint }}
-              >
-                24 h change
-              </div>
-              <div
-                className="text-[15px] font-semibold font-montserrat"
-                style={{
-                  color:
-                    baro.change24h < -1 ? C.rose
-                    : baro.change24h > 1 ? C.amber
-                    : C.sage,
-                }}
-              >
-                {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
       {/* ── 7-day sparkline ── */}
       {chartData.length > 1 && (
-        <div className="h-[90px] mb-3 -mx-1">
+        <div className="h-[84px] sm:h-[90px] mb-3 -mx-1">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData} margin={{ top: 4, right: 6, bottom: 0, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={C.border} vertical={false} />
@@ -350,7 +350,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
               <YAxis
                 domain={['auto', 'auto']}
                 tick={{ fontSize: 9, fill: C.textFaint, fontFamily: 'Montserrat' }}
-                width={32}
+                width={28}
                 tickLine={false}
                 axisLine={false}
               />
@@ -381,19 +381,19 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
 
       {/* ── Trend tip ── */}
       <p
-        className="text-[12px] font-montserrat leading-relaxed mb-3 px-0.5"
+        className="text-ui-base font-montserrat leading-relaxed mb-3 px-0.5 line-clamp-3 sm:line-clamp-none"
         style={{ color: C.textFaint }}
       >
         {t.tip}
       </p>
 
       {/* ── Actions ── */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-stretch gap-2 flex-wrap">
         <button
           onClick={handleLog}
           disabled={logged || baro.current == null}
           aria-label={logged ? 'Pressure logged to vitals' : 'Log today\'s pressure to vitals'}
-          className="flex items-center gap-1.5 py-1.5 px-4 rounded-full text-[12px] font-medium font-montserrat border transition-colors"
+          className="flex w-full sm:w-auto items-center justify-center gap-1.5 py-1.5 px-4 rounded-full text-ui-base font-medium font-montserrat border transition-colors"
           style={
             logged
               ? { borderColor: C.sage, color: C.sage, background: `${C.sage}10` }
@@ -408,7 +408,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
           onClick={toggleAutoLog}
           aria-pressed={autoLog}
           aria-label={autoLog ? 'Disable daily auto-log' : 'Enable daily auto-log to vitals'}
-          className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-full text-[12px] font-medium font-montserrat border transition-colors cursor-pointer"
+          className="flex w-full sm:w-auto items-center justify-center gap-1.5 py-1.5 px-3.5 rounded-full text-ui-base font-medium font-montserrat border transition-colors cursor-pointer"
           style={
             autoLog
               ? { borderColor: C.sage, color: C.sage, background: `${C.sage}15` }
@@ -423,7 +423,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
           onClick={() => setSciOpen(o => !o)}
           aria-expanded={sciOpen}
           aria-label={sciOpen ? 'Hide why this matters' : 'Show why this matters'}
-          className="flex items-center gap-1 py-1.5 px-3.5 rounded-full text-[12px] font-medium font-montserrat border border-salve-border bg-transparent hover:text-salve-textMid transition-colors cursor-pointer"
+          className="flex w-full sm:w-auto items-center justify-center gap-1 py-1.5 px-3.5 rounded-full text-ui-base font-medium font-montserrat border border-salve-border bg-transparent hover:text-salve-textMid transition-colors cursor-pointer"
           style={{ color: C.textFaint }}
         >
           Why this matters
@@ -439,7 +439,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
       {sciOpen && (
         <div className="mt-4 border-t border-salve-border/40 pt-4 space-y-3">
           <p
-            className="text-[13px] font-montserrat leading-relaxed"
+            className="text-ui-base font-montserrat leading-relaxed"
             style={{ color: C.textFaint }}
           >
             Barometric (atmospheric) pressure is the weight of the air column above us, measured in hPa.
@@ -451,20 +451,20 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
           {BARO_SCIENCE.map(({ condition, detail }) => (
             <div
               key={condition}
-              className="rounded-xl p-3"
+              className="rounded-xl p-fluid-sm"
               style={{
                 background: `${color}08`,
                 borderLeft: `3px solid ${color}50`,
               }}
             >
               <div
-                className="text-[13px] font-semibold font-montserrat mb-0.5"
+                className="text-ui-base font-semibold font-montserrat mb-0.5"
                 style={{ color: C.textMid }}
               >
                 {condition}
               </div>
               <div
-                className="text-[13px] font-montserrat leading-relaxed"
+                className="text-ui-base font-montserrat leading-relaxed"
                 style={{ color: C.textFaint }}
               >
                 {detail}
@@ -473,7 +473,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
           ))}
 
           <p
-            className="text-[12px] font-montserrat italic"
+            className="text-ui-base font-montserrat italic leading-relaxed"
             style={{ color: C.textFaint, opacity: 0.7 }}
           >
             Tracking pressure alongside your pain and mood vitals can reveal personal patterns.

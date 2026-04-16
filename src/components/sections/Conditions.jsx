@@ -185,37 +185,39 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
           return (
             <details className="mt-2.5 pt-2 border-t border-salve-border/30 group/baro">
               <summary
-                className="text-[13px] font-semibold cursor-pointer list-none flex items-center gap-1.5 select-none"
+                className="list-none flex items-start gap-1.5 select-none cursor-pointer min-w-0 text-ui-base font-semibold"
                 style={{ color: C.amber }}
               >
-                <Wind size={11} aria-hidden="true" />
-                Barometric pressure
-                {baro && tc && (
-                  <span className="text-[12px] font-normal" style={{ color: tc.color }}>
-                    {baro.current} hPa &middot; {tc.label}
-                  </span>
-                )}
-                <ChevronDown size={11} className="ml-auto transition-transform group-open/baro:rotate-180 text-salve-textFaint" />
+                <Wind size={11} aria-hidden="true" className="mt-0.5 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-ui-base font-semibold">Barometric pressure</div>
+                  {baro && tc && (
+                    <span className="block text-ui-sm font-normal truncate sm:whitespace-normal" style={{ color: tc.color }}>
+                      {baro.current} hPa &middot; {tc.label}
+                    </span>
+                  )}
+                </div>
+                <ChevronDown size={11} className="ml-auto mt-0.5 flex-shrink-0 transition-transform group-open/baro:rotate-180 text-salve-textFaint" />
               </summary>
               <div className="mt-2.5 space-y-2">
                 {!baro && (
-                  <p className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>
+                  <p className="text-ui-base font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
                     Set your location in Settings to see live pressure data.
                   </p>
                 )}
                 {baro && (
-                  <div className="rounded-xl p-3" style={{ background: `${C.amber}10`, borderLeft: `3px solid ${C.amber}50` }}>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[15px] font-semibold font-montserrat" style={{ color: tc?.color ?? C.textMid }}>
+                  <div className="rounded-xl p-fluid-sm" style={{ background: `${C.amber}10`, borderLeft: `3px solid ${C.amber}50` }}>
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
+                      <span className="text-ui-xl font-semibold font-montserrat" style={{ color: tc?.color ?? C.textMid }}>
                         {baro.current} hPa
                       </span>
                       {tc && (
-                        <span className="text-[12px] font-medium font-montserrat rounded-full px-2 py-0.5" style={{ background: `${tc.color}20`, color: tc.color }}>
+                        <span className="text-ui-sm font-medium font-montserrat rounded-full px-2 py-0.5 flex-shrink-0" style={{ background: `${tc.color}20`, color: tc.color }}>
                           {tc.label}
                         </span>
                       )}
                       {baro.change24h != null && (
-                        <span className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>
+                        <span className="text-ui-sm font-montserrat min-w-0 break-words" style={{ color: C.textFaint }}>
                           {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa vs 24h ago
                         </span>
                       )}
@@ -223,29 +225,29 @@ export default function Conditions({ data, addItem, updateItem, removeItem, high
                   </div>
                 )}
                 {science && (
-                  <div className="rounded-xl p-3" style={{ background: `${C.amber}08`, borderLeft: `3px solid ${C.amber}30` }}>
-                    <div className="text-[12px] font-semibold font-montserrat mb-0.5" style={{ color: C.textMid }}>
+                  <div className="rounded-xl p-fluid-sm" style={{ background: `${C.amber}08`, borderLeft: `3px solid ${C.amber}30` }}>
+                    <div className="text-ui-sm font-semibold font-montserrat mb-0.5" style={{ color: C.textMid }}>
                       Why pressure affects {science.condition}
                     </div>
-                    <p className="text-[13px] font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
+                    <p className="text-ui-base font-montserrat leading-relaxed line-clamp-4 sm:line-clamp-none" style={{ color: C.textFaint }}>
                       {science.detail}
                     </p>
                   </div>
                 )}
-                <p className="text-[12px] font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
+                <p className="text-ui-base font-montserrat leading-relaxed line-clamp-4 sm:line-clamp-none" style={{ color: C.textFaint }}>
                   Track pressure alongside your pain, mood, and energy vitals to discover your personal
                   weather patterns. Most people experience effects within 12&ndash;48 hours of a significant
                   pressure change. Visit{' '}
                   <button
                     onClick={() => onNav?.('vitals')}
-                    className="underline cursor-pointer bg-transparent border-none p-0 text-[12px] font-montserrat"
+                    className="underline cursor-pointer bg-transparent border-none p-0 text-ui-base font-montserrat"
                     style={{ color: C.amber }}
                   >
                     Vitals
                   </button>
                   {' '}to log pressure and enable auto-logging.
                 </p>
-                <p className="text-[12px] font-montserrat italic" style={{ color: C.textFaint, opacity: 0.7 }}>
+                <p className="text-ui-base font-montserrat italic leading-relaxed" style={{ color: C.textFaint, opacity: 0.7 }}>
                   For personal awareness only. Always discuss symptom patterns with your healthcare provider.
                 </p>
               </div>

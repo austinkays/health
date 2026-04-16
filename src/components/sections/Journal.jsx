@@ -534,26 +534,33 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
           const tc = trendConfig[baro.trend] ?? trendConfig.stable;
           return (
             <div
-              className="flex items-center gap-2 px-3 py-2 rounded-xl mt-1 mb-0.5"
+              className="mt-1 mb-0.5 rounded-xl px-3 py-2"
               style={{ background: `${C.amber}0d`, border: `1px solid ${C.amber}25` }}
             >
-              <Wind size={13} aria-hidden="true" style={{ color: C.amber, flexShrink: 0 }} />
-              <span className="text-[12px] font-montserrat" style={{ color: C.textFaint }}>
-                Today's pressure: <span style={{ color: tc.color }}>{tc.emoji} {baro.current} hPa ({tc.label})</span>
-                {baro.change24h != null && (
-                  <span style={{ color: C.textFaint }}>
-                    {' '}· {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa from yesterday
-                  </span>
-                )}
-              </span>
-              <button
-                type="button"
-                onClick={() => onNav?.('vitals')}
-                className="ml-auto text-[11px] font-montserrat underline cursor-pointer bg-transparent border-none p-0 flex-shrink-0"
-                style={{ color: C.amber }}
-              >
-                Log
-              </button>
+              <div className="flex items-start gap-2 min-w-0">
+                <Wind size={13} aria-hidden="true" className="mt-0.5 flex-shrink-0" style={{ color: C.amber }} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-ui-base font-montserrat leading-relaxed" style={{ color: C.textFaint }}>
+                    Today's pressure:{' '}
+                    <span className="font-medium" style={{ color: tc.color }}>
+                      {tc.emoji} {baro.current} hPa ({tc.label})
+                    </span>
+                    {baro.change24h != null && (
+                      <span style={{ color: C.textFaint }}>
+                        {' '}· {baro.change24h > 0 ? '+' : ''}{baro.change24h} hPa from yesterday
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onNav?.('vitals')}
+                  className="text-ui-sm font-montserrat underline cursor-pointer bg-transparent border-none p-0 flex-shrink-0 self-start"
+                  style={{ color: C.amber }}
+                >
+                  Log
+                </button>
+              </div>
             </div>
           );
         })()}
