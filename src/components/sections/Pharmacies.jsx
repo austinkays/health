@@ -71,6 +71,14 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
     return { allPharmacies: all, medsByKey: mMap, refillsByKey: rMap };
   }, [data.pharmacies, data.meds]);
 
+  /* ── Filter (must be before early return to satisfy Rules of Hooks) ── */
+  const filtered = useMemo(() => {
+    let list = allPharmacies;
+    if (filter === 'preferred') list = list.filter(p => p.is_preferred);
+    if (filter === 'has_meds') list = list.filter(p => (medsByKey[p._key] || []).length > 0);
+    return list;
+  }, [allPharmacies, filter, medsByKey]);
+
   const saveP = async () => {
     if (!form.name.trim()) return;
     // Strip computed/non-DB fields before saving
@@ -119,14 +127,6 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
       </Card>
     </FormWrap>
   );
-
-  /* ── Filter ── */
-  const filtered = useMemo(() => {
-    let list = allPharmacies;
-    if (filter === 'preferred') list = list.filter(p => p.is_preferred);
-    if (filter === 'has_meds') list = list.filter(p => (medsByKey[p._key] || []).length > 0);
-    return list;
-  }, [allPharmacies, filter, medsByKey]);
 
   const fmtRefill = (dateStr) => {
     const d = Math.ceil((new Date(dateStr) - new Date(new Date().toDateString())) / 86400000);
