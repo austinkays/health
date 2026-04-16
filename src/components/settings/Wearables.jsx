@@ -157,7 +157,7 @@ export default function Wearables({
     setDexcomError(null);
     setDexcomSuccess(null);
     try {
-      const { added, skipped } = await syncDexcomGlucose(data.vitals || [], addItem, 14);
+      const { added, skipped } = await syncDexcomGlucose(data.vitals || [], addItemSilent, 14);
       setDexcomSuccess(added > 0
         ? `Synced ${added} day${added !== 1 ? 's' : ''} of glucose data${skipped > 0 ? ` (${skipped} already had readings)` : ''}.`
         : 'No new readings to sync.');
@@ -220,7 +220,7 @@ export default function Wearables({
     setWithingsError(null);
     setWithingsSuccess(null);
     try {
-      const { added } = await syncWithingsMeasurements(data.vitals || [], addItem, 30);
+      const { added } = await syncWithingsMeasurements(data.vitals || [], addItemSilent, 30);
       setWithingsSuccess(added > 0
         ? `Imported ${added} new measurement${added !== 1 ? 's' : ''}.`
         : 'Already up to date — no new measurements.');
@@ -283,7 +283,7 @@ export default function Wearables({
     setFitbitError(null);
     setFitbitSuccess(null);
     try {
-      const { added } = await syncFitbitData(data.vitals || [], addItem, 30, data.activities || []);
+      const { added } = await syncFitbitData(data.vitals || [], addItemSilent, 30, data.activities || []);
       setFitbitSuccess(added > 0
         ? `Imported ${added} new record${added !== 1 ? 's' : ''} from Fitbit.`
         : 'Already up to date — no new data.');
@@ -346,7 +346,7 @@ export default function Wearables({
     setWhoopError(null);
     setWhoopSuccess(null);
     try {
-      const { added } = await syncWhoopData(data.vitals || [], addItem, 30);
+      const { added } = await syncWhoopData(data.vitals || [], addItemSilent, 30);
       setWhoopSuccess(added > 0
         ? `Imported ${added} new vital${added !== 1 ? 's' : ''} from Whoop.`
         : 'Already up to date — no new data.');
