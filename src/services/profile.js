@@ -1,4 +1,5 @@
 import { VITAL_TYPES, getCycleRelatedLabel } from '../constants/defaults.js';
+import { localISODate } from '../utils/dates.js';
 
 // Sanitize user-provided text to prevent prompt injection
 // Higher limit for FDA data which is system-sourced, not user-authored
@@ -376,7 +377,7 @@ export function buildProfile(data) {
       p += summarizeJournalEntry(e, data);
     });
     // Symptom frequency summary (last 30 days)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+    const thirtyDaysAgo = localISODate(new Date(Date.now() - 30 * 86400000));
     const recentSymptoms = {};
     journal.filter(e => e.date >= thirtyDaysAgo).forEach(e => {
       (e.symptoms || []).forEach(s => {

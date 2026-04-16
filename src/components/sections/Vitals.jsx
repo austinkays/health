@@ -11,7 +11,7 @@ import EmptyState from '../ui/EmptyState';
 import Motif from '../ui/Motif';
 import FormWrap, { SectionTitle } from '../ui/FormWrap';
 import { VITAL_TYPES, EMPTY_VITAL } from '../../constants/defaults';
-import { fmtDate, fmtDateRelative, todayISO } from '../../utils/dates';
+import { fmtDate, fmtDateRelative, todayISO, localISODate } from '../../utils/dates';
 import { validateVital } from '../../utils/validate';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
@@ -121,7 +121,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
   const cutoffDate = useMemo(() => {
     if (timeRange === 'all') return null;
     const days = { '7d': 7, '30d': 30, '90d': 90 }[timeRange] || 30;
-    return new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
+    return localISODate(new Date(Date.now() - days * 86400000));
   }, [timeRange]);
 
   const integerTypes = new Set(['hr', 'bp', 'glucose', 'spo2', 'resp']);

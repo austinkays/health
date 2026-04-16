@@ -726,7 +726,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       // years of historical labs doesn't bury the Dashboard in stale alerts.
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 90);
-      const cutoffISO = cutoff.toISOString().slice(0, 10);
+      const cutoffISO = localISODate(cutoff);
       return (data.labs || []).filter(l =>
         ['abnormal', 'high', 'low'].includes(l.flag) &&
         (!l.date || l.date >= cutoffISO)
@@ -737,7 +737,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
 
   /* Appointments within 48 hours for prep nudge */
   /* ── AI Insight ─────────────────────────────── */
-  const insightCacheKey = `salve:daily-insight-${new Date().toISOString().slice(0, 10)}`;
+  const insightCacheKey = `salve:daily-insight-${localISODate(new Date())}`;
 
   const loadInsight = async (forceRefresh = false) => {
     if (!forceRefresh) {

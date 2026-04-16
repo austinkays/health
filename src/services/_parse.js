@@ -5,6 +5,8 @@
  * deduplication against existing records.
  */
 
+import { localISODate } from '../utils/dates';
+
 /**
  * Parse a CSV text blob into an array of row objects keyed by header name.
  * Handles quoted fields (including embedded commas and escaped quotes),
@@ -89,14 +91,14 @@ export function normalizeDate(value) {
 
   if (value instanceof Date) {
     if (isNaN(value.getTime())) return null;
-    return value.toISOString().slice(0, 10);
+    return localISODate(value);
   }
 
   if (typeof value === 'number') {
     const ms = value > 1e12 ? value : value * 1000;
     const d = new Date(ms);
     if (isNaN(d.getTime())) return null;
-    return d.toISOString().slice(0, 10);
+    return localISODate(d);
   }
 
   const s = String(value).trim();
@@ -126,7 +128,7 @@ export function normalizeDate(value) {
 
   // Fallback: let the JS Date parser try
   const d = new Date(s);
-  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  if (!isNaN(d.getTime())) return localISODate(d);
 
   return null;
 }

@@ -11,7 +11,7 @@ import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_ACTIVITY, WORKOUT_TYPES } from '../../constants/defaults';
-import { fmtDate, todayISO } from '../../utils/dates';
+import { fmtDate, todayISO, localISODate } from '../../utils/dates';
 
 const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple, fitbit: Watch };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', fitbit: 'Fitbit', manual: 'Manual' };
@@ -114,7 +114,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localISODate(d);
       const daySteps = stepVitals.filter(v => v.date === dateStr).reduce((s, v) => s + (Number(v.value) || 0), 0);
       days.push({ date: dateStr, steps: daySteps, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
     }
@@ -131,7 +131,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const dateStr = d.toISOString().slice(0, 10);
+      const dateStr = localISODate(d);
       const dayCal = acts.filter(a => a.date === dateStr).reduce((s, a) => s + (Number(a.calories) || 0), 0);
       days.push({ date: dateStr, cal: dayCal, label: d.toLocaleDateString('en', { weekday: 'short' })[0] });
     }

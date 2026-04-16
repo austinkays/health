@@ -4,6 +4,58 @@ import Card from '../ui/Card';
 import Field from '../ui/Field';
 import { SageIntroButton } from '../ui/SageIntro';
 import { clearBarometricCache } from '../../services/barometric';
+import { getBrowserTimezone } from '../../utils/dates';
+
+// Popular IANA timezones grouped by region. Not exhaustive — the browser lists
+// ~400+ but most users only ever need one of these. The current stored value
+// is always added below, so custom timezones still render.
+const COMMON_TIMEZONES = [
+  { label: '── Americas ──', disabled: true },
+  'America/New_York',
+  'America/Chicago',
+  'America/Denver',
+  'America/Phoenix',
+  'America/Los_Angeles',
+  'America/Anchorage',
+  'Pacific/Honolulu',
+  'America/Toronto',
+  'America/Vancouver',
+  'America/Mexico_City',
+  'America/Sao_Paulo',
+  'America/Argentina/Buenos_Aires',
+  { label: '── Europe ──', disabled: true },
+  'Europe/London',
+  'Europe/Dublin',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Madrid',
+  'Europe/Rome',
+  'Europe/Amsterdam',
+  'Europe/Stockholm',
+  'Europe/Athens',
+  'Europe/Moscow',
+  { label: '── Africa / Middle East ──', disabled: true },
+  'Africa/Cairo',
+  'Africa/Johannesburg',
+  'Africa/Lagos',
+  'Asia/Jerusalem',
+  'Asia/Dubai',
+  'Asia/Riyadh',
+  { label: '── Asia ──', disabled: true },
+  'Asia/Kolkata',
+  'Asia/Bangkok',
+  'Asia/Singapore',
+  'Asia/Hong_Kong',
+  'Asia/Shanghai',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  { label: '── Oceania ──', disabled: true },
+  'Australia/Perth',
+  'Australia/Sydney',
+  'Pacific/Auckland',
+  { label: '── Other ──', disabled: true },
+  'UTC',
+];
 
 const CATEGORIES = [
   {
@@ -78,6 +130,62 @@ function resolveValue(field, settings, aboutMe) {
   return aboutMe[field.key] || '';
 }
 
+// Timezone picker. Reads/writes settings.timezone through updateSettings so the
+// user-set flag (handled inside useHealthData) marks it as manually chosen and
+// the auto-detect effect leaves it alone going forward.
+function TimezoneRow({ value, onChange }) {
+  const browserTz = getBrowserTimezone();
+  // Build the select options. De-dup + sort region labels, then append the
+  // stored value if it's a custom tz not already in the list.
+  const flatList = COMMON_TIMEZONES.filter(o => typeof o === 'string');
+  const includesStored = value && flatList.includes(value);
+  const options = COMMON_TIMEZONES.map(o => {
+    if (typeof o === 'string') return { value: o, label: o };
+    return { value: '__sep__' + o.label, label: o.label, disabled: true };
+  });
+  if (value && !includesStored) {
+    options.push({ value: '__sep__custom', label: '── Custom ──', disabled: true });
+    options.push({ value, label: value });
+  }
+  const isAuto = value === browserTz;
+  return (
+    <div className="mb-4">
+      <label className="block text-[13px] font-semibold text-salve-textMid mb-1.5 uppercase tracking-widest">
+        Timezone
+      </label>
+      <select
+        value={value || browserTz}
+        onChange={e => {
+          const v = e.target.value;
+          if (v.startsWith('__sep__')) return;
+          onChange(v);
+        }}
+        className="w-full py-2.5 px-3.5 rounded-lg border border-salve-border text-sm font-montserrat text-salve-text bg-salve-card2 box-border focus:outline-none field-magic transition-colors"
+      >
+        {options.map(o => (
+          <option key={o.value} value={o.value} disabled={o.disabled}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        <span className="text-[13px] font-montserrat text-salve-textFaint">
+          {isAuto ? 'Matches your browser.' : `Browser detected: ${browserTz}`}
+        </span>
+        {!isAuto && (
+          <button
+            type="button"
+            onClick={() => onChange(browserTz)}
+            className="text-[13px] font-montserrat text-salve-lav hover:underline bg-transparent border-none cursor-pointer p-0"
+          >
+            Use browser
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CategorySection({ category, settings, aboutMe, onChange, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen);
   const Icon = category.icon;
@@ -116,6 +224,12 @@ function CategorySection({ category, settings, aboutMe, onChange, defaultOpen = 
               maxLength={field.textarea ? 1000 : 200}
             />
           ))}
+          {category.id === 'personal' && (
+            <TimezoneRow
+              value={settings?.timezone}
+              onChange={tz => onChange({ key: 'timezone', topLevel: true }, tz)}
+            />
+          )}
         </div>
       )}
     </Card>

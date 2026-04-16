@@ -11,7 +11,7 @@ import ConfirmBar from '../ui/ConfirmBar';
 import EmptyState from '../ui/EmptyState';
 import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
-import { fmtDate, todayISO } from '../../utils/dates';
+import { fmtDate, todayISO, localISODate } from '../../utils/dates';
 import { isOuraConnected, fetchOuraSleepSessions, fetchOuraDailySleep } from '../../services/oura';
 
 /* ── helpers ── */
@@ -136,7 +136,7 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
     if (!isOuraConnected()) return;
     setOuraLoading(true);
     const end = todayISO();
-    const start = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const start = localISODate(new Date(Date.now() - 7 * 86400000));
     Promise.all([
       fetchOuraSleepSessions(start, end).catch(() => []),
       fetchOuraDailySleep(start, end).catch(() => []),
@@ -172,7 +172,7 @@ export default function Sleep({ data, addItem, updateItem, removeItem, highlight
     const days = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date(Date.now() - i * 86400000);
-      const iso = d.toISOString().slice(0, 10);
+      const iso = localISODate(d);
       const rec = sleepRecords.find(r => r.date === iso);
       const hrs = rec ? parseFloat(rec.value) || 0 : 0;
       days.push({ day: dayAbbr(iso), date: iso, hrs, fill: barColor(hrs) });

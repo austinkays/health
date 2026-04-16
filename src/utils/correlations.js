@@ -47,6 +47,18 @@ const POLARITY_DOWN = new Set(['pain', 'hr']);
 // ---------------------------------------------------------------------------
 
 /**
+ * Returns today's LOCAL calendar date as YYYY-MM-DD. Duplicated from utils/dates.js
+ * because this module is kept dependency-free by design.
+ */
+function localTodayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
  * Shifts a 'YYYY-MM-DD' date string by N days. Positive = forward.
  */
 function shiftDate(dateStr, days) {
@@ -923,7 +935,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
         else break;
       }
       // Check if streak includes today (or yesterday for tolerance)
-      const now = new Date().toISOString().slice(0, 10);
+      const now = localTodayISO();
       const daysOld = dayDiff(now, today);
       if (daysOld > 1) current = 0;
 
@@ -980,8 +992,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
   // 9. Week-over-week comparison  (category: 'comparison')
   // -------------------------------------------------------------------------
   {
-    const now = new Date();
-    const todayStr = now.toISOString().slice(0, 10);
+    const todayStr = localTodayISO();
     const oneWeekAgo = shiftDate(todayStr, -7);
     const twoWeeksAgo = shiftDate(todayStr, -14);
 
@@ -1185,7 +1196,7 @@ export function computeCorrelations(data, getCyclePhaseForDate = null) {
  */
 export function computeMicroInsights(data) {
   const micros = [];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localTodayISO();
   const weekAgo = shiftDate(today, -7);
   const monthAgo = shiftDate(today, -30);
 
