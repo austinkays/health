@@ -87,7 +87,13 @@ function decodeEntities(text = '') {
 }
 
 function stripHtml(text = '') {
-  return decodeEntities(text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' '));
+  let decoded = String(text || '');
+  for (let i = 0; i < 3; i++) {
+    const next = decodeEntities(decoded);
+    if (next === decoded) break;
+    decoded = next;
+  }
+  return decoded.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
 function extractLink(xml) {

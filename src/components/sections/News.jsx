@@ -10,7 +10,7 @@ const SOURCE_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'saved', label: 'Saved' },
   { id: 'sage', label: 'Sage' },
-  { id: 'rss', label: 'RSS' },
+  { id: 'rss', label: 'Public Feed' },
 ];
 
 const SOURCE_ICONS = {
@@ -34,16 +34,14 @@ export default function News({ data, demoMode = false }) {
   const [filter, setFilter] = useState('all');
   const [savedUrls, setSavedUrls] = useState(() => new Set(getSavedNews().map(s => s.sourceUrl)));
 
-  // Fetch RSS articles when conditions are available. Skip the network call
-  // in demo mode and use pre-baked DEMO_NEWS so the page isn't empty.
-  const conditionNames = (data.conditions || []).map(c => c.name).filter(Boolean).join('|');
+  // Public Feed is a general feed from trusted sources. Personalized stories
+  // come from Sage and saved items instead of the public feed.
   useEffect(() => {
     if (demoMode) { setRssArticles(DEMO_NEWS); return; }
-    const conditions = (data.conditions || []).map(c => c.name).filter(Boolean);
-    fetchDiscoverArticles(conditions).then(articles => {
+    fetchDiscoverArticles().then(articles => {
       setRssArticles(articles || []);
     });
-  }, [conditionNames, demoMode]);
+  }, [demoMode]);
 
   const feed = useMemo(() => buildNewsFeed({
     rssArticles,
@@ -127,7 +125,7 @@ export default function News({ data, demoMode = false }) {
           )}
           {filter === 'all' && (
             <p className="text-xs text-salve-textFaint/60 font-montserrat mt-2">
-              Add conditions or medications to see matched articles from trusted sources.
+              Public Feed shows general updates from trusted public health sources. Sage is the personalized feed.
             </p>
           )}
         </Card>
@@ -208,7 +206,9 @@ export default function News({ data, demoMode = false }) {
       {/* Footer hint */}
       {filtered.length > 0 && (
         <p className="text-center text-[12px] text-salve-textFaint/50 font-montserrat mt-4">
-          Articles from trusted sources, matched to your health profile
+          {filter === 'sage'
+            ? 'Sage articles are tailored to your profile. Public Feed is a general feed from trusted public health sources.'
+            : 'Public Feed articles come from trusted public health sources. Use Sage for profile-tailored news.'}
         </p>
       )}
     </div>

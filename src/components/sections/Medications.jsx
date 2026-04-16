@@ -628,28 +628,46 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
     const medReminders = (data.medication_reminders || [])
       .filter(r => r.medication_id === m.id)
       .sort((a, b) => (a.reminder_time || '').localeCompare(b.reminder_time || ''));
+    const enabledCount = medReminders.filter(r => r.enabled).length;
+    const pausedCount = medReminders.length - enabledCount;
     const isAdding = reminderAddId === m.id;
     return (
-      <div className="mt-2 p-2.5 rounded-lg bg-salve-lav/5 border border-salve-lav/15">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[11px] font-semibold font-montserrat text-salve-lav uppercase tracking-wider">Schedule</span>
-          <div className="flex items-center gap-2">
-            <span className={`text-[11px] font-montserrat ${pushOn ? 'text-salve-sage' : 'text-salve-textFaint'}`}>
-              {pushOn ? '🔔 Notifications on' : (
-                <a
-                  href="#"
-                  onClick={e => { e.preventDefault(); e.stopPropagation(); onNav?.('settings'); }}
-                  className="text-salve-textFaint no-underline hover:text-salve-lav hover:underline"
-                >
-                  Set up notifications →
-                </a>
-              )}
-            </span>
+      <div className="mt-1.5 rounded-xl border border-salve-border/70 bg-salve-card/80 p-2.5">
+        <div className="flex flex-wrap items-start justify-between gap-2 border-b border-salve-border/50 pb-2">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-salve-lav/10 text-salve-lav border border-salve-lav/15">
+                <Clock size={13} aria-hidden="true" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-[11px] font-semibold font-montserrat text-salve-lav uppercase tracking-[0.16em]">Schedule</div>
+                <div className="text-[12px] text-salve-textMid font-montserrat">
+                  {medReminders.length
+                    ? `${enabledCount} active${pausedCount ? ` · ${pausedCount} paused` : ''}`
+                    : 'Reminder times for this medication'}
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-1.5">
+            {pushOn ? (
+              <span className="inline-flex items-center gap-1 rounded-full border border-salve-sage/20 bg-salve-sage/10 px-2 py-1 text-[11px] font-medium font-montserrat text-salve-sage">
+                <span aria-hidden="true">🔔</span> Notifications on
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onNav?.('settings'); }}
+                className="inline-flex items-center rounded-full border border-salve-border bg-salve-card2/80 px-2 py-1 text-[11px] font-montserrat text-salve-textFaint transition-colors hover:border-salve-lav/30 hover:text-salve-lav"
+              >
+                Set up notifications
+              </button>
+            )}
             {!isAdding && (
               <button
                 type="button"
                 onClick={e => { e.stopPropagation(); setReminderAddId(m.id); setReminderTime('08:00'); }}
-                className="inline-flex items-center gap-0.5 text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer p-0 hover:underline"
+                className="inline-flex items-center gap-1 rounded-full border border-salve-lav/20 bg-salve-lav/10 px-2.5 py-1 text-[11px] font-medium font-montserrat text-salve-lav transition-colors hover:bg-salve-lav/15"
               >
                 <Plus size={11} aria-hidden="true" /> Add time
               </button>
@@ -658,14 +676,14 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
         </div>
 
         {isAdding && (
-          <div className="flex items-center gap-2 mb-2 px-1 py-1.5 rounded-lg bg-salve-card border border-salve-lav/30">
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-salve-lav/20 bg-salve-lav/5 px-2 py-2">
             <input
               type="time"
               value={reminderTime}
               onChange={e => setReminderTime(e.target.value)}
               onClick={e => e.stopPropagation()}
               autoFocus
-              className="bg-salve-card2 border border-salve-border rounded-lg px-2 py-1 text-xs text-salve-text font-montserrat focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
+              className="min-w-[112px] rounded-lg border border-salve-border bg-salve-card2 px-2 py-1.5 text-xs text-salve-text font-montserrat focus:outline-none focus:ring-1 focus:ring-salve-lav/40"
             />
             <button
               type="button"
@@ -676,42 +694,55 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
                   setReminderAddId(null);
                 }
               }}
-              className="text-[13px] px-2.5 py-1 rounded-full bg-salve-lav/20 border border-salve-lav/30 text-salve-lav font-montserrat font-medium cursor-pointer hover:bg-salve-lav/30 transition-colors"
+              className="rounded-full border border-salve-lav/30 bg-salve-lav/15 px-2.5 py-1 text-[12px] text-salve-lav font-montserrat font-medium cursor-pointer transition-colors hover:bg-salve-lav/25"
             >Save</button>
             <button
               type="button"
               onClick={e => { e.stopPropagation(); setReminderAddId(null); }}
-              className="text-[13px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
+              className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-text"
             >Cancel</button>
           </div>
         )}
 
         {medReminders.length === 0 && !isAdding && (
-          <p className="text-[12px] text-salve-textFaint/70 font-montserrat italic">No reminders set. Tap &ldquo;Add time&rdquo; to schedule one.</p>
+          <div className="mt-2 rounded-lg border border-dashed border-salve-border/80 bg-salve-card2/60 px-2.5 py-2 text-[12px] text-salve-textFaint font-montserrat">
+            No reminders set yet. Add a time to make this part of your daily routine.
+          </div>
         )}
 
-        {medReminders.map(r => (
-          <div key={r.id} className="flex items-center justify-between py-1 first:pt-0">
-            <div className="flex items-center gap-2">
-              <Clock size={11} className={r.enabled ? 'text-salve-lav' : 'text-salve-textFaint'} aria-hidden="true" />
-              <span className={`text-[13px] font-montserrat ${r.enabled ? 'text-salve-text' : 'text-salve-textFaint line-through'}`}>
-                {formatTime(r.reminder_time)}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); updateItem('medication_reminders', r.id, { enabled: !r.enabled }); }}
-                className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-lav"
-              >{r.enabled ? 'Pause' : 'Enable'}</button>
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); removeItem('medication_reminders', r.id); }}
-                className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer p-0 hover:text-salve-rose"
-              >Remove</button>
-            </div>
+        {medReminders.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            {medReminders.map(r => (
+              <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-salve-border/60 bg-salve-card2/70 px-2.5 py-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className={`inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border ${r.enabled ? 'border-salve-lav/15 bg-salve-lav/10 text-salve-lav' : 'border-salve-border bg-salve-card text-salve-textFaint'}`}>
+                    <Clock size={12} aria-hidden="true" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className={`text-[13px] font-medium font-montserrat ${r.enabled ? 'text-salve-text' : 'text-salve-textFaint line-through'}`}>
+                      {formatTime(r.reminder_time)}
+                    </div>
+                    <div className="text-[11px] text-salve-textFaint font-montserrat">
+                      {r.enabled ? 'Reminder active' : 'Paused'}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); updateItem('medication_reminders', r.id, { enabled: !r.enabled }); }}
+                    className={`rounded-full border px-2 py-1 text-[11px] font-medium font-montserrat transition-colors ${r.enabled ? 'border-salve-border bg-salve-card text-salve-textFaint hover:border-salve-lav/25 hover:text-salve-lav' : 'border-salve-sage/20 bg-salve-sage/10 text-salve-sage hover:bg-salve-sage/15'}`}
+                  >{r.enabled ? 'Pause' : 'Enable'}</button>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); removeItem('medication_reminders', r.id); }}
+                    className="rounded-full border border-salve-border bg-salve-card px-2 py-1 text-[11px] font-medium font-montserrat text-salve-textFaint transition-colors hover:border-salve-rose/25 hover:text-salve-rose"
+                  >Remove</button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     );
   };
