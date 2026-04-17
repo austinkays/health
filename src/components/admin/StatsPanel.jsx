@@ -76,12 +76,24 @@ function ThemeDistributionChart({ data }) {
   );
 }
 
+function getPTOffset() {
+  const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', timeZoneName: 'shortOffset' });
+  const match = fmt.format(new Date()).match(/GMT([+-]\d+)/);
+  return match ? Number(match[1]) : -8;
+}
+
+const PT_OFFSET = getPTOffset();
+
+function utcHourToPT(h) {
+  return ((h + PT_OFFSET) % 24 + 24) % 24;
+}
+
 function HourlyTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
     <div className="bg-salve-card px-2 py-1 rounded shadow text-xs text-salve-text border border-salve-border">
-      <span className="font-medium">{String(d.hour).padStart(2, '0')}:00 UTC</span>
+      <span className="font-medium">{String(d.hour).padStart(2, '0')}:00 PT</span>
       <span className="mx-1">·</span>
       {d.events} events · {d.users} users
     </div>
@@ -90,18 +102,19 @@ function HourlyTooltip({ active, payload }) {
 
 function HourlyDistributionChart({ data }) {
   if (!data?.length) return null;
-  const maxEvents = Math.max(...data.map(d => d.events), 1);
+  const ptData = data.map(d => ({ ...d, hour: utcHourToPT(d.hour) })).sort((a, b) => a.hour - b.hour);
+  const maxEvents = Math.max(...ptData.map(d => d.events), 1);
   return (
     <div>
       <div className="flex items-center gap-1.5 mb-2">
         <Clock size={11} className="text-salve-textFaint" />
         <span className="text-[10px] uppercase tracking-wider text-salve-textFaint font-montserrat">
-          Usage by hour — last 7 days (UTC)
+          Usage by hour — last 7 days (PT)
         </span>
       </div>
       <div className="h-[160px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+          <BarChart data={ptData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
             <XAxis
               dataKey="hour"
               tick={{ fontSize: 9, fill: C.textFaint }}
@@ -117,7 +130,7 @@ function HourlyDistributionChart({ data }) {
             />
             <RechartsTooltip content={<HourlyTooltip />} cursor={{ fill: C.lav, opacity: 0.08 }} />
             <Bar dataKey="events" radius={[3, 3, 0, 0]}>
-              {data.map((entry, i) => (
+              {ptData.map((entry, i) => (
                 <Cell
                   key={i}
                   fill={C.lav}
@@ -129,7 +142,7 @@ function HourlyDistributionChart({ data }) {
         </ResponsiveContainer>
       </div>
       <p className="text-[9px] text-salve-textFaint font-montserrat text-center mt-1 m-0">
-        All times UTC · brighter bars = more activity
+        All times Pacific · brighter bars = more activity
       </p>
     </div>
   );
