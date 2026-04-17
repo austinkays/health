@@ -1012,20 +1012,41 @@ async function ouraWebhookHandle(req, res) {
     });
   }
 
-  // ── Notification (Phase 1: log only) ──────────────────────────────
+  // ── Notification or POST-based verification challenge ─────────────
+  // Oura might send the verification challenge as a POST (not GET) —
+  // their create-subscription error literally says "Expected 200" and
+  // we were returning 204, which doesn't match. Always respond 200
+  // here so the verification challenge passes regardless of HTTP
+  // method. For real notifications, 200 is also acceptable (many
+  // webhook providers accept any 2xx). If Oura turns out to require
+  // 204 specifically for notifications later, we can branch on body
+  // shape — but for the verification this is what unblocks Phase 1.
   if (req.method === 'POST') {
-    // Respond 204 fast so we never bump up against Oura's webhook
-    // timeout. Heavy work (when added in Phase 3) continues
-    // post-response within the function's maxDuration window.
-    let bodySummary = '';
+    let parsedBody = null;
+    let bodyStr = '';
     try {
-      const body = req.body;
-      bodySummary = typeof body === 'string'
-        ? body.slice(0, 500)
-        : JSON.stringify(body).slice(0, 500);
-    } catch { bodySummary = '<unparseable>'; }
-    console.log('[oura:webhook] received POST:', bodySummary);
-    return res.status(204).end();
+      parsedBody = req.body;
+      bodyStr = typeof parsedBody === 'string'
+        ? parsedBody.slice(0, 500)
+        : JSON.stringify(parsedBody).slice(0, 500);
+    } catch { bodyStr = '<unparseable>'; }
+    console.log('[oura:webhook] POST query=', JSON.stringify(req.query), 'body=', bodyStr);
+
+    // If body looks like a verification challenge, mark active.
+    // Otherwise treat as a notification (Phase 3 will handle ingest).
+    const vt = req.query.verification_token
+      || (parsedBody && typeof parsedBody === 'object' && parsedBody.verification_token);
+    const challenge = req.query.challenge
+      || (parsedBody && typeof parsedBody === 'object' && parsedBody.challenge);
+
+    if (vt) {
+      await markOuraSubscriptionActive(vt);
+    }
+
+    return res.status(200).json({
+      verification_token: vt || null,
+      challenge: challenge || null,
+    });
   }
 
   return res.status(405).end();
