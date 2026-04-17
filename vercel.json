@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/chat.js": {
-      "maxDuration": 120
+      "maxDuration": 300
     },
     "api/drug.js": {
       "maxDuration": 30
@@ -10,7 +10,7 @@
       "maxDuration": 30
     },
     "api/gemini.js": {
-      "maxDuration": 120
+      "maxDuration": 300
     },
     "api/delete-account.js": {
       "maxDuration": 15
