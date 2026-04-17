@@ -3,7 +3,7 @@ import { localISODate } from '../utils/dates.js';
 
 // Sanitize user-provided text to prevent prompt injection
 // Higher limit for FDA data which is system-sourced, not user-authored
-function san(text, limit = 500) {
+export function san(text, limit = 500) {
   if (!text) return '';
   return String(text)
     .replace(/[<>{}\r\n\u202A-\u202E\u2066-\u2069\u200E\u200F]/g, ' ')
