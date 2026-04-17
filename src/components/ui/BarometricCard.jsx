@@ -46,7 +46,7 @@ const TREND = {
  * @param {Function} props.onLogPressure    - Called with a partial vital object to pre-fill the log form
  * @param {Function} props.onAutoLogPressure - Called with a complete vital object to save directly (auto-log)
  */
-export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPressure, onNav }) {
+export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPressure, onNav, defaultMode = 'full' }) {
   const [baro, setBaro] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,7 +55,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   const [autoLog, setAutoLog] = useState(() => localStorage.getItem('salve:baro-autolog') === 'true');
   const [autoLogged, setAutoLogged] = useState(false);
   const [displayMode, setDisplayMode] = useState(
-    () => localStorage.getItem('salve:baro-view') || 'full'
+    () => localStorage.getItem('salve:baro-view') || defaultMode
   );
 
   const setMode = (mode) => {

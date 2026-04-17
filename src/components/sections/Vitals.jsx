@@ -20,6 +20,7 @@ import { buildProfile } from '../../services/profile';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import BarometricCard from '../ui/BarometricCard';
 import AIMarkdown from '../ui/AIMarkdown';
+import { PRESSURE_SENSITIVE } from '../../services/barometric';
 
 function getVitalFlag(type, value, value2) {
   const t = VITAL_TYPES.find(x => x.id === type);
@@ -50,6 +51,59 @@ const flagStyle = (flag) => {
 const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', manual: 'Manual' };
 const SOURCE_COLOR = { oura: C.sage, apple_health: C.lav, manual: C.textFaint };
+
+function SourceMenu({ sources, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [open]);
+  const currentLabel = value === 'all' ? 'All' : (SOURCE_LABEL[value] || value);
+  const CurrentIcon = SOURCE_ICON[value];
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={`Source filter: ${currentLabel}`}
+        className={`flex items-center gap-1 py-0.5 px-2 rounded-full text-[11px] font-medium border font-montserrat transition-colors cursor-pointer ${
+          value !== 'all' ? 'border-salve-sage bg-salve-sage/15 text-salve-sage' : 'border-salve-border bg-transparent text-salve-textFaint'
+        }`}
+      >
+        {CurrentIcon && <CurrentIcon size={9} />}
+        {currentLabel}
+        <ChevronDown size={10} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && (
+        <div role="listbox" className="absolute right-0 top-full mt-1 z-10 bg-salve-card border border-salve-border rounded-xl shadow-md py-1 min-w-[140px]">
+          {['all', ...sources].map(s => {
+            const I = SOURCE_ICON[s];
+            const label = s === 'all' ? 'All sources' : (SOURCE_LABEL[s] || s);
+            const selected = value === s;
+            return (
+              <button
+                key={s}
+                role="option"
+                aria-selected={selected}
+                onClick={() => { onChange(s); setOpen(false); }}
+                className={`w-full text-left flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-montserrat bg-transparent border-0 cursor-pointer ${
+                  selected ? 'text-salve-lav bg-salve-lav/10' : 'text-salve-textMid hover:bg-salve-card2/50'
+                }`}
+              >
+                {I && <I size={10} />}
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Vitals({ data, addItem, removeItem, onNav }) {
   const [subView, setSubView] = useState(null);
@@ -95,6 +149,18 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
     (data.vitals || []).forEach(v => s.add(getSource(v)));
     return [...s].sort();
   }, [data.vitals]);
+
+  // Condition-aware default for the barometric card: compact strip for
+  // pressure-sensitive users, hidden for everyone else. User's explicit
+  // preference in localStorage wins — pass undefined in that case so
+  // BarometricCard keeps its own default fallback.
+  const baroDefault = useMemo(() => {
+    if (typeof localStorage !== 'undefined' && localStorage.getItem('salve:baro-view')) return undefined;
+    const match = (data.conditions || []).some(c =>
+      PRESSURE_SENSITIVE.some(ps => c.name?.toLowerCase().includes(ps))
+    );
+    return match ? 'compact' : 'hidden';
+  }, [data.conditions]);
 
   const saveV = async () => {
     const { valid, errors: e } = validateVital(form);
@@ -238,111 +304,90 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
 
   return (
     <div className="mt-2">
-      {/* Barometric pressure auto-fetch card */}
+      {/* Barometric pressure auto-fetch card — slim by default, condition-aware */}
       <BarometricCard
         locationStr={data?.settings?.location || ''}
         onLogPressure={handleLogPressure}
         onAutoLogPressure={handleAutoLogPressure}
         onNav={onNav}
+        defaultMode={baroDefault}
       />
-      <div className="flex justify-end mb-3">
-        <Button variant="secondary" onClick={() => setSubView('form')} className="!py-1.5 !px-4 !text-xs"><Plus size={14} /> Log</Button>
-      </div>
 
-      <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
-        <button
-          onClick={() => setCt('all')}
-          className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[13px] font-medium border cursor-pointer font-montserrat transition-colors ${
-            ct === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
-          }`}
-        >
-          All
-        </button>
-        {VITAL_TYPES.filter(t => data.vitals.some(v => v.type === t.id)).map(t => (
+      {/* Unified toolbar: scrollable vital-type pills + fixed "+ Log" button */}
+      <div className="flex items-center gap-2 mb-3">
+        <div className="flex overflow-x-auto no-scrollbar gap-1.5 pb-0.5 flex-1 min-w-0">
           <button
-            key={t.id}
-            onClick={() => setCt(t.id)}
+            onClick={() => setCt('all')}
             className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[13px] font-medium border cursor-pointer font-montserrat transition-colors ${
-              ct === t.id ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+              ct === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
             }`}
           >
-            {t.label}
+            All
           </button>
-        ))}
-      </div>
-
-      {/* Source filter pills, only show when multiple sources */}
-      {sources.length > 1 && (
-        <div className="flex overflow-x-auto no-scrollbar gap-1.5 mb-3 pb-0.5">
-          <button
-            onClick={() => setSourceFilter('all')}
-            className={`flex-shrink-0 py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
-              sourceFilter === 'all' ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
-            }`}
-          >All sources</button>
-          {sources.map(s => {
-            const Icon = SOURCE_ICON[s];
-            return (
-              <button key={s} onClick={() => setSourceFilter(s)}
-                className={`flex-shrink-0 py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors flex items-center gap-1 ${
-                  sourceFilter === s ? `border-salve-sage bg-salve-sage/15 text-salve-sage` : 'border-salve-border bg-transparent text-salve-textFaint'
-                }`}
-              >
-                {Icon && <Icon size={9} />}
-                {SOURCE_LABEL[s] || s}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      {ct !== 'all' && <>
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex gap-1">
-          {['7d', '30d', '90d', 'all'].map(r => (
+          {VITAL_TYPES.filter(t => data.vitals.some(v => v.type === t.id)).map(t => (
             <button
-              key={r}
-              onClick={() => setTimeRange(r)}
-              className={`py-1 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
-                timeRange === r ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
+              key={t.id}
+              onClick={() => setCt(t.id)}
+              className={`flex-shrink-0 py-1 px-3.5 rounded-full text-[13px] font-medium border cursor-pointer font-montserrat transition-colors ${
+                ct === t.id ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-salve-border bg-transparent text-salve-textFaint'
               }`}
             >
-              {r === 'all' ? 'All' : r}
+              {t.label}
             </button>
           ))}
         </div>
-        {data.cycles?.length > 0 && cd.length > 1 && (
-          <button
-            onClick={() => {
-              const next = !cycleOverlay;
-              setCycleOverlay(next);
-              localStorage.setItem('salve:vitals-cycle-overlay', String(next));
-            }}
-            className={`py-1 px-3 rounded-full text-[12px] font-medium border cursor-pointer font-montserrat transition-colors ${
-              cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-salve-border bg-transparent text-salve-textFaint'
-            }`}
-          >
-            Cycle phase
-          </button>
-        )}
+        <button
+          onClick={() => setSubView('form')}
+          aria-label="Log a vital"
+          className="flex-shrink-0 flex items-center gap-1 py-1 px-3 rounded-full text-[13px] font-medium border border-salve-sage text-salve-sage bg-salve-sage/10 font-montserrat transition-colors cursor-pointer"
+        >
+          <Plus size={13} /> Log
+        </button>
       </div>
 
+      {ct !== 'all' && <>
       {cd.length > 1 ? (
         <Card className="!p-3.5">
-          <div className="flex items-baseline justify-between mb-2 pl-1.5">
-            <div className="font-playfair text-sm font-medium text-salve-text">
-              {vi?.label}{' '}
-              <span className="font-normal text-salve-textFaint text-xs">
+          {/* Chart header: title on the left, contextual controls on the right */}
+          <div className="flex items-center justify-between gap-2 mb-2 pl-1.5 flex-wrap">
+            <div className="font-playfair text-sm font-medium text-salve-text flex items-baseline gap-1.5 min-w-0">
+              <span className="truncate">{vi?.label}</span>
+              <span className="font-normal text-salve-textFaint text-xs flex-shrink-0">
                 {hasHourlyData ? 'hourly' : 'daily avg'}
               </span>
             </div>
-            {cdStats && (
-              <div className="flex gap-3 text-[12px] text-salve-textFaint font-montserrat">
-                <span>Avg <span className="text-salve-text font-medium">{cdStats.avg % 1 === 0 ? cdStats.avg : cdStats.avg.toFixed(1)}</span></span>
-                <span>Low <span className="text-salve-text font-medium">{cdStats.min % 1 === 0 ? cdStats.min : cdStats.min.toFixed(1)}</span></span>
-                <span>High <span className="text-salve-text font-medium">{cdStats.max % 1 === 0 ? cdStats.max : cdStats.max.toFixed(1)}</span></span>
-              </div>
-            )}
+            <div className="flex items-center gap-1 flex-shrink-0 flex-wrap justify-end">
+              {['7d', '30d', '90d', 'all'].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setTimeRange(r)}
+                  className={`py-0.5 px-2 rounded-full text-[11px] font-medium border cursor-pointer font-montserrat transition-colors ${
+                    timeRange === r ? 'border-salve-lav bg-salve-lav/15 text-salve-lav' : 'border-transparent text-salve-textFaint'
+                  }`}
+                >
+                  {r === 'all' ? 'All' : r}
+                </button>
+              ))}
+              {sources.length > 1 && (
+                <SourceMenu sources={sources} value={sourceFilter} onChange={setSourceFilter} />
+              )}
+              {data.cycles?.length > 0 && cd.length > 1 && (
+                <button
+                  onClick={() => {
+                    const next = !cycleOverlay;
+                    setCycleOverlay(next);
+                    localStorage.setItem('salve:vitals-cycle-overlay', String(next));
+                  }}
+                  aria-pressed={cycleOverlay}
+                  aria-label="Toggle cycle phase overlay"
+                  className={`p-1 rounded-full border font-montserrat transition-colors cursor-pointer ${
+                    cycleOverlay ? 'border-salve-rose bg-salve-rose/15 text-salve-rose' : 'border-transparent text-salve-textFaint hover:text-salve-textMid'
+                  }`}
+                >
+                  <Heart size={12} aria-hidden="true" />
+                </button>
+              )}
+            </div>
           </div>
           <div role="img" aria-label={`${vi?.label} chart showing ${cd.length} ${hasHourlyData ? 'hourly readings' : 'daily averages'} from ${cd[0]?.date} to ${cd[cd.length - 1]?.date}`} className="h-[180px] md:h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -404,10 +449,45 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
             <thead><tr><th>Date</th><th>Value</th>{ct === 'bp' && <th>Diastolic</th>}</tr></thead>
             <tbody>{cd.map((d, i) => <tr key={i}><td>{d.date}</td><td>{d.value} {vi?.unit}</td>{ct === 'bp' && <td>{d.value2} {vi?.unit}</td>}</tr>)}</tbody>
           </table>
+          {/* Stats footer */}
+          {cdStats && (
+            <div className="flex gap-3 text-[12px] text-salve-textFaint font-montserrat mt-2 pl-1.5">
+              <span>Avg <span className="text-salve-text font-medium">{cdStats.avg % 1 === 0 ? cdStats.avg : cdStats.avg.toFixed(1)}</span></span>
+              <span>Low <span className="text-salve-text font-medium">{cdStats.min % 1 === 0 ? cdStats.min : cdStats.min.toFixed(1)}</span></span>
+              <span>High <span className="text-salve-text font-medium">{cdStats.max % 1 === 0 ? cdStats.max : cdStats.max.toFixed(1)}</span></span>
+            </div>
+          )}
           {vi && (vi.normalLow || vi.normalHigh) && (
             <div className="text-[12px] text-salve-textFaint text-center mt-1.5">
               Normal range: {vi.normalLow ?? ', '}–{vi.normalHigh ?? ', '} {vi.unit}
               {vi.id === 'bp' && vi.normalLow2 ? ` / ${vi.normalLow2}–${vi.normalHigh2} ${vi.unit}` : ''}
+            </div>
+          )}
+          {/* Inline AI trigger — demoted from a full-width button to a subtle right-aligned link */}
+          {data.vitals.length >= 3 && hasAIConsent() && (
+            <div className="mt-2 text-right">
+              <button
+                onClick={async () => {
+                  setTrendLoading(true);
+                  setTrendAI(null);
+                  try {
+                    const recent = data.vitals.slice().reverse().slice(0, 20).map(v => {
+                      const t = VITAL_TYPES.find(x => x.id === v.type);
+                      return { type: t?.label || v.type, value: v.value, value2: v.value2, unit: t?.unit || '', date: v.date, notes: v.notes };
+                    });
+                    const result = await fetchVitalsTrend(recent, buildProfile(data));
+                    setTrendAI(result);
+                  } catch (e) {
+                    setTrendAI('Unable to analyze trends right now. ' + e.message);
+                  } finally {
+                    setTrendLoading(false);
+                  }
+                }}
+                disabled={trendLoading}
+                className="inline-flex items-center gap-1 text-[11px] text-salve-lav font-montserrat bg-transparent border-0 p-0 cursor-pointer hover:underline disabled:opacity-50"
+              >
+                {trendLoading ? <><Loader size={10} className="animate-spin" /> Analyzing…</> : <><TrendingUp size={10} /> Analyze trends with Sage</>}
+              </button>
             </div>
           )}
         </Card>
@@ -418,41 +498,15 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
         </Card>
       )}
 
-      {data.vitals.length >= 3 && hasAIConsent() && (
-        <div className="mb-3">
-          <Button
-            variant="ghost"
-            onClick={async () => {
-              setTrendLoading(true);
-              setTrendAI(null);
-              try {
-                const recent = data.vitals.slice().reverse().slice(0, 20).map(v => {
-                  const t = VITAL_TYPES.find(x => x.id === v.type);
-                  return { type: t?.label || v.type, value: v.value, value2: v.value2, unit: t?.unit || '', date: v.date, notes: v.notes };
-                });
-                const result = await fetchVitalsTrend(recent, buildProfile(data));
-                setTrendAI(result);
-              } catch (e) {
-                setTrendAI('Unable to analyze trends right now. ' + e.message);
-              } finally {
-                setTrendLoading(false);
-              }
-            }}
-            disabled={trendLoading}
-            className="!text-xs w-full !justify-center"
-          >
-            {trendLoading ? <><Loader size={13} className="animate-spin" /> Analyzing trends...</> : <><TrendingUp size={13} /> Analyze Trends with Sage</>}
-          </Button>
-          {trendAI && (
-            <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2">
-              <div className="flex items-center justify-between mb-1.5">
-                <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><TrendingUp size={11} /> Trend Analysis</div>
-                <button onClick={() => setTrendAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss trend analysis">×</button>
-              </div>
-              <AIMarkdown>{trendAI}</AIMarkdown>
-            </Card>
-          )}
-        </div>
+      {/* AI trend analysis result — sibling of chart card so tall content doesn't push the chart off-screen */}
+      {trendAI && (
+        <Card className="!bg-salve-lav/8 !border-salve-lav/20 mt-2 mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="text-[13px] font-semibold text-salve-lav flex items-center gap-1"><TrendingUp size={11} /> Trend Analysis</div>
+            <button onClick={() => setTrendAI(null)} className="bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-text p-0 text-sm leading-none" aria-label="Dismiss trend analysis">×</button>
+          </div>
+          <AIMarkdown>{trendAI}</AIMarkdown>
+        </Card>
       )}
       </>}
 
