@@ -82,11 +82,15 @@ describe('detectCrisis — safety / domestic violence', () => {
     expect(result.type).toBe('safety');
   });
 
-  // Known gap — `crisis.js` only catches past-tense "threatened to kill me";
-  // present-tense "he threatens to kill me" slips through. Pinned here so
-  // we notice if it's fixed or if the coverage narrows further.
-  it.skip('DOES NOT catch present-tense "he threatens to kill me" (known gap)', () => {
-    expect(detectCrisis('he threatens to kill me').isCrisis).toBe(true);
+  it.each([
+    'he threatens to kill me',
+    'she threatens to hurt me',
+    'my partner threatens to harm me',
+    'threatens to beat me',
+  ])('catches present-tense threats: "%s"', (text) => {
+    const result = detectCrisis(text);
+    expect(result.isCrisis).toBe(true);
+    expect(result.type).toBe('safety');
   });
 });
 
