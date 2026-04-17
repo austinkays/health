@@ -3,7 +3,7 @@ import { Heart, Loader, RefreshCw, Unlink, ChevronDown, ChevronUp, X } from 'luc
 import Card from '../ui/Card';
 import { useToast } from '../ui/Toast';
 import { OuraIcon } from '../ui/OuraIcon';
-import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, clearOuraTokens, syncAllOuraData } from '../../services/oura';
+import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, disconnectOura as disconnectOuraServer, syncAllOuraData } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
 import { isFitbitConnected, getFitbitAuthUrl, exchangeFitbitCode, disconnectFitbit as disconnectFitbitServer, syncFitbitData, FITBIT_ENABLED } from '../../services/fitbit';
@@ -71,8 +71,8 @@ export default function Wearables({
     }
   }
 
-  function disconnectOura() {
-    clearOuraTokens();
+  async function disconnectOura() {
+    await disconnectOuraServer();
     setOuraConnected(false);
     setOuraSuccess(null);
   }

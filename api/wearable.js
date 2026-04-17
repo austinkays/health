@@ -231,6 +231,54 @@ async function ouraHandle(action, req, res, userId) {
     }
     const tokens = await tokenRes.json();
     logUsage(userId, 'oura');
+
+    // Persist tokens in Supabase so the webhook handler can map incoming
+    // notifications back to this user via provider_user_id (Oura's user
+    // uuid, fetched below from /v2/usercollection/personal_info). Falls
+    // through to the client return below even on Supabase write failure
+    // so a transient DB hiccup doesn't fully block connect — the legacy
+    // localStorage-based sync still works in that degraded case. Phase 4
+    // will make Supabase the authoritative source.
+    const expiresInRaw = Number(tokens.expires_in);
+    const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? expiresInRaw : 86400; // Oura default: 24h
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+
+    let ouraUserId = null;
+    try {
+      const piRes = await fetchWithTimeout(`${OURA_API_BASE}/personal_info`, {
+        headers: { Authorization: `Bearer ${tokens.access_token}` },
+      });
+      if (piRes.ok) {
+        const pi = await piRes.json();
+        ouraUserId = pi.id || null;
+      } else {
+        console.warn('[oura:token] personal_info fetch failed', piRes.status);
+      }
+    } catch (e) {
+      console.warn('[oura:token] personal_info threw', e);
+    }
+
+    if (ouraUserId) {
+      try {
+        await upsertWearableConnection({
+          user_id: userId,
+          provider: 'oura',
+          provider_user_id: ouraUserId,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expires_at: expiresAt,
+          scope: tokens.scope || null,
+          status: 'connected',
+          subscription_ids: [], // Oura subs are app-level, not per-user
+          last_error: null,
+        });
+      } catch (e) {
+        console.error('[oura:token] wearable_connections upsert failed', e);
+      }
+    } else {
+      console.warn('[oura:token] no provider_user_id — skipping wearable_connections upsert');
+    }
+
     return res.json({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
@@ -258,11 +306,76 @@ async function ouraHandle(action, req, res, userId) {
     }
     const tokens = await refreshRes.json();
     logUsage(userId, 'oura');
+
+    // Mirror the new tokens to the wearable_connections row so server-side
+    // webhook handlers / sync paths use the latest token. Best-effort —
+    // client gets the new tokens regardless. Oura's refresh_token is
+    // single-use so the next refresh must use the freshly-returned one.
+    const expiresInRaw = Number(tokens.expires_in);
+    const expiresIn = Number.isFinite(expiresInRaw) && expiresInRaw > 0 ? expiresInRaw : 86400;
+    const expiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    const existing = await getWearableConnection(userId, 'oura').catch(() => null);
+    if (existing) {
+      try {
+        await upsertWearableConnection({
+          ...existing,
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token,
+          expires_at: expiresAt,
+          status: 'connected',
+          last_error: null,
+        });
+      } catch (e) {
+        console.warn('[oura:refresh] wearable_connections update failed', e);
+      }
+    }
+
     return res.json({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_in: tokens.expires_in,
     });
+  }
+
+  if (action === 'status') {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'GET required' });
+    const conn = await getWearableConnection(userId, 'oura');
+    if (!conn) return res.json({ connected: false });
+    return res.json({
+      connected: conn.status === 'connected',
+      status: conn.status,
+      provider_user_id: conn.provider_user_id,
+      last_webhook_at: conn.last_webhook_at,
+      last_sync_at: conn.last_sync_at,
+      expires_at: conn.expires_at,
+      last_error: conn.last_error,
+    });
+  }
+
+  if (action === 'disconnect') {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+    const conn = await getWearableConnection(userId, 'oura');
+    if (!conn) return res.json({ ok: true, already_disconnected: true });
+
+    // Oura subscriptions are APP-scoped (not per-user) — never tear them
+    // down on disconnect. Other users still need them. Just drop the
+    // user's row + revoke the token.
+
+    // Best-effort token revocation. Oura's revoke endpoint requires the
+    // token in the form body. If it fails, the token will still expire
+    // on its own (24h) and the local row is already gone.
+    try {
+      await fetchWithTimeout('https://api.ouraring.com/oauth/revoke', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ access_token: conn.access_token }),
+      });
+    } catch (e) {
+      console.warn('[oura:disconnect] revoke threw', e);
+    }
+
+    await deleteWearableConnection(userId, 'oura');
+    return res.json({ ok: true });
   }
 
   if (action === 'data') {

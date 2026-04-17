@@ -38,6 +38,27 @@ export function clearOuraTokens() {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+// Full disconnect: tells the server to revoke the access token and remove
+// the wearable_connections row, then clears the localStorage mirror. Use
+// from the UI Disconnect button. clearOuraTokens() alone only clears the
+// local mirror — use that from sign-out paths where the user is already
+// gone and we shouldn't make authed server calls.
+export async function disconnectOura() {
+  const token = await getAuthToken();
+  if (token) {
+    try {
+      await fetch('/api/wearable?provider=oura&action=disconnect', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // Server-side cleanup is best-effort — even if it fails, clear
+      // the local mirror so the UI reflects disconnected state.
+    }
+  }
+  clearOuraTokens();
+}
+
 export function isOuraConnected() {
   return !!getOuraTokens()?.access_token;
 }
