@@ -102,7 +102,7 @@ export function trialDaysRemaining(settings) {
 // billing is live and the monthly Anthropic budget is larger.
 const BETA_LITE_FEATURES = new Set(['chat']);
 
-function getModel(feature) {
+export function getModel(feature) {
   const provider = getAIProvider();
   let tier = LITE_FEATURES.has(feature) ? 'lite' : PRO_FEATURES.has(feature) ? 'pro' : 'flash';
   if (BETA_LITE_FEATURES.has(feature)) tier = 'lite';
