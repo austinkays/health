@@ -137,24 +137,29 @@ export function derivePriorities(data) {
 
   // Top journal symptoms (last 60 days). Aggregate symptom.name frequencies
   // across journal_entries.symptoms[] — this reflects what the user is
-  // tracking *right now*, not the static condition list.
+  // tracking *right now*, not the static condition list. Lowercase only for
+  // aggregation so "Migraine" + "migraine" collapse; display uses the first
+  // original-cased label we saw so the INSIGHT CONTEXT reads naturally.
   if (out.length < 3) {
     const cutoff = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
     const freq = {};
+    const labels = {};
     for (const j of data.journal_entries || []) {
       if (!j.date || j.date < cutoff) continue;
       const syms = Array.isArray(j.symptoms) ? j.symptoms : [];
       for (const s of syms) {
-        const name = (s?.name || '').trim().toLowerCase();
-        if (!name) continue;
-        freq[name] = (freq[name] || 0) + 1;
+        const raw = (s?.name || '').trim();
+        if (!raw) continue;
+        const key = raw.toLowerCase();
+        freq[key] = (freq[key] || 0) + 1;
+        if (!labels[key]) labels[key] = raw;
       }
     }
     const topSymptoms = Object.entries(freq)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3 - out.length);
-    for (const [name, n] of topSymptoms) {
-      out.push({ name, why: `logged ${n}x in last 60 days` });
+    for (const [key, n] of topSymptoms) {
+      out.push({ name: labels[key] || key, why: `logged ${n}x in last 60 days` });
     }
   }
 
