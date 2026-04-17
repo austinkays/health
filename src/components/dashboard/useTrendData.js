@@ -57,7 +57,7 @@ export function useSleepTrend(vitals) {
         value: val !== null ? Math.round(val * 10) / 10 : null,
       });
     }
-    const withData = days.filter(d => d.value !== null);
+    const withData = days.filter(d => Number.isFinite(d.value));
     if (withData.length < 4) return null;
     const avg = Math.round(withData.reduce((s, d) => s + d.value, 0) / withData.length * 10) / 10;
     const last = withData[withData.length - 1];

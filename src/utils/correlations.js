@@ -1234,14 +1234,14 @@ export function computeMicroInsights(data) {
   const twoWeeksAgo = shiftDate(today, -14);
   const sleepLastWeek = sleepVitals.filter(v => v.date >= twoWeeksAgo && v.date < weekAgo);
   if (sleepThisWeek.length >= 3) {
-    const avg = sleepThisWeek.reduce((s, v) => s + v.value, 0) / sleepThisWeek.length;
+    const avg = sleepThisWeek.reduce((s, v) => s + Number(v.value), 0) / sleepThisWeek.length;
     let suffix = '';
     if (sleepLastWeek.length >= 3) {
-      const prevAvg = sleepLastWeek.reduce((s, v) => s + v.value, 0) / sleepLastWeek.length;
+      const prevAvg = sleepLastWeek.reduce((s, v) => s + Number(v.value), 0) / sleepLastWeek.length;
       const diff = avg - prevAvg;
-      if (Math.abs(diff) >= 0.2) suffix = ` (${diff > 0 ? '↑' : '↓'} ${Math.abs(diff).toFixed(1)} from last week)`;
+      if (Number.isFinite(diff) && Math.abs(diff) >= 0.2) suffix = ` (${diff > 0 ? '↑' : '↓'} ${Math.abs(diff).toFixed(1)} from last week)`;
     }
-    micros.push({ emoji: '😴', text: `Average sleep this week: ${avg.toFixed(1)} hrs${suffix}`, id: 'sleep_avg' });
+    if (Number.isFinite(avg)) micros.push({ emoji: '😴', text: `Average sleep this week: ${avg.toFixed(1)} hrs${suffix}`, id: 'sleep_avg' });
   }
 
   // 5. Workouts this week
@@ -1256,8 +1256,8 @@ export function computeMicroInsights(data) {
   // 6. Resting HR average this week
   const hrWeek = vitals.filter(v => v.type === 'hr' && v.date >= weekAgo && v.value > 0);
   if (hrWeek.length >= 3) {
-    const avg = Math.round(hrWeek.reduce((s, v) => s + v.value, 0) / hrWeek.length);
-    micros.push({ emoji: '❤️', text: `Resting HR average this week: ${avg} bpm`, id: 'hr_avg' });
+    const avg = Math.round(hrWeek.reduce((s, v) => s + Number(v.value), 0) / hrWeek.length);
+    if (Number.isFinite(avg)) micros.push({ emoji: '❤️', text: `Resting HR average this week: ${avg} bpm`, id: 'hr_avg' });
   }
 
   // 7. Mood trend (2 weeks)
@@ -1301,9 +1301,9 @@ export function computeMicroInsights(data) {
   // 10. Steps this week
   const stepsWeek = vitals.filter(v => v.type === 'steps' && v.date >= weekAgo && v.value > 0);
   if (stepsWeek.length >= 3) {
-    const total = stepsWeek.reduce((s, v) => s + v.value, 0);
+    const total = stepsWeek.reduce((s, v) => s + Number(v.value), 0);
     const avgDaily = Math.round(total / stepsWeek.length);
-    micros.push({ emoji: '🚶', text: `Averaging ${avgDaily.toLocaleString()} steps/day this week`, id: 'steps_avg' });
+    if (Number.isFinite(avgDaily)) micros.push({ emoji: '🚶', text: `Averaging ${avgDaily.toLocaleString()} steps/day this week`, id: 'steps_avg' });
   }
 
   return micros;
