@@ -111,6 +111,108 @@ async function deleteWearableConnection(userId, provider) {
   );
 }
 
+async function getConnectionByProviderUserId(provider, providerUserId) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return null;
+  const res = await fetch(
+    `${url}/rest/v1/wearable_connections?provider=eq.${encodeURIComponent(provider)}&provider_user_id=eq.${encodeURIComponent(providerUserId)}&limit=1`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return rows[0] || null;
+}
+
+async function patchConnectionTokens(userId, provider, patch) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return;
+  await fetch(
+    `${url}/rest/v1/wearable_connections?user_id=eq.${encodeURIComponent(userId)}&provider=eq.${encodeURIComponent(provider)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: key, Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(patch),
+    }
+  ).catch(() => { /* best-effort */ });
+}
+
+async function touchConnectionWebhook(userId, provider) {
+  const now = new Date().toISOString();
+  await patchConnectionTokens(userId, provider, {
+    last_webhook_at: now,
+    last_sync_at: now,
+  });
+}
+
+// Bulk vitals/activities upserts via service-role REST. Mirrors Terra's
+// bulkInsertVitals/bulkInsertActivities pattern (api/terra.js:207). Each
+// row should include user_id; we don't add it here so the caller can
+// batch rows for different users in theory (today, only one user per
+// webhook notification). Best-effort dedup uses pre-fetch + filter
+// (per-row check) rather than DB UPSERT since the vitals table doesn't
+// have a unique constraint on (user_id, date, type, source).
+
+async function bulkInsertVitals(rows) {
+  if (!rows.length) return;
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return;
+  await fetch(`${url}/rest/v1/vitals`, {
+    method: 'POST',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(rows),
+  }).catch(e => console.warn('[bulkInsertVitals] failed', e));
+}
+
+async function bulkInsertActivities(rows) {
+  if (!rows.length) return;
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return;
+  await fetch(`${url}/rest/v1/activities`, {
+    method: 'POST',
+    headers: {
+      apikey: key, Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json', Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(rows),
+  }).catch(e => console.warn('[bulkInsertActivities] failed', e));
+}
+
+// Per-row dedup: returns true if a vital with matching (user_id, date,
+// type, source) already exists. Used to skip webhook-driven inserts
+// when the user has already pulled the same day's data via legacy
+// manual sync. Cheap because the vitals index covers (user_id, date).
+async function vitalAlreadyExists(userId, date, type, source) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return false;
+  const res = await fetch(
+    `${url}/rest/v1/vitals?user_id=eq.${encodeURIComponent(userId)}&date=eq.${encodeURIComponent(date)}&type=eq.${encodeURIComponent(type)}&source=eq.${encodeURIComponent(source)}&limit=1&select=id`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  if (!res.ok) return false;
+  const rows = await res.json();
+  return rows.length > 0;
+}
+
+async function activityAlreadyExists(userId, date, type, source, durationMinutes) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return false;
+  // Workouts dedup on (user_id, date, type, source, duration). Different
+  // workouts on the same day have different durations.
+  const res = await fetch(
+    `${url}/rest/v1/activities?user_id=eq.${encodeURIComponent(userId)}&date=eq.${encodeURIComponent(date)}&type=eq.${encodeURIComponent(type)}&source=eq.${encodeURIComponent(source)}&duration_minutes=eq.${durationMinutes}&limit=1&select=id`,
+    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
+  );
+  if (!res.ok) return false;
+  const rows = await res.json();
+  return rows.length > 0;
+}
+
 // Server-side admin gate. Used by bootstrap endpoints that should only
 // be callable by us (e.g. one-time Oura subscription setup). Mirrors
 // the client-side isAdminActive() check but verified against Supabase
@@ -186,6 +288,160 @@ const OURA_SUBSCRIBE_MATRIX = [
   { event_type: 'create', data_type: 'workout' },
   { event_type: 'create', data_type: 'daily_stress' },
 ];
+
+// ── Oura webhook ingestion helpers ─────────────────────────────────
+// Server-side equivalents of the transforms in src/services/oura.js.
+// Phase 3 of the live-push migration uses these to take an incoming
+// notification, fetch the relevant record from Oura, and upsert into
+// vitals/activities so the user sees fresh data without manual sync.
+
+// Refresh the connection's access token if it expires within 5 minutes,
+// then return a usable token. Persists the new token + refresh_token
+// (Oura's are single-use) back to wearable_connections via service-role.
+async function getValidOuraAccessToken(conn) {
+  const expiresAt = conn.expires_at ? Date.parse(conn.expires_at) : 0;
+  const now = Date.now();
+  if (expiresAt && expiresAt - now > 5 * 60 * 1000) {
+    return conn.access_token;
+  }
+
+  const clientId = process.env.OURA_CLIENT_ID;
+  const clientSecret = process.env.OURA_CLIENT_SECRET;
+  if (!clientId || !clientSecret || !conn.refresh_token) return conn.access_token;
+
+  const res = await fetchWithTimeout(OURA_TOKEN_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: conn.refresh_token,
+      client_id: clientId, client_secret: clientSecret,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    console.warn('[oura:refresh] failed', res.status, err);
+    return conn.access_token;
+  }
+  const tokens = await res.json();
+  const expiresIn = Number.isFinite(Number(tokens.expires_in)) && Number(tokens.expires_in) > 0
+    ? Number(tokens.expires_in) : 86400;
+  await patchConnectionTokens(conn.user_id, 'oura', {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+  });
+  return tokens.access_token;
+}
+
+// Fetch one specific record from Oura by id. Endpoint URL depends on
+// the data_type from the notification.
+async function fetchOuraRecord(token, dataType, objectId) {
+  // Map data_type → endpoint name. For most types they match 1:1.
+  const endpoint = dataType; // sleep, daily_sleep, daily_readiness, daily_activity, daily_spo2, workout, daily_stress
+  const url = `${OURA_API_BASE}/${endpoint}/${encodeURIComponent(objectId)}`;
+  const res = await fetchWithTimeout(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Oura API ${dataType}/${objectId} → ${res.status}: ${body.slice(0, 200)}`);
+  }
+  return res.json();
+}
+
+// Transform an Oura record into Salve vitals/activities row(s).
+// Returns { vitals: [...], activities: [...] }. Each row is missing
+// user_id; the caller adds it before insert.
+//
+// Mirrors the field shapes used by the legacy client-side syncOura*
+// functions in src/services/oura.js so Vitals/Activities charts render
+// identically whether the data arrived via webhook or manual sync.
+function transformOuraRecord(dataType, record) {
+  const out = { vitals: [], activities: [] };
+  if (!record || typeof record !== 'object') return out;
+
+  switch (dataType) {
+    case 'sleep': {
+      // Long-form sleep session. total_sleep_duration in seconds.
+      const day = record.day || (record.bedtime_end || '').slice(0, 10);
+      const totalSec = Number(record.total_sleep_duration) || 0;
+      if (day && totalSec > 0) {
+        const hrs = Math.round((totalSec / 3600) * 10) / 10;
+        out.vitals.push({
+          date: day, type: 'sleep', value: String(hrs), value2: '', unit: 'hrs',
+          source: 'oura', notes: '',
+        });
+      }
+      // HR average from sleep session — useful resting HR proxy.
+      const avgHr = Number(record.average_heart_rate);
+      if (day && Number.isFinite(avgHr) && avgHr > 0) {
+        out.vitals.push({
+          date: day, type: 'hr', value: String(Math.round(avgHr)), value2: '', unit: 'bpm',
+          source: 'oura', notes: 'Resting (sleep avg from Oura)',
+        });
+      }
+      break;
+    }
+    case 'daily_activity': {
+      const day = record.day;
+      const steps = Number(record.steps);
+      const activeCal = Number(record.active_calories);
+      if (day && Number.isFinite(steps) && steps > 0) {
+        out.vitals.push({
+          date: day, type: 'steps', value: String(steps), value2: '', unit: 'steps',
+          source: 'oura', notes: '',
+        });
+      }
+      if (day && Number.isFinite(activeCal) && activeCal > 0) {
+        out.vitals.push({
+          date: day, type: 'active_energy', value: String(activeCal), value2: '', unit: 'cal',
+          source: 'oura', notes: '',
+        });
+      }
+      break;
+    }
+    case 'daily_spo2': {
+      const day = record.day;
+      const avg = record?.spo2_percentage?.average;
+      if (day && Number.isFinite(Number(avg))) {
+        out.vitals.push({
+          date: day, type: 'spo2', value: String(Math.round(Number(avg) * 10) / 10),
+          value2: '', unit: '%', source: 'oura', notes: '',
+        });
+      }
+      break;
+    }
+    case 'workout': {
+      const day = record.day;
+      const start = record.start_datetime ? Date.parse(record.start_datetime) : null;
+      const end = record.end_datetime ? Date.parse(record.end_datetime) : null;
+      const durationMin = (start && end && end > start) ? Math.round((end - start) / 60000) : 0;
+      const calories = Number(record.calories);
+      const distance = Number(record.distance);
+      if (day && record.activity) {
+        out.activities.push({
+          date: day,
+          type: String(record.activity).toLowerCase(),
+          duration_minutes: durationMin,
+          distance: Number.isFinite(distance) && distance > 0 ? distance : null,
+          calories: Number.isFinite(calories) && calories > 0 ? Math.round(calories) : null,
+          heart_rate_avg: null,
+          source: 'oura',
+          notes: record.label || '',
+        });
+      }
+      break;
+    }
+    // daily_sleep / daily_readiness / daily_stress: no clean mapping to
+    // existing vital types yet. Log-only for now (handled in webhook
+    // POST branch). Add new vital types + transforms here when desired.
+    default:
+      break;
+  }
+
+  return out;
+}
 
 function ouraWebhookCallbackUrl(req) {
   // Explicit env wins — set OURA_WEBHOOK_CALLBACK_URL in prod to lock the
@@ -1136,40 +1392,112 @@ async function ouraWebhookHandle(req, res) {
   }
 
   // ── Notification or POST-based verification challenge ─────────────
-  // Oura might send the verification challenge as a POST (not GET) —
-  // their create-subscription error literally says "Expected 200" and
-  // we were returning 204, which doesn't match. Always respond 200
-  // here so the verification challenge passes regardless of HTTP
-  // method. For real notifications, 200 is also acceptable (many
-  // webhook providers accept any 2xx). If Oura turns out to require
-  // 204 specifically for notifications later, we can branch on body
-  // shape — but for the verification this is what unblocks Phase 1.
   if (req.method === 'POST') {
     let parsedBody = null;
-    let bodyStr = '';
-    try {
-      parsedBody = req.body;
-      bodyStr = typeof parsedBody === 'string'
-        ? parsedBody.slice(0, 500)
-        : JSON.stringify(parsedBody).slice(0, 500);
-    } catch { bodyStr = '<unparseable>'; }
-    console.log('[oura:webhook] POST query=', JSON.stringify(req.query), 'body=', bodyStr);
+    try { parsedBody = req.body; } catch { /* leave null */ }
 
-    // If body looks like a verification challenge, mark active.
-    // Otherwise treat as a notification (Phase 3 will handle ingest).
+    // Verification challenge path — Oura might use POST instead of GET
+    // for the verify (their create-sub error said "Expected 200" while
+    // our POST handler was returning 204). If body/query carries
+    // verification_token, treat as verification and respond 200 with
+    // the echo body — never proceed to ingest.
     const vt = req.query.verification_token
       || (parsedBody && typeof parsedBody === 'object' && parsedBody.verification_token);
     const challenge = req.query.challenge
       || (parsedBody && typeof parsedBody === 'object' && parsedBody.challenge);
-
-    if (vt) {
-      await markOuraSubscriptionActive(vt);
+    if (vt || challenge) {
+      console.log('[oura:webhook:verify-post] vt-present=', !!vt, 'challenge-present=', !!challenge);
+      if (vt) await markOuraSubscriptionActive(vt);
+      return res.status(200).json({
+        verification_token: vt || null,
+        challenge: challenge || null,
+      });
     }
 
-    return res.status(200).json({
-      verification_token: vt || null,
-      challenge: challenge || null,
-    });
+    // Notification path. Body shape per Oura docs:
+    //   { event_type, event_time, user_id, data_type, object_id }
+    // Some implementations send an array; handle both.
+    const notifications = Array.isArray(parsedBody)
+      ? parsedBody
+      : (parsedBody && typeof parsedBody === 'object') ? [parsedBody] : [];
+
+    if (notifications.length === 0) {
+      console.log('[oura:webhook] empty body, ignoring');
+      return res.status(200).end();
+    }
+
+    // Process each notification serially — keeps log output ordered and
+    // avoids per-user fetches racing on the same connection row's
+    // refresh-token rotation. Volume is low (1-7 events per ring sync).
+    let totalVitals = 0;
+    let totalActivities = 0;
+    for (const n of notifications) {
+      try {
+        const { event_type, data_type, user_id: ouraUserId, object_id } = n || {};
+        console.log(`[oura:webhook] ${event_type}/${data_type} user=${ouraUserId} object=${object_id}`);
+
+        if (!data_type || !ouraUserId || !object_id) {
+          console.warn('[oura:webhook] missing fields, skipping:', JSON.stringify(n).slice(0, 200));
+          continue;
+        }
+        // Only act on creates for now. update/delete events will land
+        // here once we subscribe to them; ignored silently in v1.
+        if (event_type !== 'create') {
+          continue;
+        }
+
+        const conn = await getConnectionByProviderUserId('oura', ouraUserId);
+        if (!conn) {
+          console.warn(`[oura:webhook] no wearable_connections for oura user_id=${ouraUserId}`);
+          continue;
+        }
+
+        let token;
+        try {
+          token = await getValidOuraAccessToken(conn);
+        } catch (e) {
+          console.warn(`[oura:webhook] token refresh failed for user=${conn.user_id}`, e);
+          continue;
+        }
+
+        let record;
+        try {
+          record = await fetchOuraRecord(token, data_type, object_id);
+        } catch (e) {
+          console.warn(`[oura:webhook] record fetch failed`, e?.message || e);
+          continue;
+        }
+
+        const { vitals, activities } = transformOuraRecord(data_type, record);
+
+        // Per-row dedup. Cheap query on (user_id, date, type, source).
+        const vitalsToInsert = [];
+        for (const row of vitals) {
+          const exists = await vitalAlreadyExists(conn.user_id, row.date, row.type, 'oura');
+          if (!exists) vitalsToInsert.push({ ...row, user_id: conn.user_id });
+        }
+        const activitiesToInsert = [];
+        for (const row of activities) {
+          const exists = await activityAlreadyExists(conn.user_id, row.date, row.type, 'oura', row.duration_minutes);
+          if (!exists) activitiesToInsert.push({ ...row, user_id: conn.user_id });
+        }
+
+        if (vitalsToInsert.length) await bulkInsertVitals(vitalsToInsert);
+        if (activitiesToInsert.length) await bulkInsertActivities(activitiesToInsert);
+        totalVitals += vitalsToInsert.length;
+        totalActivities += activitiesToInsert.length;
+
+        // Touch the connection row so the UI's "Last push" indicator
+        // (Phase 4 work) has data to show.
+        await touchConnectionWebhook(conn.user_id, 'oura');
+      } catch (e) {
+        // Per-notification error must never crash the whole batch.
+        console.error('[oura:webhook] notification handler threw', e);
+      }
+    }
+
+    console.log(`[oura:webhook] processed ${notifications.length} notification(s), wrote ${totalVitals} vitals + ${totalActivities} activities`);
+    return res.status(200).end();
   }
 
   return res.status(405).end();
