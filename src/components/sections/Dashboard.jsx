@@ -13,8 +13,8 @@ import { SageIntroButton, shouldShowIntro } from '../ui/SageIntro';
 import { SectionTitle } from '../ui/FormWrap';
 import { fmtDate, daysUntil, localISODate } from '../../utils/dates';
 import { C } from '../../constants/colors';
-import { fetchInsight, isPremiumActive } from '../../services/ai';
-import { buildProfile } from '../../services/profile';
+import { isPremiumActive } from '../../services/ai';
+import { generateDailyInsight } from '../../services/insights';
 import { trackEvent, EVENTS } from '../../services/analytics';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -294,24 +294,53 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
   const priceAlertMeds = usePriceAlertMeds(activeMeds, data.drug_prices);
 
   /* ── AI Insight ─────────────────────────────── */
+  // State shape: { text, focus_area, id, generated_on } | error-string | null
+  // localStorage keeps a per-day JSON cache for offline / fast-path rendering;
+  // Supabase `generated_insights` is the source of truth and enables cross-device sync.
   const insightCacheKey = `salve:daily-insight-${localISODate(new Date())}`;
 
   const loadInsight = async (forceRefresh = false) => {
+    const todayIso = localISODate(new Date());
+    // Fast path: localStorage cache (JSON as of this deploy; fall back to
+    // treating as plain text for old per-day entries written before the
+    // state-shape change).
     if (!forceRefresh) {
       try {
         const cached = localStorage.getItem(insightCacheKey);
-        if (cached) { setInsight(cached); return; }
+        if (cached) {
+          let parsed;
+          try { parsed = JSON.parse(cached); } catch { parsed = null; }
+          if (parsed && typeof parsed === 'object' && parsed.text) {
+            setInsight(parsed);
+          } else {
+            // Legacy plain-text cache — upgrade on-the-fly.
+            setInsight({ text: cached, focus_area: 'general', id: null, generated_on: todayIso });
+          }
+          return;
+        }
       } catch (_) { /* localStorage unavailable */ }
+
+      // Freshness check: if another device generated today's insight,
+      // pull it so we don't regenerate and burn tokens.
+      try {
+        const row = data.generated_insights?.[0];
+        if (row && row.generated_on === todayIso) {
+          setInsight(row);
+          try { localStorage.setItem(insightCacheKey, JSON.stringify(row)); } catch {}
+          return;
+        }
+      } catch (_) { /* fall through to generate */ }
     }
+
     setInsightLoading(true);
     try {
-      const profile = buildProfile(data);
-      const result = await fetchInsight(profile);
+      const result = await generateDailyInsight(data, { ratings: insightRatings });
       setInsight(result);
-      try { localStorage.setItem(insightCacheKey, result); } catch (_) { /* quota */ }
+      try { localStorage.setItem(insightCacheKey, JSON.stringify(result)); } catch (_) { /* quota */ }
     } catch (e) {
       const isDailyLimit = e.message?.includes('Daily AI limit');
-      setInsight(isDailyLimit ? 'Daily insight limit reached. Resets at midnight PT.' : 'Unable to load insight. ' + e.message);
+      const text = isDailyLimit ? 'Daily insight limit reached. Resets at midnight PT.' : 'Unable to load insight. ' + e.message;
+      setInsight({ text, focus_area: 'general', id: null, generated_on: todayIso, error: true });
     } finally {
       setInsightLoading(false);
     }
@@ -959,7 +988,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => {
-                          const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim();
+                          const clean = (insight.text || '').replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim();
                           const key = 'salve:saved-insights';
                           try {
                             const arr = JSON.parse(localStorage.getItem(key) || '[]');
@@ -973,7 +1002,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                         aria-label="Save insight"
                       ><Bookmark size={12} /></button>
                       <button
-                        onClick={() => { const clean = insight.replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim(); navigator.clipboard.writeText(clean); }}
+                        onClick={() => { const clean = (insight.text || '').replace(/\n---\n\*(?:AI|Sage'?s?) suggestions[^*]*\*\s*$/, '').trim(); navigator.clipboard.writeText(clean); }}
                         className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
                         aria-label="Copy insight"
                       ><Copy size={12} /></button>
@@ -982,10 +1011,20 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
                         className="p-1 rounded-md bg-transparent border-none cursor-pointer text-salve-textFaint hover:text-salve-sage transition-colors"
                         aria-label="New insight"
                       ><RefreshCw size={12} /></button>
-                      {insightRatings && <ThumbsRating surface="insight" contentKey="daily" getRating={insightRatings.getRating} rate={insightRatings.rate} size={11} />}
+                      {insightRatings && insight.generated_on && !insight.error && (
+                        <ThumbsRating surface="insight" contentKey={insight.generated_on} getRating={insightRatings.getRating} rate={insightRatings.rate} size={11} />
+                      )}
                     </div>
                   </div>
-                  <AIMarkdown compact>{insight}</AIMarkdown>
+                  <AIMarkdown compact>{insight.text || ''}</AIMarkdown>
+                  {(data.generated_insights?.length || 0) > 1 && (
+                    <div className="mt-2 text-right">
+                      <button
+                        onClick={() => onNav('insights', { tab: 'history' })}
+                        className="text-[12px] text-salve-sageDim/80 hover:text-salve-sage font-montserrat transition-colors bg-transparent border-0 cursor-pointer p-0"
+                      >See past insights &rarr;</button>
+                    </div>
+                  )}
                 </Card>
               )}
             </section>

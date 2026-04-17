@@ -438,14 +438,37 @@ async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWe
   }
 }
 
-export async function fetchInsight(profileText) {
+// Daily insight. Returns { text, focus_area } where focus_area is parsed from
+// the leading [FOCUS: <area>] tag the prompt instructs Sage to emit. Demo mode
+// returns { text, focus_area: 'general' } via demoResponseFor.
+//
+// `ctx` is metadata about what the insights.js orchestrator put into the
+// profile text (seed pattern? recent insights?). We pass booleans through to
+// prompt_opts so buildSystemPrompt can skip the cold-start rotator when the
+// structured context is a stronger signal.
+export async function fetchInsight(profileText, ctx = {}) {
   const focusIndex = new Date().getDay(); // 0=Sun … 6=Sat
-  return callAPI(
+  const hasSeed = !!ctx.seedPattern;
+  const hasRecent = Array.isArray(ctx.recentInsights) && ctx.recentInsights.length > 0;
+  const raw = await callAPI(
     [{ role: 'user', content: 'Based on my health profile, give me today\'s insight.' }],
     'insight', profileText,
     2000, false, 'insight',
-    { focusIndex }
+    { focusIndex, hasSeed, hasRecent }
   );
+  return parseInsightResponse(raw);
+}
+
+// Parse the leading [FOCUS: <area>] tag from Sage's output. If the model
+// omitted it (or demo mode returned a plain string), default to 'general'.
+// Exposed for testing; not used outside fetchInsight.
+export function parseInsightResponse(raw) {
+  if (typeof raw !== 'string') return { text: String(raw || ''), focus_area: 'general' };
+  const match = raw.match(/^\s*\[FOCUS:\s*([a-z_]+)\s*\]\s*/i);
+  const focus_area = match ? match[1].toLowerCase() : 'general';
+  const text = match ? raw.replace(/^\s*\[FOCUS:\s*[a-z_]+\s*\]\s*/i, '').trim() : raw;
+  const ALLOWED = new Set(['sleep','medication','nutrition','exercise','cycle','symptom','prevention','condition','connection','lifestyle','encouragement','research','general']);
+  return { text, focus_area: ALLOWED.has(focus_area) ? focus_area : 'general' };
 }
 
 export async function fetchConnections(profileText) {

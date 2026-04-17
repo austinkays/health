@@ -34,7 +34,25 @@ function getProfileCharLimit(tier) {
 
 const PROMPTS = {
   insight:
-    'You are a compassionate, knowledgeable health companion. Given this patient\'s health profile, share ONE interesting, useful, or empowering health insight they might not know. Keep it warm, concise (3-4 sentences), and specific to THEIR profile. Do not repeat generic advice. Start with a relevant emoji.',
+    `You are a compassionate, knowledgeable health companion writing today's single daily insight for this patient.
+
+Their profile may include an INSIGHT CONTEXT block near the top containing: top health priorities, stated goals, focus-area feedback, the last 5 insights they have already seen, and optionally a correlation seed pattern computed from their own tracking data.
+
+RULES:
+1. OUTPUT FORMAT — your FIRST line MUST be exactly: [FOCUS: <area>]
+   where <area> is one of: sleep, medication, nutrition, exercise, cycle, symptom, prevention, condition, connection, lifestyle, encouragement, research, general.
+   After the tag, on the next line, write the insight itself.
+2. If a correlation seed is present, GROUND the insight in that specific pattern — cite the actual numbers from the template. Do not pivot to a generic tip.
+3. If no seed is present, pick an angle aligned with one of their top priorities and their liked focus areas.
+4. Do NOT repeat any of the last 5 insights or any near-paraphrase. If your instinct matches one, pick a different angle.
+5. Lean toward focus areas they have upvoted; avoid categories they have downvoted unless you have genuinely fresh data.
+6. Keep it warm, 3-4 sentences, one relevant emoji near the start of the prose (NOT inside the [FOCUS] tag).
+7. End with one concrete, small next step (a question to ask their doctor, a tweak to try, a metric to track).
+8. Be specific to THEIR data. Reference real numbers or conditions. No generic platitudes.
+
+Example:
+[FOCUS: sleep]
+🌙 On nights when your sleep drops below 6 hours, your next-day pain averages 6.4/10 versus 3.1/10 after 7+ hour nights. That's a meaningful gap. For the next two weeks, try a 10pm caffeine cutoff and see if the pattern softens. Worth mentioning to Dr. Patel at your next visit.`,
 
   connections:
     'You are an insightful health analyst. Given this patient\'s complete health profile, look for non-obvious connections, patterns, and insights across their medications, conditions, symptoms, and vitals. Consider: medications that might worsen another condition, overlapping side effects, symptom patterns in their journal, vitals trends that correlate with entries, nutritional or lifestyle factors linking conditions, whether their med regimen is internally consistent. Be specific and reference THEIR actual data. Format with clear sections. Be warm but thorough. End with a note that this is not medical advice.',
@@ -322,6 +340,8 @@ const PROMPT_KEYS = new Set(Object.keys(PROMPTS));
  * @param {string} [opts.extra] — extra instructions to append (sanitized, max 500 chars)
  * @param {string} [opts.userTier] — free, premium, or admin
  * @param {number} [opts.focusIndex] — day-of-week index (0-6) for insight focus rotation
+ * @param {boolean} [opts.hasSeed] — insight context carries a correlation seed (skips legacy rotator)
+ * @param {boolean} [opts.hasRecent] — user has recent insights in context (skips legacy rotator)
  * @returns {string|null} — assembled system prompt, or null if key is invalid
  */
 export function buildSystemPrompt(promptKey, profileText, opts = {}) {
@@ -329,10 +349,13 @@ export function buildSystemPrompt(promptKey, profileText, opts = {}) {
 
   let prompt = PROMPTS[promptKey];
 
-  // Append daily focus area for insight prompts
-  if (promptKey === 'insight' && opts.focusIndex != null) {
+  // Append daily focus area for insight prompts ONLY for cold-start users.
+  // When the client provided an INSIGHT CONTEXT block (seed OR recent insights),
+  // the structured context is a stronger signal than a day-of-week rotator, and
+  // layering both confuses the model's choice of focus area.
+  if (promptKey === 'insight' && opts.focusIndex != null && !opts.hasSeed && !opts.hasRecent) {
     const idx = Math.abs(Math.round(opts.focusIndex)) % INSIGHT_FOCUS_AREAS.length;
-    prompt += ' Today\'s focus: ' + INSIGHT_FOCUS_AREAS[idx] + '. Specifically explore this angle using their actual data — do not just give generic advice about this topic.';
+    prompt += ' Today\'s focus (cold-start rotation, use as a tiebreaker only): ' + INSIGHT_FOCUS_AREAS[idx] + '. Specifically explore this angle using their actual data — do not just give generic advice about this topic.';
   }
 
   // Replace {DATE} placeholder if present

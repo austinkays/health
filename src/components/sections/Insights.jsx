@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Sparkles, Moon, Activity, Heart, Pill, TrendingUp, TrendingDown, Minus, Lock, ChevronRight, Calendar, Flame, ArrowLeftRight, Clock } from 'lucide-react';
 import Card from '../ui/Card';
 import EmptyState from '../ui/EmptyState';
+import InsightsTimeline from '../ai/InsightsTimeline';
 import { computeCorrelations } from '../../utils/correlations';
 import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
@@ -218,8 +219,15 @@ function UnlockSection({ data, unlockedCategories }) {
 
 /* ── Main section ─────────────────────────────────────────── */
 
-export default function Insights({ data, onNav }) {
+export default function Insights({ data, onNav, insightRatings, initialTab }) {
   const [filter, setFilter] = useState('All');
+  const [tab, setTab] = useState(initialTab === 'history' ? 'history' : 'patterns');
+
+  // App.jsx passes initialTab='history' when the user deep-links from
+  // Dashboard's "See past insights" link. Stays in sync on tab change.
+  useEffect(() => {
+    if (initialTab === 'history' || initialTab === 'patterns') setTab(initialTab);
+  }, [initialTab]);
 
   const allInsights = useMemo(
     () => computeCorrelations(data, getCyclePhaseForDate),
@@ -243,10 +251,40 @@ export default function Insights({ data, onNav }) {
   }, [allInsights]);
 
   const totalNonTrend = allInsights.filter(i => i.type !== 'trend').length;
+  const hasHistory = (data?.generated_insights?.length || 0) > 0;
+
+  // Patterns / History tab switcher. Renders when either view has content so
+  // users can discover the history tab even before enough data for patterns.
+  const tabBar = (hasHistory || allInsights.length > 0) ? (
+    <div className="flex gap-2 mb-4 border-b border-salve-border/60">
+      <button
+        onClick={() => setTab('patterns')}
+        className={`text-[13px] font-montserrat pb-2 px-1 border-b-2 transition-colors cursor-pointer bg-transparent ${
+          tab === 'patterns' ? 'border-salve-lav text-salve-lav' : 'border-transparent text-salve-textFaint hover:text-salve-text'
+        }`}
+      >Patterns</button>
+      <button
+        onClick={() => setTab('history')}
+        className={`text-[13px] font-montserrat pb-2 px-1 border-b-2 transition-colors cursor-pointer bg-transparent ${
+          tab === 'history' ? 'border-salve-lav text-salve-lav' : 'border-transparent text-salve-textFaint hover:text-salve-text'
+        }`}
+      >History{hasHistory ? ` (${data.generated_insights.length})` : ''}</button>
+    </div>
+  ) : null;
+
+  if (tab === 'history') {
+    return (
+      <div className="mt-2 font-montserrat">
+        {tabBar}
+        <InsightsTimeline data={data} insightRatings={insightRatings} />
+      </div>
+    );
+  }
 
   if (allInsights.length === 0) {
     return (
       <div className="mt-4">
+        {tabBar}
         <div className="text-center mb-6 px-4">
           <Sparkles size={28} className="text-salve-lav mx-auto mb-3" />
           <h3 className="text-base font-montserrat font-medium text-salve-text mb-1">Insights are brewing</h3>
@@ -261,6 +299,7 @@ export default function Insights({ data, onNav }) {
 
   return (
     <div className="mt-2 font-montserrat">
+      {tabBar}
       {/* Filter pills */}
       <div className="flex gap-1.5 flex-wrap mb-4">
         {FILTER_PILLS.map(p => {
