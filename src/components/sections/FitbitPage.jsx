@@ -230,9 +230,9 @@ export default function FitbitPage({ data, addItem, onNav }) {
         <EmptyState icon={Watch} text="Fitbit not connected" motif="sparkle" />
         <div className="text-center mt-3">
           <button
-            onClick={() => onNav('settings')}
+            onClick={() => onNav('import')}
             className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline"
-          >Connect in Settings →</button>
+          >Connect in Connections →</button>
         </div>
       </div>
     );
@@ -431,10 +431,10 @@ export default function FitbitPage({ data, addItem, onNav }) {
 
       <div className="text-center py-2">
         <button
-          onClick={() => onNav('settings')}
+          onClick={() => onNav('import')}
           className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors"
         >
-          Fitbit settings →
+          Manage Fitbit connection →
         </button>
       </div>
     </div>
