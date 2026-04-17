@@ -343,6 +343,12 @@ async function ouraHandle(action, req, res, userId) {
         }
 
         const sub = await subRes.json();
+        // Status is 'active' when create succeeds: Oura only returns 2xx
+        // after our webhook responded 200 to their challenge. The challenge
+        // happens during the create call, so by the time subRes.ok we know
+        // the verify already passed. (markOuraSubscriptionActive in the
+        // webhook handler is best-effort but races the row insert below,
+        // so we don't rely on it.)
         const row = await upsertOuraSubscription({
           id: sub.id,
           event_type: pair.event_type,
@@ -350,7 +356,7 @@ async function ouraHandle(action, req, res, userId) {
           callback_url: callbackUrl,
           verification_token,
           expiration_time: sub.expiration_time || null,
-          status: 'pending_verification',
+          status: 'active',
           last_error: null,
         });
         console.log(`[oura:bootstrap] ${pair.event_type}:${pair.data_type} registered id=${sub.id} expires=${sub.expiration_time}`);
