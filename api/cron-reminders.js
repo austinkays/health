@@ -1,6 +1,5 @@
-// CURRENT: Runs daily at 7am UTC (Vercel Hobby plan limit).
-// UPGRADE PATH: Vercel Pro ($20/mo) enables "* * * * *" (every minute).
-// ALT: Supabase pg_cron can call a Supabase Edge Function every minute for free.
+// Runs every minute via Vercel Pro cron.
+// Timezone-aware: only fires reminders whose scheduled hour matches the user's local hour.
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -177,23 +176,21 @@ export default async function handler(req, res) {
     }
   }
 
-  // Fetch timezones for all users with reminders.
-  // Currently unused on Hobby tier (cron runs once daily so we send all reminders).
-  // Re-enable when upgrading to Pro with per-minute cron for hour-matched delivery.
-  // const userIds = [...new Set(reminders.map((r) => r.user_id).filter(Boolean))];
-  // let userTimezones = {};
-  // if (userIds.length) {
-  //   try {
-  //     const profiles = await supabaseGet(
-  //       `/profiles?id=in.(${userIds.join(',')})&select=id,timezone`
-  //     );
-  //     for (const p of profiles) {
-  //       userTimezones[p.id] = p.timezone || 'America/Los_Angeles';
-  //     }
-  //   } catch (err) {
-  //     console.warn('[cron-reminders] Could not fetch user timezones:', err.message);
-  //   }
-  // }
+  // Fetch timezones for all users with reminders
+  const userIds = [...new Set(reminders.map((r) => r.user_id).filter(Boolean))];
+  let userTimezones = {};
+  if (userIds.length) {
+    try {
+      const profiles = await supabaseGet(
+        `/profiles?id=in.(${userIds.join(',')})&select=id,timezone`
+      );
+      for (const p of profiles) {
+        userTimezones[p.id] = p.timezone || 'America/Los_Angeles';
+      }
+    } catch (err) {
+      console.warn('[cron-reminders] Could not fetch user timezones:', err.message);
+    }
+  }
 
   let sent = 0;
   const checked = reminders.length;
@@ -208,21 +205,12 @@ export default async function handler(req, res) {
     }
 
     // ── Timezone-aware delivery window ──────────────────────────────────
-    // On Vercel Hobby tier this cron runs only once daily (7 AM UTC).
-    // We send ALL enabled reminders on each run — the notification_log
-    // dedup above prevents double-sends within the same UTC day.
-    //
-    // UPGRADE PATH: On Vercel Pro with "* * * * *" (every minute), uncomment
-    // the hour-window filter below so reminders fire at their scheduled time:
-    //
-    // const userTz = userTimezones[reminder.user_id] || 'America/Los_Angeles';
-    // const localHour = currentLocalHour(userTz);
-    // const rHour = reminderHour(reminder.reminder_time);
-    // if (rHour !== null) {
-    //   const diff = Math.abs(localHour - rHour);
-    //   const hourDiff = Math.min(diff, 24 - diff);
-    //   if (hourDiff > 1) continue;
-    // }
+    // Cron runs every minute (Vercel Pro). Only fire reminders whose
+    // scheduled hour matches the user's current local hour (±0 tolerance).
+    const userTz = userTimezones[reminder.user_id] || 'America/Los_Angeles';
+    const localHour = currentLocalHour(userTz);
+    const rHour = reminderHour(reminder.reminder_time);
+    if (rHour !== null && rHour !== localHour) continue;
 
     const medName = medicationNames[reminder.medication_id] || 'your medication';
     const timeLabel = reminder.reminder_time
