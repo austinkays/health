@@ -99,6 +99,7 @@ BEGIN
     'activities',        COALESCE((SELECT jsonb_agg(row_to_json(r)::jsonb ORDER BY r.created_at) FROM activities r WHERE r.user_id = uid), '[]'::jsonb),
     'genetic_results',   COALESCE((SELECT jsonb_agg(row_to_json(r)::jsonb ORDER BY r.created_at) FROM genetic_results r WHERE r.user_id = uid), '[]'::jsonb),
     'feedback',          COALESCE((SELECT jsonb_agg(row_to_json(r)::jsonb ORDER BY r.created_at) FROM feedback r WHERE r.user_id = uid), '[]'::jsonb),
+    'medication_reminders', COALESCE((SELECT jsonb_agg(row_to_json(r)::jsonb ORDER BY r.reminder_time) FROM medication_reminders r WHERE r.user_id = uid), '[]'::jsonb),
     'generated_insights', COALESCE((
       SELECT jsonb_agg(row_to_json(r)::jsonb ORDER BY r.generated_at DESC)
       FROM (

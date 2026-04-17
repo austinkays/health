@@ -5,7 +5,6 @@ import EmptyState from '../ui/EmptyState';
 import AIMarkdown from '../ui/AIMarkdown';
 import ThumbsRating from '../ui/ThumbsRating';
 import { fmtDate } from '../../utils/dates';
-import { loadRecentInsights } from '../../services/insights';
 
 // Per-focus-area pill colors — leans on the existing CSS variable palette so
 // themes apply automatically. Ordering roughly matches the frequency we
@@ -113,8 +112,8 @@ function TimelineEntry({ entry, insightRatings, isOpen, onToggle }) {
 }
 
 // Renders the user's past daily insights. Pulls from data.generated_insights
-// (already hydrated by load_all_data) for an instant render, and optionally
-// refreshes from Supabase via loadRecentInsights for rating reconciliation.
+// (already hydrated by load_all_data) for an instant render. Rating state
+// stays fresh via the useInsightRatings hook; no extra fetch needed here.
 export default function InsightsTimeline({ data, insightRatings }) {
   const [expandedId, setExpandedId] = useState(null);
   // Hydrated via load_all_data RPC — up to 60 newest rows, already reconciled
@@ -162,7 +161,3 @@ export default function InsightsTimeline({ data, insightRatings }) {
     </div>
   );
 }
-
-// Re-export for call sites that want to refresh timeline data outside of
-// the load_all_data RPC window (e.g. after a manual refresh on Dashboard).
-export { loadRecentInsights };
