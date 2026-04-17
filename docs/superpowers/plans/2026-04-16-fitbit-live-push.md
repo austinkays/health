@@ -1,6 +1,6 @@
 # Fitbit Live-Push — Webhook-Driven Sync
 
-**Status (2026-04-16):** Phase 1 + Phase 2 deployed to production. Phase 3 (webhook → data ingestion) is paused pending a Fitbit-owning tester. Phases 4–5 follow in order.
+**Status (2026-04-16):** Phases 1, 2, and 3 deployed. Phase 3 ships the same pipeline that's now live for Oura — webhook handler fetches the day's data on each notification and writes vitals/activities tagged source='fitbit'. The pipeline is unverified end-to-end pending a Fitbit-owning tester (the developer's primary device is Oura), but follows the identical pattern Oura uses successfully. Phase 4 (client simplification) pending.
 
 ## Context
 
