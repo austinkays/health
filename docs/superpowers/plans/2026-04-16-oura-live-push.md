@@ -1,6 +1,13 @@
 # Oura Ring Live-Push — Webhook-Driven Sync
 
-**Status (2026-04-16):** Phase 1 deployed (migration 051 + `bootstrap_subscriptions` admin action in `api/wearable.js`). Phases 2–4 pending.
+**Status (2026-04-16):** Phases 1, 2, and 3 deployed. End-to-end live-push pipeline is fully wired: app-level webhook subscriptions registered with Oura, server-side OAuth state in `wearable_connections`, webhook handler ingests notifications → fetches records → upserts into `vitals`/`activities` tagged `source='oura'`. Phase 4 (client simplification: drop localStorage mirror, async `isOuraConnected` via `?action=status`, "Last push: 2h ago" UI indicator) is pending. Renewal cron for app subscriptions (Phase 5 in original draft) also pending — Oura subs expire and need periodic refresh.
+
+**Lessons learned during implementation** (worth retaining):
+- Oura strips query strings from callback URLs during the verification challenge → callback URL must be a clean path. Solved via `vercel.json` rewrite from `/api/oura-webhook` → `/api/wearable?provider=oura&action=webhook`.
+- Oura's `event_type` is the CRUD op (`create | update | delete`), not the data category. The data category is `data_type`. v1 subscribes to `event_type='create'` only.
+- Oura's verification handshake can use either GET or POST — and expects an HTTP 200 specifically (returning 204 fails the check). Webhook handler responds 200 to both methods regardless.
+- Oura subscription IDs only need to be unique within a single subscription, not across collections. (Fitbit needs per-collection unique IDs — opposite constraint.)
+- Verification challenge fires synchronously *during* create-subscription POST, so any "set status='active' after the row inserts" logic races the row insert. Solved by writing `status='active'` immediately on POST success since Oura only returns 2xx after the challenge passed.
 
 ## Context
 
