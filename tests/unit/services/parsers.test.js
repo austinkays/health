@@ -88,20 +88,27 @@ describe('Flo GDPR JSON parser', () => {
 
   describe('parseFloExport', () => {
     it('expands a period date range into individual day records', () => {
-      // Uses mid-month dates — Flo's internal Date() parse is UTC-based but
-      // localISODate() renders local; dates near month boundaries can drift
-      // across the seam in non-UTC timezones. Mid-month assertions are safe.
       const data = {
-        cycles: [{ start_date: '2026-03-15', end_date: '2026-03-17', flow: 'medium' }],
+        cycles: [{ start_date: '2026-03-01', end_date: '2026-03-03', flow: 'medium' }],
       };
       const records = parseFloExport(data);
       const periods = records.filter(r => r.type === 'period');
       expect(periods.length).toBe(3);
+      expect(periods[0].date).toBe('2026-03-01');
+      expect(periods[1].date).toBe('2026-03-02');
+      expect(periods[2].date).toBe('2026-03-03');
       expect(periods[0].value).toBe('Medium');
-      // Dates are 3 consecutive days, normalized to YYYY-MM-DD shape
-      for (const p of periods) {
-        expect(p.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      }
+    });
+
+    it('handles month-boundary dates without timezone drift', () => {
+      // Regression: bare 'YYYY-MM-DD' was parsed as UTC, then localISODate
+      // rendered in local tz. In UTC-5, UTC midnight Mar 1 shifted back to
+      // Feb 28. Fix: explicit 'T00:00:00' suffix parses as local midnight.
+      const data = {
+        cycles: [{ start_date: '2026-03-01', end_date: '2026-03-01', flow: 'light' }],
+      };
+      const records = parseFloExport(data);
+      expect(records[0].date).toBe('2026-03-01');
     });
 
     it('normalizes symptom names via the symptom map', () => {

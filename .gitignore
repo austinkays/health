@@ -39,3 +39,4 @@ health/
 # Playwright — generated artifacts (not snapshots, those get committed)
 playwright-report/
 test-results/
+.claude/

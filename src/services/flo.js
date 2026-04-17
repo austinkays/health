@@ -80,9 +80,11 @@ export function parseFloExport(data) {
     const end = normalizeDate(c.end_date || c.end) || start;
     const flow = normFlow(c.flow || c.intensity || c.flow_level || '');
 
-    // Expand range into individual day records
-    let d = new Date(start);
-    const last = new Date(end);
+    // Expand range into individual day records.
+    // Append 'T00:00:00' so Date parses as local time — bare 'YYYY-MM-DD'
+    // is parsed as UTC, which drifts a day in negative-offset timezones.
+    let d = new Date(start + 'T00:00:00');
+    const last = new Date(end + 'T00:00:00');
     while (d <= last) {
       records.push({
         date: localISODate(d),

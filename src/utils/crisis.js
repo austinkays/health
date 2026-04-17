@@ -58,7 +58,10 @@ const SAFETY_PATTERNS = [
   /\bshe('?s|\s+is)\s+(going\s+to\s+)?(kill|hurt)\s+me\b/i,
   /\bthey('?re|\s+are)\s+(going\s+to\s+)?(kill|hurt)\s+me\b/i,
   /\bnot\s+safe\s+(at\s+)?home\b/i,
-  /\bthreatened\s+to\s+kill\s+me\b/i,
+  // Catches both past and present tense, with or without subject.
+  // Matches: "threatened to kill me", "he threatens to kill me",
+  // "my partner threatens to hurt me", "threatens to harm me", etc.
+  /\bthreaten(s|ed)?\s+to\s+(kill|hurt|harm|beat)\s+me\b/i,
 ];
 
 /**
