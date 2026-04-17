@@ -33,7 +33,19 @@
     "api/terra.js": {
       "maxDuration": 30
     },
-    "api/wearable.js": {
+    "api/oura.js": {
+      "maxDuration": 30
+    },
+    "api/fitbit.js": {
+      "maxDuration": 30
+    },
+    "api/dexcom.js": {
+      "maxDuration": 30
+    },
+    "api/withings.js": {
+      "maxDuration": 30
+    },
+    "api/whoop.js": {
       "maxDuration": 30
     }
   },
@@ -44,8 +56,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/oura-webhook", "destination": "/api/wearable?provider=oura&action=webhook" },
-    { "source": "/api/fitbit-webhook", "destination": "/api/wearable?provider=fitbit&action=webhook" },
+    { "source": "/api/oura-webhook", "destination": "/api/oura?action=webhook" },
+    { "source": "/api/fitbit-webhook", "destination": "/api/fitbit?action=webhook" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],

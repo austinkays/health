@@ -1,5 +1,5 @@
 // ── Oura Ring integration service ──
-// OAuth2 flow, token management (encrypted localStorage), data fetching via /api/wearable?provider=oura proxy.
+// OAuth2 flow, token management (encrypted localStorage), data fetching via /api/oura proxy.
 // Temperature deviation from Oura → approximate BBT for cycle tracking.
 
 import { getAuthToken } from './token';
@@ -47,7 +47,7 @@ export async function disconnectOura() {
   const token = await getAuthToken();
   if (token) {
     try {
-      await fetch('/api/wearable?provider=oura&action=disconnect', {
+      await fetch('/api/oura?action=disconnect', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -74,7 +74,7 @@ export async function checkOuraStatus() {
   try {
     const token = await getAuthToken();
     if (!token) return null;
-    const res = await fetch('/api/wearable?provider=oura&action=status', {
+    const res = await fetch('/api/oura?action=status', {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
@@ -101,7 +101,7 @@ export function getOuraRedirectUri() {
 export async function getOuraAuthUrl() {
   const token = await getAuthToken();
   if (!token) return null;
-  const res = await fetch('/api/wearable?provider=oura&action=config', {
+  const res = await fetch('/api/oura?action=config', {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -121,7 +121,7 @@ export async function getOuraAuthUrl() {
 export async function exchangeOuraCode(code) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
-  const res = await fetch('/api/wearable?provider=oura&action=token', {
+  const res = await fetch('/api/oura?action=token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ async function refreshAccessToken() {
     const token = await getAuthToken();
     if (!token) throw new Error('Not signed in');
 
-    const res = await fetch('/api/wearable?provider=oura&action=refresh', {
+    const res = await fetch('/api/oura?action=refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,7 +190,6 @@ async function ouraGet(endpoint, startDate, endDate) {
   if (!authToken) throw new Error('Not signed in');
 
   const params = new URLSearchParams({
-    provider: 'oura',
     action: 'data',
     oura_token: ouraToken,
     endpoint,
@@ -198,7 +197,7 @@ async function ouraGet(endpoint, startDate, endDate) {
   if (startDate) params.set('start_date', startDate);
   if (endDate) params.set('end_date', endDate);
 
-  const res = await fetch(`/api/wearable?${params}`, {
+  const res = await fetch(`/api/oura?${params}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
@@ -206,7 +205,7 @@ async function ouraGet(endpoint, startDate, endDate) {
     // Try refresh once
     const newToken = await refreshAccessToken();
     params.set('oura_token', newToken);
-    const retry = await fetch(`/api/wearable?${params}`, {
+    const retry = await fetch(`/api/oura?${params}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) {
@@ -630,7 +629,6 @@ export async function fetchOuraIntradayHR(startDatetime, endDatetime) {
   if (!authToken) throw new Error('Not signed in');
 
   const params = new URLSearchParams({
-    provider: 'oura',
     action: 'data',
     oura_token: ouraToken,
     endpoint: 'heartrate',
@@ -638,14 +636,14 @@ export async function fetchOuraIntradayHR(startDatetime, endDatetime) {
     end_date: endDatetime,
   });
 
-  const res = await fetch(`/api/wearable?${params}`, {
+  const res = await fetch(`/api/oura?${params}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     params.set('oura_token', newToken);
-    const retry = await fetch(`/api/wearable?${params}`, {
+    const retry = await fetch(`/api/oura?${params}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) throw new Error('Oura HR fetch failed after refresh');
