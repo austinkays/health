@@ -1,5 +1,5 @@
 // ── Withings integration service ──
-// OAuth2 flow + measurement sync via /api/wearable?provider=withings proxy. Patterned after
+// OAuth2 flow + measurement sync via /api/withings proxy. Patterned after
 // services/oura.js. Withings is the most popular consumer health hardware
 // brand for chronic illness users — smart scales, BP cuffs, sleep mats,
 // thermometers all use the same API.
@@ -86,7 +86,7 @@ export function getWithingsRedirectUri() {
 export async function getWithingsAuthUrl() {
   const token = await getAuthToken();
   if (!token) return null;
-  const res = await fetch('/api/wearable?provider=withings&action=config', {
+  const res = await fetch('/api/withings?action=config', {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -107,7 +107,7 @@ export async function getWithingsAuthUrl() {
 export async function exchangeWithingsCode(code) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
-  const res = await fetch('/api/wearable?provider=withings&action=token', {
+  const res = await fetch('/api/withings?action=token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -135,7 +135,7 @@ async function refreshAccessToken() {
     if (!stored?.refresh_token) throw new Error('No refresh token');
     const token = await getAuthToken();
     if (!token) throw new Error('Not signed in');
-    const res = await fetch('/api/wearable?provider=withings&action=refresh', {
+    const res = await fetch('/api/withings?action=refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -171,21 +171,20 @@ async function withingsGet(endpoint, params = {}) {
   if (!authToken) throw new Error('Not signed in');
 
   const query = new URLSearchParams({
-    provider: 'withings',
     action: 'data',
     withings_token: withingsToken,
     endpoint,
     ...params,
   });
 
-  const res = await fetch(`/api/wearable?${query}`, {
+  const res = await fetch(`/api/withings?${query}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     query.set('withings_token', newToken);
-    const retry = await fetch(`/api/wearable?${query}`, {
+    const retry = await fetch(`/api/withings?${query}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) {

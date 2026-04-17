@@ -1,5 +1,5 @@
 // ── Fitbit integration service ──
-// OAuth2 + sleep / heart rate / steps / weight sync via /api/wearable?provider=fitbit proxy.
+// OAuth2 + sleep / heart rate / steps / weight sync via /api/fitbit proxy.
 // Patterned after services/oura.js for consistency.
 
 import { getAuthToken } from './token';
@@ -48,7 +48,7 @@ export async function disconnectFitbit() {
   const token = await getAuthToken();
   if (token) {
     try {
-      await fetch('/api/wearable?provider=fitbit&action=disconnect', {
+      await fetch('/api/fitbit?action=disconnect', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -76,7 +76,7 @@ export async function checkFitbitStatus() {
   try {
     const token = await getAuthToken();
     if (!token) return null;
-    const res = await fetch('/api/wearable?provider=fitbit&action=status', {
+    const res = await fetch('/api/fitbit?action=status', {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return null;
@@ -103,7 +103,7 @@ export function getFitbitRedirectUri() {
 export async function getFitbitAuthUrl() {
   const token = await getAuthToken();
   if (!token) return null;
-  const res = await fetch('/api/wearable?provider=fitbit&action=config', {
+  const res = await fetch('/api/fitbit?action=config', {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -126,7 +126,7 @@ export async function getFitbitAuthUrl() {
 export async function exchangeFitbitCode(code) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
-  const res = await fetch('/api/wearable?provider=fitbit&action=token', {
+  const res = await fetch('/api/fitbit?action=token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -154,7 +154,7 @@ async function refreshAccessToken() {
     if (!stored?.refresh_token) throw new Error('No refresh token');
     const token = await getAuthToken();
     if (!token) throw new Error('Not signed in');
-    const res = await fetch('/api/wearable?provider=fitbit&action=refresh', {
+    const res = await fetch('/api/fitbit?action=refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -190,20 +190,19 @@ async function fitbitGet(path) {
   if (!authToken) throw new Error('Not signed in');
 
   const params = new URLSearchParams({
-    provider: 'fitbit',
     action: 'data',
     fitbit_token: fitbitToken,
     path,
   });
 
-  const res = await fetch(`/api/wearable?${params}`, {
+  const res = await fetch(`/api/fitbit?${params}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     params.set('fitbit_token', newToken);
-    const retry = await fetch(`/api/wearable?${params}`, {
+    const retry = await fetch(`/api/fitbit?${params}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) {

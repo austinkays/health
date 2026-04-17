@@ -1,5 +1,5 @@
 // ── Whoop integration service ──
-// OAuth2 + recovery / sleep / cycle sync via /api/wearable?provider=whoop proxy.
+// OAuth2 + recovery / sleep / cycle sync via /api/whoop proxy.
 //
 // The high-value data for chronic illness users:
 //   • HRV (heart rate variability, RMSSD ms) — autonomic function marker
@@ -59,7 +59,7 @@ export function getWhoopRedirectUri() {
 export async function getWhoopAuthUrl() {
   const token = await getAuthToken();
   if (!token) return null;
-  const res = await fetch('/api/wearable?provider=whoop&action=config', {
+  const res = await fetch('/api/whoop?action=config', {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -89,7 +89,7 @@ export async function getWhoopAuthUrl() {
 export async function exchangeWhoopCode(code) {
   const token = await getAuthToken();
   if (!token) throw new Error('Not signed in');
-  const res = await fetch('/api/wearable?provider=whoop&action=token', {
+  const res = await fetch('/api/whoop?action=token', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ async function refreshAccessToken() {
     if (!stored?.refresh_token) throw new Error('No refresh token');
     const token = await getAuthToken();
     if (!token) throw new Error('Not signed in');
-    const res = await fetch('/api/wearable?provider=whoop&action=refresh', {
+    const res = await fetch('/api/whoop?action=refresh', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -153,21 +153,20 @@ async function whoopGet(endpoint, params = {}) {
   if (!authToken) throw new Error('Not signed in');
 
   const query = new URLSearchParams({
-    provider: 'whoop',
     action: 'data',
     whoop_token: whoopToken,
     endpoint,
     ...params,
   });
 
-  const res = await fetch(`/api/wearable?${query}`, {
+  const res = await fetch(`/api/whoop?${query}`, {
     headers: { Authorization: `Bearer ${authToken}` },
   });
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     query.set('whoop_token', newToken);
-    const retry = await fetch(`/api/wearable?${query}`, {
+    const retry = await fetch(`/api/whoop?${query}`, {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     if (!retry.ok) {
