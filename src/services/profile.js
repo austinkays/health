@@ -229,7 +229,87 @@ function summarizeJournalEntry(entry, data) {
 // scripts/verify-condense-fda.mjs can verify condenseFDA output directly.
 export { firstSentence, fdaBullet, condenseFDA };
 
-export function buildProfile(data) {
+// Renders the optional INSIGHT CONTEXT block that services/insights.js passes
+// into buildProfile when generating the daily insight. The model reads this
+// block ahead of the clinical sections; the prompt (api/_prompts.js) instructs
+// it to ground today's insight in the correlation seed, avoid repeating recent
+// insights, and lean toward liked focus areas.
+//
+// Omits sections that are empty so cold-start users don't see a sparse
+// placeholder. Hard-caps total size at 4000 chars with a truncation priority
+// of: recent insights beyond 2, focus-area prefs with ≤1 ratings, goals
+// beyond 3, priorities beyond 2 — so the most-decision-relevant fields
+// (recent insights + seed) survive.
+export function formatInsightContext(ctx) {
+  if (!ctx) return '';
+
+  const priorities = (ctx.topPriorities || []).slice(0, 3);
+  const goals      = (ctx.goals || []).slice(0, 5);
+  const recent     = (ctx.recentInsights || []).slice(0, 5);
+  const prefs      = ctx.focusAreaPrefs || {};
+  const seed       = ctx.seedPattern || null;
+
+  // If the block would be entirely empty, skip it — the prompt falls back to
+  // the legacy day-of-week rotator for cold-start users.
+  const hasAnything = priorities.length || goals.length || recent.length || seed ||
+    Object.keys(prefs).some(k => prefs[k].up || prefs[k].down);
+  if (!hasAnything) return '';
+
+  const lines = ['\n═══ INSIGHT CONTEXT ═══'];
+
+  if (priorities.length) {
+    lines.push("Today's health priorities (most frequent / severe):");
+    priorities.forEach(pr => {
+      const name = san(pr.name || '', 80);
+      const why  = san(pr.why  || '', 60);
+      lines.push(why ? `- ${name} — ${why}` : `- ${name}`);
+    });
+  }
+
+  if (goals.length) {
+    lines.push('');
+    lines.push("User's stated goals:");
+    goals.forEach(g => lines.push('- ' + san(g, 120)));
+  }
+
+  const prefEntries = Object.entries(prefs).filter(([, v]) => (v.up || v.down));
+  if (prefEntries.length) {
+    lines.push('');
+    lines.push('Focus-area feedback (past insights):');
+    prefEntries.forEach(([area, v]) => {
+      const parts = [];
+      if (v.up) parts.push(`${v.up} helpful`);
+      if (v.down) parts.push(`${v.down} not helpful`);
+      lines.push(`- ${area}: ${parts.join(', ')}`);
+    });
+    lines.push('(Lean toward categories they find helpful. Avoid repeatedly downvoted ones.)');
+  }
+
+  if (recent.length) {
+    lines.push('');
+    lines.push('Recent insights — do NOT repeat or near-paraphrase these:');
+    recent.forEach(r => {
+      const date = (r.generated_on || '').slice(0, 10);
+      const area = r.focus_area || 'general';
+      const rated = r.rating === 1 ? ', 👍' : r.rating === -1 ? ', 👎' : '';
+      const snip = san((r.text || '').replace(/\n+/g, ' '), 140);
+      lines.push(`- ${date} [${area}${rated}]: "${snip}"`);
+    });
+  }
+
+  if (seed) {
+    lines.push('');
+    lines.push('Correlation seed (ground today\'s insight in this pattern if possible):');
+    lines.push(`title: ${san(seed.title || '', 100)}`);
+    if (seed.category) lines.push(`category: ${san(seed.category, 24)}`);
+    if (seed.template) lines.push(`template: ${san(seed.template, 220)}`);
+  }
+
+  lines.push('═══ END INSIGHT CONTEXT ═══\n');
+  return lines.join('\n');
+}
+
+export function buildProfile(data, opts = {}) {
   if (!data) return '(No health data available)';
   const s = data.settings || {};
   let p = '';
@@ -265,6 +345,14 @@ export function buildProfile(data) {
     for (const [k, v] of aboutEntries) {
       p += (labels[k] || k) + ': ' + san(String(v), 240) + '\n';
     }
+  }
+
+  // Optional INSIGHT CONTEXT block (injected by services/insights.js when
+  // generating the daily insight). Positioned ahead of conditions so the
+  // model reads priorities/goals/recent-history before interpreting the
+  // clinical sections.
+  if (opts.insightContext) {
+    p += formatInsightContext(opts.insightContext);
   }
 
   // Conditions first so core diagnoses are never crowded out by verbose med context

@@ -154,6 +154,7 @@ export const db = {
   cycles: crud('cycles', { orderBy: 'date', ascending: false }),
   activities: crud('activities', { orderBy: 'date', ascending: false }),
   genetic_results: crud('genetic_results'),
+  generated_insights: crud('generated_insights', { orderBy: 'generated_at', ascending: false }),
   feedback: crud('feedback', { orderBy: 'created_at', ascending: false }),
   push_subscriptions: crud('push_subscriptions'),
   medication_reminders: crud('medication_reminders', { orderBy: 'reminder_time', ascending: true }),
@@ -238,6 +239,7 @@ export const db = {
       cycles: cleanAll(d.cycles),
       activities: cleanAll(d.activities),
       genetic_results: cleanAll(d.genetic_results),
+      generated_insights: cleanAll(d.generated_insights),
       feedback: cleanAll(d.feedback),
       medication_reminders: cleanAll(d.medication_reminders),
     };
@@ -269,6 +271,7 @@ export const db = {
       db.cycles.list(),
       db.activities.list(),
       db.genetic_results.list(),
+      db.generated_insights.list(),
       db.feedback.list(),
       db.medication_reminders.list(),
     ]);
@@ -287,8 +290,9 @@ export const db = {
       cycles: v(20, []),
       activities: v(21, []),
       genetic_results: v(22, []),
-      feedback: v(23, []),
-      medication_reminders: v(24, []),
+      generated_insights: v(23, []),
+      feedback: v(24, []),
+      medication_reminders: v(25, []),
     };
   },
 
@@ -304,6 +308,7 @@ export const db = {
       'labs', 'procedures', 'immunizations', 'care_gaps',
       'anesthesia_flags', 'appeals_and_disputes', 'surgical_planning', 'insurance',
       'insurance_claims', 'drug_prices', 'todos', 'cycles', 'activities', 'genetic_results',
+      'generated_insights',
       'feedback',
       'medication_reminders',
       'insight_ratings',

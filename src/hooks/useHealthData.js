@@ -50,6 +50,7 @@ export default function useHealthData(session, demoMode = false) {
       cycles: [],
       activities: [],
       genetic_results: [],
+      generated_insights: [],
       feedback: [],
       medication_reminders: [],
       settings: cachedSettings ?? { name: '', location: '', ai_mode: 'onDemand', pharmacy: '', insurance_plan: '', insurance_id: '', insurance_group: '', insurance_phone: '', health_background: '' },
@@ -314,6 +315,7 @@ function tableToKey(table) {
     cycles: 'cycles',
     activities: 'activities',
     genetic_results: 'genetic_results',
+    generated_insights: 'generated_insights',
     feedback: 'feedback',
     medication_reminders: 'medication_reminders',
   };
