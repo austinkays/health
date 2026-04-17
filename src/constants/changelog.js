@@ -1,71 +1,61 @@
-export const CURRENT_VERSION = '1.2.0-beta.3';
+export const CURRENT_VERSION = '1.3.0-beta.4';
 
 // Only change this when you intentionally want the What's New modal to
 // auto-open for everyone again. It can match a version, or be any custom
 // announcement identifier when you need to send a message outside a release.
-export const CURRENT_WHATS_NEW_ID = '1.2.0-beta.3';
-
-// ── DRAFT: NOT YET PUBLISHED ──
-//
-// To ship: uncomment the entry below, paste it as the FIRST item in the
-// CHANGELOG array (above '1.2.0-beta.3'), tag the previous one as 'Earlier
-// update', confirm version + date, then bump CURRENT_WHATS_NEW_ID at the
-// top of this file to '1.3.0-beta.4'. The What's New modal will auto-open
-// for everyone on their next visit.
-//
-// /*
-// {
-//   id: '1.3.0-beta.4',
-//   version: '1.3.0-beta.4',
-//   date: 'TBD',
-//   tag: 'Latest update',
-//   title: 'Live wearable sync',
-//   thankYou: '',
-//   summary: 'Salve now reaches out to your wearables instead of waiting for you to sync. Connect once and your data shows up on its own.',
-//   highlights: [
-//     'Oura Ring data now lands in Salve automatically — no Sync button needed.',
-//     'A new Connections tab consolidates every device, app, and import in one place.',
-//     'A small celebration when a sync brings in something new.',
-//   ],
-//   sections: [
-//     {
-//       id: 'new',
-//       label: 'New features',
-//       accent: 'lav',
-//       items: [
-//         'Live Oura Ring sync — sleep, activity, SpO₂, and workouts arrive in the background, even when Salve is closed. Open the app and yesterday is already there.',
-//         'A dedicated Connections tab in the sidebar — every wearable, app import, and Claude Health Sync is now grouped together. Settings stays focused on your profile and preferences.',
-//         'Live Fitbit sync ready behind the scenes for Fitbit users (rolling out as testing wraps up).',
-//       ],
-//     },
-//     {
-//       id: 'improved',
-//       label: 'Improvements',
-//       accent: 'sage',
-//       items: [
-//         'Syncing a wearable now shows a single celebration toast (e.g. "43 new from Oura ✓") instead of dozens of "Saved" chips.',
-//         'Connecting Fitbit and Oura now lands you back on the Connections page where you started, instead of jumping to Settings.',
-//       ],
-//     },
-//     {
-//       id: 'polish',
-//       label: 'Polish & fixes',
-//       accent: 'amber',
-//       items: [
-//         'OAuth redirect handling for every wearable cleaned up.',
-//         'Behind-the-scenes architecture lets new wearables plug in faster.',
-//       ],
-//     },
-//   ],
-// },
-// */
+export const CURRENT_WHATS_NEW_ID = '1.3.0-beta.4';
 
 export const CHANGELOG = [
+  {
+    id: '1.3.0-beta.4',
+    version: '1.3.0-beta.4',
+    date: '2026-04-17',
+    tag: 'Latest update',
+    title: 'Live wearable sync',
+    thankYou: '',
+    summary: 'Salve now reaches out to your wearables instead of waiting for you to sync. Connect once and your data shows up on its own.',
+    highlights: [
+      'Oura Ring data now lands in Salve automatically — no Sync button needed.',
+      'A new Connections tab consolidates every device, app, and import in one place.',
+      'A small celebration when a sync brings in something new.',
+    ],
+    sections: [
+      {
+        id: 'new',
+        label: 'New features',
+        accent: 'lav',
+        items: [
+          'Live Oura Ring sync — sleep, activity, SpO₂, and workouts arrive in the background, even when Salve is closed. Open the app and yesterday is already there.',
+          'A dedicated Connections tab in the sidebar — every wearable, app import, and Claude Health Sync is now grouped together. Settings stays focused on your profile and preferences.',
+          'Live Fitbit sync — sleep, heart rate, steps, and weight push to Salve automatically for connected Fitbit users.',
+        ],
+      },
+      {
+        id: 'improved',
+        label: 'Improvements',
+        accent: 'sage',
+        items: [
+          'Syncing a wearable now shows a single celebration toast (e.g. "43 new from Oura ✓") instead of dozens of "Saved" chips.',
+          'Connecting Fitbit and Oura now lands you back on the Connections page where you started, instead of jumping to Settings.',
+          'Wearable cards show "Last push" timestamp so you can see when data last arrived.',
+        ],
+      },
+      {
+        id: 'polish',
+        label: 'Polish & fixes',
+        accent: 'amber',
+        items: [
+          'OAuth redirect handling for every wearable cleaned up.',
+          'Behind-the-scenes architecture lets new wearables plug in faster.',
+        ],
+      },
+    ],
+  },
   {
     id: '1.2.0-beta.3',
     version: '1.2.0-beta.3',
     date: '2026-04-13',
-    tag: 'Latest update',
+    tag: 'Earlier update',
     title: 'Live Tracking & Quality of Life',
     thankYou: '',
     summary: 'Salve should feel faster, more live, and easier to move through day to day.',

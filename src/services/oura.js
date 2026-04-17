@@ -63,6 +63,35 @@ export function isOuraConnected() {
   return !!getOuraTokens()?.access_token;
 }
 
+// ── Async server status check (30s TTL cache) ──
+
+let _ouraStatusCache = null;
+let _ouraStatusTs = 0;
+const STATUS_TTL = 30000;
+
+export async function checkOuraStatus() {
+  if (_ouraStatusCache && Date.now() - _ouraStatusTs < STATUS_TTL) return _ouraStatusCache;
+  try {
+    const token = await getAuthToken();
+    if (!token) return null;
+    const res = await fetch('/api/wearable?provider=oura&action=status', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    _ouraStatusCache = data;
+    _ouraStatusTs = Date.now();
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export function clearOuraStatusCache() {
+  _ouraStatusCache = null;
+  _ouraStatusTs = 0;
+}
+
 // ── OAuth2 helpers ──
 
 export function getOuraRedirectUri() {

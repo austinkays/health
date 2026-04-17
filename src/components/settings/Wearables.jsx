@@ -3,12 +3,13 @@ import { Heart, Loader, RefreshCw, Unlink, ChevronDown, ChevronUp, X } from 'luc
 import Card from '../ui/Card';
 import { useToast } from '../ui/Toast';
 import { OuraIcon } from '../ui/OuraIcon';
-import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, disconnectOura as disconnectOuraServer, syncAllOuraData } from '../../services/oura';
+import { isOuraConnected, getOuraAuthUrl, exchangeOuraCode, disconnectOura as disconnectOuraServer, syncAllOuraData, checkOuraStatus, clearOuraStatusCache } from '../../services/oura';
 import { isDexcomConnected, getDexcomAuthUrl, exchangeDexcomCode, clearDexcomTokens, syncDexcomGlucose, DEXCOM_ENABLED } from '../../services/dexcom';
 import { isWithingsConnected, getWithingsAuthUrl, exchangeWithingsCode, clearWithingsTokens, syncWithingsMeasurements, WITHINGS_ENABLED } from '../../services/withings';
-import { isFitbitConnected, getFitbitAuthUrl, exchangeFitbitCode, disconnectFitbit as disconnectFitbitServer, syncFitbitData, FITBIT_ENABLED } from '../../services/fitbit';
+import { isFitbitConnected, getFitbitAuthUrl, exchangeFitbitCode, disconnectFitbit as disconnectFitbitServer, syncFitbitData, FITBIT_ENABLED, checkFitbitStatus, clearFitbitStatusCache } from '../../services/fitbit';
 import { isWhoopConnected, getWhoopAuthUrl, exchangeWhoopCode, clearWhoopTokens, syncWhoopData, WHOOP_ENABLED } from '../../services/whoop';
 import { getHiddenSources, hideSource } from '../../utils/hiddenSources';
+import { fmtTimeAgo } from '../../utils/dates';
 
 export default function Wearables({
   data,
@@ -47,6 +48,16 @@ export default function Wearables({
   const [ouraSuccess, setOuraSuccess] = useState(null);
   const [ouraSyncing, setOuraSyncing] = useState(false);
   const [ouraBaseline] = useState(() => localStorage.getItem('salve:oura-baseline') || '97.7');
+  const [ouraLastSync, setOuraLastSync] = useState(null);
+
+  // Fetch server-side status for "Last push" pill
+  useEffect(() => {
+    if (!ouraConnected) return;
+    checkOuraStatus().then(s => {
+      if (s?.last_webhook_at) setOuraLastSync(s.last_webhook_at);
+      else if (s?.last_sync_at) setOuraLastSync(s.last_sync_at);
+    });
+  }, [ouraConnected]);
 
   useEffect(() => {
     const code = window.__ouraCode;
@@ -83,7 +94,9 @@ export default function Wearables({
 
   async function disconnectOura() {
     await disconnectOuraServer();
+    clearOuraStatusCache();
     setOuraConnected(false);
+    setOuraLastSync(null);
     setOuraSuccess(null);
   }
 
@@ -254,6 +267,16 @@ export default function Wearables({
   const [fitbitError, setFitbitError] = useState(null);
   const [fitbitSuccess, setFitbitSuccess] = useState(null);
   const [fitbitSyncing, setFitbitSyncing] = useState(false);
+  const [fitbitLastSync, setFitbitLastSync] = useState(null);
+
+  // Fetch server-side status for "Last push" pill
+  useEffect(() => {
+    if (!fitbitConnected) return;
+    checkFitbitStatus().then(s => {
+      if (s?.last_webhook_at) setFitbitLastSync(s.last_webhook_at);
+      else if (s?.last_sync_at) setFitbitLastSync(s.last_sync_at);
+    });
+  }, [fitbitConnected]);
 
   useEffect(() => {
     const code = window.__fitbitCode;
@@ -291,6 +314,8 @@ export default function Wearables({
     setFitbitConnected(false);
     setFitbitSuccess(null);
     setFitbitError(null);
+    setFitbitLastSync(null);
+    clearFitbitStatusCache();
     await disconnectFitbitServer();
   }
 
@@ -414,7 +439,7 @@ export default function Wearables({
               <span className="text-[15px] text-salve-text font-medium block">Oura Ring</span>
               <span className="text-[12px] text-salve-textFaint">
                 {ouraConnected
-                  ? `Connected${sourceCounts.oura > 0 ? ` · ${sourceCounts.oura} records` : ''}`
+                  ? `Connected${sourceCounts.oura > 0 ? ` · ${sourceCounts.oura} records` : ''}${ouraLastSync ? ` · Last push ${fmtTimeAgo(ouraLastSync)}` : ''}`
                   : 'Sleep, readiness, temperature, workouts'}
               </span>
             </div>
@@ -626,7 +651,7 @@ export default function Wearables({
               <div className="text-left">
                 <span className="text-ui-lg text-salve-text font-medium block">Fitbit</span>
                 <span className="text-ui-xs text-salve-textFaint">
-                  {fitbitConnected ? 'Connected · sleep, HR, HRV, steps, SpO2, workouts' : 'Sleep, HR, HRV, steps, SpO2, workouts, temperature'}
+                  {fitbitConnected ? `Connected${fitbitLastSync ? ` · Last push ${fmtTimeAgo(fitbitLastSync)}` : ' · sleep, HR, HRV, steps, SpO2, workouts'}` : 'Sleep, HR, HRV, steps, SpO2, workouts, temperature'}
                 </span>
               </div>
             </div>

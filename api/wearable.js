@@ -652,8 +652,18 @@ async function ouraHandle(action, req, res, userId) {
 
   if (action === 'data') {
     if (req.method !== 'GET') return res.status(405).json({ error: 'GET required' });
-    const { oura_token, endpoint, start_date, end_date } = req.query;
-    if (!oura_token) return res.status(400).json({ error: 'Missing oura_token' });
+    const { endpoint, start_date, end_date } = req.query;
+    let oura_token = req.query.oura_token;
+
+    // Phase 4 fallback: if client didn't send a token, look up the
+    // server-side wearable_connections row and use the stored token
+    // (auto-refreshing if needed). This lets the client drop its
+    // localStorage mirror entirely.
+    if (!oura_token) {
+      const conn = await getWearableConnection(userId, 'oura');
+      if (!conn) return res.status(400).json({ error: 'No Oura connection found' });
+      oura_token = await getValidOuraAccessToken(conn);
+    }
 
     const allowed = ['daily_sleep', 'daily_readiness', 'heartrate', 'daily_spo2', 'daily_stress', 'workout', 'session', 'sleep', 'tag', 'daily_cardiovascular_age', 'daily_resilience', 'daily_activity'];
     const ep = endpoint || 'daily_readiness';
@@ -1316,8 +1326,17 @@ async function fitbitHandle(action, req, res, userId) {
 
   if (action === 'data') {
     if (req.method !== 'GET') return res.status(405).json({ error: 'GET required' });
-    const { fitbit_token, path } = req.query;
-    if (!fitbit_token) return res.status(400).json({ error: 'Missing fitbit_token' });
+    const { path } = req.query;
+    let fitbit_token = req.query.fitbit_token;
+
+    // Phase 4 fallback: if client didn't send a token, look up the
+    // server-side wearable_connections row and use the stored token
+    // (auto-refreshing if needed).
+    if (!fitbit_token) {
+      const conn = await getWearableConnection(userId, 'fitbit');
+      if (!conn) return res.status(400).json({ error: 'No Fitbit connection found' });
+      fitbit_token = await getValidFitbitAccessToken(conn);
+    }
     if (!path) return res.status(400).json({ error: 'Missing path' });
 
     const allowedPrefixes = [

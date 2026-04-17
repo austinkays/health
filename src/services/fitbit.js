@@ -65,6 +65,35 @@ export function isFitbitConnected() {
   return !!getFitbitTokens()?.access_token;
 }
 
+// ── Async server status check (30s TTL cache) ──
+
+let _fitbitStatusCache = null;
+let _fitbitStatusTs = 0;
+const STATUS_TTL = 30000;
+
+export async function checkFitbitStatus() {
+  if (_fitbitStatusCache && Date.now() - _fitbitStatusTs < STATUS_TTL) return _fitbitStatusCache;
+  try {
+    const token = await getAuthToken();
+    if (!token) return null;
+    const res = await fetch('/api/wearable?provider=fitbit&action=status', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    _fitbitStatusCache = data;
+    _fitbitStatusTs = Date.now();
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+export function clearFitbitStatusCache() {
+  _fitbitStatusCache = null;
+  _fitbitStatusTs = 0;
+}
+
 // ── OAuth2 helpers ──
 
 export function getFitbitRedirectUri() {

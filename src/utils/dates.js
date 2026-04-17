@@ -87,3 +87,22 @@ export function fmtDateRelative(d) {
   if (diffDays < 0) return fmtDate(d); // future dates fall back to explicit date
   return fmtDate(d);
 }
+
+// Returns a compact relative time label from an ISO timestamp:
+// "just now" / "2m ago" / "3h ago" / "2d ago".
+// Used for "Last push" pills on wearable connection cards.
+export function fmtTimeAgo(isoString) {
+  if (!isoString) return '';
+  const now = Date.now();
+  const then = new Date(isoString).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffMs = now - then;
+  if (diffMs < 0) return 'just now';
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+}
