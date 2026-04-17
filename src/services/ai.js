@@ -390,7 +390,7 @@ async function callAPI(messages, promptKey, profileText, maxTokens = 2000, useWe
   if (useWebSearch) body.use_web_search = true;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120000);
+  const timeout = setTimeout(() => controller.abort(), 290000);
 
   try {
     const res = await fetch(endpoint, {
@@ -649,7 +649,7 @@ async function callProvider(endpoint, model, messages, system, maxTokens = 2000)
   if (!token) throw new Error('You must be signed in.');
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 120000);
+  const timeout = setTimeout(() => controller.abort(), 290000);
 
   try {
     const res = await fetch(endpoint, {
@@ -884,7 +884,7 @@ async function callAPIWithTools(messages, promptKey, profileText, tools, onToolC
     if (skipUsageCount) body.skip_usage_log = true;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
+    const timeout = setTimeout(() => controller.abort(), 290000);
 
     let data;
     try {
