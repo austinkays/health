@@ -267,6 +267,22 @@ async function getOuraSubscriptionByEventData(eventType, dataType) {
   return rows[0] || null;
 }
 
+async function patchOuraSubscription(id, patch) {
+  const { url, key } = supabaseConfig();
+  if (!url || !key) return;
+  await fetch(
+    `${url}/rest/v1/oura_app_subscriptions?id=eq.${encodeURIComponent(id)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        apikey: key, Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify(patch),
+    }
+  ).catch(() => { /* best-effort */ });
+}
+
 // ════════════════════════════════════════════════════════════════════════
 // ── Oura ────────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════
@@ -737,6 +753,71 @@ async function ouraHandle(action, req, res, userId) {
     }
 
     logUsage(userId, 'oura_bootstrap');
+    return res.json(results);
+  }
+
+  if (action === 'renew_subscriptions') {
+    // Admin-gated. Renew any oura_app_subscriptions row whose
+    // expiration_time falls within the next 7 days. Idempotent — safe
+    // to call repeatedly. Intended to be triggered by a Vercel cron
+    // (weekly) once configured; can also be called manually anytime.
+    if (req.method !== 'POST') return res.status(405).json({ error: 'POST required' });
+    if (!clientId || !clientSecret) return res.status(500).json({ error: 'Oura not configured' });
+
+    const isAdmin = await isAdminUser(userId);
+    if (!isAdmin) return res.status(403).json({ error: 'Admin only' });
+
+    // Pull all subs whose expiration is within the renewal window. Doing
+    // this in-memory rather than a SQL filter so we get full visibility
+    // in the response.
+    const { url: sUrl, key: sKey } = supabaseConfig();
+    const listRes = await fetch(`${sUrl}/rest/v1/oura_app_subscriptions?select=*`, {
+      headers: { apikey: sKey, Authorization: `Bearer ${sKey}` },
+    });
+    if (!listRes.ok) return res.status(500).json({ error: 'Failed to load subscriptions' });
+    const allSubs = await listRes.json();
+
+    const horizon = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const dueForRenewal = allSubs.filter(s => {
+      if (!s.expiration_time) return true; // no expiration set → renew anyway
+      return Date.parse(s.expiration_time) < horizon;
+    });
+
+    const results = { total: allSubs.length, due: dueForRenewal.length, renewed: [], failed: [], skipped: allSubs.length - dueForRenewal.length };
+
+    for (const sub of dueForRenewal) {
+      try {
+        const renewRes = await fetchWithTimeout(`${OURA_WEBHOOK_API_BASE}/subscription/renew/${encodeURIComponent(sub.id)}`, {
+          method: 'PUT',
+          headers: {
+            'x-client-id': clientId,
+            'x-client-secret': clientSecret,
+          },
+        });
+        if (!renewRes.ok) {
+          const body = await renewRes.text().catch(() => '');
+          console.warn(`[oura:renew] ${sub.event_type}:${sub.data_type} (id=${sub.id}) failed (${renewRes.status}):`, body);
+          results.failed.push({ id: sub.id, event_type: sub.event_type, data_type: sub.data_type, status: renewRes.status, detail: body });
+          // Mark the row as errored so the next bootstrap_subscriptions
+          // run will recreate it (bootstrap skips active rows but
+          // recreates expired/error ones).
+          await patchOuraSubscription(sub.id, { status: 'error', last_error: `renew ${renewRes.status}: ${body.slice(0, 200)}` });
+          continue;
+        }
+        const renewed = await renewRes.json();
+        await patchOuraSubscription(sub.id, {
+          expiration_time: renewed.expiration_time || null,
+          status: 'active',
+          last_error: null,
+        });
+        results.renewed.push({ id: sub.id, event_type: sub.event_type, data_type: sub.data_type, expiration_time: renewed.expiration_time });
+      } catch (e) {
+        console.warn(`[oura:renew] ${sub.event_type}:${sub.data_type} threw`, e);
+        results.failed.push({ id: sub.id, event_type: sub.event_type, data_type: sub.data_type, error: String(e?.message || e) });
+      }
+    }
+
+    logUsage(userId, 'oura_renew');
     return res.json(results);
   }
 
@@ -1288,6 +1369,154 @@ async function fitbitHandle(action, req, res, userId) {
 // Env var: FITBIT_SUBSCRIBER_VERIFY — the verification code you set in
 // the Fitbit developer dashboard under your subscriber.
 
+// ── Fitbit webhook ingestion helpers ───────────────────────────────
+// Server-side equivalents of the transforms in src/services/fitbit.js
+// (syncFitbitData). Phase 3 of the live-push migration uses these to
+// take an incoming notification, fetch the day's data for the relevant
+// collection, and upsert into vitals/activities so the user sees fresh
+// data without manual sync.
+
+async function getValidFitbitAccessToken(conn) {
+  const expiresAt = conn.expires_at ? Date.parse(conn.expires_at) : 0;
+  const now = Date.now();
+  if (expiresAt && expiresAt - now > 5 * 60 * 1000) {
+    return conn.access_token;
+  }
+
+  const clientId = process.env.FITBIT_CLIENT_ID;
+  const clientSecret = process.env.FITBIT_CLIENT_SECRET;
+  if (!clientId || !clientSecret || !conn.refresh_token) return conn.access_token;
+
+  const res = await fetchWithTimeout(FITBIT_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      Authorization: basicAuthHeader(clientId, clientSecret),
+    },
+    body: new URLSearchParams({
+      grant_type: 'refresh_token',
+      refresh_token: conn.refresh_token,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.text().catch(() => '');
+    console.warn('[fitbit:refresh] failed', res.status, err);
+    return conn.access_token;
+  }
+  const tokens = await res.json();
+  const expiresIn = Number.isFinite(Number(tokens.expires_in)) && Number(tokens.expires_in) > 0
+    ? Number(tokens.expires_in) : 28800;
+  await patchConnectionTokens(conn.user_id, 'fitbit', {
+    access_token: tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_at: new Date(Date.now() + expiresIn * 1000).toISOString(),
+  });
+  return tokens.access_token;
+}
+
+// Fetch one day's worth of data for a Fitbit collection. Returns the
+// raw API response or null on error. Matching what syncFitbitData does
+// client-side, just for a single date.
+async function fetchFitbitDay(token, collectionType, date) {
+  const calls = {
+    activities: [
+      `/1/user/-/activities/date/${date}.json`,
+      `/1/user/-/activities/heart/date/${date}/1d.json`,
+    ],
+    sleep: [`/1.2/user/-/sleep/date/${date}.json`],
+    body: [`/1/user/-/body/log/weight/date/${date}.json`],
+  };
+  const paths = calls[collectionType];
+  if (!paths) return null;
+
+  const results = await Promise.all(paths.map(p =>
+    fetchWithTimeout(`${FITBIT_API_BASE}${p}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(r => r.ok ? r.json() : null).catch(() => null)
+  ));
+  return results;
+}
+
+// Transform Fitbit's day-summary responses into Salve vitals/activities
+// rows tagged source='fitbit'. Mirrors the field shapes used by the
+// legacy syncFitbitData() in src/services/fitbit.js so charts render
+// identically whether the data arrived via webhook or manual sync.
+function transformFitbitDay(collectionType, date, responses) {
+  const out = { vitals: [], activities: [] };
+  if (!Array.isArray(responses)) return out;
+
+  if (collectionType === 'activities') {
+    const [summary, hrData] = responses;
+
+    // Daily steps + active calories from the summary object
+    const summaryObj = summary?.summary || {};
+    const steps = Number(summaryObj.steps);
+    if (Number.isFinite(steps) && steps > 0) {
+      out.vitals.push({
+        date, type: 'steps', value: String(steps), value2: '', unit: 'steps',
+        source: 'fitbit', notes: '',
+      });
+    }
+    const activeCal = Number(summaryObj.activityCalories);
+    if (Number.isFinite(activeCal) && activeCal > 0) {
+      out.vitals.push({
+        date, type: 'active_energy', value: String(activeCal), value2: '', unit: 'cal',
+        source: 'fitbit', notes: '',
+      });
+    }
+
+    // Resting heart rate from the heart day record
+    const hrDays = Array.isArray(hrData?.['activities-heart']) ? hrData['activities-heart'] : [];
+    const todayHr = hrDays.find(d => d.dateTime === date);
+    const rhr = todayHr?.value?.restingHeartRate;
+    if (typeof rhr === 'number' && rhr > 0) {
+      out.vitals.push({
+        date, type: 'hr', value: String(Math.round(rhr)), value2: '', unit: 'bpm',
+        source: 'fitbit', notes: 'Resting',
+      });
+    }
+  }
+
+  if (collectionType === 'sleep') {
+    const [sleepData] = responses;
+    const sessions = Array.isArray(sleepData?.sleep) ? sleepData.sleep : [];
+    let totalMinutes = 0;
+    for (const s of sessions) {
+      if (s.dateOfSleep === date) {
+        totalMinutes += Number(s.minutesAsleep) || 0;
+      }
+    }
+    if (totalMinutes > 0) {
+      const hrs = Math.round((totalMinutes / 60) * 10) / 10;
+      out.vitals.push({
+        date, type: 'sleep', value: String(hrs), value2: '', unit: 'hrs',
+        source: 'fitbit', notes: '',
+      });
+    }
+  }
+
+  if (collectionType === 'body') {
+    const [weightData] = responses;
+    const weights = Array.isArray(weightData?.weight) ? weightData.weight : [];
+    // Take the most recent entry for the day if multiple
+    const todayWeights = weights.filter(w => w.date === date);
+    if (todayWeights.length > 0) {
+      const latest = todayWeights[todayWeights.length - 1];
+      const lbs = typeof latest.weight === 'number'
+        ? Math.round(latest.weight * 2.20462 * 10) / 10
+        : null;
+      if (lbs !== null) {
+        out.vitals.push({
+          date, type: 'weight', value: String(lbs), value2: '', unit: 'lbs',
+          source: 'fitbit', notes: '',
+        });
+      }
+    }
+  }
+
+  return out;
+}
+
 async function fitbitWebhookHandle(req, res) {
   const verifyCode = process.env.FITBIT_SUBSCRIBER_VERIFY;
 
@@ -1299,20 +1528,83 @@ async function fitbitWebhookHandle(req, res) {
     return res.status(404).end();
   }
 
-  // Notification — Fitbit POST with JSON array of updates
+  // Notification — Fitbit POST with JSON array of updates.
+  // Must respond 204 within 5 seconds — Fitbit retries on other codes.
+  // Pattern: respond IMMEDIATELY, then continue processing in-function.
+  // Vercel keeps the function alive until handler return, so the heavy
+  // work runs after the response with the remainder of maxDuration=30.
   if (req.method === 'POST') {
-    // Must respond 204 within 5 seconds — Fitbit retries on other codes.
-    // Log the notification for debugging but don't block the response.
-    const notifications = req.body;
-    if (Array.isArray(notifications) && notifications.length > 0) {
-      console.log(`[fitbit:webhook] Received ${notifications.length} notification(s):`,
-        notifications.map(n => `${n.collectionType}:${n.date}:${n.ownerId}`).join(', ')
-      );
+    const notifications = Array.isArray(req.body) ? req.body : [];
+    if (notifications.length === 0) {
+      return res.status(204).end();
     }
-    // The app syncs data client-side on page load / auto-refresh, so we
-    // don't need server-side data fetching here. The webhook satisfies
-    // Fitbit's API requirements and logs events for monitoring.
-    return res.status(204).end();
+    console.log(`[fitbit:webhook] received ${notifications.length} notification(s):`,
+      notifications.map(n => `${n.collectionType}:${n.date}:${n.ownerId}`).join(', ')
+    );
+
+    // Respond 204 first so Fitbit doesn't time out
+    res.status(204).end();
+
+    // Now do the actual ingestion. Errors are logged per-notification
+    // — we never throw past this point because there's no response to
+    // affect; the user's already gotten 204.
+    let totalVitals = 0;
+    let totalActivities = 0;
+    for (const n of notifications) {
+      try {
+        const { collectionType, date, ownerId } = n || {};
+        if (!collectionType || !date || !ownerId) {
+          console.warn('[fitbit:webhook] missing fields, skipping');
+          continue;
+        }
+
+        const conn = await getConnectionByProviderUserId('fitbit', ownerId);
+        if (!conn) {
+          console.warn(`[fitbit:webhook] no wearable_connections for fitbit user_id=${ownerId}`);
+          continue;
+        }
+
+        let token;
+        try { token = await getValidFitbitAccessToken(conn); }
+        catch (e) {
+          console.warn(`[fitbit:webhook] token refresh failed for user=${conn.user_id}`, e);
+          continue;
+        }
+
+        let responses;
+        try { responses = await fetchFitbitDay(token, collectionType, date); }
+        catch (e) {
+          console.warn(`[fitbit:webhook] day fetch failed`, e?.message || e);
+          continue;
+        }
+        if (!responses) continue;
+
+        const { vitals, activities } = transformFitbitDay(collectionType, date, responses);
+
+        const vitalsToInsert = [];
+        for (const row of vitals) {
+          const exists = await vitalAlreadyExists(conn.user_id, row.date, row.type, 'fitbit');
+          if (!exists) vitalsToInsert.push({ ...row, user_id: conn.user_id });
+        }
+        const activitiesToInsert = [];
+        for (const row of activities) {
+          const exists = await activityAlreadyExists(conn.user_id, row.date, row.type, 'fitbit', row.duration_minutes);
+          if (!exists) activitiesToInsert.push({ ...row, user_id: conn.user_id });
+        }
+
+        if (vitalsToInsert.length) await bulkInsertVitals(vitalsToInsert);
+        if (activitiesToInsert.length) await bulkInsertActivities(activitiesToInsert);
+        totalVitals += vitalsToInsert.length;
+        totalActivities += activitiesToInsert.length;
+
+        await touchConnectionWebhook(conn.user_id, 'fitbit');
+      } catch (e) {
+        console.error('[fitbit:webhook] notification handler threw', e);
+      }
+    }
+
+    console.log(`[fitbit:webhook] processed ${notifications.length} notification(s), wrote ${totalVitals} vitals + ${totalActivities} activities`);
+    return;
   }
 
   return res.status(405).end();
