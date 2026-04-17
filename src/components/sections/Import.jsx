@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { ChevronDown, ChevronUp, Apple, FileText, Heart, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna, X, Smartphone, Upload, Sparkles, ClipboardCopy } from 'lucide-react';
+import { ChevronDown, ChevronUp, Apple, FileText, Heart, Moon, Thermometer, Smile, Gauge, Droplet, Droplets, Bike, Bed, Compass, Watch, Activity, Eye, Dna, X, Smartphone, Sparkles, ClipboardCopy } from 'lucide-react';
 import Card from '../ui/Card';
 import { SectionTitle } from '../ui/FormWrap';
 import UniversalImport from '../ui/UniversalImport';
@@ -23,6 +23,11 @@ import * as visibleParser from '../../services/import_visible';
 import * as prometheaseParser from '../../services/import_promethease';
 import * as twentyThreeMeParser from '../../services/import_23andme';
 import { startTerraConnect, listTerraConnections, disconnectTerraConnection, providerLabel, TERRA_ENABLED } from '../../services/terra';
+import { isOuraConnected } from '../../services/oura';
+import { isDexcomConnected, DEXCOM_ENABLED } from '../../services/dexcom';
+import { isWithingsConnected, WITHINGS_ENABLED } from '../../services/withings';
+import { isFitbitConnected, FITBIT_ENABLED } from '../../services/fitbit';
+import { isWhoopConnected, WHOOP_ENABLED } from '../../services/whoop';
 import { getHiddenSources, hideSource, unhideAllSources } from '../../utils/hiddenSources';
 import { trackEvent, EVENTS } from '../../services/analytics';
 
@@ -57,10 +62,50 @@ const IMPORT_CATEGORIES = [
 const TINT_BG = { rose: 'bg-salve-rose/15', amber: 'bg-salve-amber/15', lav: 'bg-salve-lav/15', sage: 'bg-salve-sage/15' };
 const TINT_FG = { rose: 'text-salve-rose', amber: 'text-salve-amber', lav: 'text-salve-lav', sage: 'text-salve-sage' };
 
+// Reads localStorage + data tables to decide which sources are live (OAuth flowing)
+// vs. imported (data present from a one-shot file import). Returns Sets keyed by source id.
+function computeActiveSources(data, terraConnections) {
+  const live = new Set();
+  if (isOuraConnected()) live.add('oura');
+  if (DEXCOM_ENABLED && isDexcomConnected()) live.add('dexcom');
+  if (WITHINGS_ENABLED && isWithingsConnected()) live.add('withings');
+  if (FITBIT_ENABLED && isFitbitConnected()) live.add('fitbit');
+  if (WHOOP_ENABLED && isWhoopConnected()) live.add('whoop');
+
+  const counts = {};
+  const all = [
+    ...(data.vitals || []),
+    ...(data.activities || []),
+    ...(data.cycles || []),
+    ...(data.journal_entries || []),
+    ...(data.labs || []),
+    ...(data.genetic_results || []),
+  ];
+  for (const r of all) {
+    let s = (r.source || '').toLowerCase();
+    if (!s || s === 'manual') continue;
+    if (s === 'apple health' || s.includes('apple')) s = 'apple_health';
+    else if (s === 'mcp-sync') s = 'mcp';
+    counts[s] = (counts[s] || 0) + 1;
+  }
+
+  const imported = new Set();
+  for (const s of Object.keys(counts)) {
+    if (live.has(s)) continue; // OAuth already covers it — don't double-render
+    imported.add(s);
+  }
+
+  const terraLive = (terraConnections || []).filter(c => c.status !== 'disconnected');
+  return { live, imported, counts, terraLive };
+}
+
 export default function Import({ data, addItem, addItemSilent, reloadData, onNav, demoMode }) {
   const [expandedSource, setExpandedSource] = useState(null);
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [hiddenSources, setHiddenSources] = useState(() => getHiddenSources());
+  // Bumped whenever an OAuth wearable connects/disconnects so the `active` memo re-evaluates.
+  const [connectionTick, setConnectionTick] = useState(0);
+  const bumpConnectionTick = () => setConnectionTick(t => t + 1);
 
   // Source detection + counts for Wearables (Oura/Dexcom/Withings/Fitbit/Whoop) badges
   const wearableSourceCounts = useMemo(() => {
@@ -90,6 +135,15 @@ export default function Import({ data, addItem, addItemSilent, reloadData, onNav
     if (!TERRA_ENABLED) return;
     listTerraConnections().then(setTerraConnections).catch(() => {});
   }, []);
+
+  // What's active right now? Split into live OAuth (ongoing sync) and imported
+  // (data landed in our tables from a one-shot file or MCP pull).
+  const active = useMemo(
+    () => computeActiveSources(data, terraConnections),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.vitals, data.activities, data.cycles, data.journal_entries, data.labs, data.genetic_results, terraConnections, connectionTick],
+  );
+  const hasAnyConnection = active.live.size > 0 || active.imported.size > 0 || active.terraLive.length > 0;
 
   const toggleCategory = (catId) => setExpandedCategory(prev => {
     if (prev === catId) return null;
@@ -126,10 +180,6 @@ export default function Import({ data, addItem, addItemSilent, reloadData, onNav
       setTerraError(err.message || 'Failed to disconnect');
     }
   };
-
-  // Counts for Apple Health status
-  const sourceCounts = { apple_health: (data.vitals?.filter(v => v.source === 'apple_health').length || 0) + (data.activities?.filter(a => a.source === 'apple_health').length || 0) };
-  const hasAppleHealth = sourceCounts.apple_health > 0;
 
   const HideableSource = ({ id, label, children }) => {
     if (hiddenSources.includes(id)) return null;
@@ -172,9 +222,72 @@ Whenever I ask you to sync, pull records, start the sync artifact, or anything s
 
 Dependencies available in the Claude artifacts runtime: react and lucide-react. No other imports needed, no external API calls from the file itself.`;
 
-  return (
-    <div className="mt-2 space-y-4">
-      {/* ── Claude Health Sync ── */}
+  // ── Card renderers — same shell in either "Your connections" or "Browse sources" ──
+  const renderAppleCard = ({ imported }) => (
+    <HideableSource id="apple" label="Apple Health">
+      <Card>
+        <button onClick={() => toggleSource('apple')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${imported ? 'bg-salve-lav/15' : 'bg-salve-card2'}`}>
+              <Apple size={16} className={imported ? 'text-salve-lav' : 'text-salve-textFaint'} />
+            </div>
+            <div className="text-left">
+              <span className="text-[15px] text-salve-text font-medium block">Apple Health</span>
+              <span className="text-[12px] text-salve-textFaint">
+                {imported ? `${active.counts.apple_health || 0} records imported` : 'Vitals, workouts, labs from iPhone'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {imported && <span className="w-2 h-2 rounded-full bg-salve-lav" />}
+            {expandedSource === 'apple' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          </div>
+        </button>
+        {expandedSource === 'apple' && (
+          <div className="mt-3 pt-3 border-t border-salve-border/50">
+            {imported && (
+              <div className="flex justify-end mb-2">
+                <button onClick={() => onNav('apple_health')} className="text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Apple Health data →</button>
+              </div>
+            )}
+            <AppleHealthImport data={data} reloadData={reloadData} />
+          </div>
+        )}
+      </Card>
+    </HideableSource>
+  );
+
+  const renderMyChartCard = ({ imported }) => (
+    <HideableSource id="mychart" label="MyChart">
+      <Card>
+        <button onClick={() => toggleSource('mychart')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${imported ? 'bg-salve-sage/15' : 'bg-salve-card2'}`}>
+              <FileText size={16} className={imported ? 'text-salve-sage' : 'text-salve-textFaint'} />
+            </div>
+            <div className="text-left">
+              <span className="text-[15px] text-salve-text font-medium block">MyChart</span>
+              <span className="text-[12px] text-salve-textFaint">
+                {imported ? `${active.counts.mychart || 0} records imported` : 'Import records from Epic, Cerner, or any patient portal'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {imported && <span className="w-2 h-2 rounded-full bg-salve-sage" />}
+            {expandedSource === 'mychart' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          </div>
+        </button>
+        {expandedSource === 'mychart' && (
+          <div className="mt-3 pt-3 border-t border-salve-border/50">
+            <MyChartImport data={data} reloadData={reloadData} />
+          </div>
+        )}
+      </Card>
+    </HideableSource>
+  );
+
+  const renderClaudeSyncCard = ({ imported }) => (
+    <HideableSource id="mcp" label="Claude Health Sync">
       <Card>
         <button onClick={() => setClaudeExpanded(v => !v)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
           <div className="flex items-center gap-2.5">
@@ -183,14 +296,18 @@ Dependencies available in the Claude artifacts runtime: react and lucide-react. 
             </div>
             <div className="text-left">
               <span className="text-[15px] text-salve-text font-medium block">Claude Health Sync</span>
-              <span className="text-[12px] text-salve-textFaint">Pull records from MCP providers</span>
+              <span className="text-[12px] text-salve-textFaint">
+                {imported ? `${active.counts.mcp || 0} records imported` : 'Pull records from MCP providers'}
+              </span>
             </div>
           </div>
-          {claudeExpanded ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          <div className="flex items-center gap-1.5">
+            {imported && <span className="w-2 h-2 rounded-full bg-salve-lav" />}
+            {claudeExpanded ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+          </div>
         </button>
         {claudeExpanded && (
           <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-4">
-            {/* Recommended: Claude Project */}
             <div className="bg-salve-lav/5 border border-salve-lav/20 rounded-xl p-3">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-[12px] font-semibold uppercase tracking-wider text-salve-lav font-montserrat">Recommended · saves tokens</span>
@@ -230,7 +347,6 @@ Dependencies available in the Claude artifacts runtime: react and lucide-react. 
                 <li>Pull records, download the JSON, and import it below.</li>
               </ol>
             </div>
-            {/* MCP connectors info */}
             <div className="bg-salve-card2 border border-salve-border rounded-xl p-3">
               <h4 className="text-[13px] text-salve-text font-semibold uppercase tracking-wider font-montserrat mb-2">MCP connectors</h4>
               <p className="text-[12px] text-salve-textFaint leading-relaxed">
@@ -240,8 +356,204 @@ Dependencies available in the Claude artifacts runtime: react and lucide-react. 
           </div>
         )}
       </Card>
+    </HideableSource>
+  );
 
-      {/* ── Universal Import (auto-detect drop zone) ── */}
+  const renderParserCard = ({ parser, Icon, tint, subtitle }, { imported }) => {
+    const id = parser.META.id;
+    const isOpen = expandedSource === id;
+    const count = active.counts[id] || 0;
+    return (
+      <HideableSource key={id} id={id} label={parser.META.label}>
+        <Card>
+          <button onClick={() => toggleSource(id)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${TINT_BG[tint]}`}>
+                <Icon size={16} className={TINT_FG[tint]} />
+              </div>
+              <div className="text-left">
+                <span className="text-[15px] text-salve-text font-medium block">{parser.META.label}</span>
+                <span className="text-[12px] text-salve-textFaint">
+                  {imported && count > 0 ? `${count} record${count === 1 ? '' : 's'} imported` : subtitle}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {imported && <span className={`w-2 h-2 rounded-full ${TINT_FG[tint]}`.replace('text-', 'bg-')} />}
+              {isOpen ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+            </div>
+          </button>
+          {isOpen && (
+            <div className="mt-3 pt-3 border-t border-salve-border/50">
+              <ImportWizard parser={parser} data={data} reloadData={reloadData} />
+            </div>
+          )}
+        </Card>
+      </HideableSource>
+    );
+  };
+
+  const renderFloCard = () => (
+    <HideableSource id="flo" label="Flo">
+      <Card>
+        <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
+              <Heart size={16} className="text-salve-rose" />
+            </div>
+            <div className="text-left">
+              <span className="text-[15px] text-salve-text font-medium block">Flo</span>
+              <span className="text-[12px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
+            </div>
+          </div>
+          {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+        </button>
+        {expandedSource === 'flo' && (
+          <div className="mt-3 pt-3 border-t border-salve-border/50">
+            <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mb-2">
+              Import your cycle history from Flo. Go to Flo → Profile → Settings → Request My Data, then upload the JSON file in the Cycle Tracker section.
+            </p>
+            <button
+              onClick={() => onNav('cycles')}
+              className="text-xs text-salve-rose font-montserrat bg-transparent border border-salve-rose/30 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-rose/10 transition-colors"
+            >
+              Go to Cycle Tracker →
+            </button>
+          </div>
+        )}
+      </Card>
+    </HideableSource>
+  );
+
+  const renderTerraConnectCard = () => (
+    <HideableSource id="terra" label="Connect a device">
+      <Card>
+        <button onClick={() => toggleSource('terra')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-sage/15">
+              <Heart size={14} className="text-salve-sage" />
+            </div>
+            <div className="text-left">
+              <span className="text-ui-lg text-salve-text font-medium block">Connect a device</span>
+              <span className="text-ui-xs text-salve-textFaint">Fitbit, Garmin, Withings, Dexcom CGM, Whoop, Polar, and more</span>
+            </div>
+          </div>
+          {expandedSource === 'terra' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
+        </button>
+        {expandedSource === 'terra' && (
+          <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-3">
+            <p className="text-ui-sm text-salve-textMid font-montserrat leading-relaxed">
+              Connect a wearable, CGM, scale, or BP cuff. Salve uses Terra to handle the OAuth and pulls fresh data automatically as your device records it.
+            </p>
+            {terraError && (
+              <p className="text-ui-sm text-salve-rose font-montserrat">{terraError}</p>
+            )}
+            <button
+              onClick={handleTerraConnect}
+              disabled={terraLoading || demoMode}
+              className="w-full py-2.5 rounded-lg text-ui-base font-medium font-montserrat bg-salve-sage/15 border border-salve-sage/30 text-salve-sage hover:bg-salve-sage/25 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+            >
+              {terraLoading ? 'Opening picker...' : active.terraLive.length > 0 ? '+ Connect another device' : 'Connect a device →'}
+            </button>
+            {demoMode && (
+              <p className="text-ui-xs text-salve-textFaint italic font-montserrat text-center">
+                Demo mode. Sign up to connect your own devices.
+              </p>
+            )}
+          </div>
+        )}
+      </Card>
+    </HideableSource>
+  );
+
+  // Ordered list of imported items to render in Section 1 (top), in priority order.
+  const importedInOrder = [
+    ...(active.imported.has('apple_health') ? [{ kind: 'apple' }] : []),
+    ...(active.imported.has('mychart') ? [{ kind: 'mychart' }] : []),
+    ...(active.imported.has('mcp') ? [{ kind: 'mcp' }] : []),
+    ...IMPORT_CATEGORIES.flatMap(cat => cat.items)
+      .filter(item => active.imported.has(item.parser.META.id))
+      .map(item => ({ kind: 'parser', item })),
+  ];
+
+  return (
+    <div className="mt-2 space-y-4">
+      {/* ── Section 1: Your connections ── */}
+      <SectionTitle>Your connections</SectionTitle>
+      {hasAnyConnection ? (
+        <>
+          {/* Live OAuth wearables — only the ones currently connected */}
+          <Wearables
+            data={data}
+            addItem={addItem}
+            addItemSilent={addItemSilent}
+            reloadData={reloadData}
+            onNav={onNav}
+            demoMode={demoMode}
+            expandedSource={expandedSource}
+            setExpandedSource={setExpandedSource}
+            toggleSource={toggleSource}
+            sourceCounts={wearableSourceCounts}
+            filter={(id) => active.live.has(id)}
+            onConnectionChange={bumpConnectionTick}
+            hiddenSources={hiddenSources}
+            onHideSource={handleHideSource}
+          />
+
+          {/* Live Terra connections — one row per provider */}
+          {active.terraLive.length > 0 && (
+            <Card>
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-sage/15">
+                  <Heart size={14} className="text-salve-sage" />
+                </div>
+                <span className="text-[15px] text-salve-text font-medium">Connected devices (via Terra)</span>
+              </div>
+              <div className="space-y-1.5 mt-2">
+                {active.terraLive.map(conn => (
+                  <div key={conn.id} className="flex items-center justify-between bg-salve-card2 border border-salve-border rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={`w-1.5 h-1.5 rounded-full ${conn.status === 'connected' ? 'bg-salve-sage' : 'bg-salve-textFaint'} flex-shrink-0`} />
+                      <div className="min-w-0">
+                        <div className="text-ui-base text-salve-text font-medium truncate">{providerLabel(conn.provider)}</div>
+                        <div className="text-ui-xs text-salve-textFaint">
+                          {conn.last_sync_at
+                            ? `Last sync: ${new Date(conn.last_sync_at).toLocaleDateString()}`
+                            : conn.status === 'connected' ? 'Waiting for first sync...' : 'Disconnected'}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleTerraDisconnect(conn.id)}
+                      aria-label={`Disconnect ${providerLabel(conn.provider)}`}
+                      className="text-ui-xs text-salve-rose bg-transparent border-none cursor-pointer hover:underline font-montserrat flex-shrink-0 ml-2"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {/* Imported sources (file imports / MCP pulls with data present) */}
+          {importedInOrder.map(entry => {
+            if (entry.kind === 'apple') return <div key="apple">{renderAppleCard({ imported: true })}</div>;
+            if (entry.kind === 'mychart') return <div key="mychart">{renderMyChartCard({ imported: true })}</div>;
+            if (entry.kind === 'mcp') return <div key="mcp">{renderClaudeSyncCard({ imported: true })}</div>;
+            if (entry.kind === 'parser') return <div key={entry.item.parser.META.id}>{renderParserCard(entry.item, { imported: true })}</div>;
+            return null;
+          })}
+        </>
+      ) : (
+        <Card>
+          <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed">
+            You haven't connected anything yet. Drop a file below or browse sources to get started.
+          </p>
+        </Card>
+      )}
+
+      {/* ── Section 2: Universal Import (auto-detect drop zone) ── */}
       <div>
         <p className="text-ui-base text-salve-textMid font-montserrat mb-3 leading-relaxed">
           Drop any supported file here and Salve will figure out the format automatically.
@@ -253,68 +565,38 @@ Dependencies available in the Claude artifacts runtime: react and lucide-react. 
         />
       </div>
 
-      {/* ── Medical Records ── */}
-      <SectionTitle>Medical Records</SectionTitle>
+      {/* ── Section 3: Browse sources — everything not already in Section 1 ── */}
+      <SectionTitle>Browse sources</SectionTitle>
 
-      <HideableSource id="apple" label="Apple Health">
-        <Card>
-          <button onClick={() => toggleSource('apple')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-            <div className="flex items-center gap-2.5">
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${hasAppleHealth ? 'bg-salve-lav/15' : 'bg-salve-card2'}`}>
-                <Apple size={16} className={hasAppleHealth ? 'text-salve-lav' : 'text-salve-textFaint'} />
-              </div>
-              <div className="text-left">
-                <span className="text-[15px] text-salve-text font-medium block">Apple Health</span>
-                <span className="text-[12px] text-salve-textFaint">
-                  {hasAppleHealth ? `${sourceCounts.apple_health} records imported` : 'Vitals, workouts, labs from iPhone'}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {hasAppleHealth && <span className="w-2 h-2 rounded-full bg-salve-lav" />}
-              {expandedSource === 'apple' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-            </div>
-          </button>
-          {expandedSource === 'apple' && (
-            <div className="mt-3 pt-3 border-t border-salve-border/50">
-              {hasAppleHealth && (
-                <div className="flex justify-end mb-2">
-                  <button onClick={() => onNav('apple_health')} className="text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline">View Apple Health data →</button>
-                </div>
-              )}
-              <AppleHealthImport data={data} reloadData={reloadData} />
-            </div>
-          )}
-        </Card>
-      </HideableSource>
+      {/* Live sync — unconnected OAuth providers */}
+      <Wearables
+        data={data}
+        addItem={addItem}
+        addItemSilent={addItemSilent}
+        reloadData={reloadData}
+        onNav={onNav}
+        demoMode={demoMode}
+        expandedSource={expandedSource}
+        setExpandedSource={setExpandedSource}
+        toggleSource={toggleSource}
+        sourceCounts={wearableSourceCounts}
+        filter={(id) => !active.live.has(id)}
+        onConnectionChange={bumpConnectionTick}
+        hiddenSources={hiddenSources}
+        onHideSource={handleHideSource}
+      />
 
-      <HideableSource id="mychart" label="MyChart">
-        <Card>
-          <button onClick={() => toggleSource('mychart')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-sage/15">
-                <FileText size={16} className="text-salve-sage" />
-              </div>
-              <div className="text-left">
-                <span className="text-[15px] text-salve-text font-medium block">MyChart</span>
-                <span className="text-[12px] text-salve-textFaint">Import records from Epic, Cerner, or any patient portal</span>
-              </div>
-            </div>
-            {expandedSource === 'mychart' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-          </button>
-          {expandedSource === 'mychart' && (
-            <div className="mt-3 pt-3 border-t border-salve-border/50">
-              <MyChartImport data={data} reloadData={reloadData} />
-            </div>
-          )}
-        </Card>
-      </HideableSource>
+      {/* Terra "Connect a device" — always offered so users can add more */}
+      {TERRA_ENABLED && renderTerraConnectCard()}
 
-      {/* ── App Imports by Category ── */}
-      <SectionTitle>App Exports</SectionTitle>
+      {/* Medical records (only if not already promoted) */}
+      {!active.imported.has('apple_health') && renderAppleCard({ imported: false })}
+      {!active.imported.has('mychart') && renderMyChartCard({ imported: false })}
+      {!active.imported.has('mcp') && renderClaudeSyncCard({ imported: false })}
 
+      {/* App categories — each item filtered if already in Section 1 */}
       {IMPORT_CATEGORIES.map(cat => {
-        const visibleItems = cat.items.filter(i => !hiddenSources.includes(i.parser.META.id));
+        const visibleItems = cat.items.filter(i => !hiddenSources.includes(i.parser.META.id) && !active.imported.has(i.parser.META.id));
         const hasFlo = cat.id === 'cycle' && !hiddenSources.includes('flo');
         const visibleCount = visibleItems.length + (hasFlo ? 1 : 0);
         if (visibleCount === 0) return null;
@@ -337,153 +619,13 @@ Dependencies available in the Claude artifacts runtime: react and lucide-react. 
             </Card>
             {isCatOpen && (
               <div className="space-y-2 mt-2 pl-3 border-l-2 border-salve-border/40">
-                {visibleItems.map(({ parser, Icon, tint, subtitle }) => {
-                  const id = parser.META.id;
-                  const isOpen = expandedSource === id;
-                  return (
-                    <HideableSource key={id} id={id} label={parser.META.label}>
-                      <Card>
-                        <button onClick={() => toggleSource(id)} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-                          <div className="flex items-center gap-2.5">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${TINT_BG[tint]}`}>
-                              <Icon size={16} className={TINT_FG[tint]} />
-                            </div>
-                            <div className="text-left">
-                              <span className="text-[15px] text-salve-text font-medium block">{parser.META.label}</span>
-                              <span className="text-[12px] text-salve-textFaint">{subtitle}</span>
-                            </div>
-                          </div>
-                          {isOpen ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-                        </button>
-                        {isOpen && (
-                          <div className="mt-3 pt-3 border-t border-salve-border/50">
-                            <ImportWizard parser={parser} data={data} reloadData={reloadData} />
-                          </div>
-                        )}
-                      </Card>
-                    </HideableSource>
-                  );
-                })}
-                {hasFlo && (
-                  <HideableSource id="flo" label="Flo">
-                    <Card>
-                      <button onClick={() => toggleSource('flo')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-rose/15">
-                            <Heart size={16} className="text-salve-rose" />
-                          </div>
-                          <div className="text-left">
-                            <span className="text-[15px] text-salve-text font-medium block">Flo</span>
-                            <span className="text-[12px] text-salve-textFaint">Import cycle data from Flo GDPR export</span>
-                          </div>
-                        </div>
-                        {expandedSource === 'flo' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-                      </button>
-                      {expandedSource === 'flo' && (
-                        <div className="mt-3 pt-3 border-t border-salve-border/50">
-                          <p className="text-[13px] text-salve-textMid font-montserrat leading-relaxed mb-2">
-                            Import your cycle history from Flo. Go to Flo → Profile → Settings → Request My Data, then upload the JSON file in the Cycle Tracker section.
-                          </p>
-                          <button
-                            onClick={() => onNav('cycles')}
-                            className="text-xs text-salve-rose font-montserrat bg-transparent border border-salve-rose/30 rounded-lg px-3 py-1.5 cursor-pointer hover:bg-salve-rose/10 transition-colors"
-                          >
-                            Go to Cycle Tracker →
-                          </button>
-                        </div>
-                      )}
-                    </Card>
-                  </HideableSource>
-                )}
+                {visibleItems.map(item => renderParserCard(item, { imported: false }))}
+                {hasFlo && renderFloCard()}
               </div>
             )}
           </div>
         );
       })}
-
-      {/* ── Connected Devices (direct OAuth wearables + Terra) ── */}
-      <SectionTitle>Connected Devices</SectionTitle>
-      <Wearables
-        data={data}
-        addItem={addItem}
-        addItemSilent={addItemSilent}
-        reloadData={reloadData}
-        onNav={onNav}
-        demoMode={demoMode}
-        expandedSource={expandedSource}
-        setExpandedSource={setExpandedSource}
-        toggleSource={toggleSource}
-        sourceCounts={wearableSourceCounts}
-      />
-      {TERRA_ENABLED && (
-        <>
-          <HideableSource id="terra" label="Connect a device">
-            <Card>
-              <button onClick={() => toggleSource('terra')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-salve-sage/15">
-                    <Heart size={14} className="text-salve-sage" />
-                  </div>
-                  <div className="text-left">
-                    <span className="text-ui-lg text-salve-text font-medium block">Connect a device</span>
-                    <span className="text-ui-xs text-salve-textFaint">Fitbit, Garmin, Withings, Dexcom CGM, Whoop, Polar, and more</span>
-                  </div>
-                </div>
-                {expandedSource === 'terra' ? <ChevronUp size={14} className="text-salve-textFaint" /> : <ChevronDown size={14} className="text-salve-textFaint" />}
-              </button>
-              {expandedSource === 'terra' && (
-                <div className="mt-3 pt-3 border-t border-salve-border/50 space-y-3">
-                  {terraConnections.length > 0 && (
-                    <div className="space-y-1.5">
-                      <div className="text-ui-xs text-salve-textFaint font-montserrat uppercase tracking-wider">Connected</div>
-                      {terraConnections.map(conn => (
-                        <div key={conn.id} className="flex items-center justify-between bg-salve-card2 border border-salve-border rounded-lg px-3 py-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`w-1.5 h-1.5 rounded-full ${conn.status === 'connected' ? 'bg-salve-sage' : 'bg-salve-textFaint'} flex-shrink-0`} />
-                            <div className="min-w-0">
-                              <div className="text-ui-base text-salve-text font-medium truncate">{providerLabel(conn.provider)}</div>
-                              <div className="text-ui-xs text-salve-textFaint">
-                                {conn.last_sync_at
-                                  ? `Last sync: ${new Date(conn.last_sync_at).toLocaleDateString()}`
-                                  : conn.status === 'connected' ? 'Waiting for first sync...' : 'Disconnected'}
-                              </div>
-                            </div>
-                          </div>
-                          <button
-                            onClick={() => handleTerraDisconnect(conn.id)}
-                            aria-label={`Disconnect ${providerLabel(conn.provider)}`}
-                            className="text-ui-xs text-salve-rose bg-transparent border-none cursor-pointer hover:underline font-montserrat flex-shrink-0 ml-2"
-                          >
-                            Disconnect
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-ui-sm text-salve-textMid font-montserrat leading-relaxed">
-                    Connect a wearable, CGM, scale, or BP cuff. Salve uses Terra to handle the OAuth and pulls fresh data automatically as your device records it.
-                  </p>
-                  {terraError && (
-                    <p className="text-ui-sm text-salve-rose font-montserrat">{terraError}</p>
-                  )}
-                  <button
-                    onClick={handleTerraConnect}
-                    disabled={terraLoading || demoMode}
-                    className="w-full py-2.5 rounded-lg text-ui-base font-medium font-montserrat bg-salve-sage/15 border border-salve-sage/30 text-salve-sage hover:bg-salve-sage/25 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    {terraLoading ? 'Opening picker...' : terraConnections.length > 0 ? '+ Connect another device' : 'Connect a device →'}
-                  </button>
-                  {demoMode && (
-                    <p className="text-ui-xs text-salve-textFaint italic font-montserrat text-center">
-                      Demo mode. Sign up to connect your own devices.
-                    </p>
-                  )}
-                </div>
-              )}
-            </Card>
-          </HideableSource>
-        </>
-      )}
 
       {/* ── Show hidden sources ── */}
       {hiddenSources.length > 0 && (
