@@ -131,9 +131,9 @@ export default function AppleHealthPage({ data, onNav }) {
         <EmptyState icon={Apple} text="No Apple Health data imported yet" motif="sparkle" />
         <div className="text-center mt-3">
           <button
-            onClick={() => onNav('settings')}
+            onClick={() => onNav('import')}
             className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline"
-          >Import in Settings →</button>
+          >Import in Connections →</button>
         </div>
       </div>
     );
@@ -150,7 +150,7 @@ export default function AppleHealthPage({ data, onNav }) {
           </span>
         </div>
         <button
-          onClick={() => onNav('settings')}
+          onClick={() => onNav('import')}
           className="text-[12px] text-salve-lav font-montserrat bg-transparent border-none cursor-pointer hover:underline"
         >
           Import more →
@@ -317,10 +317,10 @@ export default function AppleHealthPage({ data, onNav }) {
 
       <div className="text-center py-2">
         <button
-          onClick={() => onNav('settings')}
+          onClick={() => onNav('import')}
           className="text-[12px] text-salve-textFaint font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors"
         >
-          Import settings →
+          Manage imports →
         </button>
       </div>
     </div>

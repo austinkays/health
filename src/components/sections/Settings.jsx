@@ -217,12 +217,17 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
             <LogOut size={12} /> {demoMode ? 'Exit demo' : 'Sign out'}
           </button>
         </div>
-        {/* Quick profile links */}
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-3 pt-3 border-t border-salve-border/50">
-          <button onClick={() => onNav('aboutme')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">About you →</button>
-          <button onClick={() => onNav('pharmacies')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Pharmacies →</button>
-          <button onClick={() => onNav('insurance')} className="text-[13px] text-salve-lav/70 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0">Insurance →</button>
-        </div>
+        {/* About you — prominent profile CTA */}
+        <button
+          onClick={() => onNav('aboutme')}
+          className="w-full flex items-center justify-between gap-3 mt-3 pt-3 border-t border-salve-border/50 bg-transparent border-l-0 border-r-0 border-b-0 cursor-pointer group text-left p-0"
+        >
+          <div>
+            <p className="text-sm text-salve-text font-medium font-montserrat group-hover:text-salve-lav transition-colors">About you</p>
+            <p className="text-[13px] text-salve-textFaint font-montserrat mt-0.5">Name, location, and the personal context Sage uses</p>
+          </div>
+          <span className="text-salve-lav/60 group-hover:text-salve-lav group-hover:translate-x-0.5 transition-all font-montserrat text-sm shrink-0">→</span>
+        </button>
       </Card>
 
       {/* ── Plan ── */}
@@ -256,6 +261,92 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         />
       </Card>
 
+      {/* ══════════════ 3. Sage ══════════════ */}
+      <SectionTitle>Sage</SectionTitle>
+      <Card>
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={14} className="text-salve-sage" aria-hidden="true" />
+          <span className="text-sm text-salve-text font-medium font-montserrat">Your health assistant</span>
+        </div>
+        <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
+          Sage helps with health insights, fills out forms, finds relevant news, and can add or update your records through chat.
+        </p>
+
+        {aiConsent ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Shield size={14} className="text-salve-sage" />
+              <span className="text-[13px] text-salve-textMid font-montserrat">Data sharing enabled</span>
+            </div>
+            <button
+              onClick={() => {
+                if (window.confirm('Revoke AI data sharing? Past AI conversations will remain visible but no new data will be sent. You can re-enable anytime.')) {
+                  revokeAIConsent();
+                  setAiConsent(false);
+                }
+              }}
+              className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+            >
+              Revoke
+            </button>
+          </div>
+        ) : (
+          <p className="text-[13px] text-salve-textFaint font-montserrat italic">
+            AI data sharing will be requested when you first use Sage.
+          </p>
+        )}
+      </Card>
+
+      <div className="flex flex-col items-center gap-1.5 my-1">
+        <AIProfilePreview data={data} />
+        <button
+          onClick={() => onNav('ai')}
+          className="text-[12px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
+        >
+          Chat with Sage →
+        </button>
+      </div>
+
+      {/* Sage Memory */}
+      {(isPremiumActive() || isAdminActive()) && (
+        <Card>
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={14} className="text-salve-lav" aria-hidden="true" />
+            <span className="text-sm text-salve-text font-medium font-montserrat">Sage Memory</span>
+          </div>
+          <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
+            Sage remembers facts and preferences from your conversations to personalize future chats.
+          </p>
+          {data?.settings?.sage_memory ? (
+            <>
+              <textarea
+                readOnly
+                value={data.settings.sage_memory}
+                rows={Math.min(8, data.settings.sage_memory.split('\n').length + 1)}
+                className="w-full bg-salve-bg/60 border border-salve-border rounded-lg px-3 py-2 text-[13px] text-salve-textMid font-montserrat resize-none mb-2"
+              />
+              <button
+                onClick={() => {
+                  if (window.confirm('Clear all of Sage\'s memories? This cannot be undone.')) {
+                    updateSettings({ sage_memory: '' });
+                  }
+                }}
+                className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+              >
+                Clear memory
+              </button>
+            </>
+          ) : (
+            <p className="text-[13px] text-salve-textFaint font-montserrat italic">
+              No memories yet — Sage will learn as you chat.
+            </p>
+          )}
+        </Card>
+      )}
+
+      </div>
+      {/* ── Right Column ── */}
+      <div>
       {/* ── Notifications ── */}
       <SectionTitle>Notifications</SectionTitle>
       <Card>
@@ -370,92 +461,6 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           })()}
         </Card>
 
-      {/* ══════════════ 3. Sage ══════════════ */}
-      <SectionTitle>Sage</SectionTitle>
-      <Card>
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles size={14} className="text-salve-sage" aria-hidden="true" />
-          <span className="text-sm text-salve-text font-medium font-montserrat">Your health assistant</span>
-        </div>
-        <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
-          Sage helps with health insights, fills out forms, finds relevant news, and can add or update your records through chat.
-        </p>
-
-        {aiConsent ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield size={14} className="text-salve-sage" />
-              <span className="text-[13px] text-salve-textMid font-montserrat">Data sharing enabled</span>
-            </div>
-            <button
-              onClick={() => {
-                if (window.confirm('Revoke AI data sharing? Past AI conversations will remain visible but no new data will be sent. You can re-enable anytime.')) {
-                  revokeAIConsent();
-                  setAiConsent(false);
-                }
-              }}
-              className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
-            >
-              Revoke
-            </button>
-          </div>
-        ) : (
-          <p className="text-[13px] text-salve-textFaint font-montserrat italic">
-            AI data sharing will be requested when you first use Sage.
-          </p>
-        )}
-      </Card>
-
-      <div className="flex flex-col items-center gap-1.5 my-1">
-        <AIProfilePreview data={data} />
-        <button
-          onClick={() => onNav('ai')}
-          className="text-[12px] text-salve-lav/60 font-montserrat bg-transparent border-none cursor-pointer hover:text-salve-lav transition-colors p-0"
-        >
-          Chat with Sage →
-        </button>
-      </div>
-
-      {/* Sage Memory */}
-      {(isPremiumActive() || isAdminActive()) && (
-        <Card>
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={14} className="text-salve-lav" aria-hidden="true" />
-            <span className="text-sm text-salve-text font-medium font-montserrat">Sage Memory</span>
-          </div>
-          <p className="text-[13px] text-salve-textFaint font-montserrat leading-relaxed mb-3">
-            Sage remembers facts and preferences from your conversations to personalize future chats.
-          </p>
-          {data?.settings?.sage_memory ? (
-            <>
-              <textarea
-                readOnly
-                value={data.settings.sage_memory}
-                rows={Math.min(8, data.settings.sage_memory.split('\n').length + 1)}
-                className="w-full bg-salve-bg/60 border border-salve-border rounded-lg px-3 py-2 text-[13px] text-salve-textMid font-montserrat resize-none mb-2"
-              />
-              <button
-                onClick={() => {
-                  if (window.confirm('Clear all of Sage\'s memories? This cannot be undone.')) {
-                    updateSettings({ sage_memory: '' });
-                  }
-                }}
-                className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
-              >
-                Clear memory
-              </button>
-            </>
-          ) : (
-            <p className="text-[13px] text-salve-textFaint font-montserrat italic">
-              No memories yet — Sage will learn as you chat.
-            </p>
-          )}
-        </Card>
-      )}
-
-      </div>
-      {/* ── Right Column ── */}
-      <div>
       {/* ══════════════ 7. Data & Privacy ══════════════ */}
       <DataManagement
         eraseAll={eraseAll}
