@@ -21,14 +21,24 @@ export default function Wearables({
   setExpandedSource,
   toggleSource,
   sourceCounts,
+  filter,
+  onConnectionChange,
+  hiddenSources: hiddenSourcesProp,
+  onHideSource,
 }) {
   const showToast = useToast();
-  const [hiddenSources, setHiddenSources] = useState(() => getHiddenSources());
+  const [localHidden, setLocalHidden] = useState(() => getHiddenSources());
+  const hiddenSources = hiddenSourcesProp ?? localHidden;
   const handleHideSource = (id) => {
-    hideSource(id);
-    setHiddenSources(getHiddenSources());
+    if (onHideSource) {
+      onHideSource(id);
+    } else {
+      hideSource(id);
+      setLocalHidden(getHiddenSources());
+    }
     if (expandedSource === id) setExpandedSource(null);
   };
+  const showProvider = (id) => (filter ? filter(id) : true);
 
   // Oura state
   const [ouraConnected, setOuraConnected] = useState(() => isOuraConnected());
@@ -366,6 +376,11 @@ export default function Wearables({
     }
   }
 
+  useEffect(() => {
+    onConnectionChange?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ouraConnected, dexcomConnected, withingsConnected, fitbitConnected, whoopConnected]);
+
   const HideableSource = ({ id, label, children }) => {
     if (hiddenSources.includes(id)) return null;
     return (
@@ -387,6 +402,7 @@ export default function Wearables({
   return (
     <>
       {/* ── Oura Ring ── */}
+      {showProvider('oura') && (
       <HideableSource id="oura" label="Oura Ring">
       <Card>
         <button onClick={() => toggleSource('oura')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
@@ -462,9 +478,10 @@ export default function Wearables({
         )}
       </Card>
       </HideableSource>
+      )}
 
       {/* ── Dexcom CGM ── */}
-      {DEXCOM_ENABLED && (
+      {DEXCOM_ENABLED && showProvider('dexcom') && (
         <HideableSource id="dexcom" label="Dexcom CGM">
         <Card>
           <button onClick={() => toggleSource('dexcom')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
@@ -531,7 +548,7 @@ export default function Wearables({
       )}
 
       {/* ── Withings ── */}
-      {WITHINGS_ENABLED && (
+      {WITHINGS_ENABLED && showProvider('withings') && (
         <HideableSource id="withings" label="Withings">
         <Card>
           <button onClick={() => toggleSource('withings')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
@@ -598,7 +615,7 @@ export default function Wearables({
       )}
 
       {/* ── Fitbit ── */}
-      {FITBIT_ENABLED && (
+      {FITBIT_ENABLED && showProvider('fitbit') && (
         <HideableSource id="fitbit" label="Fitbit">
         <Card>
           <button onClick={() => toggleSource('fitbit')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
@@ -673,7 +690,7 @@ export default function Wearables({
       )}
 
       {/* ── Whoop ── */}
-      {WHOOP_ENABLED && (
+      {WHOOP_ENABLED && showProvider('whoop') && (
         <HideableSource id="whoop" label="Whoop">
         <Card>
           <button onClick={() => toggleSource('whoop')} className="w-full flex items-center justify-between bg-transparent border-none cursor-pointer p-0">
