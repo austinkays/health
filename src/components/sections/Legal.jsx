@@ -24,6 +24,7 @@ function Privacy() {
 
       <Section title="What We Collect">
         <p>Salve stores the health information you enter: medications, conditions, vitals, appointments, lab results, journal entries, and related records. We also store your email address for authentication.</p>
+        <p>If you use Sage (the AI chat), your conversation history is stored in your own database so you can revisit past chats. If you connect a wearable device (Oura, Fitbit, Dexcom, Withings, or Whoop), the health metrics synced from that device are also stored in your database.</p>
         <p>Salve also records a small amount of anonymous usage information (short event names like "medications section opened" or "journal entry added") so the developer can see which features are actually helping and focus improvements where they matter. <strong>These events are stored in your own encrypted database alongside your other records, never sent to any third-party analytics vendor, and never include any of your medical data</strong> (no medication names, conditions, journal content, or identifiers). Usage events are automatically purged after 180 days. No tracking cookies, advertising IDs, or cross-site identifiers are used.</p>
       </Section>
 
@@ -33,17 +34,24 @@ function Privacy() {
 
       <Section title="AI Features">
         <p>When you use AI-powered features (Sage chat, health insights, news), your health profile is sent to Google's Gemini API (free tier) or Anthropic's Claude API (premium tier) for processing. This requires your explicit consent, which you can grant or revoke at any time in Settings.</p>
-        <p>Each provider processes data according to their own usage policy. Salve does not store AI conversation data on third-party servers beyond what the provider retains per their policy.</p>
+        <p>Salve stores your Sage chat history in your own database so you can revisit past conversations. Free accounts retain up to 5 saved conversations; premium accounts have unlimited history. You can delete individual conversations at any time. Only the current chat context is sent to the AI provider per request — your full conversation history is never shared with third parties.</p>
+        <p>To improve personalization, Sage may extract key context from your conversations (for example, preferences or patterns you mention) and store it in your profile. This data stays in your own database and is included when you export or delete your data.</p>
+        <p>Each AI provider processes the data it receives according to their own usage policy. Salve's servers act as a proxy — your health profile and current chat messages pass through our serverless functions to the AI provider and are not retained on our servers beyond the duration of the request.</p>
       </Section>
 
       <Section title="Data Sharing">
         <p>We do not sell, rent, or share your personal health data with third parties for marketing or advertising purposes. Data is only transmitted to:</p>
         <ul className="list-disc pl-5 space-y-1">
-          <li>Supabase (database hosting: your health data and anonymous usage events are stored here)</li>
-          <li>Vercel (application hosting + serverless API proxies, does not receive analytics data)</li>
-          <li>Google Gemini and/or Anthropic Claude (AI features, only with your consent)</li>
-          <li>Government medical APIs (RxNorm, OpenFDA, NPPES) for drug and provider lookups (no personal data sent)</li>
-          <li>Oura API (only if you connect a Ring, OAuth2, tokens stored encrypted locally)</li>
+          <li>Supabase (database hosting: your health data, AI chat history, and anonymous usage events are stored here)</li>
+          <li>Vercel (application hosting + serverless API proxies; does not receive analytics data)</li>
+          <li>Google Gemini and/or Anthropic Claude (AI features, only with your explicit consent; your health profile and current chat messages are sent per request)</li>
+          <li>Wearable device APIs — Oura, Fitbit, Dexcom, Withings, and Whoop (only if you connect the device via OAuth; health metrics like heart rate, sleep, and glucose are exchanged)</li>
+          <li>Terra (wearable aggregator for additional devices — only if you connect through the Terra widget)</li>
+          <li>Stripe (payment processing — email and subscription info only, no health data; only when you subscribe to Premium)</li>
+          <li>Sentry (error reporting — application errors only; all health data is automatically scrubbed before sending)</li>
+          <li>Open-Meteo (weather and barometric pressure — your location only, no health information)</li>
+          <li>Government medical APIs (RxNorm, OpenFDA, NPPES, NADAC) for drug, provider, and pricing lookups (no personal data sent)</li>
+          <li>Government health news feeds (NIH, FDA) are read-only — no user data is sent</li>
         </ul>
       </Section>
 
@@ -84,6 +92,15 @@ function Terms() {
         <p>You must provide a valid email address to create an account. Accounts may be suspended or terminated for abuse, including but not limited to: automated access, attempts to access other users' data, or use that degrades service for others.</p>
       </Section>
 
+      <Section title="Subscription & Billing">
+        <p>Salve offers a free tier and a premium subscription. Payments are processed by Stripe — Salve does not store your credit card information. Subscriptions can be managed or cancelled at any time through the billing portal in Settings. Tier changes (upgrade or downgrade) take effect immediately.</p>
+      </Section>
+
+      <Section title="AI-Powered Features">
+        <p>AI features (Sage chat, health insights, news analysis, form assistance) use third-party AI providers (Google Gemini and Anthropic Claude) and require your explicit consent before any health data is shared. AI-generated responses are not medical advice — always consult your healthcare providers.</p>
+        <p>Free accounts have daily AI usage limits and can save up to 5 chat conversations. Premium accounts have higher limits and unlimited chat history. When using AI to modify your health records (adding medications, logging vitals, etc.), destructive actions always require your confirmation before executing.</p>
+      </Section>
+
       <Section title="Service Availability">
         <p>Salve is provided "as is" without warranty of any kind. We do not guarantee uninterrupted availability, data accuracy, or fitness for any particular purpose. The service may be modified, suspended, or discontinued at any time.</p>
       </Section>
@@ -113,6 +130,9 @@ function HipaaNotice() {
           <li>On-device cached data is AES-GCM encrypted</li>
           <li>API communication is encrypted in transit via HTTPS</li>
           <li>Server-side API keys are never exposed to the client</li>
+          <li>Wearable device tokens are stored server-side with database-level encryption</li>
+          <li>AI conversation history is protected by the same Row Level Security as all other health data</li>
+          <li>Error reporting (Sentry) automatically scrubs all health data before transmission</li>
           <li>Encrypted backup exports are available with user-chosen passphrases</li>
         </ul>
       </Section>
@@ -123,6 +143,7 @@ function HipaaNotice() {
           <li>Your data does not have the legal protections that apply to records held by your doctor or insurance company</li>
           <li>Breaches of Salve data would not trigger HIPAA breach notification requirements</li>
           <li>You should not rely on Salve as your sole record of medical information</li>
+          <li>Third-party services used by Salve (wearable APIs, AI providers, payment processing) each operate under their own privacy and data handling policies</li>
         </ul>
         <p>We recommend keeping copies of important medical records with your healthcare providers and using Salve's export feature for personal backups.</p>
       </Section>
