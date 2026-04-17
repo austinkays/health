@@ -193,10 +193,14 @@ function ouraWebhookCallbackUrl(req) {
   if (process.env.OURA_WEBHOOK_CALLBACK_URL) {
     return process.env.OURA_WEBHOOK_CALLBACK_URL;
   }
-  // Fallback: derive from request host. Works in prod (host = salve.today).
+  // Use a query-string-free path so Oura (which strips query strings from
+  // callback URLs during the verification challenge) actually reaches our
+  // handler. /api/oura-webhook is rewritten in vercel.json to
+  // /api/wearable?provider=oura&action=webhook, so internally the same
+  // handler runs but Oura sees a clean path.
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   const proto = req.headers['x-forwarded-proto'] || 'https';
-  return `${proto}://${host}/api/wearable?provider=oura&action=webhook`;
+  return `${proto}://${host}/api/oura-webhook`;
 }
 
 async function ouraHandle(action, req, res, userId) {

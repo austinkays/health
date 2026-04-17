@@ -44,6 +44,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/oura-webhook", "destination": "/api/wearable?provider=oura&action=webhook" },
+    { "source": "/api/fitbit-webhook", "destination": "/api/wearable?provider=fitbit&action=webhook" },
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
