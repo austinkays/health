@@ -91,6 +91,7 @@ function SleepBar({ label, pct, color }) {
 /**
  * Lightweight SVG sparkline for intraday HR data.
  * No Recharts dependency — just a polyline with gradient fill.
+ * Reads left-to-right: earliest reading on the left, most recent on the right.
  */
 function IntradayHRChart({ readings }) {
   const W = 400;
@@ -100,13 +101,15 @@ function IntradayHRChart({ readings }) {
   const bpms = readings.map(r => r.bpm).filter(Boolean);
   if (bpms.length < 3) return null;
 
-  const min = Math.min(...bpms) - 5;
-  const max = Math.max(...bpms) + 5;
-  const range = max - min || 1;
+  const minBpm = Math.min(...bpms);
+  const maxBpm = Math.max(...bpms);
+  const yMin = minBpm - 5;
+  const yMax = maxBpm + 5;
+  const range = yMax - yMin || 1;
 
   const points = bpms.map((bpm, i) => {
     const x = PAD + (i / (bpms.length - 1)) * (W - 2 * PAD);
-    const y = H - PAD - ((bpm - min) / range) * (H - 2 * PAD);
+    const y = H - PAD - ((bpm - yMin) / range) * (H - 2 * PAD);
     return `${x},${y}`;
   });
 
@@ -114,32 +117,68 @@ function IntradayHRChart({ readings }) {
   // Closed path for gradient fill
   const fillPath = `M${PAD},${H} ${points.map((p, i) => (i === 0 ? 'L' : '') + p).join(' L')} L${W - PAD},${H} Z`;
 
-  // Time labels (first, mid, last)
+  // Typical resting HR zone (60-100 bpm) shaded if visible in the current y-range
+  const bandTopBpm = Math.min(100, yMax);
+  const bandBottomBpm = Math.max(60, yMin);
+  const showBand = bandTopBpm > bandBottomBpm;
+  const bandTopY = H - PAD - ((bandTopBpm - yMin) / range) * (H - 2 * PAD);
+  const bandBottomY = H - PAD - ((bandBottomBpm - yMin) / range) * (H - 2 * PAD);
+
   const fmtTime = (ts) => {
     try { return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
     catch { return ''; }
   };
   const firstTime = fmtTime(readings[0]?.time);
   const lastTime = fmtTime(readings[readings.length - 1]?.time);
-  const midTime = fmtTime(readings[Math.floor(readings.length / 2)]?.time);
 
   return (
     <div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-20" preserveAspectRatio="none" role="img" aria-label={`Heart rate today: ${bpms.length} readings, range ${Math.min(...bpms)}-${Math.max(...bpms)} bpm`}>
-        <defs>
-          <linearGradient id="hr-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={C.rose} stopOpacity="0.3" />
-            <stop offset="100%" stopColor={C.rose} stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-        <path d={fillPath} fill="url(#hr-fill)" />
-        <polyline points={polyline} fill="none" stroke={C.rose} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-      </svg>
-      <div className="flex justify-between px-1 -mt-1">
-        <span className="text-[9px] text-salve-textFaint font-montserrat">{firstTime}</span>
-        <span className="text-[9px] text-salve-textFaint font-montserrat">{midTime}</span>
-        <span className="text-[9px] text-salve-textFaint font-montserrat">{lastTime}</span>
+      <div className="flex gap-1.5">
+        {/* Y-axis min/max labels */}
+        <div className="flex flex-col justify-between py-0.5 text-right shrink-0" style={{ width: 22 }}>
+          <span className="text-[9px] text-salve-textFaint font-montserrat leading-none">{maxBpm}</span>
+          <span className="text-[9px] text-salve-textFaint font-montserrat leading-none">{minBpm}</span>
+        </div>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="flex-1 h-20"
+          preserveAspectRatio="none"
+          role="img"
+          aria-label={`Heart rate today: ${bpms.length} readings from ${firstTime} to ${lastTime}, range ${minBpm} to ${maxBpm} bpm. Oldest on the left, most recent on the right.`}
+        >
+          <defs>
+            <linearGradient id="hr-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={C.rose} stopOpacity="0.3" />
+              <stop offset="100%" stopColor={C.rose} stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          {showBand && (
+            <rect
+              x={PAD}
+              y={bandTopY}
+              width={W - 2 * PAD}
+              height={Math.max(0, bandBottomY - bandTopY)}
+              fill={C.sage}
+              opacity="0.1"
+            />
+          )}
+          <path d={fillPath} fill="url(#hr-fill)" />
+          <polyline points={polyline} fill="none" stroke={C.rose} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        </svg>
       </div>
+      <div className="flex items-center justify-between mt-1" style={{ marginLeft: 28 }}>
+        <span className="text-[9px] text-salve-textFaint font-montserrat">{firstTime}</span>
+        <span className="text-[9px] text-salve-textFaint font-montserrat">earlier  →  now</span>
+        <span className="text-[9px] text-salve-rose font-montserrat font-medium">{lastTime}</span>
+      </div>
+      {showBand && (
+        <div className="flex items-center gap-1.5 mt-1.5" style={{ marginLeft: 28 }}>
+          <span className="inline-block w-2 h-2 rounded-sm" style={{ background: C.sage, opacity: 0.5 }} />
+          <span className="text-[10px] text-salve-textFaint font-montserrat leading-tight">
+            Shaded band = typical resting range (60–100 bpm)
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -503,30 +542,66 @@ export default function OuraRing({ data, addItem, onNav }) {
       <div className="md:grid md:grid-cols-2 md:gap-4">
       {latest?.sleepHistory?.length > 1 && (
         <Card className="mb-3">
-          <span className="text-xs font-medium text-salve-textFaint font-montserrat uppercase tracking-wider block mb-2.5">7-Day Sleep</span>
-          <div className="flex items-end gap-1 h-20">
-            {latest.sleepHistory.map((s, i) => {
-              const hrs = (s.total_sleep_duration || 0) / 3600;
-              const maxHrs = 10;
-              const pct = Math.min(100, (hrs / maxHrs) * 100);
-              const isLast = i === latest.sleepHistory.length - 1;
-              return (
-                <div key={s.day} className="flex-1 flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] text-salve-textFaint font-montserrat">{hrs.toFixed(1)}</span>
-                  <div
-                    className="w-full rounded-t-md transition-all"
-                    style={{
-                      height: `${pct}%`,
-                      background: isLast ? C.lav : C.lav + '40',
-                      minHeight: '4px',
-                    }}
-                  />
-                  <span className="text-[8px] text-salve-textFaint font-montserrat">
-                    {new Date(s.day + 'T00:00:00').toLocaleDateString([], { weekday: 'short' }).slice(0, 2)}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="mb-2.5">
+            <span className="text-xs font-medium text-salve-textFaint font-montserrat uppercase tracking-wider block">7-Day Sleep</span>
+            <span className="text-[10px] text-salve-textFaint font-montserrat">Each bar = one night's total sleep · taller is longer</span>
+          </div>
+          <div className="flex gap-1.5">
+            {/* Y-axis scale */}
+            <div className="flex flex-col justify-between text-right shrink-0" style={{ width: 18, height: 80 }}>
+              <span className="text-[9px] text-salve-textFaint font-montserrat leading-none">10h</span>
+              <span className="text-[9px] text-salve-textFaint font-montserrat leading-none">0h</span>
+            </div>
+            {/* Bars with reference line overlay */}
+            <div className="relative flex-1 h-20">
+              {/* Healthy-range reference line at 7 hours (70% of 10h max) */}
+              <div
+                className="absolute left-0 right-0 pointer-events-none z-10"
+                style={{
+                  bottom: '70%',
+                  borderTop: `1px dashed ${C.sage}`,
+                  opacity: 0.55,
+                }}
+              >
+                <span
+                  className="absolute right-0 text-[9px] font-montserrat px-1 rounded"
+                  style={{ color: C.sage, background: C.card, top: -6 }}
+                >
+                  7h target
+                </span>
+              </div>
+              <div className="flex items-end gap-1 h-full">
+                {latest.sleepHistory.map((s, i) => {
+                  const hrs = (s.total_sleep_duration || 0) / 3600;
+                  const maxHrs = 10;
+                  const pct = Math.min(100, (hrs / maxHrs) * 100);
+                  const isLast = i === latest.sleepHistory.length - 1;
+                  const dayLabel = isLast
+                    ? 'Today'
+                    : new Date(s.day + 'T00:00:00').toLocaleDateString([], { weekday: 'short' }).slice(0, 2);
+                  return (
+                    <div key={s.day} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+                      <span className={`text-[8px] font-montserrat ${isLast ? 'text-salve-lav font-semibold' : 'text-salve-textFaint'}`}>{hrs.toFixed(1)}</span>
+                      <div
+                        className="w-full rounded-t-md transition-all"
+                        style={{
+                          height: `${pct}%`,
+                          background: isLast ? C.lav : C.lav + '40',
+                          minHeight: '4px',
+                        }}
+                      />
+                      <span className={`text-[8px] font-montserrat ${isLast ? 'text-salve-lav font-semibold' : 'text-salve-textFaint'}`}>
+                        {dayLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-1.5" style={{ marginLeft: 26 }}>
+            <span className="text-[9px] text-salve-textFaint font-montserrat">7 days ago</span>
+            <span className="text-[9px] text-salve-textFaint font-montserrat">→ today</span>
           </div>
           {latest.avgSleepHrs && (
             <div className="text-[12px] text-salve-textFaint text-center mt-1.5">
@@ -539,29 +614,75 @@ export default function OuraRing({ data, addItem, onNav }) {
       {/* 7-day readiness history */}
       {latest?.readinessHistory?.length > 1 && (
         <Card className="mb-3">
-          <span className="text-xs font-medium text-salve-textFaint font-montserrat uppercase tracking-wider block mb-2.5">7-Day Readiness</span>
-          <div className="flex items-end gap-1 h-20">
-            {latest.readinessHistory.map((r, i) => {
-              const score = r.score || 0;
-              const isLast = i === latest.readinessHistory.length - 1;
-              const color = score >= 70 ? C.sage : score >= 50 ? C.amber : C.rose;
-              return (
-                <div key={r.day} className="flex-1 flex flex-col items-center gap-0.5">
-                  <span className="text-[8px] text-salve-textFaint font-montserrat">{score}</span>
-                  <div
-                    className="w-full rounded-t-md transition-all"
-                    style={{
-                      height: `${score}%`,
-                      background: isLast ? color : color + '40',
-                      minHeight: '4px',
-                    }}
-                  />
-                  <span className="text-[8px] text-salve-textFaint font-montserrat">
-                    {new Date(r.day + 'T00:00:00').toLocaleDateString([], { weekday: 'short' }).slice(0, 2)}
-                  </span>
-                </div>
-              );
-            })}
+          <div className="mb-2.5">
+            <span className="text-xs font-medium text-salve-textFaint font-montserrat uppercase tracking-wider block">7-Day Readiness</span>
+            <span className="text-[10px] text-salve-textFaint font-montserrat">Daily recovery score out of 100 · taller is more recovered</span>
+          </div>
+          <div className="flex gap-1.5">
+            {/* Y-axis scale */}
+            <div className="flex flex-col justify-between text-right shrink-0" style={{ width: 18, height: 80 }}>
+              <span className="text-[9px] text-salve-textFaint font-montserrat leading-none">100</span>
+              <span className="text-[9px] text-salve-textFaint font-montserrat leading-none">0</span>
+            </div>
+            {/* Bars with 70-point reference line overlay */}
+            <div className="relative flex-1 h-20">
+              <div
+                className="absolute left-0 right-0 pointer-events-none z-10"
+                style={{
+                  bottom: '70%',
+                  borderTop: `1px dashed ${C.sage}`,
+                  opacity: 0.55,
+                }}
+              >
+                <span
+                  className="absolute right-0 text-[9px] font-montserrat px-1 rounded"
+                  style={{ color: C.sage, background: C.card, top: -6 }}
+                >
+                  70 recovered
+                </span>
+              </div>
+              <div className="flex items-end gap-1 h-full">
+                {latest.readinessHistory.map((r, i) => {
+                  const score = r.score || 0;
+                  const isLast = i === latest.readinessHistory.length - 1;
+                  const color = score >= 70 ? C.sage : score >= 50 ? C.amber : C.rose;
+                  const dayLabel = isLast
+                    ? 'Today'
+                    : new Date(r.day + 'T00:00:00').toLocaleDateString([], { weekday: 'short' }).slice(0, 2);
+                  return (
+                    <div key={r.day} className="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+                      <span className={`text-[8px] font-montserrat ${isLast ? 'font-semibold' : 'text-salve-textFaint'}`} style={isLast ? { color } : undefined}>{score}</span>
+                      <div
+                        className="w-full rounded-t-md transition-all"
+                        style={{
+                          height: `${score}%`,
+                          background: isLast ? color : color + '40',
+                          minHeight: '4px',
+                        }}
+                      />
+                      <span className={`text-[8px] font-montserrat ${isLast ? 'font-semibold' : 'text-salve-textFaint'}`} style={isLast ? { color } : undefined}>
+                        {dayLabel}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center justify-between mt-1.5" style={{ marginLeft: 26 }}>
+            <span className="text-[9px] text-salve-textFaint font-montserrat">7 days ago</span>
+            <span className="text-[9px] text-salve-textFaint font-montserrat">→ today</span>
+          </div>
+          <div className="flex items-center justify-center gap-3 mt-2 pt-2 border-t border-salve-border/50">
+            <span className="flex items-center gap-1 text-[10px] text-salve-textFaint font-montserrat">
+              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: C.sage }} /> 70+ recovered
+            </span>
+            <span className="flex items-center gap-1 text-[10px] text-salve-textFaint font-montserrat">
+              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: C.amber }} /> 50–69 moderate
+            </span>
+            <span className="flex items-center gap-1 text-[10px] text-salve-textFaint font-montserrat">
+              <span className="inline-block w-2 h-2 rounded-sm" style={{ background: C.rose }} /> under 50 rest
+            </span>
           </div>
         </Card>
       )}
