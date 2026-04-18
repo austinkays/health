@@ -580,6 +580,18 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     setDismissedTips(records);
   }, []);
 
+  /* ── Unread feedback responses ─────────────── */
+  const unreadFeedbackCount = useMemo(() => {
+    const items = data.feedback || [];
+    const withResponse = items.filter(i => i.response);
+    if (withResponse.length === 0) return 0;
+    try {
+      const seen = JSON.parse(localStorage.getItem('salve:feedback-responses-seen') || '[]');
+      const seenSet = new Set(seen);
+      return withResponse.filter(i => !seenSet.has(i.id)).length;
+    } catch { return withResponse.length; }
+  }, [data.feedback]);
+
 
   /* ── Render ─────────────────────────────────── */
   return (
@@ -1212,6 +1224,35 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
         onDismissAll={dismissAllTips}
         onNav={onNav}
       />
+
+      {/* ── Feedback response notification ── */}
+      {unreadFeedbackCount > 0 && (
+        <Reveal as="section" aria-label="Feedback response" className="dash-stagger mb-3 md:mb-4">
+          <button
+            onClick={() => onNav('feedback')}
+            className="feedback-response-notify group relative w-full flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer text-left overflow-hidden"
+          >
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 relative z-10"
+              style={{ background: `${C.sage}20` }}
+            >
+              <Leaf size={16} color={C.sage} strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0 relative z-10">
+              <span className="text-[13px] md:text-[14px] font-semibold text-salve-text font-montserrat">
+                {unreadFeedbackCount === 1 ? 'The Salve team responded to your feedback' : `${unreadFeedbackCount} new feedback responses`}
+              </span>
+              <span className="text-[11px] md:text-[12px] text-salve-textMid font-montserrat block mt-0.5">
+                Tap to read {unreadFeedbackCount === 1 ? 'the response' : 'your responses'}
+              </span>
+            </div>
+            <ChevronRight
+              size={16}
+              className="text-salve-sage flex-shrink-0 relative z-10 transition-transform group-hover:translate-x-0.5"
+            />
+          </button>
+        </Reveal>
+      )}
 
       {/* ── Beta feedback card (prominent, always visible during beta) ── */}
       <Reveal as="section" aria-label="Beta feedback" className="dash-stagger mb-5 md:mb-6">

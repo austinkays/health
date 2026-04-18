@@ -469,6 +469,8 @@ export async function syncFitbitData(existingVitals, addItem, days = 30, existin
     const durationMin = typeof a.duration === 'number' ? Math.round(a.duration / 60000) : (a.activeDuration ? Math.round(a.activeDuration / 60000) : 0);
     if (durationMin <= 0) continue;
     const type = FITBIT_ACTIVITY_MAP[a.activityName] || a.activityName || 'Other';
+    // Skip short auto-detected walks (< 15 min) — already captured by daily step vitals
+    if (type === 'Walking' && (!durationMin || durationMin < 15)) continue;
     if (actDedupKeys.has(`${date}|${type}|${durationMin}`)) continue;
     const distMi = typeof a.distance === 'number' ? Math.round(a.distance * 0.621371 * 100) / 100 : undefined;
     try {

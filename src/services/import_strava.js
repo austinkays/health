@@ -104,6 +104,9 @@ export async function parse(input) {
     }
     const durationMin = durationSec ? Math.round(durationSec / 60) : null;
 
+    // Skip short auto-detected walks (< 15 min) — already captured by daily step vitals
+    if (type === 'walk' && (!durationMin || durationMin < 15)) continue;
+
     // Distance is in meters
     const distM = toNum(row[distKey]);
     const distMi = distM != null ? round(mToMi(distM), 2) : null;

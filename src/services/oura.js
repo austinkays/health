@@ -540,6 +540,8 @@ export async function syncOuraWorkouts(existingActivities, addItem, days = 30) {
       : 0)) : null;
     const durMin = dur || (w.duration ? Math.round(w.duration / 60) : null);
     const type = ouraTypeMap[w.activity?.toLowerCase()] || w.activity || 'Other';
+    // Skip short auto-detected walks (< 15 min) — already captured by daily step vitals
+    if (type === 'Walking' && (!durMin || durMin < 15)) continue;
     const key = `${day}|${type}|${durMin}`;
     if (existingKeys.has(key)) continue;
 

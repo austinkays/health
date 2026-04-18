@@ -149,10 +149,14 @@ export async function parse(zip, { onProgress } = {}) {
     for (const ex of json) {
       const date = normalizeDate(ex.startTime);
       if (!date) continue;
+      const type = String(ex.activityName || 'workout').toLowerCase();
+      const duration_minutes = toNum(ex.duration) ? Math.round(toNum(ex.duration) / 60000) : null;
+      // Skip short auto-detected walks (< 15 min) — already captured by daily step vitals
+      if (type.includes('walk') && (!duration_minutes || duration_minutes < 15)) continue;
       activities.push({
         date,
-        type: String(ex.activityName || 'workout').toLowerCase(),
-        duration_minutes: toNum(ex.duration) ? Math.round(toNum(ex.duration) / 60000) : null,
+        type,
+        duration_minutes,
         distance: toNum(ex.distance) ? round(toNum(ex.distance) / 1609.344, 2) : null,
         calories: toNum(ex.calories),
         heart_rate_avg: toNum(ex.averageHeartRate),

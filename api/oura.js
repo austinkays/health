@@ -219,6 +219,9 @@ function transformOuraRecord(dataType, record) {
       const durationMin = (start && end && end > start) ? Math.round((end - start) / 60000) : 0;
       const calories = Number(record.calories);
       const distance = Number(record.distance);
+      // Skip short auto-detected walks (< 15 min) — already captured by daily step vitals
+      const actLower = String(record.activity || '').toLowerCase();
+      if (actLower === 'walking' && (!durationMin || durationMin < 15)) break;
       if (day && record.activity) {
         out.activities.push({
           date: day,

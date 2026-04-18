@@ -81,10 +81,14 @@ export async function parse(zip, { onProgress } = {}) {
       for (const act of list) {
         const date = normalizeDate(act.startTimeLocal || act.startTimeGmt || act.beginTimestamp);
         if (!date) continue;
+        const type = normType(act.activityType?.typeKey || act.activityType || act.sportType);
+        const duration_minutes = act.duration ? Math.round(act.duration / 60) : (act.durationInSeconds ? Math.round(act.durationInSeconds / 60) : null);
+        // Skip short auto-detected walks (< 15 min) — already captured by daily step vitals
+        if (type === 'walk' && (!duration_minutes || duration_minutes < 15)) continue;
         activities.push({
           date,
-          type: normType(act.activityType?.typeKey || act.activityType || act.sportType),
-          duration_minutes: act.duration ? Math.round(act.duration / 60) : (act.durationInSeconds ? Math.round(act.durationInSeconds / 60) : null),
+          type,
+          duration_minutes,
           distance: act.distance ? round(act.distance / 1609.344, 2) : null,
           calories: toNum(act.calories),
           heart_rate_avg: toNum(act.avgHr || act.averageHR),
