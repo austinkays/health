@@ -33,8 +33,20 @@ const ALLOWED_MODELS = new Set([
   'gemini-2.5-flash-lite',
   'gemini-2.5-flash',
   'gemini-2.5-pro',
+  'gemini-2.5-pro-preview-06-05',
 ]);
 const DEFAULT_MODEL = 'gemini-2.5-flash';
+
+// ── Safety settings ──
+// Relax safety thresholds so legitimate medical content (medications, symptoms,
+// conditions, dosage details) isn't blocked.  BLOCK_ONLY_HIGH still catches
+// genuinely harmful content while letting clinical discussions through.
+const SAFETY_SETTINGS = [
+  { category: 'HARM_CATEGORY_HARASSMENT',         threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_HATE_SPEECH',         threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',   threshold: 'BLOCK_ONLY_HIGH' },
+  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT',   threshold: 'BLOCK_ONLY_HIGH' },
+];
 
 // ── Translation: Anthropic → Gemini ──
 
@@ -149,7 +161,20 @@ function translateTools(clientTools, useWebSearch) {
 function translateResponse(geminiData) {
   if (geminiData.error) {
     return {
+      _blocked: true,
       content: [{ type: 'text', text: `Gemini API error: ${geminiData.error.message || 'Unknown error'}` }],
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 0, output_tokens: 0 },
+    };
+  }
+
+  // ── Prompt-level safety block (no candidates generated at all) ──
+  const promptBlock = geminiData.promptFeedback?.blockReason;
+  if (promptBlock) {
+    console.warn('[Gemini] Prompt blocked:', promptBlock, geminiData.promptFeedback);
+    return {
+      _blocked: true,
+      content: [{ type: 'text', text: 'Your request was blocked by safety filters. Try rephrasing or simplifying your question.' }],
       stop_reason: 'end_turn',
       usage: { input_tokens: 0, output_tokens: 0 },
     };
@@ -157,17 +182,27 @@ function translateResponse(geminiData) {
 
   const candidate = geminiData.candidates?.[0];
   if (!candidate?.content?.parts) {
+    console.warn('[Gemini] Empty candidates. finishReason:', candidate?.finishReason, 'promptFeedback:', geminiData.promptFeedback);
     return {
-      content: [{ type: 'text', text: 'No response from Gemini.' }],
+      _blocked: true,
+      content: [{ type: 'text', text: 'No response from Gemini. The request may have been blocked by content filters.' }],
       stop_reason: 'end_turn',
       usage: { input_tokens: 0, output_tokens: 0 },
     };
   }
 
-  // Handle safety blocks
-  if (candidate.finishReason === 'SAFETY') {
+  // ── Candidate-level finish reason blocks ──
+  const fr = candidate.finishReason;
+  if (fr === 'SAFETY' || fr === 'BLOCKLIST' || fr === 'RECITATION') {
+    console.warn('[Gemini] Candidate blocked. finishReason:', fr);
+    const msgs = {
+      SAFETY: 'Response blocked by safety filters. Please try rephrasing your question.',
+      BLOCKLIST: 'Response blocked due to restricted content. Please rephrase.',
+      RECITATION: 'Response blocked to avoid reproducing copyrighted content. Please rephrase.',
+    };
     return {
-      content: [{ type: 'text', text: 'I wasn\'t able to respond to that due to safety filters. Please try rephrasing your question.' }],
+      _blocked: true,
+      content: [{ type: 'text', text: msgs[fr] }],
       stop_reason: 'end_turn',
       usage: {
         input_tokens: geminiData.usageMetadata?.promptTokenCount || 0,
@@ -339,6 +374,7 @@ export default async function handler(req, res) {
     const body = {
       contents,
       generationConfig: { maxOutputTokens: maxTokens },
+      safetySettings: SAFETY_SETTINGS,
     };
     if (system) {
       body.system_instruction = { parts: [{ text: system }] };
@@ -377,6 +413,14 @@ export default async function handler(req, res) {
 
     // Translate Gemini response → Anthropic format
     const translated = translateResponse(geminiData);
+
+    // If the response was blocked (safety, empty candidates, etc.), surface as
+    // an HTTP error so the client's callAPI() throws and the user sees a
+    // friendly error in the catch handler, not raw error text as "the result".
+    if (translated._blocked) {
+      const errorText = translated.content?.[0]?.text || 'AI response blocked';
+      return res.status(502).json({ error: errorText });
+    }
 
     // Log usage (fire-and-forget) — skip for onboarding intro
     if (userId && !skip_usage_log) {
