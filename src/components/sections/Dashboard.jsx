@@ -1170,7 +1170,7 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
             </Reveal>
           )}
 
-          <VitalsSnapshot snapshot={vitalsSnapshot} chartsReady={chartsReady} chartsRef={chartsRef} onNav={onNav} />
+          <VitalsSnapshot snapshot={vitalsSnapshot} chartsReady={chartsReady} chartsRef={chartsRef} onNav={onNav} unitSystem={data?.settings?.unit_system || 'imperial'} />
 
           {/* Mood + Activity, side-by-side at lg+ only when both exist */}
           <div className={moodSnapshot && activitySnapshot ? 'lg:grid lg:grid-cols-2 lg:gap-4' : ''}>

@@ -260,6 +260,30 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
           onUpgrade={handleUpgrade}
         />
       </Card>
+      <Card>
+        <label className="block text-xs font-medium text-salve-textMid mb-2 font-montserrat">Units</label>
+        <div className="flex gap-2">
+          {[
+            { value: 'imperial', label: 'Imperial', desc: 'lbs, °F, mi, mg/dL' },
+            { value: 'metric', label: 'Metric', desc: 'kg, °C, km, mmol/L' },
+          ].map(o => (
+            <button
+              key={o.value}
+              onClick={() => set('unit_system', o.value)}
+              className={`flex-1 rounded-xl py-2.5 px-3 text-left border cursor-pointer transition-colors ${
+                (s.unit_system || 'imperial') === o.value
+                  ? 'border-salve-lav bg-salve-lav/10'
+                  : 'border-salve-border bg-transparent'
+              }`}
+            >
+              <span className={`block text-sm font-medium font-montserrat ${
+                (s.unit_system || 'imperial') === o.value ? 'text-salve-lav' : 'text-salve-text'
+              }`}>{o.label}</span>
+              <span className="block text-[11px] text-salve-textFaint font-montserrat mt-0.5">{o.desc}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
 
       {/* ══════════════ 3. Sage ══════════════ */}
       <SectionTitle>Sage</SectionTitle>

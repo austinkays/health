@@ -3,14 +3,20 @@ import Reveal from '../ui/Reveal';
 import Card from '../ui/Card';
 import { C } from '../../constants/colors';
 import { VITAL_TYPES } from '../../constants/defaults';
+import { getDisplayUnit, convertVitalForDisplay } from '../../utils/units';
 
-export default function VitalsSnapshot({ snapshot, chartsReady, chartsRef, onNav }) {
+export default function VitalsSnapshot({ snapshot, chartsReady, chartsRef, onNav, unitSystem = 'imperial' }) {
   if (!snapshot || !snapshot.featured) return null;
   const f = snapshot.featured;
   const fType = VITAL_TYPES.find(t => t.id === f.type);
   const fLabel = fType?.label || f.type;
-  const fUnit = fType?.unit || f.unit || '';
-  const fDisplay = f.type === 'bp' && f.value2 ? `${f.value}/${f.value2}` : f.value;
+  const fUnit = fType ? getDisplayUnit(fType, unitSystem) : (f.unit || '');
+  const fDisplay = (() => {
+    if (f.type === 'bp' && f.value2) return `${f.value}/${f.value2}`;
+    if (!fType) return f.value;
+    const r = convertVitalForDisplay(fType, f.value, unitSystem);
+    return r.unit != null ? r.value : f.value;
+  })();
   const fHasChart = f.series && f.series.length >= 2;
   const fmtNum = (n) => {
     if (n === null || n === undefined) return ', ';
@@ -19,7 +25,9 @@ export default function VitalsSnapshot({ snapshot, chartsReady, chartsRef, onNav
   const captionText = (() => {
     if (f.delta === null || f.recentAvg === null) return null;
     if (f.direction === 'flat') return 'In line with your 7-day average';
-    const absDelta = Math.abs(f.delta);
+    const rawDelta = Math.abs(f.delta);
+    const r = fType ? convertVitalForDisplay(fType, rawDelta, unitSystem) : { value: rawDelta };
+    const absDelta = r.unit != null ? r.value : rawDelta;
     const dir = f.direction === 'up' ? 'above' : 'below';
     return `${fmtNum(absDelta)}${fUnit ? ` ${fUnit}` : ''} ${dir} your 7-day average`;
   })();
@@ -54,11 +62,17 @@ export default function VitalsSnapshot({ snapshot, chartsReady, chartsRef, onNav
                     </linearGradient>
                   </defs>
                   <Tooltip
-                    content={({ active, payload }) => active && payload?.[0] ? (
-                      <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[13px] font-montserrat text-salve-text shadow-sm">
-                        {payload[0].value}{fUnit}
-                      </div>
-                    ) : null}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.[0]) return null;
+                      const raw = payload[0].value;
+                      const r = fType ? convertVitalForDisplay(fType, raw, unitSystem) : { value: raw };
+                      const v = r.unit != null ? r.value : raw;
+                      return (
+                        <div className="bg-salve-card border border-salve-border/60 rounded-lg px-2 py-1 text-[13px] font-montserrat text-salve-text shadow-sm">
+                          {v}{fUnit ? ` ${fUnit}` : ''}
+                        </div>
+                      );
+                    }}
                     cursor={{ stroke: C.lav, strokeWidth: 1, strokeOpacity: 0.4 }}
                   />
                   <Area type="monotone" dataKey="value" stroke={C.lav} strokeWidth={2} strokeOpacity={0.7} fill="url(#vitals-hero-grad)" dot={{ r: 3, fill: C.lav, strokeWidth: 0, fillOpacity: 0.8 }} activeDot={{ r: 4, fill: C.lav }} isAnimationActive={false} />
@@ -79,8 +93,13 @@ export default function VitalsSnapshot({ snapshot, chartsReady, chartsRef, onNav
             {snapshot.chips.map(c => {
               const cType = VITAL_TYPES.find(t => t.id === c.type);
               const cLabel = cType?.label || c.type;
-              const cUnit = cType?.unit || c.unit || '';
-              const cDisplay = c.type === 'bp' && c.value2 ? `${c.value}/${c.value2}` : c.value;
+              const cUnit = cType ? getDisplayUnit(cType, unitSystem) : (c.unit || '');
+              const cDisplay = (() => {
+                if (c.type === 'bp' && c.value2) return `${c.value}/${c.value2}`;
+                if (!cType) return c.value;
+                const r = convertVitalForDisplay(cType, c.value, unitSystem);
+                return r.unit != null ? r.value : c.value;
+              })();
               const cSignalColor = c.signal === 'good' ? C.sage : c.signal === 'watch' ? C.amber : C.textFaint;
               const cArrow = c.direction === 'up' ? '↑' : c.direction === 'down' ? '↓' : '→';
               const hasSparkline = c.series && c.series.length >= 2;

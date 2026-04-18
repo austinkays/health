@@ -12,6 +12,7 @@ import FormWrap from '../ui/FormWrap';
 import { C } from '../../constants/colors';
 import { EMPTY_ACTIVITY, WORKOUT_TYPES } from '../../constants/defaults';
 import { fmtDate, todayISO, localISODate } from '../../utils/dates';
+import { convertDistanceForDisplay, convertDistanceForStorage } from '../../utils/units';
 
 const SOURCE_ICON = { oura: OuraIcon, apple_health: Apple, fitbit: Watch };
 const SOURCE_LABEL = { oura: 'Oura', apple_health: 'Apple Health', fitbit: 'Fitbit', manual: 'Manual' };
@@ -42,6 +43,8 @@ function formatDuration(mins) {
 /* ── Component ──────────────────────────────────────────── */
 
 export default function Activities({ data, addItem, updateItem, removeItem, highlightId }) {
+  const unitSystem = data?.settings?.unit_system || 'imperial';
+  const distLabel = unitSystem === 'metric' ? 'km' : 'mi';
   const [subView, setSubView] = useState(null);
   const [form, setForm] = useState(EMPTY_ACTIVITY);
   const [editId, setEditId] = useState(null);
@@ -145,6 +148,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   const save = async () => {
     if (!form.type) return;
     const item = { ...form, date: form.date || todayISO() };
+    if (item.distance) item.distance = convertDistanceForStorage(Number(item.distance), unitSystem);
     if (editId) {
       await updateItem('activities', editId, item);
     } else {
@@ -156,7 +160,12 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
   };
 
   const startEdit = (a) => {
-    setForm({ ...EMPTY_ACTIVITY, ...a });
+    const edit = { ...EMPTY_ACTIVITY, ...a };
+    if (edit.distance) {
+      const d = convertDistanceForDisplay(Number(edit.distance), unitSystem);
+      edit.distance = d.value;
+    }
+    setForm(edit);
     setEditId(a.id);
     setSubView('form');
   };
@@ -177,7 +186,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
             />
             <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
             <Field label="Duration (minutes)" value={form.duration_minutes} onChange={v => sf('duration_minutes', v)} type="number" placeholder="30" />
-            <Field label="Distance (km)" value={form.distance} onChange={v => sf('distance', v)} type="number" placeholder="5.0" />
+            <Field label={`Distance (${distLabel})`} value={form.distance} onChange={v => sf('distance', v)} type="number" placeholder="5.0" />
             <Field label="Calories Burned" value={form.calories} onChange={v => sf('calories', v)} type="number" placeholder="250" />
             <Field label="Avg Heart Rate" value={form.heart_rate_avg} onChange={v => sf('heart_rate_avg', v)} type="number" placeholder="140" />
             <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="How did it feel?" />
@@ -286,6 +295,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                 return d >= new Date(Date.now() - 7 * 86400000) && Number(a.distance) > 0;
               }).reduce((s, a) => s + Number(a.distance), 0);
               if (!weekDist) return null;
+              const dispDist = convertDistanceForDisplay(weekDist, unitSystem);
               return (
                 <Card className="!p-3.5">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -293,9 +303,9 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                     <span className="text-[12px] text-salve-textFaint font-montserrat uppercase tracking-wider">Distance</span>
                   </div>
                   <div className="text-[22px] font-medium text-salve-text font-montserrat leading-none mb-1">
-                    {weekDist.toFixed(1)}
+                    {dispDist.value.toFixed(1)}
                   </div>
-                  <span className="text-[12px] text-salve-textFaint font-montserrat">km this week</span>
+                  <span className="text-[12px] text-salve-textFaint font-montserrat">{dispDist.unit} this week</span>
                 </Card>
               );
             })()}
@@ -413,7 +423,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                       <div className="flex items-center gap-2.5 text-xs text-salve-textFaint flex-wrap">
                         {a.date && <span>{fmtDate(a.date)}</span>}
                         {a.calories && <span className="flex items-center gap-0.5"><Flame size={10} /> {a.calories} kcal</span>}
-                        {a.distance && <span className="flex items-center gap-0.5"><MapPin size={10} /> {a.distance} km</span>}
+                        {a.distance && <span className="flex items-center gap-0.5"><MapPin size={10} /> {convertDistanceForDisplay(Number(a.distance), unitSystem).value} {distLabel}</span>}
                         {isDaily && a.notes && <span>{a.notes}</span>}
                       </div>
                     )}
@@ -439,7 +449,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                       )}
                       {a.distance && (
                         <div className="flex items-center gap-1 text-xs text-salve-textMid">
-                          <MapPin size={11} className="text-salve-lav" /> {a.distance} km
+                          <MapPin size={11} className="text-salve-lav" /> {convertDistanceForDisplay(Number(a.distance), unitSystem).value} {distLabel}
                         </div>
                       )}
                       {a.heart_rate_avg && (

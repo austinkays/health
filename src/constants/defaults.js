@@ -67,6 +67,7 @@ export const DEFAULT_SETTINGS = {
   name: '', location: '', ai_mode: 'onDemand',
   pharmacy: '', insurance_plan: '', insurance_id: '',
   insurance_group: '', insurance_phone: '', health_background: '',
+  unit_system: 'imperial', // 'imperial' | 'metric'
 };
 
 // Vital types reference (with normal ranges)

@@ -17,6 +17,7 @@ import { getCyclePhaseForDate } from '../../utils/cycles';
 import { C } from '../../constants/colors';
 import { fetchVitalsTrend } from '../../services/ai';
 import { buildProfile } from '../../services/profile';
+import { getDisplayUnit, convertVitalForDisplay, getDisplayNormalRange, convertVitalForStorage } from '../../utils/units';
 import { hasAIConsent } from '../ui/AIConsentGate';
 import BarometricCard from '../ui/BarometricCard';
 import AIMarkdown from '../ui/AIMarkdown';
@@ -163,9 +164,14 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
   }, [data.conditions]);
 
   const saveV = async () => {
-    const { valid, errors: e } = validateVital(form);
+    const storageForm = { ...form };
+    if (unitSystem === 'metric') {
+      storageForm.value = convertVitalForStorage(form.value, form.type, unitSystem);
+      if (form.value2) storageForm.value2 = convertVitalForStorage(form.value2, form.type, unitSystem);
+    }
+    const { valid, errors: e } = validateVital(storageForm);
     if (!valid) { setErrors(e); return; }
-    await addItem('vitals', form);
+    await addItem('vitals', storageForm);
     setForm({ ...EMPTY_VITAL, date: todayISO() });
     setErrors({});
     setSubView(null);
@@ -183,6 +189,9 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
   };
 
   const vi = VITAL_TYPES.find(t => t.id === ct);
+  const unitSystem = data?.settings?.unit_system || 'imperial';
+  const dUnit = getDisplayUnit(vi, unitSystem);
+  const dRange = vi ? getDisplayNormalRange(vi, unitSystem) : {};
 
   const cutoffDate = useMemo(() => {
     if (timeRange === 'all') return null;
@@ -207,6 +216,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
     );
     const round = (n) => integerTypes.has(ct) ? Math.round(n) : Math.round(n * 10) / 10;
     const avg = arr => arr.length ? round(arr.reduce((a, b) => a + b, 0) / arr.length) : null;
+    const cvt = (n) => { const r = convertVitalForDisplay(n, ct, unitSystem); return r.unit != null ? r.value : n; };
 
     if (hasHourlyData) {
       // Hourly path: one chart point per record, sorted chronologically
@@ -223,7 +233,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
             date: `${fmtDate(v.date)} ${v.time}`,
             rawDate: v.date,
             time: v.time,
-            value: isNaN(n) ? null : round(n),
+            value: isNaN(n) ? null : round(cvt(n)),
             notes: v.notes || '',
           };
         })
@@ -243,11 +253,11 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([date, { vals, vals2 }]) => ({
         date: fmtDate(date),
-        value: avg(vals),
-        ...(vals2.length > 0 ? { value2: avg(vals2) } : {}),
+        value: cvt(avg(vals)),
+        ...(vals2.length > 0 ? { value2: cvt(avg(vals2)) } : {}),
       }))
       .filter(d => d.value !== null);
-  }, [data.vitals, ct, sourceFilter, cutoffDate, hasHourlyData]);
+  }, [data.vitals, ct, sourceFilter, cutoffDate, hasHourlyData, unitSystem]);
 
   const cdStats = useMemo(() => {
     if (!cd.length) return null;
@@ -287,14 +297,14 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
     <FormWrap title="Log Vital" onBack={() => setSubView(null)}>
       <Card>
         <Field label="Date" value={form.date} onChange={v => sf('date', v)} type="date" />
-        <Field label="Type" value={form.type} onChange={v => { sf('type', v); sf('value', ''); sf('value2', ''); }} options={VITAL_TYPES.map(t => ({ value: t.id, label: `${t.label} (${t.unit})` }))} />
+        <Field label="Type" value={form.type} onChange={v => { sf('type', v); sf('value', ''); sf('value2', ''); }} options={VITAL_TYPES.map(t => ({ value: t.id, label: `${t.label} (${getDisplayUnit(t, unitSystem)})` }))} />
         {form.type === 'bp' ? (
           <div className="flex gap-2.5">
             <div className="flex-1"><Field label="Systolic" value={form.value} onChange={v => sf('value', v)} type="number" placeholder="120" error={errors.value} /></div>
             <div className="flex-1"><Field label="Diastolic" value={form.value2} onChange={v => sf('value2', v)} type="number" placeholder="80" error={errors.value2} /></div>
           </div>
         ) : (
-          <Field label="Value" value={form.value} onChange={v => sf('value', v)} type="number" placeholder={vi?.unit || ''} error={errors.value} />
+          <Field label="Value" value={form.value} onChange={v => sf('value', v)} type="number" placeholder={dUnit || ''} error={errors.value} />
         )}
         <Field label="Notes" value={form.notes} onChange={v => sf('notes', v)} textarea placeholder="Context, how you feel..." maxLength={2000} error={errors.notes} />
         <Button onClick={saveV} disabled={!form.value}><Check size={15} /> Save</Button>
@@ -407,8 +417,8 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
               <Tooltip
                 contentStyle={{ fontFamily: 'Montserrat', fontSize: 12, borderRadius: 10, border: `1px solid ${C.border}`, background: C.card }}
                 formatter={(val, name) => {
-                  if (name === 'value2') return [`${val} ${vi?.unit || ''}`, 'Diastolic'];
-                  return [`${val} ${vi?.unit || ''}`, ct === 'bp' ? 'Systolic' : vi?.label || ''];
+                  if (name === 'value2') return [`${val} ${dUnit || ''}`, 'Diastolic'];
+                  return [`${val} ${dUnit || ''}`, ct === 'bp' ? 'Systolic' : vi?.label || ''];
                 }}
                 labelFormatter={(label) => {
                   // For hourly data, label is "Jan 15 08:00", show it as-is
@@ -429,8 +439,8 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                 } : false}
               />
               {ct === 'bp' && <Area type="monotone" dataKey="value2" stroke={C.lav} fill="url(#lf)" strokeWidth={2} dot={cd.length > 30 ? false : { r: 3, fill: C.lav, strokeWidth: 0 }} />}
-              {vi?.normalHigh && <ReferenceLine y={vi.normalHigh} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: String(vi.normalHigh), position: 'insideTopRight', fontSize: 9, fill: C.amber, fontFamily: 'Montserrat' }} />}
-              {vi?.normalLow && <ReferenceLine y={vi.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: String(vi.normalLow), position: 'insideBottomRight', fontSize: 9, fill: C.amber, fontFamily: 'Montserrat' }} />}
+              {dRange.normalHigh && <ReferenceLine y={dRange.normalHigh} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: String(dRange.normalHigh), position: 'insideTopRight', fontSize: 9, fill: C.amber, fontFamily: 'Montserrat' }} />}
+              {dRange.normalLow && <ReferenceLine y={dRange.normalLow} stroke={C.amber} strokeDasharray="4 4" strokeOpacity={0.5} label={{ value: String(dRange.normalLow), position: 'insideBottomRight', fontSize: 9, fill: C.amber, fontFamily: 'Montserrat' }} />}
               {phaseBands.map((band, i) => (
                 <ReferenceArea
                   key={`phase-${i}`}
@@ -447,7 +457,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
           <table className="sr-only">
             <caption>{vi?.label} readings</caption>
             <thead><tr><th>Date</th><th>Value</th>{ct === 'bp' && <th>Diastolic</th>}</tr></thead>
-            <tbody>{cd.map((d, i) => <tr key={i}><td>{d.date}</td><td>{d.value} {vi?.unit}</td>{ct === 'bp' && <td>{d.value2} {vi?.unit}</td>}</tr>)}</tbody>
+            <tbody>{cd.map((d, i) => <tr key={i}><td>{d.date}</td><td>{d.value} {dUnit}</td>{ct === 'bp' && <td>{d.value2} {dUnit}</td>}</tr>)}</tbody>
           </table>
           {/* Stats footer */}
           {cdStats && (
@@ -457,10 +467,10 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
               <span>High <span className="text-salve-text font-medium">{cdStats.max % 1 === 0 ? cdStats.max : cdStats.max.toFixed(1)}</span></span>
             </div>
           )}
-          {vi && (vi.normalLow || vi.normalHigh) && (
+          {vi && (dRange.normalLow || dRange.normalHigh) && (
             <div className="text-[12px] text-salve-textFaint text-center mt-1.5">
-              Normal range: {vi.normalLow ?? ', '}–{vi.normalHigh ?? ', '} {vi.unit}
-              {vi.id === 'bp' && vi.normalLow2 ? ` / ${vi.normalLow2}–${vi.normalHigh2} ${vi.unit}` : ''}
+              Normal range: {dRange.normalLow ?? ''}–{dRange.normalHigh ?? ''} {dUnit}
+              {vi.id === 'bp' && dRange.normalLow2 ? ` / ${dRange.normalLow2}–${dRange.normalHigh2} ${dUnit}` : ''}
             </div>
           )}
           {/* Inline AI trigger — demoted from a full-width button to a subtle right-aligned link */}
@@ -473,7 +483,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                   try {
                     const recent = data.vitals.slice().reverse().slice(0, 20).map(v => {
                       const t = VITAL_TYPES.find(x => x.id === v.type);
-                      return { type: t?.label || v.type, value: v.value, value2: v.value2, unit: t?.unit || '', date: v.date, notes: v.notes };
+                      return { type: t?.label || v.type, value: v.value, value2: v.value2, unit: getDisplayUnit(t, unitSystem), date: v.date, notes: v.notes };
                     });
                     const result = await fetchVitalsTrend(recent, buildProfile(data));
                     setTrendAI(result);
@@ -559,11 +569,14 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                       let displayVal;
                       if (typeEntries.length >= 3 && typeEntries[0].time) {
                         const vals = typeEntries.map(v => Number(v.value)).filter(Number.isFinite);
-                        displayVal = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+                        const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+                        const r = convertVitalForDisplay(avg, vtype, unitSystem);
+                        displayVal = r.unit != null ? r.value : avg;
                       } else if (vtype === 'bp') {
                         displayVal = `${typeEntries[0].value}/${typeEntries[0].value2}`;
                       } else {
-                        displayVal = typeEntries[0].value;
+                        const r = convertVitalForDisplay(Number(typeEntries[0].value), vtype, unitSystem);
+                        displayVal = r.unit != null ? r.value : typeEntries[0].value;
                       }
                       return (
                         <button
@@ -576,7 +589,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                           <span className={`text-[15px] font-semibold font-montserrat ${flag ? 'text-salve-amber' : 'text-salve-sage'}`}>
                             {displayVal}
                           </span>
-                          <span className="text-[9px] text-salve-textFaint font-montserrat">{t?.unit}</span>
+                          <span className="text-[9px] text-salve-textFaint font-montserrat">{getDisplayUnit(t, unitSystem)}</span>
                         </button>
                       );
                     })}
@@ -652,9 +665,13 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                       // Collapsed summary for 3+ same-type entries on same day (hourly Apple Health data)
                       if (typeEntries.length >= 3 && typeEntries[0].time) {
                         const vals = typeEntries.map(v => Number(v.value)).filter(Number.isFinite);
-                        const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
-                        const min = Math.min(...vals);
-                        const max = Math.max(...vals);
+                        const rawAvg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+                        const rawMin = Math.min(...vals);
+                        const rawMax = Math.max(...vals);
+                        const cvtH = n => { const r = convertVitalForDisplay(n, vtype, unitSystem); return r.unit != null ? r.value : n; };
+                        const avg = cvtH(rawAvg);
+                        const min = cvtH(rawMin);
+                        const max = cvtH(rawMax);
                         const anyFlag = typeEntries.some(v => getVitalFlag(vtype, v.value));
                         const peakEntry = typeEntries.reduce((a, b) => Number(a.value) > Number(b.value) ? a : b);
                         const lowEntry = typeEntries.reduce((a, b) => Number(a.value) < Number(b.value) ? a : b);
@@ -665,7 +682,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                                 {anyFlag && <AlertTriangle size={12} color={C.amber} className="flex-shrink-0" aria-hidden="true" />}
                                 <span className="text-[15px] text-salve-textMid font-montserrat">{t?.label}</span>
                                 <span className="text-[14px] font-semibold font-montserrat" style={{ color: C.sage }}>
-                                  {avg}<span className="text-[13px] font-normal text-salve-textFaint ml-0.5">{t?.unit} avg</span>
+                                  {avg}<span className="text-[13px] font-normal text-salve-textFaint ml-0.5">{getDisplayUnit(t, unitSystem)} avg</span>
                                 </span>
                               </div>
                               <div className="flex gap-3 mt-0.5 text-[12px] text-salve-textFaint font-montserrat">
@@ -683,7 +700,11 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                       return typeEntries.map(v => {
                         const flag = getVitalFlag(v.type, v.value, v.value2);
                         const fs = flagStyle(flag);
-                        const displayVal = v.type === 'bp' ? `${v.value}/${v.value2}` : v.value;
+                        const displayVal = (() => {
+                          if (v.type === 'bp') return `${v.value}/${v.value2}`;
+                          const r = convertVitalForDisplay(Number(v.value), v.type, unitSystem);
+                          return r.unit != null ? r.value : v.value;
+                        })();
                         return (
                           <div key={v.id} className="relative">
                             {flag && (
@@ -699,7 +720,7 @@ export default function Vitals({ data, addItem, removeItem, onNav }) {
                                 <span className="text-[15px] text-salve-textMid font-montserrat">{t?.label}</span>
                                 {v.time && <span className="text-[12px] text-salve-textFaint font-montserrat">{v.time}</span>}
                                 <span className="text-[14px] font-semibold font-montserrat" style={{ color: flag ? fs.color : C.sage }}>
-                                  {displayVal}<span className="text-[13px] font-normal text-salve-textFaint ml-0.5">{t?.unit}</span>
+                                  {displayVal}<span className="text-[13px] font-normal text-salve-textFaint ml-0.5">{getDisplayUnit(t, unitSystem)}</span>
                                 </span>
                                 {flag && <span className="text-[12px] font-medium" style={{ color: fs.color }}>({flag.label})</span>}
                                 {v.notes && <span className="text-[13px] text-salve-textFaint italic">,  {v.notes}</span>}
