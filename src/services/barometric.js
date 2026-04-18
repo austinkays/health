@@ -1,6 +1,8 @@
 // Barometric pressure data via Open-Meteo (free, no API key, CORS-friendly)
 // Docs: https://open-meteo.com/en/docs
 
+import { getPref } from './preferences';
+
 const CACHE_KEY = 'salve:baro-cache';
 const CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
@@ -99,8 +101,24 @@ async function geocodeLocation(locationStr) {
 }
 
 async function getCoords(locationStr) {
-  // 1. Try browser geolocation (fastest, most accurate)
-  if (typeof navigator !== 'undefined' && navigator.geolocation) {
+  // 1. Prefer the user's profile location (synced across devices via
+  //    profiles.location). This avoids a fresh browser geolocation prompt on
+  //    every new device/browser when we already have a perfectly good
+  //    geocoded address on file.
+  if (locationStr) {
+    const geo = await geocodeLocation(locationStr);
+    if (geo) return geo;
+  }
+
+  // 2. Only call navigator.geolocation if the user has explicitly opted in to
+  //    precise device location (via the preferences.useBrowserGeolocation
+  //    toggle). Browser geolocation prompts are device-local — they cannot
+  //    be remembered across devices — so we treat them as opt-in.
+  if (
+    getPref('useBrowserGeolocation', false) === true &&
+    typeof navigator !== 'undefined' &&
+    navigator.geolocation
+  ) {
     try {
       const pos = await new Promise((resolve, reject) =>
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -110,11 +128,10 @@ async function getCoords(locationStr) {
       );
       return { lat: pos.coords.latitude, lon: pos.coords.longitude, name: null };
     } catch {
-      // User denied or timed out — fall through to geocoding
+      // User denied or timed out — no fallback left.
     }
   }
-  // 2. Fall back to geocoding the user's profile location string
-  if (locationStr) return geocodeLocation(locationStr);
+
   return null;
 }
 

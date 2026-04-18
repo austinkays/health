@@ -185,6 +185,34 @@ export const db = {
       if (error) throw error;
       return clean(data);
     },
+
+    // Per-key JSONB merge into profiles.preferences so concurrent writes
+    // to different keys don't clobber each other. patch is an object of
+    // { key: value } pairs; null values delete the key server-side.
+    async updatePreferences(patch) {
+      const { data: { user } } = await supabase.auth.getUser();
+      // Read-merge-write. profiles.preferences has a default of {} so the
+      // read is safe on fresh accounts.
+      const { data: cur, error: readErr } = await supabase
+        .from('profiles')
+        .select('preferences')
+        .eq('id', user.id)
+        .single();
+      if (readErr) throw readErr;
+      const merged = { ...(cur?.preferences || {}) };
+      for (const [k, v] of Object.entries(patch)) {
+        if (v === null || v === undefined) delete merged[k];
+        else merged[k] = v;
+      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ preferences: merged })
+        .eq('id', user.id)
+        .select('preferences')
+        .single();
+      if (error) throw error;
+      return data.preferences;
+    },
   },
 
   // Load all data at once (initial hydration), single RPC call instead of 24 parallel queries

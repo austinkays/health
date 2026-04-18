@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, Sparkles, X } from 'lucide-react';
 import { CHANGELOG, CURRENT_WHATS_NEW, CURRENT_WHATS_NEW_ID } from '../../constants/changelog';
+import { getPref, setPref } from '../../services/preferences';
 
 const STORAGE_KEY = 'salve:last-seen-whats-new';
 const LEGACY_STORAGE_KEY = 'salve:last-seen-version';
 
 function getSeenMarker() {
+  const pref = getPref('lastSeenWhatsNew', null);
+  if (pref) return pref;
   try {
     return localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY) || '';
   } catch {
@@ -18,6 +21,7 @@ export function hasUnseenChanges() {
 }
 
 export function markChangesSeen() {
+  setPref('lastSeenWhatsNew', CURRENT_WHATS_NEW_ID);
   try {
     localStorage.setItem(STORAGE_KEY, CURRENT_WHATS_NEW_ID);
     localStorage.removeItem(LEGACY_STORAGE_KEY);

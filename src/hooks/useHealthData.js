@@ -5,6 +5,7 @@ import { isPremiumActive, getAIProvider, setAIProvider } from '../services/ai';
 import { buildDemoData } from '../constants/demoData';
 import { trackEvent, EVENTS } from '../services/analytics';
 import { getBrowserTimezone } from '../utils/dates';
+import { hydratePreferences } from '../services/preferences';
 import useRealtimeSync from './useRealtimeSync';
 
 // localStorage flag: once the user has explicitly picked a timezone in Settings,
@@ -94,6 +95,7 @@ export default function useHealthData(session, demoMode = false) {
         const cached = await cache.read();
         if (cached && !cancelled) {
           setData(cached);
+          hydratePreferences(cached?.settings?.preferences);
           setLoading(false);
         }
       } catch { /* cache miss is fine */ }
@@ -103,6 +105,7 @@ export default function useHealthData(session, demoMode = false) {
         const fresh = await db.loadAll();
         if (!cancelled) {
           setData(fresh);
+          hydratePreferences(fresh?.settings?.preferences);
           // Defer cache write off the critical path, don't block rendering
           setTimeout(() => cache.write(fresh).catch(() => {}), 100);
           // If premium is no longer active (trial expired / free tier) but the
@@ -240,6 +243,7 @@ export default function useHealthData(session, demoMode = false) {
     try {
       const d = await db.loadAll();
       setData(d);
+      hydratePreferences(d?.settings?.preferences);
       cache.write(d).catch(() => {});
     } catch (err) {
       console.error('Failed to reload data:', err);

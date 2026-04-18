@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { Shield, ExternalLink, Leaf } from 'lucide-react';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
+import { getPref, setPref, subscribePreferences } from '../../services/preferences';
 
 const CONSENT_KEY = 'salve:ai-consent';
 
 export function hasAIConsent() {
+  if (getPref('aiConsent', null) === 'granted') return true;
   try {
     return localStorage.getItem(CONSENT_KEY) === 'granted';
   } catch {
@@ -14,16 +16,25 @@ export function hasAIConsent() {
 }
 
 export function revokeAIConsent() {
-  localStorage.removeItem(CONSENT_KEY);
+  setPref('aiConsent', null);
+  try { localStorage.removeItem(CONSENT_KEY); } catch { /* ignore */ }
 }
 
 export default function AIConsentGate({ children }) {
   const [consented, setConsented] = useState(() => hasAIConsent());
 
+  // Pick up consent granted on another device.
+  useEffect(() => {
+    return subscribePreferences(() => {
+      if (hasAIConsent()) setConsented(true);
+    });
+  }, []);
+
   if (consented) return children;
 
   const grant = () => {
-    localStorage.setItem(CONSENT_KEY, 'granted');
+    setPref('aiConsent', 'granted');
+    try { localStorage.setItem(CONSENT_KEY, 'granted'); } catch { /* ignore */ }
     setConsented(true);
   };
 
