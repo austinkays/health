@@ -92,13 +92,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
     || (data.cycles || []).some(c => c.notes?.includes('Oura'))
     || (data.activities || []).some(a => a.source === 'oura'), [data.vitals, data.cycles, data.activities]);
 
-  /* ── Hub tiles (with conditional devices) ── */
-  const hubTiles = useMemo(() => {
-    return HUB_TILES.filter(t => {
-      if (t.conditional && t.id === 'devices') return hasOura || hasAppleHealth;
-      return true;
-    });
-  }, [hasOura, hasAppleHealth]);
+  /* ── Hub tiles ── */
+  const hubTiles = HUB_TILES;
 
   /* ── Starred sections (user-pinned favorites) ── */
   const [starredIds, setStarredIds] = useState(() => getStarred());
@@ -528,7 +523,8 @@ export default function Dashboard({ data, interactions, onNav, onSage, onSageInt
       // Data-proven complete: auto-hide regardless of dismissal
       if (tip.id === 'add-meds' && activeMeds.length > 0) return false;
       if (tip.id === 'add-providers' && data.providers.length > 0) return false;
-      if (tip.id === 'connect-oura' && hasOura) return false;
+      if (tip.id === 'connect-oura' && (hasOura || hasAppleHealth
+        || (data.vitals || []).some(v => /^(fitbit|withings|dexcom|whoop|terra)$/.test(v.source)))) return false;
       // Theme nudge: only show after 2+ days of use AND still on default theme
       if (tip.id === 'try-a-theme') {
         try {

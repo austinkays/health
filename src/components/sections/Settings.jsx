@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Shield, Sparkles, Star, Apple, LogOut, MapPin, MessageCircle, Bug, Info, Smartphone } from 'lucide-react';
+import { Shield, Sparkles, Star, Apple, LogOut, MapPin, MessageCircle, Bug, Info, Smartphone, Link2, ChevronRight } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
 import SectionTitle from '../ui/SectionTitle';
@@ -492,7 +492,25 @@ export default function Settings({ data, updateSettings, updateItem, addItem, ad
         demoMode={demoMode}
       />
 
-      {/* ══════════════ 8. Install App ══════════════ */}
+      {/* ══════════════ 8. Connections ══════════════ */}
+      <Card>
+        <button
+          onClick={() => onNav('import')}
+          className="w-full flex items-center justify-between py-1 group"
+          aria-label="Manage Connections"
+        >
+          <div className="flex items-center gap-2.5">
+            <Link2 size={14} className="text-salve-lav flex-shrink-0" />
+            <div className="text-left">
+              <div className="text-sm font-medium text-salve-text font-montserrat">Manage Connections</div>
+              <p className="text-xs text-salve-textFaint font-montserrat m-0">Wearables, imports, and data sources</p>
+            </div>
+          </div>
+          <ChevronRight size={14} className="text-salve-textFaint group-hover:text-salve-lav transition-colors" />
+        </button>
+      </Card>
+
+      {/* ══════════════ 9. Install App ══════════════ */}
       <SectionTitle>Install App</SectionTitle>
       <Card>
         <div className="space-y-3">

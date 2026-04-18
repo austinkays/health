@@ -2,7 +2,7 @@ import {
   Moon, Sunrise, Sun, Sunset, ClipboardList, Stethoscope, ShieldAlert, FlaskConical, Syringe,
   ShieldCheck, Dna, User, Calendar, Building2, BadgeDollarSign, Scale, TrendingUp, Activity,
   Heart, AlertTriangle, AlertOctagon, CheckSquare, PlaneTakeoff, Apple, Watch, Pill, BookOpen,
-  PenLine, UserCircle, Sparkles, Newspaper, Shield, Zap, Upload, Leaf, Compass,
+  PenLine, UserCircle, Sparkles, Newspaper, Shield, Zap, Upload, Leaf, Compass, Link2,
 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 
@@ -60,9 +60,9 @@ export const STARTER_TIPS = [
     icon: Watch,
     color: 'amber',
     title: 'Connect a wearable',
-    body: 'Link your Oura Ring to automatically sync sleep, heart rate, temperature, and readiness data.',
-    action: 'settings',
-    actionLabel: 'Connect in Settings',
+    body: 'Sync sleep, heart rate, and more from Oura, Fitbit, Whoop, Withings, Dexcom, and other devices.',
+    action: 'import',
+    actionLabel: 'Connect a device',
     dismissBehavior: 'permanent',
   },
   {
@@ -70,9 +70,9 @@ export const STARTER_TIPS = [
     icon: Upload,
     color: 'lav',
     title: 'Import existing health data',
-    body: 'Bring in data from Apple Health exports, Flo period tracker, or a previous Salve backup file.',
-    action: 'settings',
-    actionLabel: 'Import in Settings',
+    body: 'Bring in data from Apple Health, Samsung, Garmin, Fitbit, Strava, and 15+ other apps.',
+    action: 'import',
+    actionLabel: 'Browse sources',
     dismissBehavior: 'snooze',
     snoozeDays: 7,
   },
@@ -165,6 +165,7 @@ export const STARRED_META = {
   aboutme:       { label: 'About Me',   icon: UserCircle },
   insights:      { label: 'Insights',   icon: Sparkles },
   news:          { label: 'News',       icon: Newspaper },
+  import:        { label: 'Connections', icon: Link2 },
 };
 
 // Hub tiles, always 6 (or 5 when no devices). Tappable → category page.
@@ -174,7 +175,7 @@ export const HUB_TILES = [
   { id: 'tracking', navId: 'hub_tracking', label: 'Tracking',  icon: Activity },
   { id: 'safety',   navId: 'hub_safety',   label: 'Safety',    icon: Shield },
   { id: 'plans',    navId: 'hub_plans',    label: 'Plans',     icon: CheckSquare },
-  { id: 'devices',  navId: 'hub_devices',  label: 'Devices',   icon: Zap, conditional: true },
+  { id: 'devices',  navId: 'import',       label: 'Connections', icon: Link2 },
 ];
 
 export const CONDITIONAL_TILES = new Set(['oura', 'apple_health']);
