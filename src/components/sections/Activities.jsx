@@ -40,6 +40,21 @@ function formatDuration(mins) {
   return remainder > 0 ? `${h}h ${remainder}m` : `${h}h`;
 }
 
+function formatPace(durationMins, dist) {
+  if (!durationMins || !dist || dist <= 0) return null;
+  const pace = durationMins / dist;
+  if (pace > 60 || pace < 2) return null;
+  const mins = Math.floor(pace);
+  const secs = Math.round((pace - mins) * 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function parseStepsFromNotes(notes) {
+  if (!notes) return 0;
+  const m = notes.match(/([\d,]+)\s*steps/i);
+  return m ? Number(m[1].replace(/,/g, '')) : 0;
+}
+
 /* ── Component ──────────────────────────────────────────── */
 
 export default function Activities({ data, addItem, updateItem, removeItem, highlightId }) {
@@ -144,6 +159,24 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
     return { days, avg };
   }, [data.activities]);
 
+  // Steps by date (for enriching Daily Activity cards)
+  const stepsMap = useMemo(() => {
+    const map = {};
+    (data.vitals || []).filter(v => v.type === 'steps').forEach(v => {
+      map[v.date] = (map[v.date] || 0) + (Number(v.value) || 0);
+    });
+    return map;
+  }, [data.vitals]);
+
+  const weeklySteps = useMemo(() => {
+    let total = 0;
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(Date.now() - i * 86400000);
+      total += stepsMap[localISODate(d)] || 0;
+    }
+    return total;
+  }, [stepsMap]);
+
   // Save
   const save = async () => {
     if (!form.type) return;
@@ -210,13 +243,21 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
       </div>
 
       {/* Weekly summary */}
-      {stats.weekCount > 0 && (
+      {(stats.weekCount > 0 || weeklySteps > 0) && (
         <Card className="!bg-salve-sage/5 !border-salve-sage/15 mb-3">
           <div className="flex items-center gap-4">
-            <div className="text-center">
-              <div className="text-[18px] font-semibold text-salve-sage font-playfair">{stats.weekCount}</div>
-              <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">This week</div>
-            </div>
+            {stats.weekCount > 0 && (
+              <div className="text-center">
+                <div className="text-[18px] font-semibold text-salve-sage font-playfair">{stats.weekCount}</div>
+                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Workouts</div>
+              </div>
+            )}
+            {weeklySteps > 0 && (
+              <div className="text-center">
+                <div className="text-[18px] font-semibold text-salve-sage font-playfair">{weeklySteps >= 1000 ? `${(weeklySteps / 1000).toFixed(1)}k` : weeklySteps}</div>
+                <div className="text-[9px] text-salve-textFaint font-montserrat uppercase tracking-wider">Steps</div>
+              </div>
+            )}
             {stats.totalMin > 0 && (
               <div className="text-center">
                 <div className="text-[18px] font-semibold text-salve-text font-playfair">{formatDuration(stats.totalMin)}</div>
@@ -422,9 +463,24 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                     {!isExpanded && (
                       <div className="flex items-center gap-2.5 text-xs text-salve-textFaint flex-wrap">
                         {a.date && <span>{fmtDate(a.date)}</span>}
-                        {a.calories && <span className="flex items-center gap-0.5"><Flame size={10} /> {a.calories} kcal</span>}
-                        {a.distance && <span className="flex items-center gap-0.5"><MapPin size={10} /> {convertDistanceForDisplay(Number(a.distance), unitSystem).value} {distLabel}</span>}
-                        {isDaily && a.notes && <span>{a.notes}</span>}
+                        {isDaily && (() => {
+                          const steps = stepsMap[a.date] || parseStepsFromNotes(a.notes);
+                          return steps > 0 ? <span className="flex items-center gap-0.5"><Footprints size={10} /> {steps.toLocaleString()} steps</span> : null;
+                        })()}
+                        {Number(a.calories) > 0 && <span className="flex items-center gap-0.5"><Flame size={10} /> {a.calories} kcal</span>}
+                        {Number(a.distance) > 0 && (
+                          <span className="flex items-center gap-0.5">
+                            <MapPin size={10} /> {convertDistanceForDisplay(Number(a.distance), unitSystem).value} {distLabel}
+                          </span>
+                        )}
+                        {!isDaily && Number(a.heart_rate_avg) > 0 && (
+                          <span className="flex items-center gap-0.5"><Heart size={10} /> {a.heart_rate_avg} bpm</span>
+                        )}
+                        {!isDaily && Number(a.distance) > 0 && Number(a.duration_minutes) > 0 && (() => {
+                          const dist = convertDistanceForDisplay(Number(a.distance), unitSystem);
+                          const pace = formatPace(Number(a.duration_minutes), dist.value);
+                          return pace ? <span className="flex items-center gap-0.5"><TrendingUp size={10} /> {pace} /{distLabel}</span> : null;
+                        })()}
                       </div>
                     )}
                   </div>
