@@ -230,22 +230,20 @@ export default function Feedback({ data, addItem, removeItem, prefill, onPrefill
                   )}
                   {isExpanded && (
                     <div className="mt-2 pt-2 border-t border-salve-border/50 flex justify-end">
-                      {del.confirmingId === item.id ? (
-                        <ConfirmBar
-                          message="Delete this feedback?"
-                          onConfirm={() => { removeItem('feedback', item.id); del.clear(); }}
-                          onCancel={del.clear}
-                        />
-                      ) : (
-                        <button
-                          onClick={() => del.confirmDelete(item.id)}
-                          className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-rose bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
-                          aria-label="Delete feedback"
-                        >
-                          <Trash2 size={10} />
-                          Delete
-                        </button>
-                      )}
+                      <button
+                        onClick={() => del.ask(item.id, item.type || 'feedback')}
+                        className="flex items-center gap-1 text-[12px] text-salve-textFaint hover:text-salve-rose bg-transparent border-none cursor-pointer font-montserrat transition-colors p-0"
+                        aria-label="Delete feedback"
+                      >
+                        <Trash2 size={10} />
+                        Delete
+                      </button>
+                      <ConfirmBar
+                        pending={del.pending}
+                        onConfirm={() => del.confirm(id => removeItem('feedback', id))}
+                        onCancel={del.cancel}
+                        itemId={item.id}
+                      />
                     </div>
                   )}
                 </Card>
