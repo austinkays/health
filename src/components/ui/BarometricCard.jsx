@@ -12,6 +12,7 @@ import Card from './Card';
 import { fmtDate, todayISO } from '../../utils/dates';
 import { fetchBarometricData, BARO_SCIENCE } from '../../services/barometric';
 import { C } from '../../constants/colors';
+import { getPref, setPref, subscribePreferences } from '../../services/preferences';
 
 /* ── Trend config ──────────────────────────────────────────── */
 
@@ -52,19 +53,36 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   const [error, setError] = useState(null);
   const [sciOpen, setSciOpen] = useState(false);
   const [logged, setLogged] = useState(false);
-  const [autoLog, setAutoLog] = useState(() => localStorage.getItem('salve:baro-autolog') === 'true');
+  const [autoLog, setAutoLog] = useState(() => {
+    const pref = getPref('baroAutoLog', null);
+    if (pref !== null) return pref === true;
+    return localStorage.getItem('salve:baro-autolog') === 'true';
+  });
   const [autoLogged, setAutoLogged] = useState(false);
-  const [displayMode, setDisplayMode] = useState(
-    () => localStorage.getItem('salve:baro-view') || defaultMode
-  );
+  const [displayMode, setDisplayMode] = useState(() => {
+    const pref = getPref('baroView', null);
+    if (pref) return pref;
+    return localStorage.getItem('salve:baro-view') || defaultMode;
+  });
 
   const setMode = (mode) => {
     setDisplayMode(mode);
+    setPref('baroView', mode);
     localStorage.setItem('salve:baro-view', mode);
   };
 
   const deltaColor =
     baro?.change24h < -1 ? C.rose : baro?.change24h > 1 ? C.amber : C.sage;
+
+  // Sync local state when preferences hydrate from the server (cross-device).
+  useEffect(() => {
+    return subscribePreferences(() => {
+      const a = getPref('baroAutoLog', null);
+      if (a !== null) setAutoLog(a === true);
+      const v = getPref('baroView', null);
+      if (v) setDisplayMode(v);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,6 +126,7 @@ export default function BarometricCard({ locationStr, onLogPressure, onAutoLogPr
   const toggleAutoLog = () => {
     const next = !autoLog;
     setAutoLog(next);
+    setPref('baroAutoLog', next);
     localStorage.setItem('salve:baro-autolog', String(next));
     if (!next) setAutoLogged(false);
   };

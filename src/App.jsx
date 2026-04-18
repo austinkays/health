@@ -37,6 +37,7 @@ import { clearDexcomTokens } from './services/dexcom';
 import { clearWithingsTokens } from './services/withings';
 import { clearFitbitTokens } from './services/fitbit';
 import { clearWhoopTokens } from './services/whoop';
+import { clearLocalPreferences, flushNow as flushPreferences } from './services/preferences';
 
 // Retry wrapper: if a code-split chunk fails to load (stale deploy),
 // do a one-time page reload so the browser fetches the new chunks.
@@ -466,6 +467,10 @@ function AppContent() {
         clearWithingsTokens();
         clearFitbitTokens();
         clearWhoopTokens();
+        // Flush any in-flight preference writes before clearing local state
+        // so the last toggle the user made on this device isn't lost.
+        flushPreferences().catch(() => {});
+        clearLocalPreferences();
         localStorage.removeItem('salve:oura-baseline');
       } else if (event === 'TOKEN_REFRESHED' && !s) {
         // Transient null during token refresh, do NOT flash auth screen.

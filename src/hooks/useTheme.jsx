@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { themes, DEFAULT_THEME, THEME_STORAGE_KEY, hexToRgbTriplet } from '../constants/themes';
 import { trackEvent, EVENTS } from '../services/analytics';
+import { getPref, setPref, subscribePreferences } from '../services/preferences';
 
 const ThemeContext = createContext();
 
@@ -32,6 +33,11 @@ function applyThemeVariables(themeId, animate = false) {
 }
 
 function readCommitted() {
+  // Preference is the cross-device source of truth. Fall back to the
+  // localStorage mirror so the inline index.html script and getActiveC()
+  // keep working unchanged.
+  const pref = getPref('theme', null);
+  if (pref) return pref;
   try { return localStorage.getItem(THEME_STORAGE_KEY) || DEFAULT_THEME; } catch { return DEFAULT_THEME; }
 }
 
@@ -102,6 +108,7 @@ export function ThemeProvider({ children }) {
   const saveTheme = useCallback((id) => {
     const target = id || themeId;
     try { localStorage.setItem(THEME_STORAGE_KEY, target); } catch { /* ignore */ }
+    setPref('theme', target);
     // Track BEFORE setState so the event fires exactly once (not inside a state
     // updater, which React Strict Mode double-invokes in development).
     if (target !== committedThemeId) {
@@ -113,6 +120,19 @@ export function ThemeProvider({ children }) {
 
   const revertTheme = useCallback(() => {
     setThemeIdInternal(committedThemeId);
+  }, [committedThemeId]);
+
+  // Hydrate from cross-device preferences: when the server's theme differs
+  // from our committed value, adopt it (and mirror to localStorage so the
+  // next cold start picks it up before preferences load).
+  useEffect(() => {
+    return subscribePreferences((prefs) => {
+      const remote = prefs?.theme;
+      if (!remote || remote === committedThemeId) return;
+      try { localStorage.setItem(THEME_STORAGE_KEY, remote); } catch { /* ignore */ }
+      setCommittedThemeId(remote);
+      setThemeIdInternal(remote);
+    });
   }, [committedThemeId]);
 
   const hasUnsavedChanges = themeId !== committedThemeId;

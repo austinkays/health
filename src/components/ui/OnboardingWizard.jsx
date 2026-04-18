@@ -23,21 +23,29 @@ import { FITBIT_ENABLED } from '../../services/fitbit';
 import { WHOOP_ENABLED } from '../../services/whoop';
 import { TERRA_ENABLED } from '../../services/terra';
 import { db } from '../../services/db';
+import { getPref, setPref } from '../../services/preferences';
 
 const ONBOARDED_KEY = 'salve:onboarded';
 const DISMISSED_TIPS_KEY = 'salve:dismissed-tips';
 
+// `onboarded` now lives in profiles.preferences so completion follows the user
+// across devices. The localStorage key is retained as a fast-read fallback
+// during the window before the server hydrate resolves, and for users carried
+// over from the pre-migration version.
 export function hasCompletedOnboarding() {
+  if (getPref('onboarded', false) === true) return true;
   try {
     return localStorage.getItem(ONBOARDED_KEY) === 'true';
   } catch { return false; }
 }
 
 export function markOnboardingComplete() {
+  setPref('onboarded', true);
   try { localStorage.setItem(ONBOARDED_KEY, 'true'); } catch { /* */ }
 }
 
 export function resetOnboarding() {
+  setPref('onboarded', null);
   try { localStorage.removeItem(ONBOARDED_KEY); } catch { /* */ }
 }
 
