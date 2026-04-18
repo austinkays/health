@@ -990,9 +990,40 @@ html.theme-crystal .border-salve-border {
   0%, 20% { background-position: -120% 0; }
   55%, 100% { background-position: 220% 0; }
 }
+
+/* Feedback response notification glow (Dashboard + Feedback section) */
+.feedback-response-notify {
+  background: rgb(var(--salve-sage) / 0.08);
+  border: 1px solid rgb(var(--salve-sage) / 0.25);
+  animation: feedbackResponseGlow 2.4s ease-in-out infinite;
+  transition: transform 0.25s ease, box-shadow 0.3s ease;
+}
+.feedback-response-notify:hover {
+  transform: translateY(-1px);
+}
+.feedback-response-card-glow {
+  animation: feedbackResponseGlow 2.4s ease-in-out infinite;
+}
+@keyframes feedbackResponseGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 8px -2px rgb(var(--salve-sage) / 0.4),
+      0 0 20px -4px rgb(var(--salve-sage) / 0.2),
+      0 0 0 1px rgb(var(--salve-sage) / 0.15) inset;
+  }
+  50% {
+    box-shadow:
+      0 0 16px -2px rgb(var(--salve-sage) / 0.6),
+      0 0 36px -6px rgb(var(--salve-sage) / 0.35),
+      0 0 0 1.5px rgb(var(--salve-sage) / 0.3) inset;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .feedback-cta-shimmer { animation: none; opacity: 0; }
   .feedback-cta:hover { transform: none; }
+  .feedback-response-notify { animation: none; }
+  .feedback-response-card-glow { animation: none; box-shadow: 0 0 0 1.5px rgb(var(--salve-sage) / 0.3) inset; }
 }
 
 
