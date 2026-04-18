@@ -456,7 +456,7 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                       <button onClick={() => startEdit(a)} className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Edit ${a.type}`}>Edit</button>
                       <button onClick={() => del.ask(a.id, a.type)} className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Delete ${a.type}`}>Delete</button>
                     </div>
-                    {del.pending === a.id && (
+                    {del.pending?.id === a.id && (
                       <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('activities', id))} onCancel={del.cancel} itemId={a.id} />
                     )}
                   </div>

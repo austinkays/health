@@ -363,7 +363,7 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
                       <button onClick={() => startEdit(g)} className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Edit ${g.gene}`}>Edit</button>
                       <button onClick={() => del.ask(g.id, g.gene)} className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Delete ${g.gene}`}>Delete</button>
                     </div>
-                    {del.pending === g.id && (
+                    {del.pending?.id === g.id && (
                       <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('genetic_results', id))} onCancel={del.cancel} itemId={g.id} />
                     )}
                   </div>

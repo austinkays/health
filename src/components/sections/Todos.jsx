@@ -314,7 +314,7 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
                         aria-label={`Delete ${t.title}`}
                       >Delete</button>
                     </div>
-                    {del.pending === t.id && (
+                    {del.pending?.id === t.id && (
                       <ConfirmBar
                         pending={del.pending}
                         onConfirm={() => del.confirm(id => removeItem('todos', id))}
