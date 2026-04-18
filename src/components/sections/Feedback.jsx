@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Send, MessageSquare, Bug, Lightbulb, Check, ChevronDown, Trash2, Leaf } from 'lucide-react';
 import Card from '../ui/Card';
 import Field from '../ui/Field';
@@ -38,6 +38,31 @@ export default function Feedback({ data, addItem, removeItem, prefill, onPrefill
   useState(() => { if (prefill) onPrefillConsumed?.(); });
 
   const items = data.feedback || [];
+
+  /* ── Track which feedback responses the user has seen ── */
+  const [seenResponses, setSeenResponses] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('salve:feedback-responses-seen') || '[]')); }
+    catch { return new Set(); }
+  });
+
+  const markSeen = useCallback((id) => {
+    setSeenResponses(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('salve:feedback-responses-seen', JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  // When a card with an unread response is expanded, mark it seen
+  useEffect(() => {
+    if (!expandedId) return;
+    const item = items.find(i => i.id === expandedId);
+    if (item?.response && !seenResponses.has(item.id)) {
+      markSeen(item.id);
+    }
+  }, [expandedId, items, seenResponses, markSeen]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -140,8 +165,9 @@ export default function Feedback({ data, addItem, removeItem, prefill, onPrefill
               const dateStr = item.created_at
                 ? new Date(item.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                 : '';
+              const hasUnreadResponse = item.response && !seenResponses.has(item.id);
               return (
-                <Card key={item.id}>
+                <Card key={item.id} className={hasUnreadResponse ? 'feedback-response-card-glow' : ''}>
                   <button
                     className="w-full flex items-start gap-2.5 bg-transparent border-none cursor-pointer p-0 text-left"
                     onClick={() => setExpandedId(isExpanded ? null : item.id)}
@@ -168,7 +194,9 @@ export default function Feedback({ data, addItem, removeItem, prefill, onPrefill
                           );
                         })()}
                         {item.response && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-salve-sage shrink-0" title="Response received" />
+                          <Badge style={{ background: `${C.sage}18`, color: C.sage, fontSize: '9px' }}>
+                            Response
+                          </Badge>
                         )}
                         {dateStr && (
                           <span className="text-[12px] text-salve-textFaint font-montserrat">{dateStr}</span>

@@ -288,7 +288,7 @@ health/
 │   │       ├── SurgicalPlanning.jsx # Pre/post-surgical planning
 │   │       ├── Insurance.jsx     # Insurance details + benefits + claims tracking (Plans/Claims tabs, running totals)
 │   │       ├── CycleTracker.jsx  # Menstrual cycle tracking: CSS grid calendar with toggleable overlays (predicted period, fertile window, ovulation, symptoms, fertility % — all persisted in localStorage `salve:cycle-overlays`); fertility % shows per-day relative estimate with HPO axis zones (peak/fertile/buffer/relative/absolute); cervical mucus logging (4 clinical levels: dry/sticky/creamy/egg-white with inline fertility hints); BBT temperature logging (decimal °F input); detectBBTShift() confirms ovulation via 3-day sustained ≥0.3°F rise above prior 6 readings; buffer zones (2-day safety margin before fertile window); edge case alerts (short cycles <21 days, peak mucus detection, BBT shift confirmation/missing); stats card (current day, avg length, days until next); quick-log (tap calendar day); filter pills (all/period/mucus/BBT/symptoms/fertility); cycle phase detection; predictions (count-backward rule: avgLength - 14); Oura Ring sync button (syncs last 30 days of temperature data as BBT entries, respects manual override); Flo GDPR import with dedup; deep-link + highlight support
-│   │       ├── Activities.jsx     # Workouts + daily activity: weekly summary stats, filter pills (All/Workouts/Daily), type-colored cards, duration/calories/distance/HR details, manual entry form, Apple Health import data home, source badges (Oura/Apple Health/Manual) + source filter pills
+│   │       ├── Activities.jsx     # Workouts + daily activity: narrative "Your Week" dashboard (total active min vs 150min WHO goal, weekly distance with real-world equivalences, best day callout), steps area chart with 8k daily goal reference line, active minutes + distance stat grid, exercise↔health correlation card (from computeCorrelations exercise insights), Sage AI trend analysis button (fetchActivityTrend, lite tier, consent-gated), personal best "PB" badges on standout activities (≥3 of same type), relativeDate display (Today/Yesterday/weekday), filter pills (All/Workouts/Daily), type-colored cards, duration/calories/distance/HR details, manual entry form, source badges (Oura/Apple Health/Manual) + source filter pills
 │   │       ├── OuraRing.jsx       # Dedicated Oura Ring page: live auto-updating data (auto-fetch on mount + 5min periodic sync), overview stat cards (sleep hrs, readiness score, resting HR, temp deviation), sleep stage breakdown bars (deep/REM/light/awake), readiness contributors grid, 7-day sleep + readiness history bar charts, trend indicators, manual sync button, settings link, green pulse dot for live sync status
 │   │       ├── FitbitPage.jsx     # Dedicated Fitbit page: live auto-updating data (5min periodic sync), overview stat cards (resting HR, HRV, SpO2, VO2 Max, AZM, skin temp), trend indicators, educational tooltips explaining each metric, devices + profile + battery status, manual sync button
 │   │       ├── Genetics.jsx       # Pharmacogenomics: gene results with phenotype badges, affected drug cross-reference, auto-populated from pgx.js lookup, clipboard paste import, drug-gene conflict highlighting against current meds
@@ -499,7 +499,7 @@ The app uses a **tiered AI provider system** with smart model routing per featur
 **Smart model routing** (client-side in `ai.js`):
 | Tier | Features | Gemini Model | Claude Model |
 |------|----------|-------------|-------------|
-| Lite | insight, labInterpret, vitalsTrend, geneticExplanation, crossReactivity | Flash-Lite | Haiku |
+| Lite | insight, labInterpret, vitalsTrend, activityTrend, geneticExplanation, crossReactivity | Flash-Lite | Haiku |
 | Flash | chat, news, appointmentPrep, resources, costOptimization, journalPatterns, cyclePatterns, everything else | Flash | Sonnet |
 | Pro | connections, careGapDetect, appealDraft, immunizationSchedule, monthlySummary, houseConsultation | Pro | Opus |
 
@@ -628,7 +628,8 @@ Two additional Vercel serverless functions proxy free government medical APIs. B
 5. **AI chat panel** - multi-turn conversation with health context as system prompt
 6. **Lab interpretation** - contextual explanation of abnormal lab results using patient profile
 7. **Vitals trend analysis** - analyzes last 20 vitals readings for trend direction, patterns, and correlations with conditions/meds
-8. **Appointment preparation** - generates personalized questions based on provider specialty, active conditions, recent vitals/labs, and journal
+8. **Activity trend analysis** - analyzes recent workouts and step data for movement patterns, exercise↔health correlations, and gentle motivational insights (ED-sensitive — never comments on weight loss or calorie deficits)
+9. **Appointment preparation** - generates personalized questions based on provider specialty, active conditions, recent vitals/labs, and journal
 9. **Care gap suggestions** - analyzes profile against clinical guidelines (USPSTF, CDC) to suggest missing preventive screenings
 10. **Journal pattern recognition** - identifies recurring symptoms, mood-severity correlations, triggers across journal entries
 11. **Immunization schedule review** - checks immunization records against CDC/ACIP schedules, flags overdue boosters and contraindications

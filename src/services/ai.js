@@ -16,7 +16,7 @@ export function setAIProvider(provider) {
   localStorage.setItem(PROVIDER_KEY, provider);
 }
 
-const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'geneticExplanation', 'crossReactivity']);
+const LITE_FEATURES = new Set(['insight', 'labInterpret', 'vitalsTrend', 'activityTrend', 'geneticExplanation', 'crossReactivity']);
 const PRO_FEATURES = new Set(['connections', 'careGapDetect', 'journalPatterns', 'cyclePatterns', 'appealDraft', 'costOptimization', 'immunizationSchedule']);
 const ADMIN_FEATURES = new Set(['houseConsultation']);
 const FREE_BLOCKED_FEATURES = new Set(['connections', 'careGapDetect', 'appealDraft', 'immunizationSchedule', 'houseConsultation', 'monthlySummary', 'toolUse']);
@@ -524,6 +524,17 @@ export async function fetchVitalsTrend(vitalsData, profileText) {
     [{ role: 'user', content: `Analyze these vitals trends:\n${desc}` }],
     'vitalsTrend', profileText,
     1200, false, 'vitalsTrend'
+  );
+}
+
+export async function fetchActivityTrend(activityData, profileText) {
+  const lines = [];
+  if (activityData.activities?.length) lines.push('Recent workouts:', ...activityData.activities.map(a => `${a.type} on ${a.date}: ${a.duration || '?'}min${a.calories ? ', ' + a.calories + ' cal' : ''}${a.distance ? ', ' + a.distance + 'm' : ''}${a.hr ? ', avg HR ' + a.hr : ''}${a.notes ? ' (' + a.notes + ')' : ''}`));
+  if (activityData.steps?.length) lines.push('Daily steps:', ...activityData.steps.map(s => `${s.date}: ${s.steps} steps`));
+  return callAPI(
+    [{ role: 'user', content: `Analyze these activity trends:\n${lines.join('\n')}` }],
+    'activityTrend', profileText,
+    1200, false, 'activityTrend'
   );
 }
 
