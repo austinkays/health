@@ -256,26 +256,26 @@ export default function Pharmacies({ data, addItem, updateItem, removeItem, high
                   </div>
                 )}
 
-                <div className="flex gap-2.5 mt-2.5 flex-wrap">
+                <div className="flex gap-2 mt-3 flex-wrap">
                   {p._saved ? (
                     <>
                       <button
                         onClick={() => togglePreferred(p)}
                         aria-label={p.is_preferred ? 'Remove preferred' : 'Set as preferred'}
-                        className="bg-transparent border-none cursor-pointer text-salve-amber text-xs font-montserrat p-0 flex items-center gap-1"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-amber/10 text-salve-amber text-xs font-semibold font-montserrat border border-salve-amber/20 cursor-pointer hover:bg-salve-amber/20 transition-colors"
                       >
-                        <Star size={12} className={p.is_preferred ? 'fill-salve-amber' : ''} />
+                        <Star size={13} className={p.is_preferred ? 'fill-salve-amber' : ''} />
                         {p.is_preferred ? 'Preferred' : 'Set preferred'}
                       </button>
-                      <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit pharmacy" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-                      <button onClick={() => del.ask(p.id, p.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                      <button onClick={() => { setForm(p); setEditId(p.id); setSubView('form'); }} aria-label="Edit pharmacy" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors"><Edit size={13} /> Edit</button>
+                      <button onClick={() => del.ask(p.id, p.name)} aria-label="Delete pharmacy" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors"><Trash2 size={13} /> Delete</button>
                     </>
                   ) : (
                     <button
                       onClick={() => promotePharmacy(p.name)}
-                      className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors"
                     >
-                      <ArrowUpRight size={12} /> Save &amp; Add Details
+                      <ArrowUpRight size={13} /> Save &amp; Add Details
                     </button>
                   )}
                 </div>

@@ -895,9 +895,9 @@ export default function Medications({ data, addItem, updateItem, removeItem, int
 
       {renderScheduleBlock(m)}
 
-      <div className="flex gap-2.5 mt-2.5 flex-wrap">
-        <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-        <button onClick={() => del.ask(m.id, m.name)} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+      <div className="flex gap-2 mt-3 flex-wrap">
+        <button onClick={() => { setForm(m); setEditId(m.id); setSubView('form'); }} aria-label="Edit medication" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors"><Edit size={13} /> Edit</button>
+        <button onClick={() => del.ask(m.id, m.name)} aria-label="Delete medication" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors"><Trash2 size={13} /> Delete</button>
         <a href={dailyMedUrl(m.fda_data?.brand_name || m.fda_data?.generic_name || m.display_name || m.name, m.rxcui, m.fda_data?.spl_set_id)} target="_blank" rel="noopener noreferrer" aria-label={`View ${m.display_name || m.name} on DailyMed (opens in new tab)`} className="text-salve-sage text-xs font-montserrat flex items-center gap-1 no-underline hover:underline">
           <ExternalLink size={11} aria-hidden="true" /> DailyMed
         </a>

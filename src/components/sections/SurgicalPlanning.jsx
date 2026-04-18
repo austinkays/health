@@ -170,9 +170,9 @@ export default function SurgicalPlanning({ data, addItem, updateItem, removeItem
                     </div>
                   )}
 
-                  <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => openForm(plan)} aria-label="Edit surgical plan" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1"><Edit size={12} /> Edit</button>
-                    <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1"><Trash2 size={12} /> Delete</button>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => openForm(plan)} aria-label="Edit surgical plan" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors"><Edit size={13} /> Edit</button>
+                    <button onClick={() => del.ask(plan.id, plan.facility || 'this plan')} aria-label="Delete surgical plan" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors"><Trash2 size={13} /> Delete</button>
                   </div>
                 </div>
               </div></div>

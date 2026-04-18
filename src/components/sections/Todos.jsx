@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, CheckSquare, ChevronDown, RefreshCw } from 'lucide-react';
+import { Plus, CheckSquare, ChevronDown, RefreshCw, Edit, Trash2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -302,17 +302,17 @@ export default function Todos({ data, addItem, updateItem, removeItem, highlight
                       <div className="text-[12px] text-salve-sage mt-1">Completed {fmtDate(t.completed_at)}</div>
                     )}
 
-                    <div className="flex gap-2.5 mt-2.5">
+                    <div className="flex gap-2 mt-3">
                       <button
                         onClick={() => startEdit(t)}
-                        className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors"
                         aria-label={`Edit ${t.title}`}
-                      >Edit</button>
+                      ><Edit size={13} /> Edit</button>
                       <button
                         onClick={() => del.ask(t.id, t.title)}
-                        className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline"
+                        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors"
                         aria-label={`Delete ${t.title}`}
-                      >Delete</button>
+                      ><Trash2 size={13} /> Delete</button>
                     </div>
                     {del.pending?.id === t.id && (
                       <ConfirmBar

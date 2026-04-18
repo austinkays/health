@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Apple, Footprints, Zap, TrendingUp, Watch } from 'lucide-react';
+import { Plus, Activity, ChevronDown, Clock, Flame, Heart, MapPin, Apple, Footprints, Zap, TrendingUp, Watch, Edit, Trash2 } from 'lucide-react';
 import { OuraIcon } from '../ui/OuraIcon';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
@@ -462,9 +462,9 @@ export default function Activities({ data, addItem, updateItem, removeItem, high
                     {a.source && <div className="text-[12px] text-salve-textFaint mb-1">Source: {a.source}</div>}
                     {a.notes && <div className="text-xs text-salve-textFaint leading-relaxed mb-1">{a.notes}</div>}
 
-                    <div className="flex gap-2.5 mt-2.5">
-                      <button onClick={() => startEdit(a)} className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Edit ${a.type}`}>Edit</button>
-                      <button onClick={() => del.ask(a.id, a.type)} className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Delete ${a.type}`}>Delete</button>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => startEdit(a)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors" aria-label={`Edit ${a.type}`}><Edit size={13} /> Edit</button>
+                      <button onClick={() => del.ask(a.id, a.type)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors" aria-label={`Delete ${a.type}`}><Trash2 size={13} /> Delete</button>
                     </div>
                     {del.pending?.id === a.id && (
                       <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('activities', id))} onCancel={del.cancel} itemId={a.id} />

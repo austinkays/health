@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Dna, ChevronDown, Clipboard, Zap, Leaf, Loader2 } from 'lucide-react';
+import { Plus, Dna, ChevronDown, Clipboard, Zap, Leaf, Loader2, Edit, Trash2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -359,9 +359,9 @@ export default function Genetics({ data, addItem, updateItem, removeItem, highli
                       </div>
                     )}
 
-                    <div className="flex gap-2.5 mt-2.5">
-                      <button onClick={() => startEdit(g)} className="text-xs text-salve-lav bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Edit ${g.gene}`}>Edit</button>
-                      <button onClick={() => del.ask(g.id, g.gene)} className="text-xs text-salve-rose bg-transparent border-none cursor-pointer font-montserrat hover:underline" aria-label={`Delete ${g.gene}`}>Delete</button>
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => startEdit(g)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors" aria-label={`Edit ${g.gene}`}><Edit size={13} /> Edit</button>
+                      <button onClick={() => del.ask(g.id, g.gene)} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors" aria-label={`Delete ${g.gene}`}><Trash2 size={13} /> Delete</button>
                     </div>
                     {del.pending?.id === g.id && (
                       <ConfirmBar pending={del.pending} onConfirm={() => del.confirm(id => removeItem('genetic_results', id))} onCancel={del.cancel} itemId={g.id} />

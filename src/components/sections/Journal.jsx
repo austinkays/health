@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff, Calendar, Activity, Zap, Heart, Moon, Pill, Wind } from 'lucide-react';
+import { Plus, Check, BookOpen, Sparkles, Loader, ChevronDown, X, RefreshCw, Link2, Mic, MicOff, Calendar, Activity, Zap, Heart, Moon, Pill, Wind, Edit, Trash2 } from 'lucide-react';
 import useConfirmDelete from '../../hooks/useConfirmDelete';
 import Card from '../ui/Card';
 import Button from '../ui/Button';
@@ -1173,9 +1173,9 @@ export default function Journal({ data, addItem, updateItem, removeItem, highlig
                       ))}
                     </div>
                   )}
-                  <div className="flex gap-2.5 mt-2.5">
-                    <button onClick={() => { setForm({ ...EMPTY_JOURNAL, ...e, symptoms: e.symptoms || [], linked_conditions: e.linked_conditions || [], linked_meds: e.linked_meds || [], gratitude: e.gratitude || '', triggers: e.triggers || '', interventions: e.interventions || '', adherence: e.adherence || {} }); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="bg-transparent border-none cursor-pointer text-salve-lav text-xs font-montserrat p-0 flex items-center gap-1">Edit</button>
-                    <button onClick={() => del.ask(e.id, e.title || 'entry')} className="bg-transparent border-none cursor-pointer text-salve-textFaint text-xs font-montserrat p-0 flex items-center gap-1">Delete</button>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={() => { setForm({ ...EMPTY_JOURNAL, ...e, symptoms: e.symptoms || [], linked_conditions: e.linked_conditions || [], linked_meds: e.linked_meds || [], gratitude: e.gratitude || '', triggers: e.triggers || '', interventions: e.interventions || '', adherence: e.adherence || {} }); setEditId(e.id); setSubView('form'); }} aria-label="Edit journal entry" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 bg-salve-lav/10 text-salve-lav text-xs font-semibold font-montserrat border border-salve-lav/20 cursor-pointer hover:bg-salve-lav/20 transition-colors"><Edit size={13} /> Edit</button>
+                    <button onClick={() => del.ask(e.id, e.title || 'entry')} aria-label="Delete journal entry" className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-salve-textFaint text-xs font-medium font-montserrat border border-salve-border cursor-pointer hover:bg-salve-rose/10 hover:text-salve-rose hover:border-salve-rose/25 transition-colors"><Trash2 size={13} /> Delete</button>
                   </div>
                 </div>
               </div></div>
