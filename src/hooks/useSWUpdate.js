@@ -111,6 +111,9 @@ export default function useSWUpdate() {
     function silentReload() {
       // SKIP_WAITING + location.reload() from vite-plugin-pwa.
       updateServiceWorker(true);
+      // Fallback: if the waiting SW was already evicted and
+      // controllerchange never fires, force a plain reload.
+      setTimeout(() => window.location.reload(), 2000);
     }
 
     // ── Opportunity 1: tab becomes hidden ──
@@ -174,7 +177,14 @@ export default function useSWUpdate() {
     // see a prompt. Bigger updates are communicated via WhatsNewModal
     // on the next page load, which is now automatic.
     needRefresh: showBanner,
-    updateNow: () => updateServiceWorker(true),
+    updateNow: () => {
+      updateServiceWorker(true);
+      // Fallback: if updateServiceWorker didn't trigger a reload within
+      // 2 seconds (e.g. the waiting SW was already evicted, or the
+      // controllerchange event never fires), force a plain reload so
+      // the user isn't stuck tapping a dead button.
+      setTimeout(() => window.location.reload(), 2000);
+    },
     dismissUpdate: () => {
       setShowBanner(false);
       // Intentionally NOT clearing needRefresh — if the user dismisses
